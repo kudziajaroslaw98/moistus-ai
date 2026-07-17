@@ -49,7 +49,7 @@ const TREE_NODE_SPACING = 90;
 const TREE_LAYER_SPACING = 150;
 const RADIAL_NODE_SPACING = 100;
 const RADIAL_RADIUS = 180;
-const FORCE_NODE_SPACING = 140;
+const FORCE_NODE_SPACING = 110;
 
 const LAYOUT_PRESET_DEFINITIONS: readonly LayoutPresetDefinition[] = [
 	{
@@ -102,7 +102,7 @@ const LAYOUT_PRESET_DEFINITIONS: readonly LayoutPresetDefinition[] = [
 	{
 		id: 'radial-tree',
 		label: 'Radial Tree',
-		description: 'Radial tree layout around a root',
+		description: 'Balloon tree layout around graph hubs',
 		algorithm: 'org.eclipse.elk.radial',
 		curveType: 'linear',
 		edgeLabelStrategy: 'path',
@@ -128,9 +128,12 @@ const LAYOUT_PRESET_DEFINITIONS: readonly LayoutPresetDefinition[] = [
 			'elk.spacing.nodeNode': String(
 				Math.max(config.nodeSpacing, FORCE_NODE_SPACING)
 			),
-			'elk.spacing.componentComponent': '120',
+			'elk.spacing.componentComponent': '220',
 			'elk.padding': DEFAULT_GRAPH_PADDING,
-			'elk.force.iterations': '500',
+			'elk.force.model': 'EADES',
+			'elk.force.iterations': '350',
+			'elk.force.repulsion': '4',
+			'elk.aspectRatio': '1.6',
 			'elk.randomSeed': '1',
 			'elk.separateConnectedComponents': 'true',
 		}),

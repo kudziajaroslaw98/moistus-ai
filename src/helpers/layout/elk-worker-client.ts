@@ -13,6 +13,13 @@ import type {
 	LayoutResult,
 } from '@/types/layout-types';
 import { convertFromElkGraph, convertToElkGraph } from './elk-converter';
+import {
+	hasUsableLayoutPositions,
+	normalizeExperimentalEdges,
+	runCompactForestFallback,
+	runDirectionalForestLayout,
+	runRadialBalloonLayout,
+} from './experimental-forest-layout';
 
 // ELK instance singleton - reused across layout calls
 let elkInstance: ELK | null = null;
@@ -96,8 +103,9 @@ export function terminateElk(): void {
 }
 
 /**
- * Run ELK layout algorithm on the provided graph
- * This executes in a Web Worker to avoid blocking the main thread
+ * Run the selected full-layout algorithm on the provided graph.
+ * Standard and force presets execute in the ELK worker; experimental trees use
+ * the iterative, cycle-safe placement helper on the client.
  */
 export async function runElkLayout(params: ElkLayoutParams): Promise<LayoutResult> {
 	const {
@@ -123,19 +131,8 @@ export async function runElkLayout(params: ElkLayoutParams): Promise<LayoutResul
 		return { nodes, edges };
 	}
 
-	// Initialize ELK
-	const elk = await initializeElk();
-
-	// Convert to ELK format
-	const elkGraph = convertToElkGraph(nodesToLayout.nodes, nodesToLayout.edges, config);
-
 	try {
-		// Run layout in Web Worker
-		const layoutedGraph = await elk.layout(elkGraph);
-
-		// Convert back to React Flow format
-		const result = convertFromElkGraph(
-			layoutedGraph,
+		const result = await runLayoutForPreset(
 			nodesToLayout.nodes,
 			nodesToLayout.edges,
 			config
@@ -175,6 +172,64 @@ export async function runElkLayout(params: ElkLayoutParams): Promise<LayoutResul
 		}
 		throw error;
 	}
+}
+
+async function runLayoutForPreset(
+	nodes: AppNode[],
+	edges: AppEdge[],
+	config: LayoutConfig
+): Promise<LayoutResult> {
+	switch (config.presetId) {
+		case 'tree-right':
+			return runDirectionalForestLayout(nodes, edges, config, 'RIGHT');
+		case 'tree-down':
+			return runDirectionalForestLayout(nodes, edges, config, 'DOWN');
+		case 'radial-tree':
+			return runRadialBalloonLayout(nodes, edges, config);
+		case 'organic-spread':
+			return runOrganicLayoutWithFallback(nodes, edges, config);
+		default:
+			return runElkAlgorithmLayout(nodes, edges, config);
+	}
+}
+
+type OrganicLayoutRunner = (
+	nodes: AppNode[],
+	edges: AppEdge[],
+	config: LayoutConfig
+) => Promise<LayoutResult>;
+
+export async function runOrganicLayoutWithFallback(
+	nodes: AppNode[],
+	edges: AppEdge[],
+	config: LayoutConfig,
+	runForceLayout: OrganicLayoutRunner = runElkAlgorithmLayout
+): Promise<LayoutResult> {
+	try {
+		const result = await runForceLayout(nodes, edges, config);
+		if (hasUsableLayoutPositions(result.nodes, nodes.map((node) => node.id))) {
+			return {
+				...result,
+				edges: normalizeExperimentalEdges(result.edges),
+			};
+		}
+	} catch (error) {
+		console.warn('Organic layout failed; using compact fallback.', error);
+	}
+
+	return runCompactForestFallback(nodes, edges, config);
+}
+
+async function runElkAlgorithmLayout(
+	nodes: AppNode[],
+	edges: AppEdge[],
+	config: LayoutConfig
+): Promise<LayoutResult> {
+	const elk = await initializeElk();
+	const elkGraph = convertToElkGraph(nodes, edges, config);
+	const layoutedGraph = await elk.layout(elkGraph);
+
+	return convertFromElkGraph(layoutedGraph, nodes, edges, config);
 }
 
 /**

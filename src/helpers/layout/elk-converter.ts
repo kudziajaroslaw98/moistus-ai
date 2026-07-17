@@ -23,14 +23,12 @@ import {
 	buildLayoutOptions,
 	getRecommendedCurveType,
 	usesElkEdgeLabels,
-	usesRadialLayout,
 } from './elk-config';
 import { measureElkEdgeLabel } from './elk-edge-label-measurement';
 
 // Default dimensions for nodes without explicit size
 const DEFAULT_NODE_WIDTH = 320;
 const DEFAULT_NODE_HEIGHT = 80;
-const RADIAL_SYNTHETIC_ROOT_BASE_ID = '__moistus_radial_root__';
 
 /**
  * Layout data extracted from ELK edge sections
@@ -46,11 +44,6 @@ interface ElkEdgeLayoutData {
 interface Point2D {
 	x: number;
 	y: number;
-}
-
-interface RadialAdjacencyEntry {
-	nodeId: string;
-	edge: AppEdge;
 }
 
 function getEdgeLabelText(edge: AppEdge): string | null {
@@ -304,297 +297,8 @@ export function convertToElkGraph(
 	});
 
 	elkGraph.edges = rootEdges.map((e) => convertEdgeToElk(e, includeEdgeLabels));
-	if (usesRadialLayout(config)) {
-		prepareRadialTreeLayoutGraph(elkGraph, regularNodes, edges);
-	}
 
 	return elkGraph;
-}
-
-function prepareRadialTreeLayoutGraph(
-	elkGraph: ElkNode,
-	nodes: AppNode[],
-	edges: AppEdge[]
-): void {
-	const nodeIds = nodes.map((node) => node.id);
-	const nodeIdSet = new Set(nodeIds);
-	if (nodeIdSet.size < 2) {
-		return;
-	}
-
-	const radialEdges = edges.filter((edge) => isUsableRadialEdge(edge, nodeIdSet));
-	const components = findWeakComponents(nodeIds, radialEdges, nodeIdSet);
-	const componentRoots = findRadialComponentRoots(
-		components,
-		radialEdges,
-		nodeIdSet
-	);
-	const syntheticRootId =
-		components.length > 1
-			? getUniqueId(nodeIdSet, RADIAL_SYNTHETIC_ROOT_BASE_ID)
-			: null;
-	const preferredRootId = syntheticRootId ?? componentRoots[0];
-	if (!preferredRootId) {
-		return;
-	}
-
-	if (syntheticRootId) {
-		elkGraph.children = [
-			{
-				id: syntheticRootId,
-				width: 1,
-				height: 1,
-			},
-			...(elkGraph.children ?? []),
-		];
-	}
-
-	elkGraph.edges = buildRadialSpanningTreeEdges({
-		nodeIds,
-		edges: radialEdges,
-		componentRoots,
-		syntheticRootId,
-	});
-	elkGraph.layoutOptions = {
-		...elkGraph.layoutOptions,
-		'elk.processingOrder.rootSelection': 'FIXED',
-		'elk.processingOrder.preferredRoot': preferredRootId,
-	};
-}
-
-function isUsableRadialEdge(edge: AppEdge, nodeIdSet: Set<string>): boolean {
-	return (
-		edge.source !== edge.target &&
-		nodeIdSet.has(edge.source) &&
-		nodeIdSet.has(edge.target)
-	);
-}
-
-function findRadialComponentRoots(
-	components: string[][],
-	edges: AppEdge[],
-	nodeIdSet: Set<string>
-): string[] {
-	const nodeIds = Array.from(nodeIdSet);
-	const incomingCounts = new Map(nodeIds.map((nodeId) => [nodeId, 0]));
-
-	for (const edge of edges) {
-		if (!isUsableRadialEdge(edge, nodeIdSet)) {
-			continue;
-		}
-
-		incomingCounts.set(edge.target, (incomingCounts.get(edge.target) ?? 0) + 1);
-	}
-
-	return components.flatMap((component) => {
-		const root =
-			component.find(
-				(nodeId) => (incomingCounts.get(nodeId) ?? 0) === 0
-			) ?? component[0];
-
-		return root ? [root] : [];
-	});
-}
-
-function buildRadialSpanningTreeEdges({
-	nodeIds,
-	edges,
-	componentRoots,
-	syntheticRootId,
-}: {
-	nodeIds: string[];
-	edges: AppEdge[];
-	componentRoots: string[];
-	syntheticRootId: string | null;
-}): ElkEdge[] {
-	const adjacency = buildRadialAdjacency(nodeIds, edges);
-	const existingEdgeIds = new Set(edges.map((edge) => edge.id));
-	const usedElkEdgeIds = new Set<string>();
-	const emittedOriginalEdgeIds = new Set<string>();
-	const treeEdges: ElkEdge[] = [];
-	const visited = new Set<string>();
-
-	for (const [componentIndex, rootId] of componentRoots.entries()) {
-		if (syntheticRootId) {
-			treeEdges.push({
-				id: getReservedUniqueId(
-					usedElkEdgeIds,
-					existingEdgeIds,
-					`${syntheticRootId}:edge:${componentIndex}`
-				),
-				sources: [syntheticRootId],
-				targets: [rootId],
-			});
-		}
-
-		if (visited.has(rootId)) {
-			continue;
-		}
-
-		visited.add(rootId);
-		const queue = [rootId];
-
-		for (let queueIndex = 0; queueIndex < queue.length; queueIndex += 1) {
-			const sourceId = queue[queueIndex];
-			if (!sourceId) {
-				continue;
-			}
-
-			for (const { nodeId: targetId, edge } of adjacency.get(sourceId) ?? []) {
-				if (visited.has(targetId)) {
-					continue;
-				}
-
-				visited.add(targetId);
-				queue.push(targetId);
-				treeEdges.push(
-					createRadialTreeEdge({
-						sourceId,
-						targetId,
-						edge,
-						usedElkEdgeIds,
-						emittedOriginalEdgeIds,
-						existingEdgeIds,
-					})
-				);
-			}
-		}
-	}
-
-	return treeEdges;
-}
-
-function buildRadialAdjacency(
-	nodeIds: string[],
-	edges: AppEdge[]
-): Map<string, RadialAdjacencyEntry[]> {
-	const adjacency = new Map(
-		nodeIds.map((nodeId) => [nodeId, [] as RadialAdjacencyEntry[]])
-	);
-
-	for (const edge of edges) {
-		adjacency.get(edge.source)?.push({ nodeId: edge.target, edge });
-		adjacency.get(edge.target)?.push({ nodeId: edge.source, edge });
-	}
-
-	return adjacency;
-}
-
-function createRadialTreeEdge({
-	sourceId,
-	targetId,
-	edge,
-	usedElkEdgeIds,
-	emittedOriginalEdgeIds,
-	existingEdgeIds,
-}: {
-	sourceId: string;
-	targetId: string;
-	edge: AppEdge;
-	usedElkEdgeIds: Set<string>;
-	emittedOriginalEdgeIds: Set<string>;
-	existingEdgeIds: Set<string>;
-}): ElkEdge {
-	if (
-		edge.source === sourceId &&
-		edge.target === targetId &&
-		!emittedOriginalEdgeIds.has(edge.id)
-	) {
-		emittedOriginalEdgeIds.add(edge.id);
-		usedElkEdgeIds.add(edge.id);
-
-		return convertEdgeToElk(edge, false);
-	}
-
-	return {
-		id: getReservedUniqueId(
-			usedElkEdgeIds,
-			existingEdgeIds,
-			`${RADIAL_SYNTHETIC_ROOT_BASE_ID}:tree:${sourceId}:${targetId}`
-		),
-		sources: [sourceId],
-		targets: [targetId],
-	};
-}
-
-function getReservedUniqueId(
-	reservedIds: Set<string>,
-	existingIds: Set<string>,
-	preferredId: string
-): string {
-	const id = getUniqueId(
-		new Set([...reservedIds, ...existingIds]),
-		preferredId
-	);
-	reservedIds.add(id);
-
-	return id;
-}
-
-function findWeakComponents(
-	nodeIds: string[],
-	edges: AppEdge[],
-	nodeIdSet: Set<string>
-): string[][] {
-	const adjacency = new Map(nodeIds.map((nodeId) => [nodeId, [] as string[]]));
-
-	for (const edge of edges) {
-		if (!isUsableRadialEdge(edge, nodeIdSet)) {
-			continue;
-		}
-
-		adjacency.get(edge.source)?.push(edge.target);
-		adjacency.get(edge.target)?.push(edge.source);
-	}
-
-	const visited = new Set<string>();
-	const components: string[][] = [];
-
-	for (const nodeId of nodeIds) {
-		if (visited.has(nodeId)) {
-			continue;
-		}
-
-		const component: string[] = [];
-		const queue = [nodeId];
-		visited.add(nodeId);
-
-		for (let queueIndex = 0; queueIndex < queue.length; queueIndex += 1) {
-			const currentNodeId = queue[queueIndex];
-			if (!currentNodeId) {
-				continue;
-			}
-
-			component.push(currentNodeId);
-			for (const neighborId of adjacency.get(currentNodeId) ?? []) {
-				if (visited.has(neighborId)) {
-					continue;
-				}
-
-				visited.add(neighborId);
-				queue.push(neighborId);
-			}
-		}
-
-		components.push(component);
-	}
-
-	return components;
-}
-
-function getUniqueId(existingIds: Set<string>, preferredId: string): string {
-	if (!existingIds.has(preferredId)) {
-		return preferredId;
-	}
-
-	let suffix = 1;
-	let candidate = `${preferredId}-${suffix}`;
-	while (existingIds.has(candidate)) {
-		suffix += 1;
-		candidate = `${preferredId}-${suffix}`;
-	}
-
-	return candidate;
 }
 
 /**
@@ -677,6 +381,26 @@ export function convertFromElkGraph(
 		// Safely handle edges with missing data by providing defaults
 		const edgeData = edge.data ?? ({} as AppEdge['data']);
 		const edgeMetadata = edgeData?.metadata ?? {};
+
+		if (!includeElkLabels) {
+			return {
+				...edge,
+				type: 'waypointEdge' as const,
+				data: {
+					...edgeData,
+					metadata: {
+						...edgeMetadata,
+						pathType: 'waypoint' as const,
+						waypoints: undefined,
+						curveType: 'linear' as const,
+						routingStyle: 'custom-layout' as const,
+						sourceAnchor: undefined,
+						targetAnchor: undefined,
+						elkLabel: undefined,
+					},
+				},
+			} as AppEdge;
+		}
 
 		// If no layout data from ELK, use floating edge
 		if (

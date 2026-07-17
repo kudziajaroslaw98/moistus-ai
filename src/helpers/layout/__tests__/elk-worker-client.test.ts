@@ -1,6 +1,6 @@
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import type { LayoutResult } from '@/types/layout-types';
+import type { LayoutConfig, LayoutResult } from '@/types/layout-types';
 
 jest.mock('@/helpers/generate-uuid', () => jest.fn(() => 'mock-uuid'));
 
@@ -383,5 +383,53 @@ describe('elk-worker-client local layout helpers', () => {
 		expect(byEdgeId.get('cd')?.data?.metadata).toEqual({
 			...allEdges[2].data?.metadata,
 		});
+	});
+
+	it('falls back to compact custom geometry when organic ELK output is collapsed', async () => {
+		const nodes = Array.from({ length: 81 }, (_, index) =>
+			createNode(`node-${index}`, 0, 0)
+		);
+		const edges = nodes.slice(1).map((node, index) =>
+			createEdge(`edge-${index}`, nodes[index]!.id, node.id, {
+				routingStyle: 'elk',
+				elkLabel: {
+					x: 10,
+					y: 20,
+					width: 80,
+					height: 24,
+					centerX: 50,
+					centerY: 32,
+				},
+			})
+		);
+		const config: LayoutConfig = {
+			direction: 'LEFT_RIGHT',
+			nodeSpacing: 50,
+			layerSpacing: 100,
+			animateTransition: true,
+			presetId: 'organic-spread',
+		};
+
+		const result = await workerClient.runOrganicLayoutWithFallback(
+			nodes,
+			edges,
+			config,
+			async () => ({
+				nodes: nodes.map((node) => ({ ...node, position: { x: 0, y: 0 } })),
+				edges,
+			})
+		);
+		const positions = new Set(
+			result.nodes.map(
+				(node) => `${Math.round(node.position.x)}:${Math.round(node.position.y)}`
+			)
+		);
+
+		expect(positions.size).toBe(nodes.length);
+		expect(result.edges[0]?.data?.metadata).toMatchObject({
+			curveType: 'linear',
+			routingStyle: 'custom-layout',
+		});
+		expect(result.edges[0]?.data?.metadata?.elkLabel).toBeUndefined();
 	});
 });

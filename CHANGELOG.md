@@ -5,6 +5,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-07-17]
+
+### Fixed
+
+- **layout/robust-experimental-presets**: Tree Right, Tree Down, and Radial Tree now handle large, cyclic, cross-linked, and disconnected maps without stack overflows or collapsed nodes
+  - Why: These layouts now build a stable iterative placement tree while retaining every real connection as a readable straight cross-link
+- **layout/organic-spread**: Organic Spread now uses a compact deterministic force configuration and falls back to a compact layout when ELK returns unusable geometry
+  - Why: Large maps stay readable even when force layout cannot produce distinct valid positions
+
 ## [2026-05-17]
 
 ### Added

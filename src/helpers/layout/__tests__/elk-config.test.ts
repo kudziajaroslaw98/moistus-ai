@@ -73,6 +73,23 @@ describe('elk-config layout presets', () => {
 		}
 	});
 
+	it('uses a compact deterministic Eades force model for organic spread', () => {
+		const options = buildLayoutOptions({
+			...DEFAULT_CONFIG,
+			presetId: 'organic-spread',
+		});
+
+		expect(options).toMatchObject({
+			'elk.algorithm': 'org.eclipse.elk.force',
+			'elk.force.model': 'EADES',
+			'elk.force.iterations': '350',
+			'elk.force.repulsion': '4',
+			'elk.randomSeed': '1',
+			'elk.separateConnectedComponents': 'true',
+			'elk.spacing.componentComponent': '220',
+		});
+	});
+
 	it('exposes all toolbar presets in display order', () => {
 		expect(LAYOUT_PRESETS.map((preset) => preset.id)).toEqual([
 			'roomy-branches',

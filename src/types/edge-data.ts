@@ -39,7 +39,10 @@ export interface EdgeData extends Record<string, unknown> {
 		curveType?: WaypointCurveType; // Curve interpolation type for waypoint edges
 		sourceAnchor?: EdgeAnchor; // Routed anchor position on source node border
 		targetAnchor?: EdgeAnchor; // Routed anchor position on target node border
-		routingStyle?: 'orthogonal' | 'elk';
+		routingStyle?:
+			| 'orthogonal'
+			| 'elk'
+			| 'custom-layout';
 		elkLabel?: ElkLabelLayout; // ELK-computed label bounds for full-layout edge labels
 	} | null;
 	aiData?: {

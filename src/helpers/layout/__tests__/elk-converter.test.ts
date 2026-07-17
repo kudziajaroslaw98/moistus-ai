@@ -107,106 +107,6 @@ describe('elk-converter', () => {
 		expect(elkGraph.edges?.[0]?.labels).toBeUndefined();
 	});
 
-	it('adds an ELK-only synthetic root for radial multi-root graphs', () => {
-		const elkGraph = convertToElkGraph(
-			[
-				createNode('a', 0, 0),
-				createNode('b', 220, 0),
-				createNode('c', 440, 0),
-				createNode('d', 660, 0),
-			],
-			[createEdge('edge-1', null, 'a', 'b')],
-			{
-				...DEFAULT_LAYOUT_CONFIG,
-				presetId: 'radial-tree',
-			}
-		);
-
-		const syntheticRoot = elkGraph.children?.find((child) =>
-			child.id.startsWith('__moistus_radial_root__')
-		);
-		expect(syntheticRoot).toMatchObject({
-			width: 1,
-			height: 1,
-		});
-		expect(elkGraph.layoutOptions).toMatchObject({
-			'elk.processingOrder.rootSelection': 'FIXED',
-			'elk.processingOrder.preferredRoot': syntheticRoot?.id,
-		});
-
-		const syntheticTargets = elkGraph.edges
-			?.filter((edge) => edge.sources[0] === syntheticRoot?.id)
-			.map((edge) => edge.targets[0]);
-
-		expect(syntheticTargets).toEqual(['a', 'c', 'd']);
-		expect(elkGraph.edges).toHaveLength(4);
-	});
-
-	it('keeps single-root radial trees free of synthetic graph helpers', () => {
-		const elkGraph = convertToElkGraph(
-			[
-				createNode('a', 0, 0),
-				createNode('b', 220, 0),
-				createNode('c', 440, 0),
-			],
-			[
-				createEdge('edge-1', null, 'a', 'b'),
-				createEdge('edge-2', null, 'a', 'c'),
-			],
-			{
-				...DEFAULT_LAYOUT_CONFIG,
-				presetId: 'radial-tree',
-			}
-		);
-
-		expect(
-			elkGraph.children?.some((child) =>
-				child.id.startsWith('__moistus_radial_root__')
-			)
-		).toBe(false);
-		expect(elkGraph.layoutOptions).toMatchObject({
-			'elk.processingOrder.rootSelection': 'FIXED',
-			'elk.processingOrder.preferredRoot': 'a',
-		});
-	});
-
-	it('sends cyclic radial inputs to ELK as a spanning tree', () => {
-		const elkGraph = convertToElkGraph(
-			[
-				createNode('a', 0, 0),
-				createNode('b', 220, 0),
-				createNode('c', 440, 0),
-				createNode('d', 660, 0),
-			],
-			[
-				createEdge('edge-1', null, 'a', 'b'),
-				createEdge('edge-2', null, 'b', 'c'),
-				createEdge('edge-3', null, 'c', 'a'),
-				createEdge('edge-4', null, 'b', 'd'),
-			],
-			{
-				...DEFAULT_LAYOUT_CONFIG,
-				presetId: 'radial-tree',
-			}
-		);
-
-		expect(
-			elkGraph.children?.some((child) =>
-				child.id.startsWith('__moistus_radial_root__')
-			)
-		).toBe(false);
-		expect(elkGraph.layoutOptions).toMatchObject({
-			'elk.processingOrder.rootSelection': 'FIXED',
-			'elk.processingOrder.preferredRoot': 'a',
-		});
-		expect(elkGraph.edges).toHaveLength(3);
-		expect(elkGraph.edges?.map((edge) => edge.id)).toEqual([
-			'edge-1',
-			'__moistus_radial_root__:tree:a:c',
-			'edge-4',
-		]);
-	});
-
 	it('snaps horizontal ELK labels onto the routed segment centerline', () => {
 		const result = convertFromElkGraph(
 			{
@@ -358,7 +258,7 @@ describe('elk-converter', () => {
 		expect(result.edges[0]?.data?.metadata?.elkLabel).toBeUndefined();
 	});
 
-	it('uses linear path labels and normalizes duplicate bend points for non-layered presets', () => {
+	it('uses straight path labels and clears ELK geometry for non-layered presets', () => {
 		const edge = createEdge('edge-1', 'Depends on');
 		edge.data!.metadata = {
 			pathType: 'waypoint',
@@ -421,11 +321,10 @@ describe('elk-converter', () => {
 			}
 		);
 
-		expect(result.edges[0]?.data?.metadata?.routingStyle).toBe('elk');
+		expect(result.edges[0]?.type).toBe('waypointEdge');
+		expect(result.edges[0]?.data?.metadata?.routingStyle).toBe('custom-layout');
 		expect(result.edges[0]?.data?.metadata?.curveType).toBe('linear');
 		expect(result.edges[0]?.data?.metadata?.elkLabel).toBeUndefined();
-		expect(result.edges[0]?.data?.metadata?.waypoints).toEqual([
-			{ id: 'mock-uuid', x: 170, y: 30 },
-		]);
+		expect(result.edges[0]?.data?.metadata?.waypoints).toBeUndefined();
 	});
 });
