@@ -1,3 +1,12 @@
+import {
+	buildHistoryPresentation,
+	deriveHistorySubjectHints,
+	normalizeHistoryDelta,
+} from '@/helpers/history/presentation';
+import {
+	isInCurrentCheckpointScope,
+	resolveCurrentSnapshotId,
+} from '@/helpers/history/server/history-current-scope';
 import { createClient } from '@/helpers/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -50,7 +59,9 @@ export const GET = async (
 		}
 
 		const share =
-			Array.isArray(shareRows) && shareRows.length > 0 ? shareRows[0] : shareRows;
+			Array.isArray(shareRows) && shareRows.length > 0
+				? shareRows[0]
+				: shareRows;
 		const hasAccess = map.user_id === user.id || !!share;
 
 		if (!hasAccess) {
@@ -60,7 +71,9 @@ export const GET = async (
 		// Fetch event with changes (delta)
 		const { data: event, error: eventErr } = await supabase
 			.from('map_history_events')
-			.select('id, action_name, operation_type, entity_type, changes, created_at, user_id')
+			.select(
+				'id, snapshot_id, action_name, operation_type, entity_type, changes, created_at, user_id'
+			)
 			.eq('id', id)
 			.eq('map_id', mapId)
 			.single();
@@ -70,8 +83,37 @@ export const GET = async (
 			return NextResponse.json({ error: 'Event not found' }, { status: 404 });
 		}
 
+		const [{ data: currentPtr }, { data: latestSnapshot }] = await Promise.all([
+			supabase
+				.from('map_history_current')
+				.select('snapshot_id, event_id')
+				.eq('map_id', mapId)
+				.maybeSingle(),
+			supabase
+				.from('map_history_snapshots')
+				.select('id, snapshot_index')
+				.eq('map_id', mapId)
+				.order('snapshot_index', { ascending: false })
+				.limit(1)
+				.maybeSingle(),
+		]);
+		const currentSnapshotId = resolveCurrentSnapshotId(
+			currentPtr,
+			latestSnapshot
+		);
+
+		if (!isInCurrentCheckpointScope(event.snapshot_id, currentSnapshotId)) {
+			return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+		}
+
 		// Fetch user attribution (optional)
-		let userAttribution = null;
+		let userAttribution = event.user_id
+			? {
+					userId: event.user_id,
+					userName: 'Unknown',
+					userAvatar: undefined as string | undefined,
+				}
+			: null;
 		if (event.user_id) {
 			const { data: profile } = await supabase
 				.from('user_profiles')
@@ -83,15 +125,24 @@ export const GET = async (
 				userAttribution = {
 					userId: profile.user_id,
 					userName: profile.display_name || 'Unknown',
-					userAvatar: profile.avatar_url,
+					userAvatar: profile.avatar_url || undefined,
 				};
 			}
 		}
 
 		// Extract changes array from stored delta
 		// The database stores the full delta object, so event.changes is { operation, entityType, changes: [...] }
-		const storedDelta = event.changes as any;
+		const storedDelta = normalizeHistoryDelta(event.changes, {
+			operation: event.operation_type,
+			entityType: event.entity_type,
+		});
 		const changesArray = storedDelta?.changes || [];
+
+		const presentation = storedDelta
+			? buildHistoryPresentation(storedDelta, {
+					actionName: event.action_name,
+				})
+			: null;
 
 		// Return delta with attribution
 		return NextResponse.json({
@@ -100,6 +151,11 @@ export const GET = async (
 			operation: event.operation_type || storedDelta?.operation,
 			entityType: event.entity_type || storedDelta?.entityType,
 			changes: changesArray,
+			summary: presentation?.summary,
+			summaryDetail: presentation?.summaryDetail,
+			subjectHints: storedDelta
+				? storedDelta.subjectHints || deriveHistorySubjectHints(storedDelta)
+				: undefined,
 			timestamp: new Date(event.created_at).getTime(),
 			...userAttribution,
 		});

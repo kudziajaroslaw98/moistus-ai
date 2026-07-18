@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
 	/* config options here */
 	reactStrictMode: true,
 	reactCompiler: true,
+	transpilePackages: ['uuid'],
 	allowedDevOrigins: ['192.168.0.239'],
 	devIndicators: {
 		position: 'bottom-right',

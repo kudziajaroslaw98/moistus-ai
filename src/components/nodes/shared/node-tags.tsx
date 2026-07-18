@@ -1,3 +1,4 @@
+import { useIsPreviewMode } from '@/components/node-editor/components/preview/preview-mode-context';
 import { ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { memo, useState } from 'react';
@@ -14,6 +15,7 @@ export const NodeTags = memo<{
 	accentColor?: string; // RGB values like "167, 139, 250"
 }>(({ tags, maxVisible = 3, onTagClick, accentColor = '167, 139, 250' }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
+	const isPreviewMode = useIsPreviewMode();
 	const hasMore = tags.length > maxVisible;
 	const visibleTags = isExpanded ? tags : tags.slice(0, maxVisible);
 
@@ -25,7 +27,7 @@ export const NodeTags = memo<{
 						animate={{ opacity: 1, scale: 1 }}
 						className='px-2 py-0.5 rounded-full cursor-pointer'
 						exit={{ opacity: 0, scale: 0.8 }}
-						initial={{ opacity: 0, scale: 0.8 }}
+						initial={isPreviewMode ? false : { opacity: 0, scale: 0.8 }}
 						key={tag}
 						onClick={() => onTagClick?.(tag)}
 						whileHover={{ scale: 1.05 }}
@@ -37,7 +39,7 @@ export const NodeTags = memo<{
 							color: `rgba(${accentColor}, 0.87)`,
 						}}
 						transition={{
-							duration: 0.2,
+							duration: isPreviewMode ? 0 : 0.2,
 							delay: index * 0.03,
 						}}
 					>

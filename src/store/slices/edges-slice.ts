@@ -513,6 +513,28 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			const edges = get().edges;
 			return edges.find((edge) => edge.id === id);
 		},
+		getNodeConnections: (nodeId: string) => {
+			const edges = get().edges;
+			const incoming = edges.filter((edge) => edge.target === nodeId);
+			const outgoing = edges.filter((edge) => edge.source === nodeId);
+			const all = edges.filter(
+				(edge) => edge.source === nodeId || edge.target === nodeId
+			);
+			const connectedNodeIds = Array.from(
+				new Set(
+					all.map((edge) =>
+						edge.source === nodeId ? edge.target : edge.source
+					)
+				)
+			);
+
+			return {
+				incoming,
+				outgoing,
+				all,
+				connectedNodeIds,
+			};
+		},
 		getVisibleEdges: (): AppEdge[] => {
 			const { edges, nodes } = get();
 			const visibleNodes = get().getVisibleNodes();
@@ -544,7 +566,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				sourceId: string,
 				targetId: string,
 				data: Partial<EdgeData>,
-				toastId?: string
+				_toastId?: string
 			) => {
 				const { supabase, mapId, edges, nodes } = get();
 
@@ -598,15 +620,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					markerEnd: normalizedEdgeData.markerEnd,
 					data: normalizedEdgeData,
 				};
-				const previousTargetNode = nodes.find((node) => node.id === targetId);
-				const optimisticTargetNode = previousTargetNode
-					? withNodeParent(previousTargetNode, sourceId)
-					: null;
-				const routeNodes = optimisticTargetNode
-					? nodes.map((node) =>
-							node.id === optimisticTargetNode.id ? optimisticTargetNode : node
-						)
-					: nodes;
+				const routeNodes = nodes;
 				const routedOptimisticEdges = rerouteAutoWaypointEdges({
 					nodes: routeNodes,
 					edges: [...edges, optimisticFlowEdge],
@@ -622,11 +636,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					edges: state.edges.some((edge) => edge.id === routedOptimisticEdge.id)
 						? state.edges
 						: [...state.edges, routedOptimisticEdge],
-					nodes: optimisticTargetNode
-						? state.nodes.map((node) =>
-								node.id === targetId ? optimisticTargetNode : node
-							)
-						: state.nodes,
 				}));
 
 				const edgeEventUserId = getEdgeActorId(routedOptimisticEdge, actorId);
@@ -646,29 +655,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						});
 					} catch (error) {
 						console.warn('[edges] Failed to sync Yjs edge create:', error);
-					}
-				}
-
-				if (optimisticTargetNode) {
-					const nodeEventUserId = getNodeActorId(optimisticTargetNode, actorId);
-					const nodeRealtimeData = serializeNodeForRealtime(
-						optimisticTargetNode,
-						mapId,
-						nodeEventUserId
-					);
-
-					try {
-						await broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
-							id: optimisticTargetNode.id,
-							data: nodeRealtimeData,
-							userId: nodeEventUserId,
-							timestamp: Date.now(),
-						});
-					} catch (error) {
-						console.warn(
-							'[edges] Failed to sync Yjs node parent update on edge create:',
-							error
-						);
 					}
 				}
 
@@ -712,11 +698,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						edges: state.edges.filter(
 							(edge) => edge.id !== routedOptimisticEdge.id
 						),
-						nodes: previousTargetNode
-							? state.nodes.map((node) =>
-									node.id === previousTargetNode.id ? previousTargetNode : node
-								)
-							: state.nodes,
 					}));
 
 					try {
@@ -730,29 +711,6 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 							'[edges] Failed to rollback Yjs edge create after DB error:',
 							error
 						);
-					}
-
-					if (previousTargetNode) {
-						const nodeEventUserId = getNodeActorId(previousTargetNode, actorId);
-						const nodeRealtimeData = serializeNodeForRealtime(
-							previousTargetNode,
-							mapId,
-							nodeEventUserId
-						);
-
-						try {
-							await broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
-								id: previousTargetNode.id,
-								data: nodeRealtimeData,
-								userId: nodeEventUserId,
-								timestamp: Date.now(),
-							});
-						} catch (error) {
-							console.warn(
-								'[edges] Failed to rollback Yjs node parent update after DB error:',
-								error
-							);
-						}
 					}
 
 					throw error;
@@ -789,47 +747,12 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 						(edge) => edge.id === persistedFlowEdge.id
 					) ?? persistedFlowEdge;
 
-				const parentUpdate = await queueMutation({
-					entity: 'nodes',
-					action: 'update',
-					payload: {
-						table: 'nodes',
-						values: {
-							parent_id: sourceId,
-							updated_at: new Date().toISOString(),
-						},
-						match: {
-							id: targetId,
-						},
-					},
-					executeOnline: async () => {
-						const { error: parentUpdateError } = await supabase
-							.from('nodes')
-							.update({ parent_id: sourceId, updated_at: new Date().toISOString() })
-							.eq('id', targetId);
-
-						if (parentUpdateError) {
-							throw parentUpdateError;
-						}
-					},
-				});
-
-				if (parentUpdate.status === 'queued') {
-					toast.warning(
-						'Connection queued for offline sync.',
-						{ id: toastId }
-					);
-				}
-
 				set((state) => ({
 					edges: state.edges.some((edge) => edge.id === routedOptimisticEdge.id)
 						? state.edges.map((edge) =>
 								edge.id === routedOptimisticEdge.id ? routedPersistedEdge : edge
 							)
 						: [...state.edges, routedPersistedEdge],
-					nodes: state.nodes.map((node) =>
-						node.id === targetId ? withNodeParent(node, sourceId) : node
-					),
 				}));
 
 				const finalNodes = get().nodes;

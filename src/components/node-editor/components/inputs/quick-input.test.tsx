@@ -199,12 +199,14 @@ jest.mock('./enhanced-input', () => ({
 		value: string;
 		onChange: (val: string) => void;
 		onKeyDown: (e: React.KeyboardEvent) => void;
-		onAutocompleteControllerReady?: (controller: {
-			acceptOption: (index: number) => boolean;
-			close: () => boolean;
-			focusEditor: () => void;
-			setSelectedIndex: (index: number) => void;
-		} | null) => void;
+		onAutocompleteControllerReady?: (
+			controller: {
+				acceptOption: (index: number) => boolean;
+				close: () => boolean;
+				focusEditor: () => void;
+				setSelectedIndex: (index: number) => void;
+			} | null
+		) => void;
 		onAutocompleteStateChange?: (state: {
 			status: 'active' | 'pending' | null;
 			options: Array<{ label: string; detail?: string }>;
@@ -234,20 +236,20 @@ jest.mock('./enhanced-input', () => ({
 	}) => {
 		const React = require('react');
 
-			React.useEffect(() => {
-				onFocusChange?.(true);
-				onAutocompleteControllerReady?.({
-					acceptOption: (index: number) => {
-						mockAcceptAutocomplete(index);
-						return true;
-					},
+		React.useEffect(() => {
+			onFocusChange?.(true);
+			onAutocompleteControllerReady?.({
+				acceptOption: (index: number) => {
+					mockAcceptAutocomplete(index);
+					return true;
+				},
 				close: () => {
 					mockCloseAutocomplete();
 					return true;
 				},
 				focusEditor: mockFocusEditor,
 				setSelectedIndex: mockSetAutocompleteIndex,
-				});
+			});
 
 			return () => {
 				onFocusChange?.(false);
@@ -431,6 +433,7 @@ jest.mock('../parsing-legend', () => ({
 		universalPatterns,
 		nodeSpecificPatterns,
 		onPatternClick,
+		variant,
 	}: {
 		isCollapsed: boolean;
 		onToggleCollapse: () => void;
@@ -441,10 +444,12 @@ jest.mock('../parsing-legend', () => ({
 		universalPatterns: Array<{ pattern: string }>;
 		nodeSpecificPatterns: Array<{ pattern: string }>;
 		onPatternClick: (pattern: string) => void;
+		variant?: string;
 	}) => (
 		<div
 			data-testid='parsing-legend'
 			data-collapsed={isCollapsed}
+			data-variant={variant}
 			data-universal-collapsed={isUniversalCollapsed}
 			data-node-specific-collapsed={isNodeSpecificCollapsed}
 			data-universal-count={universalPatterns.length}
@@ -456,9 +461,11 @@ jest.mock('../parsing-legend', () => ({
 				.map((pattern) => pattern.pattern)
 				.join(',')}
 		>
-			<button onClick={onToggleCollapse} data-testid='toggle-legend'>
-				Toggle
-			</button>
+			{variant !== 'panel' && (
+				<button onClick={onToggleCollapse} data-testid='toggle-legend'>
+					Toggle
+				</button>
+			)}
 			<button
 				onClick={onToggleUniversalCollapse}
 				data-testid='toggle-universal-legend'
@@ -569,11 +576,45 @@ function createQuickInputNode(
 }
 
 describe('QuickInput', () => {
+	const originalMatchMedia = window.matchMedia;
+
 	const defaultProps = {
 		nodeType: 'defaultNode' as const,
 		parentNode: null,
 		position: { x: 100, y: 100 },
 		mode: 'create' as const,
+	};
+
+	const openSyntaxHelpTab = async (user = userEvent.setup()) => {
+		await user.click(screen.getByText('Syntax Help'));
+		return user;
+	};
+
+	const expectDocumentOrder = (first: HTMLElement, second: HTMLElement) => {
+		expect(
+			first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING
+		).toBeTruthy();
+	};
+
+	const mockTouchAutocompleteMedia = ({
+		coarsePointer = false,
+		noHover = false,
+	}: {
+		coarsePointer?: boolean;
+		noHover?: boolean;
+	}) => {
+		window.matchMedia = jest.fn((query: string) => ({
+			matches:
+				(query.includes('pointer: coarse') && coarsePointer) ||
+				(query.includes('hover: none') && noHover),
+			media: query,
+			onchange: null,
+			addEventListener: jest.fn(),
+			removeEventListener: jest.fn(),
+			addListener: jest.fn(),
+			removeListener: jest.fn(),
+			dispatchEvent: jest.fn(),
+		})) as unknown as typeof window.matchMedia;
 	};
 
 	beforeEach(() => {
@@ -600,6 +641,10 @@ describe('QuickInput', () => {
 		});
 	});
 
+	afterEach(() => {
+		window.matchMedia = originalMatchMedia;
+	});
+
 	describe('rendering', () => {
 		it('renders component header with correct label', () => {
 			render(<QuickInput {...defaultProps} />);
@@ -616,19 +661,48 @@ describe('QuickInput', () => {
 		it('keeps native autocomplete enabled on desktop', () => {
 			render(<QuickInput {...defaultProps} />);
 
-			expect(screen.getByTestId('enhanced-input').parentElement).toHaveAttribute(
-				'data-show-native-autocomplete',
-				'true'
-			);
+			expect(
+				screen.getByTestId('enhanced-input').parentElement
+			).toHaveAttribute('data-show-native-autocomplete', 'true');
 		});
 
 		it('disables native autocomplete tooltip on mobile', () => {
 			mockIsMobile = true;
 			render(<QuickInput {...defaultProps} />);
 
-			expect(screen.getByTestId('enhanced-input').parentElement).toHaveAttribute(
-				'data-show-native-autocomplete',
-				'false'
+			expect(
+				screen.getByTestId('enhanced-input').parentElement
+			).toHaveAttribute('data-show-native-autocomplete', 'false');
+		});
+
+		it('renders the mobile editor as a bounded stacked layout before the footer', () => {
+			mockIsMobile = true;
+			render(<QuickInput {...defaultProps} />);
+
+			const headerRow = screen.getByTestId('quick-input-header-row');
+			const tabsRow = screen.getByTestId('quick-input-tabs-row');
+			const body = screen.getByTestId('quick-input-body');
+			const editorPanel = screen.getByTestId('quick-input-editor-panel');
+			const rightPanel = screen.getByTestId('quick-input-right-panel');
+			const footerRow = screen.getByTestId('quick-input-footer-row');
+
+			expect(editorPanel).toContainElement(screen.getByTestId('enhanced-input'));
+			expect(rightPanel).toContainElement(screen.getByTestId('preview-section'));
+			expectDocumentOrder(headerRow, tabsRow);
+			expectDocumentOrder(tabsRow, body);
+			expectDocumentOrder(body, footerRow);
+		});
+
+		it('keeps the mobile editor visible when switching to syntax help', async () => {
+			mockIsMobile = true;
+			render(<QuickInput {...defaultProps} />);
+
+			await openSyntaxHelpTab();
+
+			expect(screen.getByTestId('enhanced-input')).toBeInTheDocument();
+			expect(screen.getByTestId('parsing-legend')).toBeInTheDocument();
+			expect(screen.getByTestId('quick-input-editor-panel')).toContainElement(
+				screen.getByTestId('enhanced-input')
 			);
 		});
 
@@ -638,14 +712,29 @@ describe('QuickInput', () => {
 			expect(screen.getByTestId('preview-section')).toBeInTheDocument();
 		});
 
-		it('renders parsing legend', () => {
+		it('renders preview as the default right-panel tab', () => {
 			render(<QuickInput {...defaultProps} />);
 
-			expect(screen.getByTestId('parsing-legend')).toBeInTheDocument();
+			expect(screen.getByTestId('preview-section')).toBeInTheDocument();
+			expect(screen.queryByTestId('parsing-legend')).not.toBeInTheDocument();
 		});
 
-		it('passes universal and node-specific parser sections to legend', () => {
+		it('renders parsing legend inside the syntax help tab', async () => {
 			render(<QuickInput {...defaultProps} />);
+
+			await openSyntaxHelpTab();
+
+			expect(screen.getByTestId('parsing-legend')).toBeInTheDocument();
+			expect(screen.getByTestId('parsing-legend')).toHaveAttribute(
+				'data-variant',
+				'panel'
+			);
+		});
+
+		it('passes universal and node-specific parser sections to legend', async () => {
+			render(<QuickInput {...defaultProps} />);
+
+			await openSyntaxHelpTab();
 
 			const legend = screen.getByTestId('parsing-legend');
 			expect(legend).toHaveAttribute('data-universal-count', '2');
@@ -653,8 +742,10 @@ describe('QuickInput', () => {
 			expect(legend).toHaveAttribute('data-node-specific-patterns', '$note');
 		});
 
-		it('hides parser legend for reference node when both sections are empty', () => {
+		it('hides parser legend for reference node when both sections are empty', async () => {
 			render(<QuickInput {...defaultProps} nodeType='referenceNode' />);
+
+			await openSyntaxHelpTab();
 
 			expect(screen.queryByTestId('parsing-legend')).not.toBeInTheDocument();
 			expect(
@@ -779,6 +870,27 @@ describe('QuickInput', () => {
 			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
 				'data-editor-focused',
 				'false'
+			);
+		});
+
+		it('uses the touch autocomplete tray on iPad-sized coarse pointer viewports', async () => {
+			const user = userEvent.setup();
+			mockIsMobile = false;
+			mockTouchAutocompleteMedia({ coarsePointer: true, noHover: true });
+
+			render(<QuickInput {...defaultProps} />);
+
+			await waitFor(() => {
+				expect(
+					screen.getByTestId('enhanced-input').parentElement
+				).toHaveAttribute('data-show-native-autocomplete', 'false');
+			});
+
+			await user.click(screen.getByTestId('emit-active-autocomplete'));
+
+			expect(screen.getByTestId('mobile-completion-tray')).toHaveAttribute(
+				'data-option-count',
+				'2'
 			);
 		});
 	});
@@ -934,15 +1046,11 @@ describe('QuickInput', () => {
 			});
 		});
 
-		it('toggles legend on Ctrl+/', async () => {
+		it('switches to syntax help on Ctrl+/', async () => {
 			const user = userEvent.setup();
 			render(<QuickInput {...defaultProps} />);
 
-			// Initial state - not collapsed
-			expect(screen.getByTestId('parsing-legend')).toHaveAttribute(
-				'data-collapsed',
-				'false'
-			);
+			expect(screen.queryByTestId('parsing-legend')).not.toBeInTheDocument();
 
 			// Press Ctrl+/
 			await user.keyboard('{Control>}/{/Control}');
@@ -950,9 +1058,13 @@ describe('QuickInput', () => {
 			await waitFor(() => {
 				expect(screen.getByTestId('parsing-legend')).toHaveAttribute(
 					'data-collapsed',
-					'true'
+					'false'
 				);
 			});
+			expect(localStorageMock.setItem).toHaveBeenCalledWith(
+				'parsingLegendCollapsed',
+				'false'
+			);
 		});
 	});
 
@@ -969,48 +1081,11 @@ describe('QuickInput', () => {
 	});
 
 	describe('legend toggle', () => {
-		it('toggles legend collapsed state when toggle button clicked', async () => {
-			const user = userEvent.setup();
-			render(<QuickInput {...defaultProps} />);
-
-			const toggleButton = screen.getByTestId('toggle-legend');
-			await user.click(toggleButton);
-
-			expect(screen.getByTestId('parsing-legend')).toHaveAttribute(
-				'data-collapsed',
-				'true'
-			);
-		});
-
-		it('persists legend collapsed state to localStorage', async () => {
-			const user = userEvent.setup();
-			render(<QuickInput {...defaultProps} />);
-
-			const toggleButton = screen.getByTestId('toggle-legend');
-			await user.click(toggleButton);
-
-			await waitFor(() => {
-				expect(localStorageMock.setItem).toHaveBeenCalledWith(
-					'parsingLegendCollapsed',
-					'true'
-				);
-			});
-		});
-
-		it('loads legend collapsed state from localStorage', () => {
-			localStorageMock.getItem.mockReturnValue('true');
-			render(<QuickInput {...defaultProps} />);
-
-			expect(screen.getByTestId('parsing-legend')).toHaveAttribute(
-				'data-collapsed',
-				'true'
-			);
-		});
-
 		it('toggles universal and node-specific sub-sections', async () => {
 			const user = userEvent.setup();
 			render(<QuickInput {...defaultProps} />);
 
+			await openSyntaxHelpTab(user);
 			await user.click(screen.getByTestId('toggle-universal-legend'));
 			await user.click(screen.getByTestId('toggle-node-specific-legend'));
 
@@ -1023,6 +1098,7 @@ describe('QuickInput', () => {
 			const user = userEvent.setup();
 			render(<QuickInput {...defaultProps} />);
 
+			await openSyntaxHelpTab(user);
 			await user.click(screen.getByTestId('toggle-universal-legend'));
 			await user.click(screen.getByTestId('toggle-node-specific-legend'));
 
@@ -1044,6 +1120,7 @@ describe('QuickInput', () => {
 			const user = userEvent.setup();
 			render(<QuickInput {...defaultProps} />);
 
+			await openSyntaxHelpTab(user);
 			const insertButton = screen.getByTestId('insert-pattern');
 			await user.click(insertButton);
 
@@ -1114,7 +1191,8 @@ describe('QuickInput', () => {
 			);
 		});
 
-		it('shows the syntax-help onboarding hint during the pattern lesson', () => {
+		it('shows the syntax-help onboarding hint during the pattern lesson', async () => {
+			const user = userEvent.setup();
 			mockOnboardingPatternStep = 'pattern-editor';
 
 			render(
@@ -1124,6 +1202,8 @@ describe('QuickInput', () => {
 					onboardingSource='onboarding-pattern'
 				/>
 			);
+
+			await openSyntaxHelpTab(user);
 
 			expect(
 				screen.getByText('Try more patterns in Syntax Help below.')
@@ -1149,6 +1229,7 @@ describe('QuickInput', () => {
 			const user = userEvent.setup();
 			const { rerender } = render(<QuickInput {...defaultProps} />);
 
+			await openSyntaxHelpTab(user);
 			expect(screen.getByTestId('parsing-legend')).toHaveAttribute(
 				'data-node-specific-patterns',
 				'$note'

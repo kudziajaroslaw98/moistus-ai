@@ -1,7 +1,6 @@
 'use client';
 
 import { cn } from '@/utils/cn';
-import { motion } from 'motion/react';
 import { PreviewNodeRenderer } from './preview';
 
 interface PreviewSectionProps {
@@ -13,10 +12,8 @@ interface PreviewSectionProps {
 
 const theme = {
 	preview:
-		'bg-zinc-900/50 border border-zinc-800 rounded-md p-3 mt-0 min-h-[60px] overflow-auto flex flex-col',
-	previewLabel:
-		'text-xs text-zinc-500 uppercase tracking-wider mb-1 shrink-0',
-	previewContent: 'text-sm flex-1',
+		'h-full min-h-0 overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-6 sm:py-6 flex flex-col justify-start',
+	previewContent: 'text-sm text-zinc-500',
 };
 
 export const PreviewSection: React.FC<PreviewSectionProps> = ({
@@ -26,43 +23,19 @@ export const PreviewSection: React.FC<PreviewSectionProps> = ({
 	className,
 }) => {
 	return (
-		<div className={cn('flex-1 min-w-0', className)} data-testid='preview-section'>
-			<motion.div
-				animate={{ opacity: 1 }}
-				className={theme.previewLabel}
-				initial={{ opacity: 0 }}
-				transition={{ duration: 0.2 }}
-			>
-				Preview
-			</motion.div>
-
-			<motion.div
-				layout
-				animate={{ opacity: 1, y: 0, scale: 1 }}
-				className={theme.preview}
-				exit={{ opacity: 0, y: -20, scale: 0.95 }}
-				initial={{ opacity: 0, y: -20, scale: 0.95 }}
-				transition={{ duration: 0.25, ease: 'easeOut' as const }}
-			>
-				<PreviewNodeRenderer nodeType={nodeType} preview={preview} />
-			</motion.div>
-
-			{/* Placeholder when no preview */}
-			{!preview && hasInput && (
-				<motion.div
-					animate={{ opacity: 0.5, x: 0 }}
-					className={cn(theme.preview, 'border-dashed opacity-50')}
-					exit={{ opacity: 0, x: 20 }}
-					initial={{ opacity: 0, x: 20 }}
-					transition={{ duration: 0.2 }}
-				>
-					<div className={theme.previewLabel}>Preview</div>
-
-					<div className={cn(theme.previewContent, 'text-zinc-500')}>
-						Type to see preview...
+		<div
+			className={cn('flex-1 min-w-0', className)}
+			data-testid='preview-section'
+		>
+			<div className={theme.preview}>
+				{preview ? (
+					<PreviewNodeRenderer nodeType={nodeType} preview={preview} />
+				) : (
+					<div className={theme.previewContent}>
+						{hasInput ? 'Type to see preview...' : 'Start typing to preview.'}
 					</div>
-				</motion.div>
-			)}
+				)}
+			</div>
 		</div>
 	);
 };
