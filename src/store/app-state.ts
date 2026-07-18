@@ -124,6 +124,12 @@ export interface EdgesSlice {
 	// Edge getters
 	getEdge: (id: string) => AppEdge | undefined;
 	getVisibleEdges: () => AppEdge[];
+	getNodeConnections: (nodeId: string) => {
+		incoming: AppEdge[];
+		outgoing: AppEdge[];
+		all: AppEdge[];
+		connectedNodeIds: string[];
+	};
 	// Edge actions
 	addEdge: (
 		sourceId: string,

@@ -11,13 +11,13 @@ total_tokens: 707972
 <!-- Updated: 2026-02-24 - Documented shared permission event types and Yjs per-subscriber sync cursor pruning -->
 <!-- Updated: 2026-02-27 - Documented map settings discard-confirm flow and template-control removal -->
 <!-- Updated: 2026-02-27 - Documented account settings discard/cancel-confirm dialog flows -->
-<!-- Updated: 2026-02-28 - Documented node-editor parser cleanup and dual syntax help behavior -->
+<!-- Updated: 2026-04-26 - Documented node-editor parser cleanup, dual syntax help behavior, and tabbed split editor layout -->
 <!-- Updated: 2026-03-04 - Added notification architecture (DB + APIs + mention resolution + inbox UI) -->
 <!-- Updated: 2026-03-04 - Switched notification inbox refresh to PartyKit user-channel realtime events -->
 <!-- Updated: 2026-03-04 - Added account settings email-notification preference toggle -->
 <!-- Updated: 2026-03-04 - Expanded notifications internals (service/channel/schema/mention resolver/data flow) -->
 <!-- Updated: 2026-03-04 - Corrected API route totals to 61 and fixed unlabeled directory-tree code fence -->
-<!-- Updated: 2026-03-11 - Documented deterministic local branch reflow, cousin-branch corridor expansion, persisted map layout direction, the two supported layout modes, and auto-routed waypoint edges -->
+<!-- Updated: 2026-05-12 - Documented edge-only connect persistence, node-connection selector contract, and cycle-safe local reflow no-op fallback -->
 <!-- Updated: 2026-03-05 - Documented owner-scoped node-limit enforcement across node creation APIs -->
 <!-- Updated: 2026-03-06 - Synced API route docs for owner-scoped shared-map node entitlement checks -->
 <!-- Updated: 2026-03-07 - Added owner-scoped node-limit preflight to node creation flow -->
@@ -32,12 +32,13 @@ total_tokens: 707972
 <!-- Updated: 2026-04-15 - Documented numeric node-id aliasing across row-based AI routes -->
 <!-- Updated: 2026-04-15 - Documented typed AI suggestion payloads and ghost approval for safe typed nodes -->
 <!-- Updated: 2026-03-28 - Documented stale-safe layout normalization writes and in-flight animation synchronization after CodeRabbit review -->
-<!-- Updated: 2026-03-28 - Documented mobile node-editor autocomplete tray and shared completion-state bridge -->
+<!-- Updated: 2026-05-15 - Documented touch-qualified node-editor autocomplete tray selection for iPad/tablet widths -->
 <!-- Updated: 2026-03-29 - Documented autocomplete overlay portal dismissal contract and runtime visibility bridge responsibilities -->
 <!-- Updated: 2026-04-01 - Documented LAN-safe local-dev Supabase/PartyKit URL derivation -->
 <!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth storage key for LAN logins -->
 <!-- Updated: 2026-04-01 - Corrected node-editor dismissal docs after merging the main autocomplete baseline -->
 <!-- Updated: 2026-04-08 - Documented onboarding paused-coachmark marker and manual-resume anchor-measurement suspension -->
+<!-- Updated: 2026-05-12 - Documented checkpoint-scoped history helpers and extracted history sidebar UI boundaries -->
 <!-- Updated: 2026-04-01 - Documented the tighter landing-page flow with hero mini-demo, product-proof chapters, and pricing/FAQ close -->
 <!-- Updated: 2026-04-01 - Noted the landing de-densification pass for calmer workflow chrome and screenshot-safe proof notes -->
 <!-- Updated: 2026-04-01 - Noted the landing canvas-fidelity pass for a Shiko-like hero scene and cleaner screenshot-led proof modules -->
@@ -69,7 +70,9 @@ A collaborative mind mapping application built with Next.js 16, React 19, TypeSc
 **Edge routing note:** Normal persisted edges render as auto-routed `waypointEdge` geometry. Explicit full layout uses ELK bend points (`routingStyle: 'elk'`) and persists ELK-computed edge-label bounds/centers, but the converter snaps each ELK label center onto the nearest routed segment before render so the label stays horizontal while the edge line passes through its center. Local create/edit/move/resize/reconnect flows reroute only affected edges with the deterministic orthogonal router (`routingStyle: 'orthogonal'`) and must clear stale ELK label metadata when they replace ELK geometry. Raw manual waypoint editing is no longer part of the canvas model.
 **Layout animation note:** `ReactFlowArea` now renders through a transient animated graph state for explicit full layout and local layout flows. Zustand still stores only final node/edge geometry; the 550ms tween is client-only and does not persist or broadcast intermediate frames, and an animation version is only marked handled after the tween settles or is explicitly cancelled.
 
-**Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed, and load-time legacy layout normalization persists only when the fetched map/edge snapshot is still current.
+**Connection persistence note:** Generic node connectivity is edge-derived (`edges.source`/`edges.target`) and normal drag-connect persists only edge rows. `nodes.parent_id` / React Flow `parentId` are reserved for explicit hierarchy operations, and `edges-slice.getNodeConnections(nodeId)` is the canonical selector for incoming/outgoing/all connections plus deduped neighbor IDs.
+
+**Local layout note:** Deterministic local branch reflow now has two phases: same-depth child repack inside the edited branch, then cousin-branch corridor expansion on the carrier layer when the grown subtree would overlap neighboring cousin subtrees. Ancestors stay fixed, and load-time legacy layout normalization persists only when the fetched map/edge snapshot is still current. If parent ancestry is cyclic, local branch reflow intentionally returns a safe no-op delta rather than attempting tree-based movement.
 
 **Mind-map loading note:** Route-level `loading.tsx` provides initial shell fallback, while in-page loading keeps the real editor chrome mounted and gates only map-dependent behavior via `isMapReady` (`nodes/edges` forced to empty until requested map payload is ready).
 
@@ -194,7 +197,7 @@ shiko/
 │   │   ├── dashboard/          # Map cards, settings, and loading skeleton shells
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
-│   │   ├── history/            # Version history sidebar
+│   │   ├── history/            # Timeline history sidebar, readable change rows, hooks, and view-model adapters
 │   │   ├── landing/            # Marketing flow + shared CTA link feedback (Start Mapping/Get Started/Go Pro with next/link pending + optimistic click hint + top progress bar)
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
@@ -222,7 +225,7 @@ shiko/
 │   │
 │   ├── helpers/                # Utilities
 │   │   ├── api/                # API middleware (auth, validation)
-│   │   ├── history/            # Delta calculation, diff
+│   │   ├── history/            # Delta calculation, readable presentation, checkpoint/list server helpers, diff
 │   │   ├── layout/             # ELK full-layout engine + deterministic local branch reflow
 │   │   ├── local-dev-url.ts    # Browser/runtime LAN-safe Supabase + PartyKit URL derivation
 │   │   ├── partykit/           # PartyKit admin helpers (disconnect users)
@@ -261,14 +264,14 @@ shiko/
 
 ### State Management (21 Slices)
 
-| Slice                     | Lines | Purpose                                                                       |
-| ------------------------- | ----- | ----------------------------------------------------------------------------- |
-| **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows                                    |
-| **comments-slice**        | 973   | Comment threads, @mentions, reactions                                         |
+| Slice                     | Lines | Purpose                                                                                      |
+| ------------------------- | ----- | -------------------------------------------------------------------------------------------- |
+| **sharing-slice**         | 1,164 | Room codes, anonymous users, upgrade flows                                                   |
+| **comments-slice**        | 973   | Comment threads, @mentions, reactions                                                        |
 | **suggestions-slice**     | 1462  | AI ghost nodes, typed ghost approval, streaming, novelty memory, whole-map placement, merges |
 | **nodes-slice**           | 900   | Node CRUD, positioning, real-time sync                                        |
-| **history-slice**         | 597   | Undo/redo, snapshots, DB persistence                                          |
-| **edges-slice**           | 635   | Edge CRUD, parent-child relationships                                         |
+| **history-slice**         | 543   | Checkpoint-scoped history metadata, delta events, revert persistence          |
+| **edges-slice**           | 635   | Edge CRUD, edge-derived connection selectors, explicit-only hierarchy actions |
 | **subscription-slice**    | 434   | Polar checkout, plan limits, usage tracking                                   |
 | **guided-tour-slice**     | 416   | Prezi-style presentations                                                     |
 | **core-slice**            | 353   | Supabase client, user, map loading                                            |
@@ -287,24 +290,25 @@ shiko/
 
 ### Node System (12 Types)
 
-| Type           | Category  | Command       | Purpose                      |
-| -------------- | --------- | ------------- | ---------------------------- |
-| defaultNode    | content   | `$note`       | Standard note                |
-| textNode       | content   | `$text`       | Plain text                   |
+| Type           | Category  | Command       | Purpose                       |
+| -------------- | --------- | ------------- | ----------------------------- |
+| defaultNode    | content   | `$note`       | Standard note                 |
+| textNode       | content   | `$text`       | Plain text                    |
 | taskNode       | content   | `$task`       | Checklist (+ hide done/title) |
-| codeNode       | content   | `$code`       | Syntax highlighted           |
-| annotationNode | content   | `$annotation` | Comments/notes               |
-| resourceNode   | content   | `$link`       | URL preview                  |
-| imageNode      | media     | `$image`      | Image display                |
-| questionNode   | ai        | `$question`   | Q&A format                   |
-| referenceNode  | structure | `$reference`  | Cross-map link               |
-| groupNode      | structure | —             | Container (UI only)          |
-| commentNode    | structure | —             | Thread anchor (UI only)      |
-| ghostNode      | ai        | —             | AI suggestions (system only) |
+| codeNode       | content   | `$code`       | Syntax highlighted            |
+| annotationNode | content   | `$annotation` | Comments/notes                |
+| resourceNode   | content   | `$link`       | URL preview                   |
+| imageNode      | media     | `$image`      | Image display                 |
+| questionNode   | ai        | `$question`   | Q&A format                    |
+| referenceNode  | structure | `$reference`  | Cross-map link                |
+| groupNode      | structure | —             | Container (UI only)           |
+| commentNode    | structure | —             | Thread anchor (UI only)       |
+| ghostNode      | ai        | —             | AI suggestions (system only)  |
 
-**Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). Syntax Help is split into type-filtered `Universal` plus `Node-specific` sections.
+**Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). The editor modal is a wide 50/50 split layout with matching split top/body rows: node type and editor on the left, Preview/Syntax Help tabs and tab content on the right. The split body is bounded so panes fill the modal region without pushing the footer out of view; the editor keeps line/scroll affordance for multi-line input with line-number glyphs horizontally centered but baseline-aligned, preview content starts at the top of its pane, and right-panel controls are styled as a full-height tab strip (strong hover + selected underline rather than button pills) aligned from the split divider. Syntax-help panel mode should rely on right-pane scrolling instead of nested inner max-height clipping. Syntax Help remains split into type-filtered `Universal` plus `Node-specific` sections.
 Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
-<!-- Updated: 2026-04-08 - Documented task node title/hide-done capability in node type map -->
+
+<!-- Updated: 2026-04-27 - Documented divider-aligned tab-strip and baseline-centered gutter-number behavior -->
 
 **Key Files:**
 
@@ -440,8 +444,9 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
 **Node Editor Autocomplete:**
 
-- `src/components/node-editor/integrations/codemirror/setup.ts` mirrors CodeMirror completion visibility into React and owns the native-tooltip suppression toggle, so the app still knows autocomplete is logically open even when mobile hides the native popup
+- `src/components/node-editor/integrations/codemirror/setup.ts` mirrors CodeMirror completion visibility into React and owns the native-tooltip suppression toggle, so the app still knows autocomplete is logically open even when touch-first mobile/tablet/iPad viewports hide the native popup
 - `src/components/node-editor/integrations/codemirror/autocomplete-state.ts` is the shared bridge for reading `active/pending`, current options, selected index, and caret/editor geometry from CodeMirror; those snapshots are what let the mobile tray and dismissal guards stay aligned with the live editor selection
+- `src/components/node-editor/components/inputs/quick-input.tsx` selects that touch presenter from width, primary pointer/hover media, and desktop-class iPad touch signals so iPad/tablet widths do not fall back to the native CodeMirror tooltip
 - `src/components/node-editor/components/inputs/mobile-completion-tray.tsx` portals into the `[data-node-editor-overlay="true"]` overlay instead of `document.body`, while `src/components/node-editor/components/inputs/use-mobile-autocomplete-viewport.ts` supplies the `visualViewport`/keyboard heuristics that keep that overlay-local surface attached to the keyboard or anchored below the typed text
 - Outside-click boundaries must exclude both `[data-node-editor-autocomplete-tray="true"]` and body-portaled `.cm-tooltip*` elements so tray taps, tray scroll gestures, and native CodeMirror suggestion taps do not dismiss the editor; update `src/components/node-editor/node-editor.tsx` (`useDismiss(... outsidePress ...)`) and any future modal/editor wrapper dismissal checks if the overlay boundary or portal target changes
 
@@ -524,6 +529,8 @@ sequenceDiagram
 ```
 
 **AI suggestion note:** Map-scoped toolbar suggestions now reuse the node-suggestion stream with literal full-map eligible-anchor context. The client persists per-map recent suggestion history plus a shuffled exploration-lens cycle in `localStorage`, sends the active lens pair and recent ideas with each click, and the API prompts `gpt-5-mini` with every eligible non-system anchor instead of a rotating top window. The API only accepts model-returned anchor IDs from the provided candidate list, rejects near-duplicate ideas against recent/current suggestions, fails explicitly when the literal full-map prompt exceeds the model request limit, and the slice falls back to viewport-centered unanchored ghosts if no valid anchor survives.
+
+**History presentation and scope:** Stored history still uses JSONB deltas, and list/delta endpoints still derive deterministic local object-first summaries from normalized action intents plus delta semantics (property edits, movement, reroutes, lifecycle events). Manual checkpoints are full-state baselines read from persisted node/edge rows inside the `create_history_checkpoint_and_prune` Supabase RPC (`supabase/migrations/20260512130000_create_history_checkpoint_and_prune.sql`), so snapshot insert, current-pointer update, and old-history pruning happen in one transaction. The active sidebar scope is the current checkpoint plus its later events, with older snapshots/events pruned on checkpoint creation and hidden from list/delta/revert routes. History route helpers live under `src/helpers/history/server/` for access checks, RPC invocation, current-scope utilities, and list DTO assembly. The sidebar renders as a timeline-first surface (pinned `Current`, left-border rail+dots, action clusters), while `HistoryItem` delegates delta loading, focus behavior, view-model fallback decisions, and card rendering to smaller history modules. Mobile history rows remain edge-to-edge with full-width Focus/Revert controls, expanded details stay human-readable only (including `After`-first value blocks), and raw technical patch paths are not exposed in the panel UI.
 
 **AI suggestion helper split:** `/api/ai/suggestions` now delegates graph context modeling to `src/helpers/ai-suggestion-graph.ts`, row serialization to `src/helpers/ai-suggestion-rows.ts`, user-prompt assembly to `src/helpers/ai-suggestion-user-prompt.ts`, system prompt text to `src/helpers/ai-suggestion-prompts.ts`, and streamed normalization/duplicate filtering/error mapping to `src/helpers/ai-suggestion-postprocess.ts`. `src/helpers/ai-suggestion-context.ts` is the thin entrypoint that stitches graph rows + user prompt together for the route.
 

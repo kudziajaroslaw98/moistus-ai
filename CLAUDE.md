@@ -129,9 +129,11 @@ pnpm pretty          # Prettier
 
 **NodeData.metadata**: Single unified type (not discriminated union per node type). Enables seamless node type switching without data loss. Do NOT split into per-type unions.
 
-<!-- Updated: 2026-04-21 - Consolidated NodeData/edge-routing gotchas, including ELK label ownership, routed-segment center alignment, and the auto-routed waypoint-edge transition -->
+<!-- Updated: 2026-05-12 - Added edge-only connect hierarchy contract and cycle-safe local reflow fallback -->
 
 **Edge routing**: Raw manual waypoint editing is removed. Normal persisted edges use auto-routed `waypointEdge` geometry. Explicit full ELK layout owns ELK label placement metadata (`metadata.elkLabel`) for labeled edges, but the converter snaps ELK's returned label center back onto the routed segment before render so the line passes through the label center. Any orthogonal reroute/edit path that replaces ELK geometry must still clear stale ELK label metadata instead of reusing it. Future manual edge control must be constraint-based (anchor/bias/lane hints), never absolute bend points.
+
+**Connection vs hierarchy contract**: Standard canvas connect (`onConnect` → `addEdge`) is edge-only and must not mutate node hierarchy (`nodes.parent_id` / React Flow `parentId`). Hierarchy assignment remains explicit-only (child-node creation and `setParentConnection`). Deterministic local branch reflow is tree-oriented and must safe-no-op when parent ancestry is cyclic.
 
 **Identity precedence**: Use `user_profiles` as canonical identity source across sharing + realtime UI (`display_name`, `avatar_url`) with fallback order: auth metadata, then deterministic fallback helpers. Keep resolver logic centralized in `src/helpers/identity/resolve-user-identity.ts`.
 
@@ -145,9 +147,9 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-02-24 - Documented realtime JWT fallback behavior and operational meaning -->
 
-**PartyKit dependency hardening**: Keep `pnpm.overrides` pins for `partykit>esbuild` and `undici` in `package.json`, and keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes. Re-run both production and full `pnpm audit` after PartyKit/miniflare version bumps.
+**Dependency security overrides**: Keep `pnpm.overrides` pins narrow and evidence-based. Current required overrides are `partykit>esbuild` because PartyKit still pins older esbuild, `miniflare>undici` scoped to PartyKit's Miniflare path, and `postcss` until Next no longer resolves a vulnerable internal PostCSS. Prefer direct/transitive package updates over broad overrides, keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes, and re-run `pnpm audit` plus `pnpm why esbuild undici postcss` after PartyKit/miniflare/Next/PostCSS bumps.
 
-<!-- Updated: 2026-04-09 - Documented PartyKit transitive vulnerability mitigation and dependency security gate contract -->
+<!-- Updated: 2026-05-14 - Documented scoped dependency security overrides for PartyKit/Miniflare and Next/PostCSS -->
 
 **Vercel package manager**: Keep repo-level `vercel.json` install/build commands pinned to pnpm (`pnpm install --frozen-lockfile`, `pnpm build`) so Vercel does not default to `npm i` and fail on npm-only peer resolution of the current lint stack.
 
@@ -156,6 +158,10 @@ pnpm pretty          # Prettier
 **GitHub Actions pnpm source-of-truth**: In workflows using `pnpm/action-setup`, do not set a separate `version` input when `package.json#packageManager` already pins pnpm (especially with integrity hash). Use one source to avoid `ERR_PNPM_BAD_PM_VERSION`.
 
 <!-- Updated: 2026-04-09 - Documented CI pnpm version-source conflict guardrail -->
+
+**ESLint flat config**: Next.js 16's `eslint-config-next/*` exports flat config arrays. Import those exports directly in `eslint.config.mjs`; do not wrap them in `FlatCompat`, because ESLint 10 legacy config validation can crash on circular plugin objects from `eslint-plugin-react`. Keep `settings.react.version` explicit rather than `detect` while the current React plugin is on the ESLint 9-era context API.
+
+<!-- Updated: 2026-05-15 - Documented direct Next flat-config imports and explicit React version for ESLint 10 compatibility -->
 
 **LAN-safe local dev URLs**: Browser Supabase + PartyKit clients must derive from `window.location.hostname` whenever the configured public URL is loopback-only and the browser host is non-loopback (LAN device access), even if client `NODE_ENV` is unavailable. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
 
@@ -178,22 +184,32 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 <!-- Updated: 2026-04-08 - Consolidated parser-scope updates: deprecated token removals, dual syntax-help model, and canonical lowercase quoted title syntax -->
 
+**Node editor quick-input layout**: Keep quick input as a wide split modal with a matching 50/50 split top bar and bounded body: node type label on the left, Preview/Syntax Help tabs on the right, center separators in both rows, and a full-width footer action bar. Editor and preview panes should fill the bounded body without inset card chrome, but must not use unbounded page-height `h-full` chains or CodeMirror scroll-past-end padding that push the footer/textbox surface out of view. Keep subtle editor line numbers/scrollbar affordance for multi-line input, keep line-number glyphs baseline-aligned while horizontally centered in the gutter, top-align preview content, and style the right-panel controls as a true tab strip (strong hover plus selected underline, not pill buttons) that stretches to full top-bar cell height and aligns from the split divider (left-aligned, no right inset). In panel mode, syntax-help scrolling should be owned by the right pane container rather than nested inner max-height scrollers. `Ctrl+/` selects the Syntax Help tab instead of toggling a separate below-editor help card. Node editor previews should not slide/scale in, and task-node preview should disable task row entry animation while canvas task nodes keep their normal animation.
+
+<!-- Updated: 2026-04-27 - Added left-aligned full-height tab-strip and baseline-centered gutter-number contract -->
+
 **Task node visibility/title contract**: `taskNode` supports `metadata.hideCompletedTasks` (per-node hide/show for completed checklist items) and keeps progress stats based on full `metadata.tasks`, not only visible rows. Task titles are quick-input metadata (`title:"..."`) and must round-trip through node-editor parsing/serialization.
+
 <!-- Updated: 2026-04-08 - Documented task-node hide-completed persistence and title round-trip contract -->
 
-**Node editor autocomplete surfaces**: Keep `createCompletions()` as the single source of autocomplete options. Desktop uses the native CodeMirror tooltip; mobile hides that tooltip and renders a hybrid presenter: a compact full-width strip attached to the open keyboard, or a caret-anchored floating panel when the keyboard is hidden. Any editor/modal outside-press guard must treat both `[data-node-editor-autocomplete-tray="true"]` and body-portaled `.cm-tooltip*` elements as inside-editor interactions so selecting a suggestion does not dismiss the editor.
-<!-- Updated: 2026-03-28 - Documented the hybrid mobile autocomplete presenter and shared completion engine -->
+**Node editor autocomplete surfaces**: Keep `createCompletions()` as the single source of autocomplete options. Desktop pointer/hover contexts use the native CodeMirror tooltip; touch-first mobile/tablet/iPad contexts hide that tooltip and render a hybrid presenter, even when viewport width is desktop-sized: a compact full-width strip attached to the open keyboard, or a caret-anchored floating panel when the keyboard is hidden. Any editor/modal outside-press guard must treat both `[data-node-editor-autocomplete-tray="true"]` and body-portaled `.cm-tooltip*` elements as inside-editor interactions so selecting a suggestion does not dismiss the editor.
+
+<!-- Updated: 2026-05-15 - Documented touch-qualified autocomplete presenter selection for iPad/tablet widths -->
 
 **Touch context menu fallback**: Do not rely on native `contextmenu` alone for mobile/iPad. Keep `useTouchContextMenuFallback` wired to the React Flow shell so touch long-press on `.react-flow__node[data-id]`, `.react-flow__edge[data-id]`, or `.react-flow__pane` opens the same context-menu store state path (`openContextMenuAt`) used by desktop right-click handlers. Preserve movement cancellation and trailing click/contextmenu suppression to avoid accidental immediate close/select side-effects after long-press activation.
+
 <!-- Updated: 2026-04-08 - Added iPad/iOS WebKit long-press fallback and post-long-press suppression guardrail -->
 
 **Landing CTA feedback**: Keep landing navigation CTAs (`Start Mapping`, `Get Started`, `Go Pro`) on `StartMappingLink` (`next/link` + `useLinkStatus` + optimistic pending feedback). Keep `src/app/dashboard/loading.tsx` as a dashboard-shell loading fallback (not a blank spinner) while dashboard auth/render work is pending, and keep in-page map-list loading progressive via card skeletons.
+
 <!-- Updated: 2026-04-07 - Added landing CTA pending-feedback and dashboard loading-boundary guardrail -->
 
 **Mind map navigation state**: Keep `MindMapCanvas` gated by the requested route id (`state.mapId === params.id` and `state.mindMap?.id === params.id`) and clear map-scoped runtime store state on map-route unmount via `clearMindMapRuntimeState()`. Bootstrap route map loads from `MindMapCanvas` (`setMapId` + `fetchMindMapData`) so loading begins before `ReactFlowArea` mounts. Make unmount clearing Strict Mode-safe (skip cleanup during immediate effect replay remount). Any async map load path must stale-guard writes when `state.mapId` no longer matches the request id. Keep the real editor shell visible while payload is pending, but pass empty graph data and gate map-dependent controls/actions by `isMapReady` to prevent stale flashes.
+
 <!-- Updated: 2026-04-07 - Added stale-map flash prevention contract, fetch-bootstrap placement, and Strict Mode-safe unmount semantics for map-route transitions -->
 
 **Realtime cleanup idempotency**: Yjs observer cleanup (`unobserve` / awareness `off`) and broadcast unsubscribe wrappers must be safe on repeated invocation. Slice-level unsubscribe flows should null stored handles before awaiting cleanup, and core realtime teardown should coalesce concurrent calls into one in-flight promise.
+
 <!-- Updated: 2026-04-07 - Added repeated-unsubscribe safety contract for Yjs/broadcast/slice/core teardown paths -->
 
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
@@ -221,28 +237,36 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 **Notifications**: `useNotifications` now shares a single cache/socket layer per signed-in user; keep `useSyncExternalStore` snapshots stable and apply `mapId` filtering server-side before `limit` in `/api/notifications`.
 
 **PWA + service worker contract**: Keep Serwist wiring on the Turbopack route-handler path in this repo: `withSerwist(...)` from `@serwist/turbopack` in `next.config.ts`, route handler `src/app/app/[path]/route.ts` with `createSerwistRoute(...)`, and worker source at `src/app/sw.ts`. Root layout must register `SerwistProvider` with `swUrl='/app/sw.js'` and `options={{ scope: '/' }}` so the worker controls the whole app. Keep legacy-worker cleanup in `src/app/serwist.ts` for previously registered `/sw.js` and `/serwist/sw.js`.
+
 <!-- Updated: 2026-04-13 - Documented @serwist/turbopack custom /app/sw.js route contract and root-scope requirement -->
 
 **Offline strict replay contract**: Mutating client paths should flow through `queueMutation(...)` so every operation receives a stable `opId` and can be replayed idempotently through `POST /api/offline/ops/batch`. Background Sync is optional acceleration only; required replay triggers remain online/focus/startup app-level flushes.
+
 <!-- Updated: 2026-04-11 - Documented single offline mutation adapter + idempotent replay requirement -->
 
 **Background sync contract**: Shared replay semantics now live in `src/lib/offline/offline-sync-core.ts` so service-worker and window-triggered flushes stay aligned. One-off sync may replay queued ops headlessly when no clients are open, and periodic background work is intentionally limited to refreshing the global notifications cache key (`notifications:${userId}:__all__`). Do not expand worker refreshes to map/comment caches without adding an explicit target registry first.
+
 <!-- Updated: 2026-04-14 - Documented shared replay core plus notifications-only periodic background refresh scope -->
 
 **Offline reconnect contract**: `flushOfflineQueue` must remain in-memory-guarded only (no persisted lock key), drain queued ops in repeated `<=100` batches per flush until empty, and trigger on `online`, `focus`, `visibilitychange -> visible`, startup, and SW sync messages. Startup must call `resetProcessingOpsToQueued()` before the first flush.
+
 <!-- Updated: 2026-04-11 - Documented reconnect flush behavior and startup processing-op recovery -->
 
 **Offline replay failure policy**: `401/403` replay responses pause ops in `queued` state (no dead-letter). Transient network/`5xx` failures remain queued and retry with short backoff. Dead-lettering is reserved for repeated non-transient per-op failures.
+
 <!-- Updated: 2026-04-11 - Documented auth pause + transient retry + dead-letter boundaries -->
 
 **Offline cache runtime compatibility**: IndexedDB helpers must degrade gracefully when `indexedDB` is unavailable (tests/non-browser contexts) by no-oping writes and returning empty/null reads.
+
 <!-- Updated: 2026-04-11 - Documented IndexedDB unavailability fallback contract -->
 
 **Push preference + subscription contract**: Notification preferences now include `push`, `push_comments`, `push_mentions`, and `push_reactions`; settings must keep these keys during updates. Browser subscribe/unsubscribe flows are owned by `/api/push/public-key` and `/api/push/subscribe`, while server dispatch uses `src/lib/push/web-push.ts`.
+
 <!-- Updated: 2026-04-11 - Documented push preference schema and API ownership -->
 
-**Onboarding Persistence**: Persist onboarding state under a user-scoped storage key (`${ONBOARDING_STORAGE_KEY}:${currentUser.id}`) and wrap storage reads/writes in `try/catch` so blocked storage does not crash the slice. Hydrate that user-scoped state inside onboarding event handlers before branching on skip/complete flags. Track paused controls-tour progress with `onboardingPausedCoachmarkStep` (not checklist-time `onboardingCoachmarkStep`), and prefer that paused marker when resuming `know-controls`; keep checklist transitions free to reset active coachmark step without losing paused resume context. Minimize-pill body resume should expand back to checklist, while `startOnboardingTask('know-controls')` resumes coachmarks at the saved step (clamped to the active viewport sequence). On mobile, manually expanding a minimized checklist pill must keep the checklist surface visible (including `Skip walkthrough`), suppress hint/coachmark overlays until the user explicitly taps a task CTA (`Start`/`Continue`), and avoid running continuous anchor measurement loops while that manual-resume checklist surface is shown. Any checklist/pill CTA bound to paused controls flow should read `Continue` (not `Start`). Completed checklist task actions must render as disabled `Done` buttons and stay non-interactive.
-<!-- Updated: 2026-04-08 - Consolidated onboarding persistence rules: paused-step resume, Continue/Done CTA semantics, mobile manual-expand visibility/overlay behavior, and anchor-measurement suspension -->
+**Onboarding Persistence**: Persist onboarding state under a user-scoped storage key (`${ONBOARDING_STORAGE_KEY}:${currentUser.id}`) and wrap storage reads/writes in `try/catch` so blocked storage does not crash the slice. Hydrate that user-scoped state inside onboarding event handlers before branching on skip/complete flags. Track paused controls-tour progress with `onboardingPausedCoachmarkStep` (not checklist-time `onboardingCoachmarkStep`), and prefer that paused marker when resuming `know-controls`; keep checklist transitions free to reset active coachmark step without losing paused resume context. Minimized-pill body resume should expand back to checklist, while `startOnboardingTask('know-controls')` resumes coachmarks at the saved step (clamped to the active viewport sequence). On mobile, manually expanding a minimized checklist pill must keep the checklist surface visible (including `Skip walkthrough`), suppress hint/coachmark overlays until the user explicitly taps a task CTA (`Start`/`Continue`), and avoid running continuous anchor measurement loops while that manual-resume checklist surface is shown. Any checklist/pill CTA bound to paused controls flow should read `Continue` (not `Start`). Completed checklist task actions must render as disabled `Done` buttons and stay non-interactive.
+
+<!-- Updated: 2026-05-12 - Clarified minimized-pill resume wording while preserving onboarding persistence rules -->
 
 > Domain-specific gotchas (onboarding, editor, sharing, realtime, Base UI) live in `.claude/rules/` and load automatically when you touch relevant files.
 

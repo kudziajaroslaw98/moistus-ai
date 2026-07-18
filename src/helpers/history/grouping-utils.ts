@@ -1,4 +1,7 @@
-import type { AttributedHistoryDelta, HistoryItem } from '@/types/history-state';
+import type {
+	AttributedHistoryDelta,
+	HistoryItem,
+} from '@/types/history-state';
 import type { HistoryPatchOp } from '@/types/history-state';
 
 /**
@@ -57,10 +60,16 @@ function extractNodeIdFromDelta(delta?: AttributedHistoryDelta): string | null {
 	}
 
 	// Extract node ID from the change
-	const nodeData = (nodeChange.value ?? nodeChange.removedValue) as
-		| { id?: unknown }
-		| undefined;
-	return typeof nodeData?.id === 'string' ? nodeData.id : null;
+	const nodeData = (nodeChange.value || nodeChange.removedValue) as any;
+	return nodeData?.id || null;
+}
+
+function extractNodeIdFromItem(item: HistoryItemWithMeta): string | null {
+	const fromDelta = extractNodeIdFromDelta(item.delta);
+	if (fromDelta) return fromDelta;
+
+	const subject = item.meta.subjects?.find((entry) => entry.type === 'node');
+	return subject?.id ?? null;
 }
 
 /**
@@ -79,24 +88,27 @@ function extractNodeNameFromDelta(delta?: AttributedHistoryDelta): string {
 		return 'Untitled';
 	}
 
-	const nodeData = (nodeChange.value ?? nodeChange.removedValue) as
-		| { data?: Record<string, unknown> }
-		| undefined;
-	const data = nodeData?.data;
+	const nodeData = (nodeChange.value || nodeChange.removedValue) as any;
+	const data = nodeData?.data as any;
 
 	// Try various label sources
-	if (typeof data?.label === 'string' && data.label.trim().length > 0) {
-		return data.label;
-	}
-	if (typeof data?.content === 'string' && data.content.length > 0) {
-		const content = data.content;
+	if (data?.label) return data.label;
+	if (data?.content) {
+		const content = String(data.content);
 		return content.length > 30 ? content.slice(0, 27) + '...' : content;
 	}
-	if (typeof data?.title === 'string' && data.title.trim().length > 0) {
-		return data.title;
-	}
+	if (data?.title) return data.title;
 
 	return 'Untitled';
+}
+
+function extractNodeNameFromItem(item: HistoryItemWithMeta): string {
+	const fromSubject = item.meta.subjects?.find(
+		(subject) => subject.type === 'node' && subject.label
+	);
+	if (fromSubject?.label) return fromSubject.label;
+
+	return extractNodeNameFromDelta(item.delta);
 }
 
 function isHistoryPatchOp(value: unknown): value is HistoryPatchOp {
@@ -126,14 +138,16 @@ export function groupHistoryItems(
 
 	for (let i = 0; i < items.length; i++) {
 		const item = items[i];
-		const delta = item.delta;
-		const nodeId = extractNodeIdFromDelta(delta);
+		const nodeId = extractNodeIdFromItem(item);
 
 		// If this item doesn't have a node ID, or it's a different node,
 		// or the time gap is too large, finalize the current group
 		const timeSinceLastItem =
 			currentGroup && currentGroup.length > 0
-				? Math.abs(item.meta.timestamp - currentGroup[currentGroup.length - 1].meta.timestamp)
+				? Math.abs(
+						item.meta.timestamp -
+							currentGroup[currentGroup.length - 1].meta.timestamp
+					)
 				: 0;
 
 		const shouldStartNewGroup =
@@ -152,7 +166,7 @@ export function groupHistoryItems(
 			} else {
 				// Multiple items - create group
 				const groupNodeId = currentNodeId || 'unknown';
-				const nodeName = extractNodeNameFromDelta(currentGroup[0].delta);
+				const nodeName = extractNodeNameFromItem(currentGroup[0]);
 				const timestamps = currentGroup.map((g) => g.meta.timestamp);
 				const startTime = Math.min(...timestamps);
 				const endTime = Math.max(...timestamps);
@@ -209,7 +223,7 @@ export function groupHistoryItems(
 			});
 		} else {
 			const groupNodeId = currentNodeId || 'unknown';
-			const nodeName = extractNodeNameFromDelta(currentGroup[0].delta);
+			const nodeName = extractNodeNameFromItem(currentGroup[0]);
 			const timestamps = currentGroup.map((g) => g.meta.timestamp);
 			const startTime = Math.min(...timestamps);
 			const endTime = Math.max(...timestamps);
@@ -256,7 +270,9 @@ export function toggleGroupExpansion(
 /**
  * Expand all groups
  */
-export function expandAllGroups(groups: HistoryGroupOrItem[]): HistoryGroupOrItem[] {
+export function expandAllGroups(
+	groups: HistoryGroupOrItem[]
+): HistoryGroupOrItem[] {
 	return groups.map((item) => {
 		if (item.type === 'group') {
 			return { ...item, isExpanded: true };
@@ -268,7 +284,9 @@ export function expandAllGroups(groups: HistoryGroupOrItem[]): HistoryGroupOrIte
 /**
  * Collapse all groups
  */
-export function collapseAllGroups(groups: HistoryGroupOrItem[]): HistoryGroupOrItem[] {
+export function collapseAllGroups(
+	groups: HistoryGroupOrItem[]
+): HistoryGroupOrItem[] {
 	return groups.map((item) => {
 		if (item.type === 'group') {
 			return { ...item, isExpanded: false };

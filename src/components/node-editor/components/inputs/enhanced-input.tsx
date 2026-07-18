@@ -1,13 +1,13 @@
 'use client';
 
+import type { AvailableNodeTypes } from '@/registry/node-registry';
+import { assertAvailableNodeTypeWithLog } from '@/registry/type-guards';
+import { cn } from '@/utils/cn';
 import {
 	acceptCompletion,
 	closeCompletion,
 	setSelectedCompletion,
 } from '@codemirror/autocomplete';
-import type { AvailableNodeTypes } from '@/registry/node-registry';
-import { assertAvailableNodeTypeWithLog } from '@/registry/type-guards';
-import { cn } from '@/utils/cn';
 import { RefreshCw } from 'lucide-react';
 import { motion, type MotionProps } from 'motion/react';
 import React, {
@@ -24,11 +24,11 @@ import {
 	createNodeEditor,
 	type NodeEditorView,
 } from '../../integrations/codemirror/setup';
-import { ValidationTooltip } from './validation-tooltip';
 import type {
 	EditorAutocompleteController,
 	EditorAutocompleteState,
 } from '../../types';
+import { ValidationTooltip } from './validation-tooltip';
 
 // Internal change tracking for preventing infinite loops
 let isInternalChange = false;
@@ -89,7 +89,9 @@ export const EnhancedInput = ({
 	// Store the latest callbacks in refs to avoid stale closures
 	const onKeyDownRef = useRef(onKeyDown);
 	const onSelectionChangeRef = useRef(onSelectionChange);
-	const onAutocompleteControllerReadyRef = useRef(onAutocompleteControllerReady);
+	const onAutocompleteControllerReadyRef = useRef(
+		onAutocompleteControllerReady
+	);
 	const onAutocompleteStateChangeRef = useRef(onAutocompleteStateChange);
 	const onFocusChangeRef = useRef(onFocusChange);
 
@@ -178,7 +180,6 @@ export const EnhancedInput = ({
 	const handleNodeTypeChange = useCallback(
 		(event: CustomEvent) => {
 			try {
-
 				// Call parent callback if provided
 				if (onNodeTypeChange && event.detail?.nodeType) {
 					onNodeTypeChange(event.detail.nodeType);
@@ -200,7 +201,6 @@ export const EnhancedInput = ({
 	const handleCommandExecuted = useCallback(
 		(event: CustomEvent) => {
 			try {
-
 				// Call parent callback if provided
 				if (onCommandExecuted && event.detail) {
 					onCommandExecuted(event.detail);
@@ -225,7 +225,6 @@ export const EnhancedInput = ({
 	const handleReferenceSelected = useCallback(
 		(event: CustomEvent) => {
 			try {
-
 				// Call parent callback if provided (for future extensibility)
 				if (onCommandExecuted && event.detail) {
 					// Treat reference selection as a command execution
@@ -268,7 +267,6 @@ export const EnhancedInput = ({
 		) {
 			return;
 		}
-
 
 		try {
 			// Use the new unified createNodeEditor function
@@ -395,7 +393,10 @@ export const EnhancedInput = ({
 		return () => {
 			try {
 				if (editorViewRef.current && handleFocusIn && handleFocusOut) {
-					editorViewRef.current.dom.removeEventListener('focusin', handleFocusIn);
+					editorViewRef.current.dom.removeEventListener(
+						'focusin',
+						handleFocusIn
+					);
 					editorViewRef.current.dom.removeEventListener(
 						'focusout',
 						handleFocusOut
@@ -505,7 +506,7 @@ export const EnhancedInput = ({
 				ref={containerRef}
 				transition={transition}
 				className={cn(
-					'enhanced-input-container relative',
+					'enhanced-input-container relative h-full min-h-0',
 					hasErrors && 'has-validation-errors',
 					hasWarnings && 'has-validation-warnings',
 					hasSuggestions && 'has-validation-suggestions',
@@ -522,7 +523,7 @@ export const EnhancedInput = ({
 				>
 					{/* Remove motion wrapper from input to prevent CodeMirror interference */}
 					<div
-						className='enhanced-input-wrapper'
+						className='enhanced-input-wrapper h-full min-h-0'
 						style={{
 							// Stable container to prevent CodeMirror DOM issues
 							isolation: 'isolate',
@@ -532,12 +533,12 @@ export const EnhancedInput = ({
 						<div
 							ref={editorRef}
 							className={cn(
-								'w-full rounded-md',
+								'h-full min-h-0 w-full',
 								disabled && 'opacity-50 cursor-not-allowed'
 							)}
 							style={{
 								// Ensure the editor container is stable
-								minHeight: '60px',
+								minHeight: 0,
 								willChange: 'auto', // Prevent unnecessary GPU layers
 							}}
 						/>
