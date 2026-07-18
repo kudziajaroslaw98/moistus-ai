@@ -1,4 +1,4 @@
-import { PRO_PLAN_ID } from '@/helpers/subscription/checkout-intent';
+import { PRO_PLAN_ID, type BillingInterval } from '@/types/subscription';
 import {
 	deserializeUserSubscription,
 	serializeSubscriptionPlan,
@@ -81,7 +81,7 @@ export interface SubscriptionSlice {
 	fetchUsageData: () => Promise<void>;
 	createCheckoutSession: (
 		planId: typeof PRO_PLAN_ID,
-		billingInterval: 'monthly' | 'yearly'
+		billingInterval: BillingInterval
 	) => Promise<{
 		checkoutUrl?: string;
 		error?: string;
@@ -257,7 +257,7 @@ export const createSubscriptionSlice: StateCreator<
 
 	createCheckoutSession: async (
 		planId: typeof PRO_PLAN_ID,
-		billingInterval: 'monthly' | 'yearly'
+		billingInterval: BillingInterval
 	) => {
 		try {
 			const response = await fetch('/api/checkout/create', {

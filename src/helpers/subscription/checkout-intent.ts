@@ -1,11 +1,10 @@
-export const PRO_PLAN_ID = 'pro' as const;
+import {
+	PRO_PLAN_ID,
+	type BillingInterval,
+	type ProCheckoutIntent,
+} from '@/types/subscription';
 
-export type BillingInterval = 'monthly' | 'yearly';
-
-export interface ProCheckoutIntent {
-	planId: typeof PRO_PLAN_ID;
-	billingInterval: BillingInterval;
-}
+export { PRO_PLAN_ID, type BillingInterval, type ProCheckoutIntent };
 
 type SearchParamsReader = Pick<URLSearchParams, 'get'>;
 

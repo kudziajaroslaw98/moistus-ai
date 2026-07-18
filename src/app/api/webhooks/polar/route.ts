@@ -97,7 +97,10 @@ function toFiniteNonNegativeNumber(value: unknown): number {
 /**
  * Handles subscription creation/activation.
  */
-async function handleSubscriptionActive(data: SubscriptionData) {
+async function handleSubscriptionActive(
+	data: SubscriptionData,
+	options: { preserveIncomingState?: boolean } = {}
+) {
 	const supabase = createServiceRoleClient();
 
 	console.log('[Polar] Processing subscription.active:', data.id);
@@ -158,10 +161,18 @@ async function handleSubscriptionActive(data: SubscriptionData) {
 		plan_id: plan.id,
 		polar_subscription_id: data.id,
 		polar_customer_id: customerId,
-		status: 'active',
+		status: options.preserveIncomingState
+			? mapPolarStatus(data.status || 'active')
+			: 'active',
 		current_period_start: currentPeriodStart.toISOString(),
 		current_period_end: currentPeriodEnd.toISOString(),
-		cancel_at_period_end: false,
+		cancel_at_period_end: options.preserveIncomingState
+			? (data.cancelAtPeriodEnd ?? false)
+			: false,
+		canceled_at:
+			options.preserveIncomingState && data.canceledAt
+				? new Date(data.canceledAt).toISOString()
+				: null,
 		metadata: {
 			polar_product_id: data.productId,
 			billing_interval: mapBillingInterval(data.recurringInterval || 'month'),
@@ -233,7 +244,7 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 	if (!existingSubscription) {
 		// Webhook delivery is not ordered. Persist a subscription.updated event that
 		// arrives before its subscription.created/subscription.active counterpart.
-		await handleSubscriptionActive(data);
+		await handleSubscriptionActive(data, { preserveIncomingState: true });
 		return;
 	}
 
@@ -246,7 +257,7 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 
 	const updateData: Record<string, unknown> = {
 		status: mapPolarStatus(data.status || 'active'),
-		cancel_at_period_end: data.cancelAtPeriodEnd || false,
+		cancel_at_period_end: data.cancelAtPeriodEnd ?? false,
 		updated_at: new Date().toISOString(),
 	};
 

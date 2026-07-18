@@ -1,7 +1,7 @@
 import { getCheckoutErrorResponse } from '@/helpers/subscription/checkout-error';
-import { PRO_PLAN_ID } from '@/helpers/subscription/checkout-intent';
 import { createClient } from '@/helpers/supabase/server';
 import { createPolarClient, getAppUrl, getProductId } from '@/lib/polar';
+import { PRO_PLAN_ID } from '@/types/subscription';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 

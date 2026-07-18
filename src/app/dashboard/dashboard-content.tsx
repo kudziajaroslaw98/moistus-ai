@@ -91,7 +91,6 @@ export function DashboardContent() {
 		}
 
 		checkoutActivationStarted.current = true;
-		window.history.replaceState({}, '', '/dashboard');
 		let cancelled = false;
 
 		void waitForSubscriptionActivation({
@@ -107,6 +106,7 @@ export function DashboardContent() {
 					description: 'Welcome to Shiko Pro. Your account has been upgraded.',
 				});
 				refreshUsageData();
+				window.history.replaceState({}, '', '/dashboard');
 				return;
 			}
 
@@ -114,6 +114,7 @@ export function DashboardContent() {
 				description:
 					'We will enable Pro as soon as the signed billing update arrives. Refresh shortly.',
 			});
+			window.history.replaceState({}, '', '/dashboard');
 		});
 
 		return () => {

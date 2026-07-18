@@ -5,6 +5,20 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-07-18]
+
+### Fixed
+
+- **billing/webhook-ordering**: Out-of-order Polar subscription updates now retain their actual status and cancellation state before access is persisted
+  - Why: Delayed billing events can no longer incorrectly activate canceled or revoked access
+- **billing/checkout-return**: Checkout activation now keeps its completion feedback intact before clearing the dashboard return URL
+  - Why: Successful Pro activation consistently refreshes usage and shows its confirmation
+
+### Refactored
+
+- **billing/checkout-contracts**: Shared Pro checkout types now have a single subscription-types home
+  - Why: Signup and billing code now share one typed plan and cadence contract
+
 ## [2026-07-17]
 
 ### Added

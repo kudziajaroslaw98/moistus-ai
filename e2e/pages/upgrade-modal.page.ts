@@ -15,31 +15,42 @@ export class UpgradeModalPage {
 
 	// Modal container - matches the upgrade modal structure
 	readonly modal: Locator;
+
 	readonly backdrop: Locator;
+
 	readonly closeButton: Locator;
 
 	// Step 1: Choose Method
 	readonly googleOAuthButton: Locator;
+
 	readonly githubOAuthButton: Locator;
+
 	readonly emailSignUpButton: Locator;
 
 	// Step 2: Enter Email
 	readonly emailInput: Locator;
+
 	readonly displayNameInput: Locator;
+
 	readonly sendCodeButton: Locator;
 
 	// Step 3: Set Password
 	readonly passwordInput: Locator;
+
 	readonly confirmPasswordInput: Locator;
+
 	readonly continueButton: Locator;
 
 	// Step 4: Verify OTP
 	readonly otpInput: Locator;
+
 	readonly verifyCodeButton: Locator;
+
 	readonly resendCodeButton: Locator;
 
 	// Step 5: Completed
 	readonly successMessage: Locator;
+
 	readonly continueToDashboardButton: Locator;
 
 	// Error display

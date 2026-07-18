@@ -4,13 +4,14 @@ import { AuthCard } from '@/components/auth/shared';
 import type { OAuthProvider } from '@/components/auth/shared/oauth-buttons';
 import {
 	parseProCheckoutIntent,
-	type ProCheckoutIntent,
 } from '@/helpers/subscription/checkout-intent';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import useAppStore from '@/store/mind-map-store';
+import type { ProCheckoutIntent } from '@/types/subscription';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { FormStep } from './steps/form-step';
 import { OtpStep } from './steps/otp-step';
 import { SuccessStep } from './steps/success-step';
@@ -70,7 +71,7 @@ export function SignUpWizard() {
 	const searchParams = useSearchParams();
 	const checkoutIntent = parseProCheckoutIntent(searchParams);
 	const createCheckoutSession = useAppStore(
-		(state) => state.createCheckoutSession
+		useShallow((state) => state.createCheckoutSession)
 	);
 	const shouldReduceMotion = useReducedMotion();
 
@@ -378,10 +379,10 @@ export function SignUpWizard() {
 							displayName={state.displayName}
 							onComplete={handleComplete}
 							checkoutError={state.checkoutError}
+							isRetryingCheckout={state.isCreatingCheckout}
 							onRetryCheckout={
 								state.checkoutError ? handleRetryCheckout : undefined
 							}
-							isRetryingCheckout={state.isCreatingCheckout}
 						/>
 					</motion.div>
 				)}

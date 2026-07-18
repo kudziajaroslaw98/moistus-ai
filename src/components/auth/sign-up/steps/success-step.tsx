@@ -50,10 +50,10 @@ export function SuccessStep({
 			{/* Success animation */}
 			<motion.div
 				className='relative'
+				animate={{ opacity: 1, scale: 1 }}
 				initial={
 					shouldReduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.5 }
 				}
-				animate={{ opacity: 1, scale: 1 }}
 				transition={
 					shouldReduceMotion
 						? { duration: 0 }
@@ -69,10 +69,10 @@ export function SuccessStep({
 				<div className='absolute inset-0 flex items-center justify-center'>
 					<motion.div
 						className='w-24 h-24 bg-emerald-500/20 rounded-full blur-xl'
+						animate={{ opacity: 0.5, scale: 1.2 }}
 						initial={
 							shouldReduceMotion ? { opacity: 0.5 } : { opacity: 0, scale: 0.5 }
 						}
-						animate={{ opacity: 0.5, scale: 1.2 }}
 						transition={
 							shouldReduceMotion
 								? { duration: 0 }
@@ -97,6 +97,7 @@ export function SuccessStep({
 				}
 			>
 				<h3 className='text-xl font-semibold text-white'>{greeting}</h3>
+
 				<p className='text-text-secondary'>
 					{checkoutError
 						? 'Checkout did not open, but your account has been created. Retry to continue with Pro.'
@@ -114,6 +115,7 @@ export function SuccessStep({
 				}
 			>
 				<Sparkles className='w-4 h-4 text-primary-400' />
+
 				<span>Start creating your first mind map</span>
 			</motion.div>
 
@@ -135,8 +137,10 @@ export function SuccessStep({
 							{isRetryingCheckout
 								? 'Opening checkout…'
 								: 'Retry secure checkout'}
+
 							<ArrowRight className='w-4 h-4 ml-2' />
 						</Button>
+
 						<Button
 							variant='outline'
 							onClick={onComplete}
