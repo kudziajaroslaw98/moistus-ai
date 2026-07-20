@@ -5,6 +5,7 @@ import {
 } from '@/helpers/api/rate-limiter';
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withPublicApiValidation } from '@/helpers/api/with-public-api-validation';
+import { buildVerifiedUserProfileUpsert } from '@/helpers/identity/verified-user-profile-upsert';
 import { signUpVerifyOtpRequestSchema } from '@/lib/validations/auth';
 
 /**
@@ -93,43 +94,50 @@ export const POST = withPublicApiValidation(
 			}
 
 			// Get user info to create profile
-			const user = verifyData?.user || (await supabase.auth.getUser()).data.user;
+			const user =
+				verifyData?.user || (await supabase.auth.getUser()).data.user;
 
 			if (user) {
-				// Create user profile in the database
+				// Keep an existing profile as the canonical identity source. A database
+				// trigger may already have created it when auth.users was inserted.
 				const pendingDisplayName = user.user_metadata?.pending_display_name;
+				const { data: existingProfile, error: existingProfileError } =
+					await supabase
+						.from('user_profiles')
+						.select('display_name, full_name')
+						.eq('user_id', user.id)
+						.maybeSingle();
 
-				const { error: profileError } = await supabase
-					.from('user_profiles')
-					.insert({
-						id: user.id,
-						email: user.email,
-						display_name: pendingDisplayName || null,
-						full_name: pendingDisplayName || null,
-						is_anonymous: false,
-						created_at: new Date().toISOString(),
-						updated_at: new Date().toISOString(),
-					})
-					.single();
+				if (existingProfileError) {
+					console.warn(
+						'Failed to load user profile before sign-up verification upsert:',
+						existingProfileError
+					);
+				} else {
+					const { profile, options } = buildVerifiedUserProfileUpsert(
+						user,
+						existingProfile
+					);
+					const { error: profileError } = await supabase
+						.from('user_profiles')
+						.upsert(profile, options);
 
-				if (profileError && !profileError.message.includes('duplicate')) {
-					console.error('Failed to create user profile:', profileError);
-					// Don't fail the entire flow - profile can be created later
-				}
-
-				// Clear the pending display name from metadata
-				if (pendingDisplayName) {
-					await supabase.auth.updateUser({
-						data: { pending_display_name: null },
-					});
+					if (profileError) {
+						console.error('Failed to upsert user profile:', profileError);
+						// Don't fail the entire flow - profile can be created later.
+					} else if (pendingDisplayName) {
+						// Clear the pending display name only after it has persisted.
+						await supabase.auth.updateUser({
+							data: { pending_display_name: null },
+						});
+					}
 				}
 			}
 
 			return respondSuccess({
 				verified: true,
 				email: data.email,
-				message:
-					'Email verified successfully! Your account is now active.',
+				message: 'Email verified successfully! Your account is now active.',
 				next_step: 'complete',
 				redirect: '/dashboard',
 			});

@@ -1,18 +1,27 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 
 interface SuccessStepProps {
 	displayName?: string;
 	onComplete: () => void;
+	checkoutError?: string | null;
+	onRetryCheckout?: () => void;
+	isRetryingCheckout?: boolean;
 }
 
 const AUTO_REDIRECT_DELAY = 3000; // 3 seconds
 
-export function SuccessStep({ displayName, onComplete }: SuccessStepProps) {
+export function SuccessStep({
+	displayName,
+	onComplete,
+	checkoutError,
+	onRetryCheckout,
+	isRetryingCheckout = false,
+}: SuccessStepProps) {
 	const shouldReduceMotion = useReducedMotion();
 	const onCompleteRef = useRef(onComplete);
 
@@ -23,9 +32,16 @@ export function SuccessStep({ displayName, onComplete }: SuccessStepProps) {
 
 	// Auto-redirect after delay
 	useEffect(() => {
-		const timer = setTimeout(() => onCompleteRef.current?.(), AUTO_REDIRECT_DELAY);
+		if (onRetryCheckout) {
+			return;
+		}
+
+		const timer = setTimeout(
+			() => onCompleteRef.current?.(),
+			AUTO_REDIRECT_DELAY
+		);
 		return () => clearTimeout(timer);
-	}, []);
+	}, [onRetryCheckout]);
 
 	const greeting = displayName ? `Welcome, ${displayName}!` : 'Welcome!';
 
@@ -34,8 +50,10 @@ export function SuccessStep({ displayName, onComplete }: SuccessStepProps) {
 			{/* Success animation */}
 			<motion.div
 				className='relative'
-				initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.5 }}
 				animate={{ opacity: 1, scale: 1 }}
+				initial={
+					shouldReduceMotion ? { opacity: 1 } : { opacity: 0, scale: 0.5 }
+				}
 				transition={
 					shouldReduceMotion
 						? { duration: 0 }
@@ -51,8 +69,10 @@ export function SuccessStep({ displayName, onComplete }: SuccessStepProps) {
 				<div className='absolute inset-0 flex items-center justify-center'>
 					<motion.div
 						className='w-24 h-24 bg-emerald-500/20 rounded-full blur-xl'
-						initial={shouldReduceMotion ? { opacity: 0.5 } : { opacity: 0, scale: 0.5 }}
 						animate={{ opacity: 0.5, scale: 1.2 }}
+						initial={
+							shouldReduceMotion ? { opacity: 0.5 } : { opacity: 0, scale: 0.5 }
+						}
 						transition={
 							shouldReduceMotion
 								? { duration: 0 }
@@ -73,14 +93,15 @@ export function SuccessStep({ displayName, onComplete }: SuccessStepProps) {
 				initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={
-					shouldReduceMotion
-						? { duration: 0 }
-						: { delay: 0.2, duration: 0.3 }
+					shouldReduceMotion ? { duration: 0 } : { delay: 0.2, duration: 0.3 }
 				}
 			>
 				<h3 className='text-xl font-semibold text-white'>{greeting}</h3>
+
 				<p className='text-text-secondary'>
-					Your account has been created successfully.
+					{checkoutError
+						? 'Checkout did not open, but your account has been created. Retry to continue with Pro.'
+						: 'Your account has been created successfully.'}
 				</p>
 			</motion.div>
 
@@ -90,12 +111,11 @@ export function SuccessStep({ displayName, onComplete }: SuccessStepProps) {
 				initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
 				animate={{ opacity: 1 }}
 				transition={
-					shouldReduceMotion
-						? { duration: 0 }
-						: { delay: 0.4, duration: 0.3 }
+					shouldReduceMotion ? { duration: 0 } : { delay: 0.4, duration: 0.3 }
 				}
 			>
 				<Sparkles className='w-4 h-4 text-primary-400' />
+
 				<span>Start creating your first mind map</span>
 			</motion.div>
 
@@ -104,33 +124,55 @@ export function SuccessStep({ displayName, onComplete }: SuccessStepProps) {
 				initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
 				animate={{ opacity: 1, y: 0 }}
 				transition={
-					shouldReduceMotion
-						? { duration: 0 }
-						: { delay: 0.5, duration: 0.3 }
+					shouldReduceMotion ? { duration: 0 } : { delay: 0.5, duration: 0.3 }
 				}
 			>
-				<Button
-					onClick={onComplete}
-					className='w-full h-12 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-500/40 transition-all duration-200'
-				>
-					Go to Dashboard
-					<ArrowRight className='w-4 h-4 ml-2' />
-				</Button>
+				{onRetryCheckout ? (
+					<div className='space-y-3'>
+						<Button
+							onClick={onRetryCheckout}
+							disabled={isRetryingCheckout}
+							className='w-full h-12 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-500/40 transition-all duration-200'
+						>
+							{isRetryingCheckout
+								? 'Opening checkout…'
+								: 'Retry secure checkout'}
+
+							<ArrowRight className='w-4 h-4 ml-2' />
+						</Button>
+
+						<Button
+							variant='outline'
+							onClick={onComplete}
+							className='w-full h-12'
+						>
+							Go to Dashboard
+						</Button>
+					</div>
+				) : (
+					<Button
+						onClick={onComplete}
+						className='w-full h-12 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-400 hover:to-primary-500 text-white font-medium shadow-lg shadow-primary-500/30 hover:shadow-xl hover:shadow-primary-500/40 transition-all duration-200'
+					>
+						Go to Dashboard
+						<ArrowRight className='w-4 h-4 ml-2' />
+					</Button>
+				)}
 			</motion.div>
 
 			{/* Auto-redirect notice */}
-			<motion.p
-				className='text-xs text-text-tertiary'
-				initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
-				animate={{ opacity: 1 }}
-				transition={
-					shouldReduceMotion
-						? { duration: 0 }
-						: { delay: 0.6, duration: 0.3 }
-				}
-			>
-				Redirecting automatically in a few seconds...
-			</motion.p>
+			{!onRetryCheckout && (
+				<motion.p
+					className='text-xs text-text-tertiary'
+					initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={
+						shouldReduceMotion ? { duration: 0 } : { delay: 0.6, duration: 0.3 }
+					}
+				>
+					Redirecting automatically in a few seconds...
+				</motion.p>
+			)}
 		</div>
 	);
 }

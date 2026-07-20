@@ -4,18 +4,18 @@
  * Tests the complete email-based upgrade flow:
  * 1. Choose email method
  * 2. Enter email address
- * 3. Receive and verify OTP
- * 4. Set password
+ * 3. Set password
+ * 4. Receive and verify OTP
  * 5. Account created successfully
  *
  * Uses Supabase local Inbucket for OTP retrieval.
  */
 
-import { test, expect } from '../../fixtures/upgrade.fixture';
-import { waitForOtp, generateTestEmail } from '../../utils/inbucket-client';
+import { expect, test } from '../../fixtures/upgrade.fixture';
 import { JoinRoomPage } from '../../pages/join-room.page';
-import { SharePanelPage } from '../../pages/share-panel.page';
 import { MindMapPage } from '../../pages/mind-map.page';
+import { SharePanelPage } from '../../pages/share-panel.page';
+import { generateTestEmail, waitForOtp } from '../../utils/inbucket-client';
 
 /**
  * Helper to create an anonymous session by joining a shared map.
@@ -185,51 +185,39 @@ test.describe.serial('Complete Email Upgrade Flow', () => {
 		// Submit
 		await sendCodeButton.click();
 
-		// Wait for OTP step
-		const otpInput = guestPage.locator('input#otp');
-		await otpInput.waitFor({ state: 'visible', timeout: 15000 });
-	});
-
-	test('Step 4: Retrieve OTP from Inbucket and verify', async () => {
-		// Wait for email to arrive and extract OTP
-		console.log(`Waiting for OTP email at: ${testEmail}`);
-		const otp = await waitForOtp(testEmail, 60000);
-		console.log(`Received OTP: ${otp}`);
-
-		expect(otp).toMatch(/^\d{6}$/);
-
-		// Enter OTP
-		const otpInput = guestPage.locator('input#otp');
-		await otpInput.fill(otp);
-
-		// Verify
-		const verifyButton = guestPage.getByRole('button', {
-			name: /verify code/i,
-		});
-		await verifyButton.click();
-
-		// Wait for password step
+		// Password entry precedes requesting the verification code.
 		const passwordInput = guestPage.locator('input#password');
 		await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
 	});
 
-	test('Step 5: Set password and complete upgrade', async () => {
+	test('Step 4: Set password and request verification', async () => {
 		const passwordInput = guestPage.locator('input#password');
 		const confirmPasswordInput = guestPage.locator('input#confirmPassword');
-		const createAccountButton = guestPage.getByRole('button', {
-			name: /create account/i,
+		const continueButton = guestPage.getByRole('button', {
+			name: 'Continue',
+			exact: true,
 		});
 
-		// Fill in password
 		await passwordInput.fill(testPassword);
 		await confirmPasswordInput.fill(testPassword);
+		await continueButton.click();
 
-		// Submit
-		await createAccountButton.click();
+		await guestPage
+			.locator('input#otp')
+			.waitFor({ state: 'visible', timeout: 15000 });
+	});
 
-		// Wait for success
-		const successMessage = guestPage.locator('text=Account Created!');
-		await successMessage.waitFor({ state: 'visible', timeout: 15000 });
+	test('Step 5: Retrieve OTP from Inbucket and complete upgrade', async () => {
+		console.log(`Waiting for OTP email at: ${testEmail}`);
+		const otp = await waitForOtp(testEmail, 60000);
+		console.log(`Received OTP: ${otp}`);
+		expect(otp).toMatch(/^\d{6}$/);
+
+		await guestPage.locator('input#otp').fill(otp);
+		await guestPage.getByRole('button', { name: /verify code/i }).click();
+		await guestPage
+			.locator('text=Account Created!')
+			.waitFor({ state: 'visible', timeout: 15000 });
 	});
 
 	test('Step 6: Complete and verify user is no longer anonymous', async () => {
@@ -267,15 +255,21 @@ test.describe('Resend OTP Functionality', () => {
 
 			// Dismiss onboarding modal if it appears
 			const skipButton = guestPage.locator('text=Skip for now');
-			const isOnboardingVisible = await skipButton.isVisible().catch(() => false);
+			const isOnboardingVisible = await skipButton
+				.isVisible()
+				.catch(() => false);
 			if (isOnboardingVisible) {
 				await skipButton.click();
 				await guestPage.waitForTimeout(500);
 			}
 
 			// Check if upgrade modal is already open (auto-opens for anonymous users)
-			const upgradeModalHeader = guestPage.locator('text=Create Account to Start Building');
-			const isModalAlreadyOpen = await upgradeModalHeader.isVisible().catch(() => false);
+			const upgradeModalHeader = guestPage.locator(
+				'text=Create Account to Start Building'
+			);
+			const isModalAlreadyOpen = await upgradeModalHeader
+				.isVisible()
+				.catch(() => false);
 
 			if (!isModalAlreadyOpen) {
 				// Click Create Account from banner
@@ -302,7 +296,16 @@ test.describe('Resend OTP Functionality', () => {
 			});
 			await sendCodeButton.click();
 
-			// Wait for OTP step
+			// Complete password entry before OTP is issued.
+			const passwordInput = guestPage.locator('input#password');
+			const confirmPasswordInput = guestPage.locator('input#confirmPassword');
+			await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
+			await passwordInput.fill('TestPass123!');
+			await confirmPasswordInput.fill('TestPass123!');
+			await guestPage
+				.getByRole('button', { name: 'Continue', exact: true })
+				.click();
+
 			const otpInput = guestPage.locator('input#otp');
 			await otpInput.waitFor({ state: 'visible', timeout: 15000 });
 
@@ -341,15 +344,21 @@ test.describe('Password Requirements Validation', () => {
 
 			// Dismiss onboarding modal if it appears
 			const skipButton = guestPage.locator('text=Skip for now');
-			const isOnboardingVisible = await skipButton.isVisible().catch(() => false);
+			const isOnboardingVisible = await skipButton
+				.isVisible()
+				.catch(() => false);
 			if (isOnboardingVisible) {
 				await skipButton.click();
 				await guestPage.waitForTimeout(500);
 			}
 
 			// Check if upgrade modal is already open (auto-opens for anonymous users)
-			const upgradeModalHeader = guestPage.locator('text=Create Account to Start Building');
-			const isModalAlreadyOpen = await upgradeModalHeader.isVisible().catch(() => false);
+			const upgradeModalHeader = guestPage.locator(
+				'text=Create Account to Start Building'
+			);
+			const isModalAlreadyOpen = await upgradeModalHeader
+				.isVisible()
+				.catch(() => false);
 
 			if (!isModalAlreadyOpen) {
 				const createAccountBtn = guestPage.getByRole('button', {
@@ -374,19 +383,7 @@ test.describe('Password Requirements Validation', () => {
 			});
 			await sendCodeButton.click();
 
-			// Wait for OTP
-			const otpInput = guestPage.locator('input#otp');
-			await otpInput.waitFor({ state: 'visible', timeout: 15000 });
-
-			// Get OTP and verify
-			const otp = await waitForOtp(testEmail, 30000);
-			await otpInput.fill(otp);
-			const verifyButton = guestPage.getByRole('button', {
-				name: /verify code/i,
-			});
-			await verifyButton.click();
-
-			// Wait for password step
+			// Password entry follows email and precedes OTP verification.
 			const passwordInput = guestPage.locator('input#password');
 			await passwordInput.waitFor({ state: 'visible', timeout: 15000 });
 
@@ -444,15 +441,21 @@ test.describe('Navigation Within Upgrade Flow', () => {
 
 			// Dismiss onboarding modal if it appears
 			const skipButton = guestPage.locator('text=Skip for now');
-			const isOnboardingVisible = await skipButton.isVisible().catch(() => false);
+			const isOnboardingVisible = await skipButton
+				.isVisible()
+				.catch(() => false);
 			if (isOnboardingVisible) {
 				await skipButton.click();
 				await guestPage.waitForTimeout(500);
 			}
 
 			// Check if upgrade modal is already open (auto-opens for anonymous users)
-			const upgradeModalHeader = guestPage.locator('text=Create Account to Start Building');
-			const isModalAlreadyOpen = await upgradeModalHeader.isVisible().catch(() => false);
+			const upgradeModalHeader = guestPage.locator(
+				'text=Create Account to Start Building'
+			);
+			const isModalAlreadyOpen = await upgradeModalHeader
+				.isVisible()
+				.catch(() => false);
 
 			if (!isModalAlreadyOpen) {
 				const createAccountBtn = guestPage.getByRole('button', {

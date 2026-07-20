@@ -5,10 +5,39 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
-## [2026-07-17]
+## [2026-07-18]
 
 ### Fixed
 
+- **billing/webhook-ordering**: Out-of-order Polar subscription updates now retain their actual status and cancellation state before access is persisted
+  - Why: Delayed billing events can no longer incorrectly activate canceled or revoked access
+- **billing/checkout-return**: Checkout activation now keeps its completion feedback intact before clearing the dashboard return URL
+  - Why: Successful Pro activation consistently refreshes usage and shows its confirmation
+
+### Refactored
+
+- **billing/checkout-contracts**: Shared Pro checkout types now have a single subscription-types home
+  - Why: Signup and billing code now share one typed plan and cadence contract
+
+## [2026-07-17]
+
+### Added
+
+- **auth/pro-checkout-signup**: Yearly or monthly Pro selection now survives email signup and opens the matching Polar checkout after verification, with a retry action if checkout cannot be opened
+  - Why: People can finish the plan they selected without recreating their account
+
+### Fixed
+
+- **auth/signup-profile**: Verified email signups now upsert profiles by `user_id` while keeping existing profile identity fields canonical
+  - Why: Profile persistence no longer uses an incorrect key or replaces established names
+- **billing/checkout-activation**: Dashboard activation confirmation now waits for the signed Polar webhook to persist Pro access
+  - Why: A browser return from checkout alone is not proof that paid access is ready
+- **billing/checkout-errors**: Checkout retries now describe missing billing setup, rejected provider credentials, and unavailable plans without exposing provider responses
+  - Why: People can distinguish a retryable checkout problem from local billing configuration that needs attention
+- **billing/webhook-persistence**: Polar subscription webhooks now persist correctly when a database uses a partial unique subscription-ID index, and safely tolerate delivery events arriving out of order
+  - Why: A completed checkout can now activate Pro access instead of failing during webhook persistence
+- **e2e/anonymous-upgrade**: Upgrade page objects and flow tests now follow email → password → OTP → completion
+  - Why: The previous tests described a stale, impossible OTP-first journey
 - **layout/robust-experimental-presets**: Tree Right, Tree Down, and Radial Tree now handle large, cyclic, cross-linked, and disconnected maps without stack overflows or collapsed nodes
   - Why: These layouts now build a stable iterative placement tree while retaining every real connection as a readable straight cross-link
 - **layout/organic-spread**: Organic Spread now uses a compact deterministic force configuration and falls back to a compact layout when ELK returns unusable geometry
@@ -25,6 +54,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **layout/organic-spread**: Removed Organic Spread from the layout menu and layout engine
   - Why: The force-based result was not reliably readable for real maps
 
+### Docs
+
+- **billing/configuration**: Documented the local Polar credentials, product IDs, webhook secret, and localhost checkout return contract in `.env.example` and the codebase map
+  - Why: Local billing checks now have one safe, shareable configuration reference
+
 ## [2026-05-17]
 
 ### Added
@@ -37,7 +71,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **layout/menu-group-context**: Wrapped the experimental layout menu label and items in a menu group so Base UI has the required group context at runtime
 - **layout/radial-tree-shaping**: Radial Tree layout now spreads disconnected, multi-root, and cyclic maps instead of collapsing nodes or overflowing the ELK call stack
   - Why: ELK radial expects tree-shaped input, so the app now sends a temporary layout-only spanning tree when needed
-
 ## [2026-05-15]
 
 ### Fixed

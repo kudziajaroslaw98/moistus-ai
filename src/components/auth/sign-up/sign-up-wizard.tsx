@@ -1,11 +1,17 @@
 'use client';
 
 import { AuthCard } from '@/components/auth/shared';
-import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import type { OAuthProvider } from '@/components/auth/shared/oauth-buttons';
+import {
+	parseProCheckoutIntent,
+} from '@/helpers/subscription/checkout-intent';
+import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
+import useAppStore from '@/store/mind-map-store';
+import type { ProCheckoutIntent } from '@/types/subscription';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { FormStep } from './steps/form-step';
 import { OtpStep } from './steps/otp-step';
 import { SuccessStep } from './steps/success-step';
@@ -20,6 +26,8 @@ interface SignUpState {
 	direction: 1 | -1;
 	error: string | null;
 	isLoading: boolean;
+	checkoutError: string | null;
+	isCreatingCheckout: boolean;
 }
 
 const initialState: SignUpState = {
@@ -30,6 +38,8 @@ const initialState: SignUpState = {
 	direction: 1,
 	error: null,
 	isLoading: false,
+	checkoutError: null,
+	isCreatingCheckout: false,
 };
 
 // Animation variants for step transitions (vertical slide, consistent with sign-in)
@@ -58,12 +68,47 @@ const slideTransition = {
 export function SignUpWizard() {
 	const [state, setState] = useState<SignUpState>(initialState);
 	const router = useRouter();
+	const searchParams = useSearchParams();
+	const checkoutIntent = parseProCheckoutIntent(searchParams);
+	const createCheckoutSession = useAppStore(
+		useShallow((state) => state.createCheckoutSession)
+	);
 	const shouldReduceMotion = useReducedMotion();
 
 	// Update state helper
 	const updateState = useCallback((updates: Partial<SignUpState>) => {
 		setState((prev) => ({ ...prev, ...updates }));
 	}, []);
+
+	const startProCheckout = useCallback(
+		async (intent: ProCheckoutIntent) => {
+			updateState({
+				isCreatingCheckout: true,
+				checkoutError: null,
+			});
+
+			const result = await createCheckoutSession(
+				intent.planId,
+				intent.billingInterval
+			);
+
+			if (result.checkoutUrl) {
+				window.location.assign(result.checkoutUrl);
+				return;
+			}
+
+			updateState({
+				step: 'success',
+				direction: 1,
+				isLoading: false,
+				isCreatingCheckout: false,
+				checkoutError:
+					result.error ||
+					'We could not open checkout. Your account is ready and you can retry.',
+			});
+		},
+		[createCheckoutSession, updateState]
+	);
 
 	// Handle form submission (Step 1 → Step 2)
 	const handleFormSubmit = async (data: {
@@ -89,7 +134,8 @@ export function SignUpWizard() {
 			if (!response.ok || result.status !== 'success') {
 				updateState({
 					isLoading: false,
-					error: result.error || result.statusText || 'Failed to create account',
+					error:
+						result.error || result.statusText || 'Failed to create account',
 				});
 				return;
 			}
@@ -132,7 +178,8 @@ export function SignUpWizard() {
 			if (!response.ok || result.status !== 'success') {
 				updateState({
 					isLoading: false,
-					error: result.error || result.statusText || 'Invalid verification code',
+					error:
+						result.error || result.statusText || 'Invalid verification code',
 				});
 				return;
 			}
@@ -140,12 +187,18 @@ export function SignUpWizard() {
 			// Refresh the session to ensure we have the latest auth state
 			await getSharedSupabaseClient().auth.getSession();
 
+			if (checkoutIntent) {
+				await startProCheckout(checkoutIntent);
+				return;
+			}
+
 			// Proceed to success step
 			updateState({
 				step: 'success',
 				direction: 1,
 				isLoading: false,
 				error: null,
+				checkoutError: null,
 			});
 		} catch (error) {
 			console.error('OTP verification error:', error);
@@ -234,15 +287,32 @@ export function SignUpWizard() {
 		router.refresh();
 	}, [router]);
 
+	const handleRetryCheckout = useCallback(() => {
+		if (checkoutIntent) {
+			void startProCheckout(checkoutIntent);
+		}
+	}, [checkoutIntent, startProCheckout]);
+
 	// Get step title and subtitle
 	const getStepContent = () => {
 		switch (state.step) {
 			case 'form':
-				return { title: 'Create account', subtitle: 'Start your journey with Shiko' };
+				return {
+					title: 'Create account',
+					subtitle: 'Start your journey with Shiko',
+				};
 			case 'otp':
-				return { title: 'Verify email', subtitle: 'Check your inbox for a verification code' };
+				return {
+					title: 'Verify email',
+					subtitle: 'Check your inbox for a verification code',
+				};
 			case 'success':
-				return { title: 'Welcome!', subtitle: 'Your account has been created' };
+				return state.checkoutError
+					? {
+							title: 'Your account is ready',
+							subtitle: 'Retry checkout to finish your Pro upgrade',
+						}
+					: { title: 'Welcome!', subtitle: 'Your account has been created' };
 		}
 	};
 
@@ -308,6 +378,11 @@ export function SignUpWizard() {
 						<SuccessStep
 							displayName={state.displayName}
 							onComplete={handleComplete}
+							checkoutError={state.checkoutError}
+							isRetryingCheckout={state.isCreatingCheckout}
+							onRetryCheckout={
+								state.checkoutError ? handleRetryCheckout : undefined
+							}
 						/>
 					</motion.div>
 				)}
