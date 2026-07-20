@@ -41,19 +41,24 @@ function createNode(id: string, x: number, y: number): AppNode {
 	} as AppNode;
 }
 
-function createEdge(id: string, label: string | null = null): AppEdge {
+function createEdge(
+	id: string,
+	label: string | null = null,
+	source = 'a',
+	target = 'b'
+): AppEdge {
 	return {
 		id,
-		source: 'a',
-		target: 'b',
+		source,
+		target,
 		type: 'waypointEdge',
 		label,
 		data: {
 			id,
 			map_id: 'map-1',
 			user_id: 'user-1',
-			source: 'a',
-			target: 'b',
+			source,
+			target,
 			label,
 			animated: false,
 			metadata: {
@@ -86,6 +91,20 @@ describe('elk-converter', () => {
 		});
 		expect(elkGraph.edges?.[0]?.labels?.[0]?.width).toBeGreaterThan(32);
 		expect(elkGraph.edges?.[0]?.labels?.[0]?.height).toBe(24);
+	});
+
+	it('omits ELK labels for non-layered presets', () => {
+		const elkGraph = convertToElkGraph(
+			[createNode('a', 0, 0), createNode('b', 220, 0)],
+			[createEdge('edge-1', 'Depends on')],
+			{
+				...DEFAULT_LAYOUT_CONFIG,
+				presetId: 'radial-tree',
+			}
+		);
+
+		expect(elkGraph.edges).toHaveLength(1);
+		expect(elkGraph.edges?.[0]?.labels).toBeUndefined();
 	});
 
 	it('snaps horizontal ELK labels onto the routed segment centerline', () => {
@@ -237,5 +256,75 @@ describe('elk-converter', () => {
 
 		expect(result.edges[0]?.data?.metadata?.routingStyle).toBe('elk');
 		expect(result.edges[0]?.data?.metadata?.elkLabel).toBeUndefined();
+	});
+
+	it('uses straight path labels and clears ELK geometry for non-layered presets', () => {
+		const edge = createEdge('edge-1', 'Depends on');
+		edge.data!.metadata = {
+			pathType: 'waypoint',
+			routingStyle: 'elk',
+			elkLabel: {
+				x: 10,
+				y: 20,
+				width: 90,
+				height: 24,
+				centerX: 55,
+				centerY: 32,
+			},
+		};
+
+		const result = convertFromElkGraph(
+			{
+				id: 'root',
+				children: [
+					{ id: 'a', x: 0, y: 0, width: 120, height: 60 },
+					{ id: 'b', x: 220, y: 0, width: 120, height: 60 },
+				],
+				edges: [
+					{
+						id: 'edge-1',
+						sources: ['a'],
+						targets: ['b'],
+						labels: [
+							{
+								id: 'edge-1:label',
+								text: 'Depends on',
+								x: 0,
+								y: 0,
+								width: 92,
+								height: 24,
+							},
+						],
+						sections: [
+							{
+								id: 'edge-1:s0',
+								startPoint: { x: 120, y: 30 },
+								endPoint: { x: 220, y: 30 },
+								bendPoints: [
+									{ x: 120, y: 30 },
+									{ x: 170, y: 30 },
+									{ x: 170, y: 30 },
+									{ x: 220, y: 30 },
+								],
+								incomingShape: 'a',
+								outgoingShape: 'b',
+							},
+						],
+					},
+				],
+			},
+			[createNode('a', 0, 0), createNode('b', 220, 0)],
+			[edge],
+			{
+				...DEFAULT_LAYOUT_CONFIG,
+				presetId: 'radial-tree',
+			}
+		);
+
+		expect(result.edges[0]?.type).toBe('waypointEdge');
+		expect(result.edges[0]?.data?.metadata?.routingStyle).toBe('custom-layout');
+		expect(result.edges[0]?.data?.metadata?.curveType).toBe('linear');
+		expect(result.edges[0]?.data?.metadata?.elkLabel).toBeUndefined();
+		expect(result.edges[0]?.data?.metadata?.waypoints).toBeUndefined();
 	});
 });

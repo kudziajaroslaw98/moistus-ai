@@ -38,11 +38,39 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: A completed checkout can now activate Pro access instead of failing during webhook persistence
 - **e2e/anonymous-upgrade**: Upgrade page objects and flow tests now follow email → password → OTP → completion
   - Why: The previous tests described a stale, impossible OTP-first journey
+- **layout/robust-experimental-presets**: Tree Right, Tree Down, and Radial Tree now handle large, cyclic, cross-linked, and disconnected maps without stack overflows or collapsed nodes
+  - Why: These layouts now build a stable iterative placement tree while retaining every real connection as a readable straight cross-link
+- **layout/organic-spread**: Organic Spread now uses a compact deterministic force configuration and falls back to a compact layout when ELK returns unusable geometry
+  - Why: Large maps stay readable even when force layout cannot produce distinct valid positions
+
+### Changed
+
+- **layout/menu-labels**: The layout menu now groups choices by family: `Linear`, `Layered`, `Tree`, and `Radial`
+- **layout/directional-actions**: Layout choices now act immediately without showing a stale selected state; Roomy Right and Roomy Down explicitly set their flow direction
+  - Why: Follow-up node placement and branch reflow stay aligned with the last directional layout without adding visual noise after manual map edits
+
+### Removed
+
+- **layout/organic-spread**: Removed Organic Spread from the layout menu and layout engine
+  - Why: The force-based result was not reliably readable for real maps
 
 ### Docs
 
 - **billing/configuration**: Documented the local Polar credentials, product IDs, webhook secret, and localhost checkout return contract in `.env.example` and the codebase map
   - Why: Local billing checks now have one safe, shareable configuration reference
+
+## [2026-05-17]
+
+### Added
+
+- **layout/experimental-presets**: Added session-only ELK layout presets for roomier branches, tree layouts, radial trees, and organic spread so maps can be rearranged and compared from the layout menu
+  - Why: Users can explore different graph arrangements without changing the saved map layout direction setting
+
+### Fixed
+
+- **layout/menu-group-context**: Wrapped the experimental layout menu label and items in a menu group so Base UI has the required group context at runtime
+- **layout/radial-tree-shaping**: Radial Tree layout now spreads disconnected, multi-root, and cyclic maps instead of collapsing nodes or overflowing the ELK call stack
+  - Why: ELK radial expects tree-shaped input, so the app now sends a temporary layout-only spanning tree when needed
 ## [2026-05-15]
 
 ### Fixed
