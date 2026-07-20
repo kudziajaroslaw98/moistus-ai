@@ -384,4 +384,5 @@ describe('elk-worker-client local layout helpers', () => {
 			...allEdges[2].data?.metadata,
 		});
 	});
+
 });
