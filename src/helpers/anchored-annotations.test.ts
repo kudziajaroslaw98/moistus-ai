@@ -2,6 +2,7 @@ import type { AppNode } from '@/types/app-node';
 import type { NodeData } from '@/types/node-data';
 import {
 	buildAnchorHostById,
+	buildAnnotationTetherEdges,
 	buildAnnotationsByHost,
 	computeAnchorOffset,
 	findNearestAnchorHost,
@@ -98,5 +99,33 @@ describe('anchored annotations helpers', () => {
 			findNearestAnchorHost(annotation, [annotation, otherAnnotation, far, near])?.id
 		).toBe('near');
 		expect(findNearestAnchorHost(annotation, [annotation])).toBeNull();
+	});
+});
+
+describe('buildAnnotationTetherEdges', () => {
+	it('derives display-only tethers for visible anchored annotations', () => {
+		const host = createNode('host', 'defaultNode');
+		const note = createNode('note', 'annotationNode', { x: 0, y: 0 }, {
+			anchorNodeId: 'host',
+			annotationType: 'warning',
+		});
+		const orphan = createNode('orphan', 'annotationNode', { x: 0, y: 0 }, {
+			anchorNodeId: 'hidden-host',
+		});
+
+		const tethers = buildAnnotationTetherEdges([host, note, orphan]);
+
+		expect(tethers).toHaveLength(1);
+		expect(tethers[0]).toEqual(
+			expect.objectContaining({
+				id: 'annotation-tether:note',
+				source: 'host',
+				target: 'note',
+				type: 'annotationTether',
+				selectable: false,
+				deletable: false,
+			})
+		);
+		expect(tethers[0].data).toEqual({ annotationType: 'warning' });
 	});
 });

@@ -1006,7 +1006,15 @@ export const QuickInput: FC<QuickInputProps> = ({
 				{/* Parent reference when creating a child node */}
 				{parentNode && (
 					<div className='shrink-0 border-b border-zinc-800/80 px-4 py-3'>
-						<ParentNodeReference parentNode={parentNode} />
+						<ParentNodeReference
+							parentNode={parentNode}
+							label={
+								effectiveNodeType === 'annotationNode' &&
+								parentNode.data?.node_type !== 'annotationNode'
+									? 'Anchored to:'
+									: undefined
+							}
+						/>
 					</div>
 				)}
 

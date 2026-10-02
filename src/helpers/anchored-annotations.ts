@@ -1,3 +1,4 @@
+import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { XYPosition } from '@xyflow/react';
 
@@ -248,4 +249,34 @@ export function getAnchoredAnnotationIdsForHosts(
 		if (hostIds.has(hostId)) ids.push(annotationId);
 	}
 	return ids;
+}
+
+export const ANNOTATION_TETHER_EDGE_PREFIX = 'annotation-tether:';
+
+/**
+ * Display-only tether edges (host -> anchored annotation) for visible nodes.
+ * Never stored in the edges slice, so history/layout/AI never see them.
+ */
+export function buildAnnotationTetherEdges(visibleNodes: readonly AppNode[]): AppEdge[] {
+	const tethers: AppEdge[] = [];
+	const hostById = buildAnchorHostById(visibleNodes);
+
+	for (const node of visibleNodes) {
+		const hostId = hostById.get(node.id);
+		if (!hostId) continue;
+		tethers.push({
+			id: `${ANNOTATION_TETHER_EDGE_PREFIX}${node.id}`,
+			source: hostId,
+			target: node.id,
+			type: 'annotationTether',
+			selectable: false,
+			deletable: false,
+			focusable: false,
+			data: {
+				annotationType: node.data.metadata?.annotationType ?? 'note',
+			} as unknown as AppEdge['data'],
+		});
+	}
+
+	return tethers;
 }

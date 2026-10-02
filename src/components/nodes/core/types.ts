@@ -134,6 +134,8 @@ export interface AnnotationNodeMetadata extends BaseNodeMetadata {
 	fontWeight?: string | number;
 	author?: string;
 	timestamp?: string;
+	anchorNodeId?: string;
+	anchorOffset?: { x: number; y: number };
 }
 
 // Reference metadata
