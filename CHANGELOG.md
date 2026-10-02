@@ -25,6 +25,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Fixed
 
 - **api/maps, api/share/join-room**: Explicit null-narrowing and payload typing for stricter supabase-js insert/upsert generics
+- **billing/webhook-ordering**: Late Polar retries (e.g. a `subscription.created` delivered after a revoke) can no longer re-grant Pro access; handlers store the last applied Polar version and skip older events
+  - Why: Sandbox delivery logs showed 15-minute-late retries; verified live by replaying a July event against a newer row (skipped, 200)
 - **tooling**: ESLint and Jest now ignore nested `.worktrees/`
   - Why: Lint crashed on a worktree's stale node_modules; Jest reported duplicate manual mocks
 - **tests/settings-panel**: Await async background-sync status before asserting badges (React 19.3 scheduling)

@@ -85,6 +85,65 @@ function toFiniteNonNegativeNumber(value: unknown): number {
 }
 
 /**
+ * Version of the subscription state carried by an event. `subscription.created` /
+ * `subscription.active` payloads have `modified_at: null`; their `created_at` precedes
+ * any later change, so it orders correctly against stored versions.
+ */
+function getEventVersion(data: SubscriptionData): string {
+	return data.modified_at ?? data.created_at;
+}
+
+/**
+ * Polar retries failed deliveries out of order (observed: a `subscription.created`
+ * delivered 15 minutes late). Skip events strictly older than the last applied state
+ * so a late retry cannot re-grant access after cancel/revoke. Equal versions are
+ * applied (idempotent redelivery). Rows without a stored version are never stale.
+ */
+function isStaleEvent(storedMetadata: unknown, data: SubscriptionData): boolean {
+	const stored = (storedMetadata as Record<string, unknown> | null)
+		?.polar_modified_at;
+	if (typeof stored !== 'string') return false;
+
+	const storedTime = Date.parse(stored);
+	const incomingTime = Date.parse(getEventVersion(data));
+	if (!Number.isFinite(storedTime) || !Number.isFinite(incomingTime)) {
+		return false;
+	}
+
+	return incomingTime < storedTime;
+}
+
+function logStaleEvent(eventType: string, data: SubscriptionData) {
+	console.warn(`[Polar] Skipping stale ${eventType}:`, {
+		subscriptionId: data.id,
+		eventVersion: getEventVersion(data),
+	});
+}
+
+/**
+ * Loads the stored metadata (incl. last applied Polar version) for a subscription.
+ */
+async function loadStoredMetadata(
+	supabase: ReturnType<typeof createServiceRoleClient>,
+	subscriptionId: string
+): Promise<Record<string, unknown> | null> {
+	const { data: existing, error } = await supabase
+		.from('user_subscriptions')
+		.select('metadata')
+		.eq('polar_subscription_id', subscriptionId)
+		.maybeSingle();
+
+	if (error) {
+		throw new Error(
+			`[Polar] Failed to load subscription before update: ${formatSupabaseError(error)}`
+		);
+	}
+
+	if (!existing) return null;
+	return (existing.metadata as Record<string, unknown> | null) ?? {};
+}
+
+/**
  * Handles subscription creation/activation.
  */
 async function handleSubscriptionActive(
@@ -172,6 +231,7 @@ async function handleSubscriptionActive(
 			billing_interval: mapBillingInterval(data.recurring_interval || 'month'),
 			amount: data.amount,
 			currency: data.currency,
+			polar_modified_at: getEventVersion(data),
 		},
 		updated_at: new Date().toISOString(),
 	};
@@ -182,7 +242,7 @@ async function handleSubscriptionActive(
 	const { data: existingSubscription, error: existingSubscriptionError } =
 		await supabase
 			.from('user_subscriptions')
-			.select('id')
+			.select('id, metadata')
 			.eq('polar_subscription_id', data.id)
 			.maybeSingle();
 
@@ -190,6 +250,11 @@ async function handleSubscriptionActive(
 		throw new Error(
 			`[Polar] Failed to find subscription before persistence: ${existingSubscriptionError.message}`
 		);
+	}
+
+	if (existingSubscription && isStaleEvent(existingSubscription.metadata, data)) {
+		logStaleEvent('subscription.created/active', data);
+		return;
 	}
 
 	const { error } = existingSubscription
@@ -239,6 +304,11 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 		// Webhook delivery is not ordered. Persist a subscription.updated event that
 		// arrives before its subscription.created/subscription.active counterpart.
 		await handleSubscriptionActive(data, { preserveIncomingState: true });
+		return;
+	}
+
+	if (isStaleEvent(existingSubscription.metadata, data)) {
+		logStaleEvent('subscription.updated', data);
 		return;
 	}
 
@@ -412,10 +482,10 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 		);
 	}
 
-	// Apply metadata updates if any changes were made
-	if (Object.keys(metadataUpdates).length > 0) {
-		updateData.metadata = metadataUpdates;
-	}
+	updateData.metadata = {
+		...metadataUpdates,
+		polar_modified_at: getEventVersion(data),
+	};
 
 	const { error } = await supabase
 		.from('user_subscriptions')
@@ -437,6 +507,12 @@ async function handleSubscriptionCanceled(data: SubscriptionData) {
 
 	console.log('[Polar] Processing subscription.canceled:', data.id);
 
+	const storedMetadata = await loadStoredMetadata(supabase, data.id);
+	if (isStaleEvent(storedMetadata, data)) {
+		logStaleEvent('subscription.canceled', data);
+		return;
+	}
+
 	// Keep status as 'active' - user still has access until period ends
 	// Only set cancel_at_period_end: true to indicate upcoming cancellation
 	const { error } = await supabase
@@ -447,6 +523,10 @@ async function handleSubscriptionCanceled(data: SubscriptionData) {
 				? new Date(data.canceled_at).toISOString()
 				: new Date().toISOString(),
 			updated_at: new Date().toISOString(),
+			metadata: {
+				...storedMetadata,
+				polar_modified_at: getEventVersion(data),
+			},
 		})
 		.eq('polar_subscription_id', data.id);
 
@@ -463,6 +543,12 @@ async function handleSubscriptionUncanceled(data: SubscriptionData) {
 
 	console.log('[Polar] Processing subscription.uncanceled:', data.id);
 
+	const storedMetadata = await loadStoredMetadata(supabase, data.id);
+	if (isStaleEvent(storedMetadata, data)) {
+		logStaleEvent('subscription.uncanceled', data);
+		return;
+	}
+
 	const { error } = await supabase
 		.from('user_subscriptions')
 		.update({
@@ -470,6 +556,10 @@ async function handleSubscriptionUncanceled(data: SubscriptionData) {
 			cancel_at_period_end: false,
 			canceled_at: null,
 			updated_at: new Date().toISOString(),
+			metadata: {
+				...storedMetadata,
+				polar_modified_at: getEventVersion(data),
+			},
 		})
 		.eq('polar_subscription_id', data.id);
 
@@ -488,12 +578,22 @@ async function handleSubscriptionRevoked(data: SubscriptionData) {
 
 	console.log('[Polar] Processing subscription.revoked:', data.id);
 
+	const storedMetadata = await loadStoredMetadata(supabase, data.id);
+	if (isStaleEvent(storedMetadata, data)) {
+		logStaleEvent('subscription.revoked', data);
+		return;
+	}
+
 	const { error } = await supabase
 		.from('user_subscriptions')
 		.update({
 			status: 'canceled',
 			canceled_at: new Date().toISOString(),
 			updated_at: new Date().toISOString(),
+			metadata: {
+				...storedMetadata,
+				polar_modified_at: getEventVersion(data),
+			},
 		})
 		.eq('polar_subscription_id', data.id);
 

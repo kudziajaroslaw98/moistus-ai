@@ -143,6 +143,7 @@ describe('POST /api/webhooks/polar', () => {
 				billing_interval: 'monthly',
 				amount: 1200,
 				currency: 'usd',
+				polar_modified_at: subscriptionUpdatedFixture.data.modified_at,
 			},
 		});
 	});
@@ -207,6 +208,86 @@ describe('POST /api/webhooks/polar', () => {
 		expect(update?.payload).toMatchObject({
 			cancel_at_period_end: true,
 			canceled_at: '2026-09-20T12:00:00.000Z',
+		});
+	});
+
+	describe('stale event protection', () => {
+		// Stored version is newer than the fixture's modified_at (2026-09-16T11:01:35Z)
+		const NEWER_STORED_VERSION = '2026-09-20T00:00:00.000Z';
+
+		function existingRow(polarModifiedAt: string) {
+			return createFakeSupabase((op) => {
+				if (op.table === 'subscription_plans') return { id: 'plan-pro-id' };
+				if (op.table === 'user_subscriptions' && op.action === 'select') {
+					return {
+						id: 'row-1',
+						user_id: USER_ID,
+						status: 'canceled',
+						current_period_start: '2026-09-16T11:01:04.893Z',
+						metadata: {
+							polar_product_id: PRODUCT_ID,
+							polar_modified_at: polarModifiedAt,
+						},
+						plan: { id: 'plan-pro-id', name: 'pro', limits: {} },
+					};
+				}
+				return null;
+			});
+		}
+
+		function writesTo(fake: ReturnType<typeof createFakeSupabase>) {
+			return fake.ops.filter(
+				(op) =>
+					op.table === 'user_subscriptions' &&
+					(op.action === 'update' || op.action === 'insert')
+			);
+		}
+
+		it('ignores a late subscription.created retry after the subscription was revoked', async () => {
+			const fake = existingRow(NEWER_STORED_VERSION);
+			mockedCreateServiceRoleClient.mockReturnValue(fake.client as never);
+
+			// created/active payloads carry modified_at: null
+			const response = await POST(
+				signedRequest(
+					buildPayload('subscription.created', { modified_at: null })
+				)
+			);
+
+			expect(response.status).toBe(200);
+			expect(writesTo(fake)).toHaveLength(0);
+		});
+
+		it.each(['subscription.updated', 'subscription.canceled', 'subscription.uncanceled', 'subscription.revoked'])(
+			'ignores a stale %s',
+			async (eventType) => {
+				const fake = existingRow(NEWER_STORED_VERSION);
+				mockedCreateServiceRoleClient.mockReturnValue(fake.client as never);
+
+				const response = await POST(signedRequest(buildPayload(eventType)));
+
+				expect(response.status).toBe(200);
+				expect(writesTo(fake)).toHaveLength(0);
+			}
+		);
+
+		it('still applies an equal-version redelivery and records the version', async () => {
+			const fake = existingRow(subscriptionUpdatedFixture.data.modified_at);
+			mockedCreateServiceRoleClient.mockReturnValue(fake.client as never);
+
+			const response = await POST(
+				signedRequest(buildPayload('subscription.revoked'))
+			);
+
+			expect(response.status).toBe(200);
+			const [write] = writesTo(fake);
+			expect(write?.payload).toMatchObject({
+				status: 'canceled',
+				metadata: {
+					polar_product_id: PRODUCT_ID,
+					polar_modified_at: subscriptionUpdatedFixture.data.modified_at,
+				},
+			});
 		});
 	});
 
