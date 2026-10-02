@@ -3,7 +3,7 @@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getMatchesInsideCollapsed } from '@/helpers/canvas-search';
-import { getBranchIndex, type BranchSide } from '@/helpers/collapse/branch-index';
+import { getBranchIndex } from '@/helpers/collapse/branch-index';
 import { useCoarsePointer } from '@/hooks/use-coarse-pointer';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
@@ -12,20 +12,13 @@ import { motion, useReducedMotion } from 'motion/react';
 import { memo, useCallback, useState, type MouseEvent } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { BranchPeek } from './branch-peek';
-import { BRANCH_SIDE_POSITION } from './branch-toggle';
 
-const PILL_POSITION: Record<BranchSide, string> = {
-	...BRANCH_SIDE_POSITION,
-	// Clear the stacked card edges that peek out below the node.
-	bottom: 'left-1/2 top-full -translate-x-1/2 mt-5',
-};
-
-const POPUP_SIDE: Record<BranchSide, 'top' | 'right' | 'bottom' | 'left'> = {
-	bottom: 'bottom',
-	top: 'top',
-	right: 'right',
-	left: 'left',
-};
+/**
+ * The pill always sits centered under the stacked card edges, whatever the
+ * layout direction. A wide label on a left/right side would collide with the
+ * node's side actions (AI button) and read as detached from the stack.
+ */
+const PILL_POSITION = 'left-1/2 top-full -translate-x-1/2 mt-5';
 
 interface CollapsedIndicatorProps {
 	nodeId: string;
@@ -33,7 +26,7 @@ interface CollapsedIndicatorProps {
 
 /**
  * Collapsed branch visuals: two card edges peek out under the node (a stack,
- * recognisable at any zoom) and a "N nodes hidden" pill on the outgoing side.
+ * recognisable at any zoom) and a "N nodes hidden" pill centered beneath them.
  *
  * Pointer devices: hover the pill to peek, click to expand one level,
  * Shift+click to expand everything. Touch devices: tap opens the peek, which
@@ -42,10 +35,6 @@ interface CollapsedIndicatorProps {
 const CollapsedIndicatorComponent = ({ nodeId }: CollapsedIndicatorProps) => {
 	const summary = useAppStore(
 		(state) => getBranchIndex(state.nodes, state.edges).summaries.get(nodeId)
-	);
-	const side = useAppStore(
-		(state) =>
-			getBranchIndex(state.nodes, state.edges).childSideById.get(nodeId) ?? 'bottom'
 	);
 	const { expandBranch, expandPathTo, centerOnNode } = useAppStore(
 		useShallow((state) => ({
@@ -102,7 +91,7 @@ const CollapsedIndicatorComponent = ({ nodeId }: CollapsedIndicatorProps) => {
 		'transition-[transform,border-color,background-color] duration-200 ease-out',
 		'hover:border-interactive-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary',
 		matchesInside > 0 && 'border-warning-400 bg-warning-500/15 text-warning-200',
-		PILL_POSITION[side]
+		PILL_POSITION
 	);
 	const peek = (
 		<BranchPeek
@@ -141,7 +130,7 @@ const CollapsedIndicatorComponent = ({ nodeId }: CollapsedIndicatorProps) => {
 						{pill}
 					</PopoverTrigger>
 
-					<PopoverContent className='w-auto p-0' side={POPUP_SIDE[side]} sideOffset={8}>
+					<PopoverContent className='w-auto p-0' side='bottom' sideOffset={8}>
 						{peek}
 					</PopoverContent>
 				</Popover>
@@ -162,7 +151,7 @@ const CollapsedIndicatorComponent = ({ nodeId }: CollapsedIndicatorProps) => {
 						{pill}
 					</HoverCardTrigger>
 
-					<HoverCardContent className='w-auto' side={POPUP_SIDE[side]} sideOffset={8}>
+					<HoverCardContent className='w-auto' side='bottom' sideOffset={8}>
 						{peek}
 					</HoverCardContent>
 				</HoverCard>

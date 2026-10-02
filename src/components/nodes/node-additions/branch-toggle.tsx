@@ -7,7 +7,7 @@ import { ChevronUp } from 'lucide-react';
 import { memo } from 'react';
 
 /** Where a round control sits on the node border, just outside the card. */
-export const BRANCH_SIDE_POSITION: Record<BranchSide, string> = {
+const BRANCH_SIDE_POSITION: Record<BranchSide, string> = {
 	bottom: 'left-1/2 top-full -translate-x-1/2 mt-3',
 	top: 'left-1/2 bottom-full -translate-x-1/2 mb-3',
 	right: 'top-1/2 left-full -translate-y-1/2 ml-3',

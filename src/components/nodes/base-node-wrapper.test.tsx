@@ -313,6 +313,18 @@ describe('BaseNodeWrapper', () => {
 			expect(screen.getByTestId('node-add-button-container').style.bottom).toBe('-96px')
 		})
 
+		it('keeps the AI button in place for a collapsed right-branching node (pill sits below)', () => {
+			mockSelectedNodes = [{ id: 'node-1' }]
+			mockNodes = [
+				graphNode('node-1', 0, { isCollapsed: true }),
+				toChild({ x: 600, y: 0 }),
+			]
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
+
+			expect(screen.getByTestId('node-suggest-button-container').style.right).toBe('-60px')
+			expect(screen.getByTestId('node-add-button-container').style.bottom).toBe('-96px')
+		})
+
 		it('moves the AI button instead when children branch to the right', () => {
 			mockSelectedNodes = [{ id: 'node-1' }]
 			mockNodes = [graphNode('node-1', 0), toChild({ x: 600, y: 0 })]

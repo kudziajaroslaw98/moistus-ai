@@ -93,13 +93,16 @@ const BaseNodeWrapperComponent = ({
 		const side = index.childSideById.get(id) ?? 'bottom';
 		return `${side}:${index.summaries.has(id) ? 'pill' : 'toggle'}`;
 	});
-	const branchControlOffset = branchControl?.endsWith(':pill')
+	// The collapsed pill is always centered below the node; the expanded toggle
+	// follows the children side.
+	const isPill = branchControl?.endsWith(':pill') ?? false;
+	const addOffset = isPill
 		? BRANCH_PILL_CLEARANCE
-		: branchControl
+		: branchControl?.startsWith('bottom:')
 			? BRANCH_TOGGLE_CLEARANCE
 			: 0;
-	const addOffset = branchControl?.startsWith('bottom:') ? branchControlOffset : 0;
-	const suggestOffset = branchControl?.startsWith('right:') ? branchControlOffset : 0;
+	const suggestOffset =
+		!isPill && branchControl?.startsWith('right:') ? BRANCH_TOGGLE_CLEARANCE : 0;
 	// Canvas search: 'active' = current match, 'match' = any match, or a
 	// collapsed node that hides matches ('inside').
 	const searchHighlight = useAppStore((state) => {
