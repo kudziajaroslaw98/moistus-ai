@@ -1,3 +1,7 @@
+import {
+	computeAnchorOffset,
+	isAnnotationNode,
+} from '@/helpers/anchored-annotations';
 import generateUuid from '@/helpers/generate-uuid';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AiConnectionSuggestion } from '@/types/ai-connection-suggestion';
@@ -943,6 +947,29 @@ export const createSuggestionsSlice: StateCreator<
 			}
 		});
 
+		// An approved AI annotation anchors to its source node instead of
+		// getting an edge (annotations are notes about a node, not peers).
+		const sourceNodeId = ghostMetadata.context?.sourceNodeId;
+		const anchorHost =
+			approvedNodeInput.nodeType === 'annotationNode' && sourceNodeId
+				? state.nodes.find(
+						(node) => node.id === sourceNodeId && !isAnnotationNode(node)
+					)
+				: undefined;
+		const approvedData = anchorHost
+			? {
+					...approvedNodeInput.data,
+					metadata: {
+						...approvedNodeInput.data?.metadata,
+						anchorNodeId: anchorHost.id,
+						anchorOffset: computeAnchorOffset(
+							ghostNode.position,
+							anchorHost.position
+						),
+					},
+				}
+			: approvedNodeInput.data;
+
 		// Add the new node to the main nodes array using the proper method signature
 		await state.addNode({
 			parentNode: null,
@@ -950,16 +977,16 @@ export const createSuggestionsSlice: StateCreator<
 			content: approvedNodeInput.content,
 			nodeType: approvedNodeInput.nodeType,
 			position: { x: ghostNode.position.x, y: ghostNode.position.y },
-			data: approvedNodeInput.data,
+			data: approvedData,
 		});
 
 		// Remove the ghost node
 		state.removeGhostNode(nodeId);
 
 		// If there's a connection context, create the edge
-		if (ghostMetadata.context?.sourceNodeId) {
-			await state.addEdge(ghostMetadata.context.sourceNodeId, approvedNodeId, {
-				label: ghostMetadata.context.relationshipType || null,
+		if (sourceNodeId && !anchorHost) {
+			await state.addEdge(sourceNodeId, approvedNodeId, {
+				label: ghostMetadata.context?.relationshipType || null,
 				animated: false,
 			});
 		}

@@ -1,3 +1,4 @@
+import { foldAnchoredAnnotationNodes } from '@/helpers/ai-anchored-annotations';
 import { HYBRID_ROW_PROMPT_GUIDE } from '@/helpers/ai-hybrid-rows';
 import { createAiIdAliasMap } from '@/helpers/ai-id-alias-map';
 import { respondError } from '@/helpers/api/responses';
@@ -112,8 +113,11 @@ export const POST = withApiValidation(
 				]);
 
 				// Transform flat DB data to React Flow format (AppNode/AppEdge)
+				// Anchored annotations are folded into their host as notes.
 				const nodes = nodesResult.data
-					? dbNodesToAppNodes(nodesResult.data as NodeData[])
+					? foldAnchoredAnnotationNodes(
+							dbNodesToAppNodes(nodesResult.data as NodeData[])
+						).nodes
 					: null;
 				const edges = edgesResult.data
 					? dbEdgesToAppEdges(edgesResult.data as EdgeData[])
