@@ -5,6 +5,10 @@ import {
 	getAnchoredAnnotationIdsForHosts,
 	syncAnchoredAnnotationPositions,
 } from '@/helpers/anchored-annotations';
+import {
+	buildBranchIndex,
+	getCollapsedAncestorIds,
+} from '@/helpers/collapse/branch-index';
 import { fetchResourceMetadata } from '@/helpers/fetch-resource-metadata';
 import generateUuid from '@/helpers/generate-uuid';
 import { rerouteAutoWaypointEdges } from '@/helpers/route-auto-waypoint-edges';
@@ -648,6 +652,15 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 							'Unable to validate node limit right now. Please try again.'
 						);
 					}
+				}
+
+				// A new child is never created out of sight: open a collapsed parent.
+				const parentId = parentNode?.id;
+				if (
+					parentId &&
+					nodes.find((node) => node.id === parentId)?.data.metadata?.isCollapsed
+				) {
+					get().setNodesCollapsed([parentId], false);
 				}
 
 				const newNodeId = props.nodeId ?? generateUuid();
@@ -1347,6 +1360,71 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					},
 				},
 			});
+		},
+
+		setNodesCollapsed: (nodeIds: string[], collapsed: boolean) => {
+			const ids = new Set(
+				nodeIds.filter((id) => {
+					const node = get().nodes.find((candidate) => candidate.id === id);
+					return node && Boolean(node.data.metadata?.isCollapsed) !== collapsed;
+				})
+			);
+			if (ids.size === 0) return;
+
+			const prevNodes = get().nodes;
+			const prevEdges = get().edges;
+			const nextNodes = prevNodes.map((node) =>
+				ids.has(node.id)
+					? {
+							...node,
+							data: {
+								...node.data,
+								metadata: { ...node.data.metadata, isCollapsed: collapsed },
+							},
+						}
+					: node
+			);
+			set({ nodes: nextNodes });
+
+			const { mapId, currentUser } = get();
+			for (const node of nextNodes) {
+				if (!ids.has(node.id)) continue;
+				if (mapId) {
+					const userId = getNodeActorId(node, currentUser?.id);
+					void broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+						id: node.id,
+						data: serializeNodeForRealtime(node, mapId, userId),
+						userId,
+						timestamp: Date.now(),
+					}).catch((error) => {
+						console.warn('[nodes] Failed to sync Yjs node update:', error);
+					});
+				}
+				get().triggerNodeSave(node.id);
+			}
+
+			// One history step for the whole batch.
+			void get().persistDeltaEvent(
+				'saveNodeProperties',
+				{ nodes: prevNodes, edges: prevEdges },
+				{ nodes: get().nodes, edges: get().edges }
+			);
+		},
+
+		expandBranch: (nodeId: string, options?: { all?: boolean }) => {
+			const { nodes, edges } = get();
+			if (!options?.all) {
+				// Expand opens one level: deeper collapsed nodes keep their flag.
+				get().setNodesCollapsed([nodeId], false);
+				return;
+			}
+			const summary = buildBranchIndex(nodes, edges).summaries.get(nodeId);
+			get().setNodesCollapsed([nodeId, ...(summary?.hiddenIds ?? [])], false);
+		},
+
+		expandPathTo: (targetId: string) => {
+			const { nodes, edges } = get();
+			get().setNodesCollapsed(getCollapsedAncestorIds(targetId, nodes, edges), false);
 		},
 
 		subscribeToNodes: async (mapId: string) => {

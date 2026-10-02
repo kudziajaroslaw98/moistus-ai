@@ -261,6 +261,12 @@ export interface NodesSlice {
 	getDescendantNodeIds: (nodeId: string) => string[];
 	getVisibleNodes: () => AppNode[];
 	toggleNodeCollapse: (nodeId: string) => Promise<void>;
+	/** Batch collapse/expand as one history step (shared state). */
+	setNodesCollapsed: (nodeIds: string[], collapsed: boolean) => void;
+	/** Expand one level, or the whole subtree with `all` (Shift+click). */
+	expandBranch: (nodeId: string, options?: { all?: boolean }) => void;
+	/** Expand every collapsed ancestor hiding `targetId`. */
+	expandPathTo: (targetId: string) => void;
 
 	// System update tracking
 	markNodeAsSystemUpdate: (nodeId: string) => void;

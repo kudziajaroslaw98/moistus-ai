@@ -244,3 +244,66 @@ describe('anchored annotations in nodes slice', () => {
 		]);
 	});
 });
+
+describe('collapse actions in nodes slice', () => {
+	beforeEach(() => {
+		mockBroadcast.mockReset();
+		mockBroadcast.mockResolvedValue(undefined);
+	});
+
+	const tree = () => [
+		createNode('root', 'defaultNode', { x: 0, y: 0 }, { isCollapsed: true }),
+		createNode('mid', 'defaultNode', { x: 0, y: 0 }, { isCollapsed: true }),
+		createNode('leaf', 'defaultNode', { x: 0, y: 0 }),
+	];
+	const treeEdges = () => [createEdge('e1', 'root', 'mid'), createEdge('e2', 'mid', 'leaf')];
+	const collapsedIds = (harness: ReturnType<typeof createHarness>) =>
+		(harness.getState().nodes as AppNode[])
+			.filter((node) => node.data.metadata?.isCollapsed)
+			.map((node) => node.id);
+
+	it('expands one level and keeps deeper collapsed nodes collapsed', () => {
+		const harness = createHarness(tree(), treeEdges());
+
+		harness.slice.expandBranch('root');
+
+		expect(collapsedIds(harness)).toEqual(['mid']);
+		expect(harness.slice.getVisibleNodes().map((node) => node.id)).toEqual([
+			'root',
+			'mid',
+		]);
+		expect(harness.persistDeltaEvent).toHaveBeenCalledTimes(1);
+	});
+
+	it('expands the whole subtree in one history step with all', () => {
+		const harness = createHarness(tree(), treeEdges());
+
+		harness.slice.expandBranch('root', { all: true });
+
+		expect(collapsedIds(harness)).toEqual([]);
+		expect(harness.triggerNodeSave).toHaveBeenCalledWith('root');
+		expect(harness.triggerNodeSave).toHaveBeenCalledWith('mid');
+		expect(harness.persistDeltaEvent).toHaveBeenCalledTimes(1);
+	});
+
+	it('expands every collapsed ancestor on the path to a node', () => {
+		const harness = createHarness(tree(), treeEdges());
+
+		harness.slice.expandPathTo('leaf');
+
+		expect(collapsedIds(harness)).toEqual([]);
+		expect(harness.slice.getVisibleNodes().map((node) => node.id)).toEqual([
+			'root',
+			'mid',
+			'leaf',
+		]);
+	});
+
+	it('is a no-op when nothing changes', () => {
+		const harness = createHarness(tree(), treeEdges());
+
+		harness.slice.setNodesCollapsed(['leaf'], false);
+
+		expect(harness.persistDeltaEvent).not.toHaveBeenCalled();
+	});
+});
