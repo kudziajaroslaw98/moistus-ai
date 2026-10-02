@@ -12,6 +12,8 @@ const eslintConfig = [
 			'node_modules/**',
 			'next-env.d.ts',
 			'globals.css',
+			// Vendored third-party worker bundle (elkjs), synced from node_modules
+			'public/elk-worker.min.js',
 		],
 	},
 	{

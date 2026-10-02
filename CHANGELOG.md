@@ -14,12 +14,21 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **deps/overrides**: Bumped `partykit>esbuild` to 0.25.12 and `miniflare>undici` to 6.29.0, added `@serwist/turbopack>browserslist` 4.29.3, removed the global `postcss` override
   - Why: Previous pins were themselves vulnerable; Next now ships a patched PostCSS
 
+- **deps/majors**: AI SDK 7 (`ai` 7, `@ai-sdk/openai` 4, `@ai-sdk/react` 4), Motion 14, `@supabase/ssr` 0.12, `diff` 9, `uuid` 14, `elkjs` 0.12 (vendored `public/elk-worker.min.js` synced), `dotenv` 18, `jest-dom` 7, Polar sdk 0.49 / nextjs 0.9.6
+  - Deferred: Polar 1.0 (webhook payloads switch to snake_case), TypeScript 7 (typescript-eslint supports <6.1)
+- **ai/routes**: System prompts moved from `messages` to the top-level `instructions` option across suggestions, counterpoints, merges, connections, and chat
+  - Why: AI SDK 7 rejects system messages in `messages` at runtime, silently producing empty streams
+- **ci**: Security-audit workflow runs on Node 24 (AI SDK 7 and jest-dom 7 require Node >= 22)
+
 ### Fixed
 
 - **api/maps, api/share/join-room**: Explicit null-narrowing and payload typing for stricter supabase-js insert/upsert generics
 - **tooling**: ESLint and Jest now ignore nested `.worktrees/`
   - Why: Lint crashed on a worktree's stale node_modules; Jest reported duplicate manual mocks
 - **tests/settings-panel**: Await async background-sync status before asserting badges (React 19.3 scheduling)
+- **tests/ai-routes**: AI route tests run under `@jest-environment node` (were failing with `Request is not defined`); fixed two stale assertions
+- **ai/suggestions**: `reasoningSummary: null` keeps v6 behaviour after AI SDK 7 began defaulting reasoning summaries to `detailed`
+- **billing/webhook**: Polar subscription payloads now allow a null `customer.email`
 
 ## [2026-07-18]
 
