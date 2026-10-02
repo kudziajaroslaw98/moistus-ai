@@ -98,7 +98,11 @@ export const POST = withAuthValidation(
 					normalizedDisplayName ||
 					`User ${user.id.slice(0, 8)}`;
 
-				const profileUpsertPayload = existingProfileError
+				const profileUpsertPayload: {
+					user_id: string;
+					display_name: string;
+					full_name?: string;
+				} = existingProfileError
 					? {
 							user_id: user.id,
 							display_name: normalizedDisplayName,

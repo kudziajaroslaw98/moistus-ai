@@ -5,6 +5,22 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-02]
+
+### Changed
+
+- **deps**: Updated all dependencies to latest within their current major (Next 16.3.8, React 19.3, supabase-js 2.117, Base UI 1.8, AI SDK 6.0.300, Motion 12.43, ESLint 10.11, Jest 30.5, Playwright 1.63, etc.) and refreshed transitive lockfile versions
+  - Why: Resolves all open Dependabot alerts, including critical Next.js RCE advisories; `pnpm audit` is clean
+- **deps/overrides**: Bumped `partykit>esbuild` to 0.25.12 and `miniflare>undici` to 6.29.0, added `@serwist/turbopack>browserslist` 4.29.3, removed the global `postcss` override
+  - Why: Previous pins were themselves vulnerable; Next now ships a patched PostCSS
+
+### Fixed
+
+- **api/maps, api/share/join-room**: Explicit null-narrowing and payload typing for stricter supabase-js insert/upsert generics
+- **tooling**: ESLint and Jest now ignore nested `.worktrees/`
+  - Why: Lint crashed on a worktree's stale node_modules; Jest reported duplicate manual mocks
+- **tests/settings-panel**: Await async background-sync status before asserting badges (React 19.3 scheduling)
+
 ## [2026-07-18]
 
 ### Fixed

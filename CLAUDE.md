@@ -101,7 +101,7 @@ Skipping this = incomplete work.
 pnpm dev:lan         # LAN dev server (0.0.0.0 host binding)
 pnpm type-check      # TypeScript validation
 pnpm build           # Production build
-pnpm test            # Unit tests (Jest + RTL, 149 tests)
+pnpm test            # Unit tests (Jest + RTL, 637 tests)
 pnpm e2e             # E2E tests (Playwright)
 pnpm e2e:ui          # E2E with interactive UI
 pnpm e2e:headed      # E2E with browser visible
@@ -147,9 +147,9 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-02-24 - Documented realtime JWT fallback behavior and operational meaning -->
 
-**Dependency security overrides**: Keep `pnpm.overrides` pins narrow and evidence-based. Current required overrides are `partykit>esbuild` because PartyKit still pins older esbuild, `miniflare>undici` scoped to PartyKit's Miniflare path, and `postcss` until Next no longer resolves a vulnerable internal PostCSS. Prefer direct/transitive package updates over broad overrides, keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes, and re-run `pnpm audit` plus `pnpm why esbuild undici postcss` after PartyKit/miniflare/Next/PostCSS bumps.
+**Dependency security overrides**: Keep `pnpm.overrides` pins narrow and evidence-based. Current required overrides are `partykit>esbuild` because PartyKit still pins older esbuild, `miniflare>undici` scoped to PartyKit's Miniflare path, and `@serwist/turbopack>browserslist` because Serwist pins an exact vulnerable browserslist. The global `postcss` override was dropped once Next 16.3.8 resolved a patched internal PostCSS; do not re-add it unless `pnpm audit` flags PostCSS again. Prefer direct/transitive package updates over broad overrides, keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes, and re-run `pnpm audit` plus `pnpm why esbuild undici postcss browserslist` after PartyKit/miniflare/Next/PostCSS/Serwist bumps.
 
-<!-- Updated: 2026-05-14 - Documented scoped dependency security overrides for PartyKit/Miniflare and Next/PostCSS -->
+<!-- Updated: 2026-10-02 - Dropped postcss override, added scoped Serwist browserslist override -->
 
 **Vercel package manager**: Keep repo-level `vercel.json` install/build commands pinned to pnpm (`pnpm install --frozen-lockfile`, `pnpm build`) so Vercel does not default to `npm i` and fail on npm-only peer resolution of the current lint stack.
 
@@ -159,9 +159,9 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-04-09 - Documented CI pnpm version-source conflict guardrail -->
 
-**ESLint flat config**: Next.js 16's `eslint-config-next/*` exports flat config arrays. Import those exports directly in `eslint.config.mjs`; do not wrap them in `FlatCompat`, because ESLint 10 legacy config validation can crash on circular plugin objects from `eslint-plugin-react`. Keep `settings.react.version` explicit rather than `detect` while the current React plugin is on the ESLint 9-era context API.
+**ESLint flat config**: Next.js 16's `eslint-config-next/*` exports flat config arrays. Import those exports directly in `eslint.config.mjs`; do not wrap them in `FlatCompat`, because ESLint 10 legacy config validation can crash on circular plugin objects from `eslint-plugin-react`. Keep `settings.react.version` explicit rather than `detect` while the current React plugin is on the ESLint 9-era context API. Keep `.worktrees/**` in ESLint ignores and `<rootDir>/.worktrees/` in Jest `modulePathIgnorePatterns`; nested worktrees carry their own stale `node_modules`/mocks and crash lint or duplicate Jest mocks.
 
-<!-- Updated: 2026-05-15 - Documented direct Next flat-config imports and explicit React version for ESLint 10 compatibility -->
+<!-- Updated: 2026-10-02 - Documented worktree ignores for ESLint/Jest alongside flat-config guidance -->
 
 **LAN-safe local dev URLs**: Browser Supabase + PartyKit clients must derive from `window.location.hostname` whenever the configured public URL is loopback-only and the browser host is non-loopback (LAN device access), even if client `NODE_ENV` is unavailable. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
 

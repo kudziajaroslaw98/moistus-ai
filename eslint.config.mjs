@@ -6,12 +6,18 @@ const eslintConfig = [
 	...nextVitals,
 	...nextTypescript,
 	{
-		ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts', 'globals.css'],
+		ignores: [
+			'.next/**',
+			'.worktrees/**',
+			'node_modules/**',
+			'next-env.d.ts',
+			'globals.css',
+		],
 	},
 	{
 		settings: {
 			react: {
-				version: '19.2',
+				version: '19.3',
 			},
 		},
 	},
