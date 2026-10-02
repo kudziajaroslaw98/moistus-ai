@@ -31,6 +31,7 @@ import { ChatPanel } from '@/components/ai-chat';
 import { SettingsPanel } from '@/components/dashboard/settings-panel';
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import AnnotationTetherEdge from '@/components/edges/annotation-tether-edge';
+import CollapsedProxyEdge from '@/components/edges/collapsed-proxy-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
@@ -694,6 +695,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	const edgeTypes: EdgeTypes = useMemo(
 		() => ({
 			annotationTether: AnnotationTetherEdge,
+			collapsedProxy: CollapsedProxyEdge,
 			suggestedMerge: SuggestedMergeEdge,
 			suggestedConnection: SuggestedConnectionEdge,
 			animatedGhostEdge: AnimatedGhostEdge,
