@@ -50,15 +50,27 @@ jest.mock('@xyflow/react', () => ({
 }))
 
 // Mock sub-components
-jest.mock('./node-additions/collapse-button', () => ({
+jest.mock('./node-additions/branch-toggle', () => ({
 	__esModule: true,
-	default: () => <button data-testid="collapse-button">Collapse</button>,
+	default: ({ nodeId, isSelected }: { nodeId: string; isSelected: boolean }) => (
+		<button data-testid="branch-toggle" data-node-id={nodeId} data-selected={String(isSelected)}>
+			Collapse
+		</button>
+	),
+}))
+
+jest.mock('./node-additions/branch-summary', () => ({
+	__esModule: true,
+	default: ({ nodeId }: { nodeId: string }) => (
+		<div data-testid="branch-summary" data-node-id={nodeId} />
+	),
 }))
 
 jest.mock('./node-additions/collapsed-indicator', () => ({
 	__esModule: true,
-	default: ({ data }: { data: { metadata?: { isCollapsed?: boolean } } }) =>
-		data.metadata?.isCollapsed ? <div data-testid="collapsed-indicator">Collapsed</div> : null,
+	default: ({ nodeId }: { nodeId: string }) => (
+		<div data-testid="collapsed-indicator" data-node-id={nodeId} />
+	),
 }))
 
 jest.mock('./node-additions/group-button', () => ({
@@ -146,10 +158,11 @@ describe('BaseNodeWrapper', () => {
 			expect(screen.getByTestId('child-content')).toHaveTextContent('Child Content')
 		})
 
-		it('renders collapse button', () => {
+		it('renders the branch toggle for this node', () => {
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			expect(screen.getByTestId('collapse-button')).toBeInTheDocument()
+			expect(screen.getByTestId('branch-toggle')).toHaveAttribute('data-node-id', 'node-1')
+			expect(screen.getByTestId('branch-toggle')).toHaveAttribute('data-selected', 'false')
 		})
 
 		it('renders group button', () => {
@@ -232,28 +245,11 @@ describe('BaseNodeWrapper', () => {
 	})
 
 	describe('collapsed state', () => {
-		it('shows collapsed indicator when node is collapsed', () => {
-			const props = createDefaultProps({
-				data: {
-					...createDefaultProps().data,
-					metadata: { isCollapsed: true },
-				},
-			})
-			render(<BaseNodeWrapper {...props} />)
+		it('wires collapsed visuals to the node id (they self-hide when expanded)', () => {
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			expect(screen.getByTestId('collapsed-indicator')).toBeInTheDocument()
-		})
-
-		it('hides collapsed indicator when node is not collapsed', () => {
-			const props = createDefaultProps({
-				data: {
-					...createDefaultProps().data,
-					metadata: { isCollapsed: false },
-				},
-			})
-			render(<BaseNodeWrapper {...props} />)
-
-			expect(screen.queryByTestId('collapsed-indicator')).not.toBeInTheDocument()
+			expect(screen.getByTestId('collapsed-indicator')).toHaveAttribute('data-node-id', 'node-1')
+			expect(screen.getByTestId('branch-summary')).toHaveAttribute('data-node-id', 'node-1')
 		})
 	})
 

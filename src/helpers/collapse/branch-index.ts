@@ -36,9 +36,13 @@ export interface BranchSummary {
 	outline: BranchOutlineRow[];
 }
 
+export type BranchSide = 'top' | 'right' | 'bottom' | 'left';
+
 export interface BranchIndex {
 	/** Direct structural children per node (only entries with > 0) */
 	childIdsById: Map<string, string[]>;
+	/** Border side facing the centroid of direct children (toggle/pill placement) */
+	childSideById: Map<string, BranchSide>;
 	/** Summaries for collapsed nodes that have children */
 	summaries: Map<string, BranchSummary>;
 }
@@ -131,6 +135,12 @@ export function buildBranchIndex(
 		if (childIds.length > 0) childIdsById.set(sourceId, childIds);
 	}
 
+	const childSideById = new Map<string, BranchSide>();
+	for (const [nodeId, childIds] of childIdsById) {
+		const parent = nodeById.get(nodeId);
+		if (parent) childSideById.set(nodeId, getChildrenSide(parent, childIds, nodeById));
+	}
+
 	const summaries = new Map<string, BranchSummary>();
 	for (const node of nodes) {
 		if (!node.data.metadata?.isCollapsed) continue;
@@ -141,7 +151,39 @@ export function buildBranchIndex(
 		);
 	}
 
-	return { childIdsById, summaries };
+	return { childIdsById, childSideById, summaries };
+}
+
+function getNodeCenter(node: AppNode): { x: number; y: number } {
+	const width = node.measured?.width ?? node.width ?? 0;
+	const height = node.measured?.height ?? node.height ?? 0;
+	return { x: node.position.x + width / 2, y: node.position.y + height / 2 };
+}
+
+/**
+ * Works for every layout (tree right/down, radial, manual): the side of the
+ * node that faces the average position of its children.
+ */
+function getChildrenSide(
+	parent: AppNode,
+	childIds: readonly string[],
+	nodeById: ReadonlyMap<string, AppNode>
+): BranchSide {
+	const origin = getNodeCenter(parent);
+	let dx = 0;
+	let dy = 0;
+	let count = 0;
+	for (const childId of childIds) {
+		const child = nodeById.get(childId);
+		if (!child) continue;
+		const center = getNodeCenter(child);
+		dx += center.x - origin.x;
+		dy += center.y - origin.y;
+		count += 1;
+	}
+	if (count === 0 || (dx === 0 && dy === 0)) return 'bottom';
+	if (Math.abs(dx) > Math.abs(dy)) return dx > 0 ? 'right' : 'left';
+	return dy > 0 ? 'bottom' : 'top';
 }
 
 function summarizeBranch(

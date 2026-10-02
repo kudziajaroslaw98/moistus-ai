@@ -20,7 +20,8 @@ import { AIActionsPopover } from '../ai/ai-actions-popover';
 import { AvatarStack } from '../ui/avatar-stack';
 import { Button } from '../ui/button';
 import { type BaseNodeWrapperProps } from './core/types';
-import CollapseButton from './node-additions/collapse-button';
+import BranchSummary from './node-additions/branch-summary';
+import BranchToggle from './node-additions/branch-toggle';
 import CollapsedIndicator from './node-additions/collapsed-indicator';
 import GroupButton from './node-additions/group-button';
 import { UniversalMetadataBar } from './shared/universal-metadata-bar';
@@ -180,7 +181,7 @@ const BaseNodeWrapperComponent = ({
 		<motion.div ref={nodeRef} transition={{ type: 'spring', duration: 0.2 }}>
 			<motion.div
 				className={cn(
-					'flex-col rounded-lg cursor-move gap-4',
+					'group/node relative flex-col rounded-lg cursor-move gap-4',
 					'bg-elevation-1 bg-[url("/images/groovepaper.png")] bg-repeat bg-blend-color-burn',
 					includePadding ? 'p-4' : 'p-0',
 					nodeClassName
@@ -190,12 +191,12 @@ const BaseNodeWrapperComponent = ({
 					...accentStyles,
 				}}
 			>
-				<CollapsedIndicator data={data} />
+				<CollapsedIndicator nodeId={id} />
+
+				<BranchToggle isSelected={isSelected} nodeId={id} />
 
 				{/* Top header controls */}
 				<div className='top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2'>
-					<CollapseButton data={data} />
-
 					<GroupButton />
 				</div>
 
@@ -263,6 +264,8 @@ const BaseNodeWrapperComponent = ({
 
 					{/* Main node content */}
 					{children}
+
+					<BranchSummary inset={!includePadding} nodeId={id} />
 				</div>
 
 				{!isDraggingNodes && !hideResizeFrame && (
