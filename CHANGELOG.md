@@ -15,7 +15,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Previous pins were themselves vulnerable; Next now ships a patched PostCSS
 
 - **deps/majors**: AI SDK 7 (`ai` 7, `@ai-sdk/openai` 4, `@ai-sdk/react` 4), Motion 14, `@supabase/ssr` 0.12, `diff` 9, `uuid` 14, `elkjs` 0.12 (vendored `public/elk-worker.min.js` synced), `dotenv` 18, `jest-dom` 7, Polar sdk 0.49 / nextjs 0.9.6
-  - Deferred: TypeScript 7 (typescript-eslint supports <6.1)
+- **tooling/typescript**: TypeScript 6 + 7 side-by-side: `tsc` (and `pnpm type-check`) runs TS 7 native (~2s vs ~11s), while `typescript` stays on the TS 6 API via `@typescript/typescript6` for ESLint, Next build and Jest
+  - Why: TS 7 has no JS API yet and typescript-eslint supports TS <6.1; this is the setup recommended by the TypeScript team
 - **billing**: Migrated to Polar SDK 1.0 / `@polar-sh/nextjs` 1.0 (snake_case webhook payloads typed by SDK `Subscription`; checkout links `external_customer_id`; `paused` = no Pro access)
   - Why: Verified live against Polar sandbox (7/7 webhook deliveries 200, DB state correct) plus signed real-payload regression tests
 - **ai/routes**: System prompts moved from `messages` to the top-level `instructions` option across suggestions, counterpoints, merges, connections, and chat

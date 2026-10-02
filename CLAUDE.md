@@ -99,7 +99,7 @@ Skipping this = incomplete work.
 
 ```bash
 pnpm dev:lan         # LAN dev server (0.0.0.0 host binding)
-pnpm type-check      # TypeScript validation
+pnpm type-check      # TypeScript validation (TS 7 native tsc)
 pnpm build           # Production build
 pnpm test            # Unit tests (Jest + RTL, 657 tests)
 pnpm e2e             # E2E tests (Playwright)
@@ -158,6 +158,10 @@ pnpm pretty          # Prettier
 **GitHub Actions pnpm source-of-truth**: In workflows using `pnpm/action-setup`, do not set a separate `version` input when `package.json#packageManager` already pins pnpm (especially with integrity hash). Use one source to avoid `ERR_PNPM_BAD_PM_VERSION`.
 
 <!-- Updated: 2026-04-09 - Documented CI pnpm version-source conflict guardrail -->
+
+**TypeScript 6 + 7 side-by-side**: `typescript` is aliased to `@typescript/typescript6` (TS 6 API for typescript-eslint, `next build` type step, Jest/editor tooling) and `@typescript/native` aliases TS 7, which owns the `tsc` binary (`pnpm type-check` ≈2s vs ≈11s). TS 7 ships no JS API until 7.1 and typescript-eslint supports TS `<6.1`, so do not point `typescript` at TS 7 (ESLint crashes). Use `pnpm exec tsc6 --noEmit` to cross-check TS 6. Revisit when typescript-eslint supports TS 7 (tracking issue typescript-eslint#10940).
+
+<!-- Updated: 2026-10-02 - Adopted official TS 6/7 side-by-side setup -->
 
 **ESLint flat config**: Next.js 16's `eslint-config-next/*` exports flat config arrays. Import those exports directly in `eslint.config.mjs`; do not wrap them in `FlatCompat`, because ESLint 10 legacy config validation can crash on circular plugin objects from `eslint-plugin-react`. Keep `settings.react.version` explicit rather than `detect` while the current React plugin is on the ESLint 9-era context API. Keep `.worktrees/**` in ESLint ignores and `<rootDir>/.worktrees/` in Jest `modulePathIgnorePatterns`; nested worktrees carry their own stale `node_modules`/mocks and crash lint or duplicate Jest mocks.
 
