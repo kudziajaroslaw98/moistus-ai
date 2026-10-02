@@ -2,6 +2,7 @@ import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { mapBillingInterval, mapPolarStatus } from '@/lib/polar';
 import type { SupabaseLikeError } from '@/types/supabase-like-error';
 import { Webhooks } from '@polar-sh/nextjs';
+import type { models } from '@polar-sh/sdk/2026-10';
 
 // Validate webhook secret at module load time
 const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
@@ -51,21 +52,10 @@ export const POST = Webhooks({
 // Event Handlers
 // ============================================================================
 
-type SubscriptionData = {
-	id: string;
-	customerId?: string;
-	customer?: { id: string; email?: string | null; name?: string | null };
-	metadata?: Record<string, unknown>;
-	status?: string;
-	amount?: number;
-	currency?: string;
-	recurringInterval?: string;
-	currentPeriodStart?: string | Date;
-	currentPeriodEnd?: string | Date;
-	cancelAtPeriodEnd?: boolean;
-	canceledAt?: string | Date | null;
-	productId?: string;
-};
+// Typed against the SDK model for the API version the webhook endpoint is pinned to
+// (2026-10). Polar does not schema-validate webhook payloads, so this type is only
+// trustworthy while the endpoint's `api_version` matches the SDK version.
+type SubscriptionData = models.Subscription;
 
 function formatSupabaseError(error: SupabaseLikeError): string {
 	const metadata = [error.details, error.hint, error.code]
@@ -106,7 +96,8 @@ async function handleSubscriptionActive(
 	console.log('[Polar] Processing subscription.active:', data.id);
 
 	// Get user_id from metadata (set during checkout)
-	const userId = data.metadata?.user_id as string | undefined;
+	const userId =
+		typeof data.metadata?.user_id === 'string' ? data.metadata.user_id : undefined;
 
 	if (!userId) {
 		// Throw to signal failure - checkout should always include user_id in metadata
@@ -115,7 +106,7 @@ async function handleSubscriptionActive(
 		);
 	}
 
-	const customerId = data.customerId || data.customer?.id;
+	const customerId = data.customer_id || data.customer?.id;
 
 	if (!customerId) {
 		// Throw to signal failure - Polar webhooks should always include customer ID
@@ -123,17 +114,17 @@ async function handleSubscriptionActive(
 	}
 
 	// Calculate period dates with proper fallback
-	const currentPeriodStart = data.currentPeriodStart
-		? new Date(data.currentPeriodStart)
+	const currentPeriodStart = data.current_period_start
+		? new Date(data.current_period_start)
 		: new Date();
 
 	// If no end date provided, calculate based on billing interval (default monthly)
 	let currentPeriodEnd: Date;
-	if (data.currentPeriodEnd) {
-		currentPeriodEnd = new Date(data.currentPeriodEnd);
+	if (data.current_period_end) {
+		currentPeriodEnd = new Date(data.current_period_end);
 	} else {
 		currentPeriodEnd = new Date(currentPeriodStart);
-		const interval = data.recurringInterval?.toLowerCase() || 'month';
+		const interval = data.recurring_interval?.toLowerCase() || 'month';
 		if (interval === 'year') {
 			currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
 		} else {
@@ -142,7 +133,10 @@ async function handleSubscriptionActive(
 	}
 
 	// Get plan_id from metadata or default to 'pro'
-	const planName = (data.metadata?.plan_id as string) || 'pro';
+	const planName =
+		typeof data.metadata?.plan_id === 'string' && data.metadata.plan_id
+			? data.metadata.plan_id
+			: 'pro';
 
 	// Look up the plan UUID from subscription_plans
 	const { data: plan } = await supabase
@@ -167,15 +161,15 @@ async function handleSubscriptionActive(
 		current_period_start: currentPeriodStart.toISOString(),
 		current_period_end: currentPeriodEnd.toISOString(),
 		cancel_at_period_end: options.preserveIncomingState
-			? (data.cancelAtPeriodEnd ?? false)
+			? (data.cancel_at_period_end ?? false)
 			: false,
 		canceled_at:
-			options.preserveIncomingState && data.canceledAt
-				? new Date(data.canceledAt).toISOString()
+			options.preserveIncomingState && data.canceled_at
+				? new Date(data.canceled_at).toISOString()
 				: null,
 		metadata: {
-			polar_product_id: data.productId,
-			billing_interval: mapBillingInterval(data.recurringInterval || 'month'),
+			polar_product_id: data.product_id,
+			billing_interval: mapBillingInterval(data.recurring_interval || 'month'),
 			amount: data.amount,
 			currency: data.currency,
 		},
@@ -248,16 +242,16 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 		return;
 	}
 
-	const currentPeriodStart = data.currentPeriodStart
-		? new Date(data.currentPeriodStart)
+	const currentPeriodStart = data.current_period_start
+		? new Date(data.current_period_start)
 		: undefined;
-	const currentPeriodEnd = data.currentPeriodEnd
-		? new Date(data.currentPeriodEnd)
+	const currentPeriodEnd = data.current_period_end
+		? new Date(data.current_period_end)
 		: undefined;
 
 	const updateData: Record<string, unknown> = {
 		status: mapPolarStatus(data.status || 'active'),
-		cancel_at_period_end: data.cancelAtPeriodEnd ?? false,
+		cancel_at_period_end: data.cancel_at_period_end ?? false,
 		updated_at: new Date().toISOString(),
 	};
 
@@ -315,7 +309,7 @@ async function handleSubscriptionUpdated(data: SubscriptionData) {
 	}
 
 	// Check if this is a plan change (productId changed)
-	const newProductId = data.productId;
+	const newProductId = data.product_id;
 	const oldProductId = metadataUpdates?.polar_product_id;
 
 	if (newProductId && oldProductId && newProductId !== oldProductId) {
@@ -449,8 +443,8 @@ async function handleSubscriptionCanceled(data: SubscriptionData) {
 		.from('user_subscriptions')
 		.update({
 			cancel_at_period_end: true,
-			canceled_at: data.canceledAt
-				? new Date(data.canceledAt).toISOString()
+			canceled_at: data.canceled_at
+				? new Date(data.canceled_at).toISOString()
 				: new Date().toISOString(),
 			updated_at: new Date().toISOString(),
 		})

@@ -44,11 +44,11 @@ importers:
         specifier: 5.9.1
         version: 5.9.1(@sinclair/typebox@0.34.52)(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.89.0(@types/react@19.3.0)(react@19.3.0))(zod@4.6.5)
       '@polar-sh/nextjs':
-        specifier: 0.9.6
-        version: 0.9.6(next@16.3.8(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@25.9.9)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
+        specifier: 1.0.1
+        version: 1.0.1(next@16.3.8(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@25.9.9)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))
       '@polar-sh/sdk':
-        specifier: 0.49.0
-        version: 0.49.0
+        specifier: 1.0.2
+        version: 1.0.2
       '@supabase/ssr':
         specifier: 0.12.7
         version: 0.12.7(@supabase/supabase-js@2.117.2(@opentelemetry/api@1.9.1))
@@ -1599,20 +1599,19 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@polar-sh/adapter-utils@0.4.6':
-    resolution: {integrity: sha512-F2HsGmRdhczxyFk7bmTZR81gBf/Hj5XfOGe/6S5aGWeJ1YftcWEK8Of+aZijxXv82xktEn7usS+7tfKb4YXghQ==}
+  '@polar-sh/adapter-utils@1.0.1':
+    resolution: {integrity: sha512-iF0Qo2Aj7yxvZ+hzqbSO4tLmKg2vWrPN4mqUv2hc5Hu7WgsATjjLUKuAaabGOxoBgspK3DyRrMOrA+cXCyTRdA==}
+    engines: {node: '>=24'}
 
-  '@polar-sh/nextjs@0.9.6':
-    resolution: {integrity: sha512-S9swNtWc5FZPrhKwQVq2F3uoWS9kWBimGiuh2qzzS4qgCqwnoAwPADTe1LKWAG1kurhrtiz0quDO7GbRkJhXVg==}
-    engines: {node: '>=16'}
+  '@polar-sh/nextjs@1.0.1':
+    resolution: {integrity: sha512-ULy3E0QDRIjIepoJdgZO77sByojBni5InL4aEaBiNgE+G7xzYPpjzeCi4xTdoY9x5MP+/LrJ1DsfXJXswHi2Mg==}
+    engines: {node: '>=24'}
     peerDependencies:
       next: ^15.0.0 || ^16.0.0
 
-  '@polar-sh/sdk@0.47.0':
-    resolution: {integrity: sha512-tZEt8eLWsQVhmyfUQzXhnN84e5Cnu/JsYFnCci1ranWkIGveQc+wTiyzDCG9Tl1xiz1Y/ztPsAJ1fevj6ExdAA==}
-
-  '@polar-sh/sdk@0.49.0':
-    resolution: {integrity: sha512-9UYb70iKjJCtWYlu0OF5HLYBLmkxHwqr2RlXwuxXQgRGqq56IQWlVG+NO7e1YJ7I5GW0CBHhGIjRbQ9hYM6ycQ==}
+  '@polar-sh/sdk@1.0.2':
+    resolution: {integrity: sha512-c3jdqYloVfcejKsAqYfYcW4bG7KkXj5bXkgdsdx4GHlJPzHFV5tysfeZGf9V7dJReLBirAluchsuHWiAIBco8w==}
+    engines: {node: '>=22'}
 
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
@@ -7092,25 +7091,17 @@ snapshots:
     dependencies:
       playwright: 1.63.0
 
-  '@polar-sh/adapter-utils@0.4.6':
+  '@polar-sh/adapter-utils@1.0.1':
     dependencies:
-      '@polar-sh/sdk': 0.47.0
+      '@polar-sh/sdk': 1.0.2
 
-  '@polar-sh/nextjs@0.9.6(next@16.3.8(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@25.9.9)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))':
+  '@polar-sh/nextjs@1.0.1(next@16.3.8(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@25.9.9)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))':
     dependencies:
-      '@polar-sh/adapter-utils': 0.4.6
-      '@polar-sh/sdk': 0.47.0
+      '@polar-sh/adapter-utils': 1.0.1
+      '@polar-sh/sdk': 1.0.2
       next: 16.3.8(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(@playwright/test@1.63.0)(@types/node@25.9.9)(babel-plugin-react-compiler@1.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
 
-  '@polar-sh/sdk@0.47.0':
-    dependencies:
-      standardwebhooks: 1.1.1
-      zod: 4.6.5
-
-  '@polar-sh/sdk@0.49.0':
-    dependencies:
-      standardwebhooks: 1.1.1
-      zod: 4.6.5
+  '@polar-sh/sdk@1.0.2': {}
 
   '@rtsao/scc@1.1.0': {}
 
