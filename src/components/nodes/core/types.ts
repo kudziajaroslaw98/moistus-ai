@@ -254,6 +254,8 @@ export interface BaseNodeWrapperProps<
 	hideAddButton?: boolean;
 	hideSuggestionsButton?: boolean;
 	hideResizeFrame?: boolean;
+	/** Keep handles rendered (existing edges) but block new connections. */
+	disableConnections?: boolean;
 	accentColor?: string;
 	elevation?: number;
 	metadataColorOverrides?: {

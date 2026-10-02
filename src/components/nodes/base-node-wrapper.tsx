@@ -42,6 +42,7 @@ const BaseNodeWrapperComponent = ({
 	hideAddButton = false,
 	hideSuggestionsButton = false,
 	hideResizeFrame = false,
+	disableConnections = false,
 	accentColor,
 	elevation = 1,
 	metadataColorOverrides,
@@ -271,7 +272,8 @@ const BaseNodeWrapperComponent = ({
 							position={Position.Bottom}
 							type='source'
 							isConnectable={
-								activeTool === 'default' || activeTool === 'connector'
+								!disableConnections &&
+								(activeTool === 'default' || activeTool === 'connector')
 							}
 							className={cn(
 								'!w-2 !h-2 rounded-full transition-all duration-200',
@@ -295,7 +297,7 @@ const BaseNodeWrapperComponent = ({
 							}}
 						/>
 
-						{activeTool === 'connector' && (
+						{activeTool === 'connector' && !disableConnections && (
 							<Handle
 								position={Position.Top}
 								type='source'
@@ -307,6 +309,7 @@ const BaseNodeWrapperComponent = ({
 						)}
 
 						<Handle
+							isConnectableEnd={!disableConnections}
 							isConnectableStart={false}
 							position={Position.Top}
 							type='target'

@@ -169,6 +169,8 @@ const annotationNodeSchema = baseMetadataSchema.extend({
 	fontWeight: z.union([z.string(), z.number()]).optional(),
 	author: z.string().optional(),
 	timestamp: z.string().optional(),
+	anchorNodeId: z.string().optional(),
+	anchorOffset: z.object({ x: z.number(), y: z.number() }).optional(),
 });
 
 /**

@@ -1,5 +1,10 @@
 import { defaultEdgeData } from '@/constants/default-edge-data';
 import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
+import {
+	buildAnchorHostById,
+	getAnchoredAnnotationIdsForHosts,
+	syncAnchoredAnnotationPositions,
+} from '@/helpers/anchored-annotations';
 import { fetchResourceMetadata } from '@/helpers/fetch-resource-metadata';
 import generateUuid from '@/helpers/generate-uuid';
 import { rerouteAutoWaypointEdges } from '@/helpers/route-auto-waypoint-edges';
@@ -354,6 +359,12 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				}
 			});
 
+			const anchorFollowersByHost = syncAnchoredAnnotationPositions(
+				changes,
+				finalNodes,
+				previousNodeById
+			);
+
 			set({ nodes: finalNodes });
 			const finalNodeById = new Map(finalNodes.map((node) => [node.id, node]));
 			const nodesToPersist = new Set<string>();
@@ -444,6 +455,17 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					replacedNodeIds.add(change.id);
 				}
 			});
+
+			// Persist annotations that followed a committed host move.
+			for (const [hostId, followerIds] of anchorFollowersByHost) {
+				if (!movedNodeIds.has(hostId)) continue;
+				for (const followerId of followerIds) {
+					nodesToPersist.add(followerId);
+					nodesToBroadcast.add(followerId);
+					movedNodeIds.add(followerId);
+				}
+			}
+
 			let finalEdges = previousEdges;
 			let reroutedEdgeIds = new Set<string>();
 
@@ -1009,10 +1031,25 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			);
 		},
 		deleteNodes: withLoadingAndToast(
-			async (nodesToDelete: AppNode[]) => {
+			async (requestedNodes: AppNode[]) => {
 				const { mapId, supabase, edges, nodes: allNodes } = get();
 
-				if (!mapId || !nodesToDelete) return;
+				if (!mapId || !requestedNodes) return;
+
+				// Anchored annotations are deleted with their host (same history step).
+				const requestedIds = new Set(requestedNodes.map((node) => node.id));
+				const anchoredIds = new Set(
+					getAnchoredAnnotationIdsForHosts(allNodes, requestedIds).filter(
+						(id) => !requestedIds.has(id)
+					)
+				);
+				const nodesToDelete =
+					anchoredIds.size > 0
+						? [
+								...requestedNodes,
+								...allNodes.filter((node) => anchoredIds.has(node.id)),
+							]
+						: requestedNodes;
 
 				// Capture previous state for history tracking
 				const prevNodes = [...allNodes];
@@ -1261,6 +1298,13 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					groupChildren.every((childId) => hiddenNodeIds.has(childId))
 				) {
 					finalHiddenNodeIds.add(groupNode.id);
+				}
+			}
+
+			// Anchored annotations disappear with their host
+			for (const [annotationId, hostId] of buildAnchorHostById(nodes)) {
+				if (finalHiddenNodeIds.has(hostId)) {
+					finalHiddenNodeIds.add(annotationId);
 				}
 			}
 
