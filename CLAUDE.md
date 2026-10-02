@@ -101,7 +101,7 @@ Skipping this = incomplete work.
 pnpm dev:lan         # LAN dev server (0.0.0.0 host binding)
 pnpm type-check      # TypeScript validation
 pnpm build           # Production build
-pnpm test            # Unit tests (Jest + RTL, 637 tests)
+pnpm test            # Unit tests (Jest + RTL, 651 tests)
 pnpm e2e             # E2E tests (Playwright)
 pnpm e2e:ui          # E2E with interactive UI
 pnpm e2e:headed      # E2E with browser visible
@@ -237,6 +237,10 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 **Row-based AI node-id aliasing**: Every compact row-based AI route (`/api/ai/suggestions`, `/api/ai/chat`, `/api/ai/counterpoints`, `/api/ai/suggest-merges`, `/api/search-nodes`) must alias model-visible node IDs through `src/helpers/ai-id-alias-map.ts` before prompt assembly. The model should see dense numeric node IDs in `NODE` / `REL` / `ANCHOR` / `RECENT` rows and any free-text request metadata that mentions node IDs; server code must resolve those aliases back to UUIDs before anchor validation, duplicate suppression, placement, merge validation, search validation, or client streaming. Do not let UUIDs leak into model-visible rows or numeric aliases leak into app-facing payloads.
 
 **Typed AI ghost approval**: `/api/ai/suggestions` may now stream an optional `nodePayload` alongside `content` for safe typed nodes. The route should only emit safe typed v1 nodes (`defaultNode`, `textNode`, `taskNode`, `questionNode`, `annotationNode`, `codeNode`), must downgrade malformed structured payloads to `defaultNode` before ghost creation, and ghost approval in `suggestions-slice` must build the final node from `nodePayload` instead of trying to infer typed metadata from `suggestedContent`. `taskNode` approval is the critical case: checklist rows live in `metadata.tasks`, so approving a task ghost without payload is a bug.
+
+**Polar 1.0 billing contract**: Use `createPolarClient()` / `getPolarEnvironment()` from `src/lib/polar.ts` (`@polar-sh/sdk/2026-10`). Polar webhook payloads are snake_case and are NOT schema-validated by `@polar-sh/nextjs` (signature + event type only), so the webhook types `data` as the SDK `models.Subscription` and the Polar webhook endpoint's `api_version` must stay aligned with the SDK version (sandbox/prod endpoints were still `2026-04` on 2026-10-02; `Subscription` is identical between 2026-04 and 2026-10; the version is not changeable via API/MCP). Checkout sends `external_customer_id = user.id`; portal still resolves the stored `polar_customer_id`. `paused` maps to `unpaid` (no Pro access). Webhook regression test signs a real sandbox wire fixture (`src/app/api/webhooks/polar/__fixtures__`).
+
+<!-- Updated: 2026-10-02 - Documented Polar SDK 1.0 webhook/API-version contract -->
 
 **Notifications**: `useNotifications` now shares a single cache/socket layer per signed-in user; keep `useSyncExternalStore` snapshots stable and apply `mapId` filtering server-side before `limit` in `/api/notifications`.
 
