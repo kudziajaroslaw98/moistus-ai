@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 jest.mock('@/helpers/api/with-subscription-check', () => ({
 	checkAIQuota: jest.fn(),
 	trackAIUsage: jest.fn(),

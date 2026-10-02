@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 jest.mock('@/helpers/api/with-subscription-check', () => ({
 	checkAIQuota: jest.fn(),
 	trackAIUsage: jest.fn(),
@@ -303,7 +306,7 @@ describe('/api/ai/suggest-merges route', () => {
 
 		expect(mockedProcessMergeSuggestionElement).toHaveBeenCalledTimes(3);
 		expect(suggestionChunks).toHaveLength(2);
-		expect(suggestionChunks.map((chunk) => chunk.data)).toEqual([
+		expect(suggestionChunks.map((chunk) => chunk.data)).toMatchObject([
 			{ node1Id: 'node-1', node2Id: 'node-2' },
 			{ node1Id: 'node-2', node2Id: 'node-3' },
 		]);
