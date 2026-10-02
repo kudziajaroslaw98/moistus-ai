@@ -101,7 +101,7 @@ Skipping this = incomplete work.
 pnpm dev:lan         # LAN dev server (0.0.0.0 host binding)
 pnpm type-check      # TypeScript validation (TS 7 native tsc)
 pnpm build           # Production build
-pnpm test            # Unit tests (Jest + RTL, 657 tests)
+pnpm test            # Unit tests (Jest + RTL, 721 tests)
 pnpm e2e             # E2E tests (Playwright)
 pnpm e2e:ui          # E2E with interactive UI
 pnpm e2e:headed      # E2E with browser visible
@@ -215,6 +215,10 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 **Realtime cleanup idempotency**: Yjs observer cleanup (`unobserve` / awareness `off`) and broadcast unsubscribe wrappers must be safe on repeated invocation. Slice-level unsubscribe flows should null stored handles before awaiting cleanup, and core realtime teardown should coalesce concurrent calls into one in-flight promise.
 
 <!-- Updated: 2026-04-07 - Added repeated-unsubscribe safety contract for Yjs/broadcast/slice/core teardown paths -->
+
+**Anchored annotation contract**: Annotation-to-host linkage is `metadata.anchorNodeId` + `metadata.anchorOffset` only; never use `parent_id`/React Flow `parentId` (hierarchy) or `targetNodeId` (reference nodes). An anchor whose host is missing, is an annotation, or is the node itself is treated as free. Anchored annotations must stay out of every layout pass (`splitAnchoredAnnotations`/`reattachAnchoredAnnotations`), never become AI node rows or targets (fold via `foldAnchoredAnnotation*` before aliasing), cascade-delete with their host inside the same `deleteNodes` call, and render only a derived `annotationTether` edge that is never stored in the edges slice.
+
+**Collapsed-branch contract**: `getBranchIndex` (`src/helpers/collapse/branch-index.ts`) is the single source for collapse roll-ups (hidden count = full subtree excluding anchored annotations, branch tasks, pending statuses, severity, peek outline) and child-side placement; do not rebuild subtree walks in components. Expand opens one level (deeper nodes keep their flag); Shift+click / `expandBranch(id, { all: true })` clears the subtree in one history step via `setNodesCollapsed`. Adding a child to a collapsed node expands it first. Cross-links into hidden nodes are derived `collapsedProxy` edges in `getVisibleEdges` — never stored, selectable, or deletable; AI suggestion edges are never proxied (they keep `aiData.connectionProxy`). Collapse state is shared (not per user), so search/peek expansion changes collaborators' view too.
 
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 

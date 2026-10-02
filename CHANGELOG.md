@@ -5,6 +5,20 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-03]
+
+### Added
+
+- **annotations**: Annotations can be anchored to a host node (`metadata.anchorNodeId` + `anchorOffset`): created anchored from a node, Attach/Detach in the toolbar, follow host moves, dashed tether, cascade-delete with host (one undo step), hidden with host, excluded from all layouts, no new connections
+  - Why: An annotation is a note *about* a node; free-floating annotations linked by edges polluted the graph, layouts and AI context
+- **ai**: Anchored annotations are folded into their host's context (`note(<type>): <text>`) for chat, suggestions, counterpoints, merges, connections and search; approved AI annotation ghosts anchor to their source instead of adding an edge
+- **collapse**: Collapsed-branch redesign: edge-side collapse toggle, stacked collapsed card with "N nodes hidden" pill, branch roll-up (task progress, pending chip, red/amber severity dot), hover/tap peek outline with expand-path rows, Shift+click expand all, add-child expands, cross-links re-attach to the collapsed ancestor as dashed proxy edges
+- **search**: Ctrl/Cmd+F canvas search that reaches inside collapsed branches ("N matches inside"), with Enter/Shift+Enter navigation that expands only the path to a hidden match
+
+### Changed
+
+- **collapse**: Hidden count now covers the whole subtree (was direct children only); batch collapse changes are a single history step
+
 ## [2026-10-02]
 
 ### Changed

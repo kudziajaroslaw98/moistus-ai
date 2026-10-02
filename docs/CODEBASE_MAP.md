@@ -64,6 +64,7 @@ total_tokens: 707972
 <!-- Updated: 2026-07-17 - Documented transient layout commands and their persisted directional reflow contract -->
 <!-- Updated: 2026-04-19 - Documented route-specific helper boundaries for structured AI streaming routes -->
 <!-- Updated: 2026-04-20 - Documented collapsed-branch AI connection proxy rendering and stream-start-gated suggestion replacement -->
+<!-- Updated: 2026-10-03 - Documented anchored annotations, collapsed-branch redesign (branch index, proxy edges, toggle/stack/peek) and canvas search -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -296,7 +297,7 @@ shiko/
 | textNode       | content   | `$text`       | Plain text                    |
 | taskNode       | content   | `$task`       | Checklist (+ hide done/title) |
 | codeNode       | content   | `$code`       | Syntax highlighted            |
-| annotationNode | content   | `$annotation` | Comments/notes                |
+| annotationNode | content   | `$annotation` | Notes; optionally anchored    |
 | resourceNode   | content   | `$link`       | URL preview                   |
 | imageNode      | media     | `$image`      | Image display                 |
 | questionNode   | ai        | `$question`   | Q&A format                    |
@@ -309,6 +310,12 @@ shiko/
 Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
 <!-- Updated: 2026-04-27 - Documented divider-aligned tab-strip and baseline-centered gutter-number behavior -->
+
+**Anchored annotations:** An `annotationNode` may carry `metadata.anchorNodeId` + `metadata.anchorOffset` (never `parent_id`). Annotations created from a node (quick input with a parent, child-create entry points) and approved AI annotation ghosts are anchored; the annotation toolbar offers Attach (nearest visible node) / Detach. Anchored annotations follow host moves (`syncAnchoredAnnotationPositions` in `onNodesChange`), cascade-delete with the host in the same history step, hide when the host is hidden, reject new connections, are skipped by every layout pass (`src/helpers/layout/anchored-annotation-layout.ts`, wrapped around `runElkLayout` and local branch reflow), and render a derived display-only `annotationTether` edge. AI routes fold them into host content as `note(<type>): <text>` via `src/helpers/ai-anchored-annotations.ts`. Core helpers: `src/helpers/anchored-annotations.ts`.
+
+**Collapsed branches:** `metadata.isCollapsed` stays shared (synced + undoable). `src/helpers/collapse/branch-index.ts` (`getBranchIndex`, memoized by nodes/edges identity) is the single source for structural children, children-facing side, and per-collapsed-node summaries (full hidden subtree, branch task progress, pending statuses, severity, peek outline). UI lives in `src/components/nodes/node-additions/`: `branch-toggle.tsx` (edge-side collapse button), `collapsed-indicator.tsx` (stacked card edges + "N nodes hidden" pill with hover/tap peek), `branch-summary.tsx` (roll-up row + severity dot), `branch-peek.tsx` (outline overlay). Store actions: `setNodesCollapsed` (one history step), `expandBranch(id, {all})`, `expandPathTo(id)`. `getVisibleEdges` re-attaches cross-links into hidden nodes to the visible collapsed ancestor as derived dashed `collapsedProxy` edges (`src/helpers/collapse/collapsed-proxy-edges.ts`).
+
+**Canvas search:** Ctrl/Cmd+F opens `src/components/mind-map/canvas-search-bar.tsx` (state `canvasSearch` in ui-slice). Matching (`src/helpers/canvas-search.ts`) is case/diacritic-insensitive over `getNodeSearchText` (`src/helpers/node-semantic-text.ts`, shared with AI rows) and includes nodes hidden in collapsed branches; collapsed nodes hiding matches show "N matches inside", and navigating to a hidden match calls `expandPathTo` then `centerOnNode`.
 
 **Key Files:**
 
@@ -387,8 +394,9 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
         ├── Selection state
         ├── Node toolbar
         ├── Metadata bar
-        ├── Collapse button
-        └── [Content]Content.tsx
+        ├── Branch toggle / collapsed stack + pill (node-additions/)
+        ├── [Content]Content.tsx
+        └── Branch summary (only while collapsed)
 ```
 
 **UI Primitives (42 components):**
