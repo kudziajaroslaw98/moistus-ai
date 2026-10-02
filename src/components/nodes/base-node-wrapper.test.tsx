@@ -11,6 +11,8 @@ let mockSelectedNodes: Array<{ id: string }> = []
 let mockIsDraggingNodes = false
 let mockActiveTool = 'select'
 let mockIsMobile = false
+let mockNodes: unknown[] = []
+let mockEdges: unknown[] = []
 
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
@@ -27,8 +29,8 @@ jest.mock('@/store/mind-map-store', () => ({
 			isStreaming: false,
 			generateSuggestions: mockGenerateSuggestions,
 			canvasSearch: { isOpen: false, query: '', activeIndex: 0 },
-			nodes: [],
-			edges: [],
+			nodes: mockNodes,
+			edges: mockEdges,
 		})
 	),
 }))
@@ -147,6 +149,8 @@ describe('BaseNodeWrapper', () => {
 		mockActiveTool = 'select'
 		mockIsMobile = false
 		mockCanEdit = true
+		mockNodes = []
+		mockEdges = []
 		mockGetNode.mockReturnValue({
 			id: 'node-1',
 			position: { x: 100, y: 100 },
@@ -264,6 +268,58 @@ describe('BaseNodeWrapper', () => {
 			// No handles should be rendered when hideResizeFrame is true
 			expect(screen.queryByTestId('handle-source-bottom')).not.toBeInTheDocument()
 			expect(screen.queryByTestId('handle-target-top')).not.toBeInTheDocument()
+		})
+	})
+
+	describe('add / AI buttons clear the collapse control', () => {
+		const graphNode = (id: string, y: number, metadata: Record<string, unknown> = {}) => ({
+			id,
+			type: 'defaultNode',
+			position: { x: 0, y },
+			measured: { width: 320, height: 100 },
+			data: { id, node_type: 'defaultNode', content: id, metadata },
+		})
+		const toChild = (from: { x: number; y: number }) => {
+			mockEdges = [{ id: 'e', source: 'node-1', target: 'child', data: {} }]
+			return { ...graphNode('child', 0), position: from }
+		}
+
+		it('keeps the default offset for leaf nodes', () => {
+			mockSelectedNodes = [{ id: 'node-1' }]
+			mockNodes = [graphNode('node-1', 0)]
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
+
+			expect(screen.getByTestId('node-add-button-container').style.bottom).toBe('-60px')
+			expect(screen.getByTestId('node-suggest-button-container').style.right).toBe('-60px')
+		})
+
+		it('moves the add button past the toggle when children are below', () => {
+			mockSelectedNodes = [{ id: 'node-1' }]
+			mockNodes = [graphNode('node-1', 0), toChild({ x: 0, y: 300 })]
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
+
+			expect(screen.getByTestId('node-add-button-container').style.bottom).toBe('-88px')
+			expect(screen.getByTestId('node-suggest-button-container').style.right).toBe('-60px')
+		})
+
+		it('moves the add button past the pill when the node is collapsed', () => {
+			mockSelectedNodes = [{ id: 'node-1' }]
+			mockNodes = [
+				graphNode('node-1', 0, { isCollapsed: true }),
+				toChild({ x: 0, y: 300 }),
+			]
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
+
+			expect(screen.getByTestId('node-add-button-container').style.bottom).toBe('-96px')
+		})
+
+		it('moves the AI button instead when children branch to the right', () => {
+			mockSelectedNodes = [{ id: 'node-1' }]
+			mockNodes = [graphNode('node-1', 0), toChild({ x: 600, y: 0 })]
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
+
+			expect(screen.getByTestId('node-suggest-button-container').style.right).toBe('-88px')
+			expect(screen.getByTestId('node-add-button-container').style.bottom).toBe('-60px')
 		})
 	})
 

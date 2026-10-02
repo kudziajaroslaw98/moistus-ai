@@ -3,6 +3,7 @@ import {
 	getCanvasSearchMatches,
 	getMatchesInsideCollapsed,
 } from '@/helpers/canvas-search';
+import { getBranchIndex } from '@/helpers/collapse/branch-index';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import useAppStore from '@/store/mind-map-store';
@@ -33,6 +34,14 @@ import {
 	GlassmorphismTheme,
 	getElevationColor,
 } from './themes/glassmorphism-theme';
+
+/**
+ * Extra outward offset (px) for the add / AI action buttons when a collapse
+ * control shares their side: control far edge + 8px gap - button's 20px inset.
+ * Toggle: mt-3 + size-6 = 36px. Pill: mt-5 + h-7 = 48px.
+ */
+const BRANCH_TOGGLE_CLEARANCE = 28;
+const BRANCH_PILL_CLEARANCE = 36;
 
 const BaseNodeWrapperComponent = ({
 	id,
@@ -76,6 +85,21 @@ const BaseNodeWrapperComponent = ({
 		}))
 	);
 	const isMobile = useIsMobile();
+	// Collapse control (toggle or "N hidden" pill) sitting on the children side;
+	// the add / AI action buttons move further out when they share that side.
+	const branchControl = useAppStore((state) => {
+		const index = getBranchIndex(state.nodes, state.edges);
+		if (!index.childIdsById.has(id)) return null;
+		const side = index.childSideById.get(id) ?? 'bottom';
+		return `${side}:${index.summaries.has(id) ? 'pill' : 'toggle'}`;
+	});
+	const branchControlOffset = branchControl?.endsWith(':pill')
+		? BRANCH_PILL_CLEARANCE
+		: branchControl
+			? BRANCH_TOGGLE_CLEARANCE
+			: 0;
+	const addOffset = branchControl?.startsWith('bottom:') ? branchControlOffset : 0;
+	const suggestOffset = branchControl?.startsWith('right:') ? branchControlOffset : 0;
 	// Canvas search: 'active' = current match, 'match' = any match, or a
 	// collapsed node that hides matches ('inside').
 	const searchHighlight = useAppStore((state) => {
@@ -354,7 +378,8 @@ const BaseNodeWrapperComponent = ({
 									<div key={`${data.id}-add-handles`}>
 										<motion.div
 											animate={{ opacity: 0.3, scaleY: 1 }}
-											className='absolute -bottom-12 left-1/2 -translate-x-1/2 w-[1px] h-12 bg-overlay'
+											className='absolute left-1/2 -translate-x-1/2 w-[1px] bg-overlay'
+											style={{ bottom: -(48 + addOffset), height: 48 + addOffset }}
 											exit={{ opacity: 0, scaleY: 0 }}
 											initial={{ opacity: 0, scaleY: 0 }}
 											transition={{ duration: 0.2 }}
@@ -362,7 +387,9 @@ const BaseNodeWrapperComponent = ({
 
 										<motion.div
 											animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
-											className='absolute -bottom-[60px] left-1/2 -translate-x-1/2 z-20'
+											className='absolute left-1/2 -translate-x-1/2 z-20'
+											data-testid='node-add-button-container'
+											style={{ bottom: -(60 + addOffset) }}
 											exit={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
 											initial={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
 											transition={{
@@ -389,7 +416,8 @@ const BaseNodeWrapperComponent = ({
 									<>
 										<motion.div
 											animate={{ opacity: 0.3, scaleX: 1 }}
-											className='absolute -right-8 -z-10 top-1/2 -translate-y-1/2 w-12 h-[1px] bg-overlay'
+											className='absolute -z-10 top-1/2 -translate-y-1/2 h-[1px] bg-overlay'
+											style={{ right: -(32 + suggestOffset), width: 48 + suggestOffset }}
 											exit={{ opacity: 0, scaleX: 0 }}
 											initial={{ opacity: 0, scaleX: 0 }}
 											transition={{ duration: 0.2 }}
@@ -397,7 +425,9 @@ const BaseNodeWrapperComponent = ({
 
 										<motion.div
 											animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
-											className='absolute -right-[60px] top-1/2 -translate-y-1/2 z-20'
+											className='absolute top-1/2 -translate-y-1/2 z-20'
+											data-testid='node-suggest-button-container'
+											style={{ right: -(60 + suggestOffset) }}
 											exit={{ opacity: 0, scale: 0.8 }}
 											initial={{
 												opacity: 0,
