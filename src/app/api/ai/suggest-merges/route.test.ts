@@ -193,10 +193,8 @@ describe('/api/ai/suggest-merges route', () => {
 		]);
 		expect(mockedStreamObject).toHaveBeenCalledWith(
 			expect.objectContaining({
-				messages: [
-					{ role: 'system', content: 'SYSTEM_SENTINEL' },
-					{ role: 'user', content: 'USER_SENTINEL' },
-				],
+				instructions: 'SYSTEM_SENTINEL',
+				messages: [{ role: 'user', content: 'USER_SENTINEL' }],
 			})
 		);
 		expect(mockedProcessMergeSuggestionElement).toHaveBeenCalledWith(

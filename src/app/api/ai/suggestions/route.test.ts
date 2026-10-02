@@ -237,11 +237,8 @@ describe('/api/ai/suggestions route', () => {
 		expect(mockedGetSuggestionSystemPrompt).toHaveBeenCalledWith('full-map');
 		expect(mockedStreamObject).toHaveBeenCalledWith(
 			expect.objectContaining({
+				instructions: 'SYSTEM_SENTINEL',
 				messages: [
-					{
-						role: 'system',
-						content: 'SYSTEM_SENTINEL',
-					},
 					{
 						role: 'user',
 						content: 'PROMPT_SENTINEL',

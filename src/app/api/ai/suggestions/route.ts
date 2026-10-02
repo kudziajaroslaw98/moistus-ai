@@ -326,13 +326,15 @@ export async function POST(req: Request) {
 							providerOptions: {
 								openai: {
 									reasoningEffort: 'high', // Increases autonomous exploration
+									// AI SDK 7 defaults this to 'detailed' when reasoningEffort is set;
+									// streamObject never reads summaries, so skip the extra generation
+									reasoningSummary: null,
 								},
 							},
+							instructions: getSuggestionSystemPrompt(
+								promptContext.graph.mode
+							),
 							messages: [
-								{
-									role: 'system',
-									content: getSuggestionSystemPrompt(promptContext.graph.mode),
-								},
 								{
 									role: 'user',
 									content: promptContext.prompt,

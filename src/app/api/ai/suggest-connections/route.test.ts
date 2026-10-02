@@ -17,7 +17,7 @@ jest.mock('@/helpers/extract-connection-context', () => ({
 }));
 
 jest.mock('@/helpers/ai-connection-prompts', () => ({
-	buildConnectionModelMessages: jest.fn(),
+	buildConnectionModelPrompt: jest.fn(),
 }));
 
 jest.mock('@/helpers/ai-connection-postprocess', () => ({
@@ -36,7 +36,7 @@ jest.mock('ai', () => ({
 }));
 
 import { checkAIQuota } from '@/helpers/api/with-subscription-check';
-import { buildConnectionModelMessages } from '@/helpers/ai-connection-prompts';
+import { buildConnectionModelPrompt } from '@/helpers/ai-connection-prompts';
 import { normalizeConnectionSuggestionElement } from '@/helpers/ai-connection-postprocess';
 import {
 	extractEdgesForConnections,
@@ -56,8 +56,8 @@ type StreamExecute = (params: {
 }) => Promise<void>;
 
 const mockedCheckAIQuota = jest.mocked(checkAIQuota);
-const mockedBuildConnectionModelMessages = jest.mocked(
-	buildConnectionModelMessages
+const mockedBuildConnectionModelPrompt = jest.mocked(
+	buildConnectionModelPrompt
 );
 const mockedNormalizeConnectionSuggestionElement = jest.mocked(
 	normalizeConnectionSuggestionElement
@@ -133,9 +133,10 @@ describe('/api/ai/suggest-connections route', () => {
 			{ source: 'node-1', target: 'node-2' },
 		] as never);
 		mockedFormatConnectionContext.mockReturnValue('FORMATTED_CONTEXT');
-		mockedBuildConnectionModelMessages.mockResolvedValue([
-			{ role: 'system', content: 'MODEL_MESSAGE_SENTINEL' },
-		] as never);
+		mockedBuildConnectionModelPrompt.mockReturnValue({
+			instructions: 'INSTRUCTIONS_SENTINEL',
+			messages: [{ role: 'user', content: 'MODEL_MESSAGE_SENTINEL' }],
+		} as never);
 		mockedNormalizeConnectionSuggestionElement.mockReturnValue({
 			id: 'conn-1',
 			sourceNodeId: 'node-1',
@@ -192,12 +193,13 @@ describe('/api/ai/suggest-connections route', () => {
 
 		expect(response.status).toBe(200);
 		expect(mockedFormatConnectionContext).toHaveBeenCalled();
-		expect(mockedBuildConnectionModelMessages).toHaveBeenCalledWith(
+		expect(mockedBuildConnectionModelPrompt).toHaveBeenCalledWith(
 			'FORMATTED_CONTEXT'
 		);
 		expect(mockedStreamObject).toHaveBeenCalledWith(
 			expect.objectContaining({
-				messages: [{ role: 'system', content: 'MODEL_MESSAGE_SENTINEL' }],
+				instructions: 'INSTRUCTIONS_SENTINEL',
+				messages: [{ role: 'user', content: 'MODEL_MESSAGE_SENTINEL' }],
 			})
 		);
 		expect(mockedNormalizeConnectionSuggestionElement).toHaveBeenCalledWith({
@@ -316,7 +318,7 @@ describe('/api/ai/suggest-connections route', () => {
 
 		const writes = await runCapturedStream();
 
-		expect(mockedBuildConnectionModelMessages).not.toHaveBeenCalled();
+		expect(mockedBuildConnectionModelPrompt).not.toHaveBeenCalled();
 		expect(mockedStreamObject).not.toHaveBeenCalled();
 		expect(writes).toEqual(
 			expect.arrayContaining([
