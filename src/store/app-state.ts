@@ -549,6 +549,8 @@ export interface UIStateSlice {
 	snapLines: SnapLine[];
 	nodeEditor: NodeEditorState;
 	commandPalette: CommandPaletteState;
+	/** Canvas find (Ctrl/Cmd+F); matches are derived from nodes + query. */
+	canvasSearch: { isOpen: boolean; query: string; activeIndex: number };
 
 	// UI setters
 	setPopoverOpen: (popover: Partial<Popovers>) => void;
@@ -570,6 +572,12 @@ export interface UIStateSlice {
 	setCommandPaletteSelection: (index: number) => void;
 	navigateCommandPalette: (direction: 'up' | 'down') => void;
 	executeCommand: (command: Command) => void;
+
+	// Canvas search actions
+	openCanvasSearch: () => void;
+	closeCanvasSearch: () => void;
+	setCanvasSearchQuery: (query: string) => void;
+	setCanvasSearchActiveIndex: (index: number) => void;
 }
 
 // Realtime Slice

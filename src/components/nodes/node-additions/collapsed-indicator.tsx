@@ -2,6 +2,7 @@
 
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { getMatchesInsideCollapsed } from '@/helpers/canvas-search';
 import { getBranchIndex, type BranchSide } from '@/helpers/collapse/branch-index';
 import { useCoarsePointer } from '@/hooks/use-coarse-pointer';
 import useAppStore from '@/store/mind-map-store';
@@ -53,6 +54,11 @@ const CollapsedIndicatorComponent = ({ nodeId }: CollapsedIndicatorProps) => {
 			centerOnNode: state.centerOnNode,
 		}))
 	);
+	const matchesInside = useAppStore((state) => {
+		const { isOpen, query } = state.canvasSearch;
+		if (!isOpen || query.trim().length === 0) return 0;
+		return getMatchesInsideCollapsed(state.nodes, state.edges, query).get(nodeId) ?? 0;
+	});
 	const isCoarsePointer = useCoarsePointer();
 	const reduceMotion = useReducedMotion();
 	const [isPeekOpen, setIsPeekOpen] = useState(false);
@@ -78,7 +84,10 @@ const CollapsedIndicatorComponent = ({ nodeId }: CollapsedIndicatorProps) => {
 	if (!summary) return null;
 
 	const count = summary.hiddenIds.length;
-	const label = `${count} ${count === 1 ? 'node' : 'nodes'} hidden`;
+	const label =
+		matchesInside > 0
+			? `${matchesInside} ${matchesInside === 1 ? 'match' : 'matches'} inside`
+			: `${count} ${count === 1 ? 'node' : 'nodes'} hidden`;
 
 	const pill = (
 		<span className='flex items-center gap-1.5'>
@@ -92,6 +101,7 @@ const CollapsedIndicatorComponent = ({ nodeId }: CollapsedIndicatorProps) => {
 		'border border-border-strong bg-elevated text-xs font-medium text-text-primary shadow-md',
 		'transition-[transform,border-color,background-color] duration-200 ease-out',
 		'hover:border-interactive-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary',
+		matchesInside > 0 && 'border-warning-400 bg-warning-500/15 text-warning-200',
 		PILL_POSITION[side]
 	);
 	const peek = (

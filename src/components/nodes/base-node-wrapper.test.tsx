@@ -26,6 +26,9 @@ jest.mock('@/store/mind-map-store', () => ({
 			ghostNodes: [],
 			isStreaming: false,
 			generateSuggestions: mockGenerateSuggestions,
+			canvasSearch: { isOpen: false, query: '', activeIndex: 0 },
+			nodes: [],
+			edges: [],
 		})
 	),
 }))

@@ -25,6 +25,7 @@ jest.mock('@/store/mind-map-store', () => ({
 			expandBranch: mockExpandBranch,
 			expandPathTo: mockExpandPathTo,
 			centerOnNode: mockCenterOnNode,
+			canvasSearch: { isOpen: false, query: '', activeIndex: 0 },
 		})
 	),
 }));

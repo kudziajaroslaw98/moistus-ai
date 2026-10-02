@@ -36,6 +36,7 @@ import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
+import { CanvasSearchBar } from '@/components/mind-map/canvas-search-bar';
 import { ModeIndicator } from '@/components/mode-indicator';
 import { useNotifications } from '@/components/notifications/use-notifications';
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
@@ -949,6 +950,10 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 								onMobileTapMultiSelectChange={setMobileTapMultiSelectEnabled}
 							/>
 						</div>
+					</Panel>
+
+					<Panel className='mt-16' position='top-center'>
+						<CanvasSearchBar />
 					</Panel>
 
 					<Panel className='m-4 pt-10' position='top-right'></Panel>

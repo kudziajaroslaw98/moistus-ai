@@ -4,6 +4,7 @@ import {
 	getCompactNodeType,
 } from '@/helpers/ai-hybrid-rows';
 import { extractEnhancedContext } from '@/helpers/extract-enhanced-node-context';
+import { getNodeSemanticText } from '@/helpers/node-semantic-text';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type {
@@ -87,23 +88,6 @@ function normalizeMapMeta(mapMeta?: SuggestionPromptInput['mapMeta']) {
 
 function getNodeType(node: AppNode): string {
 	return getCompactNodeType(node.data.node_type || node.type);
-}
-
-function getNodeSemanticText(node: AppNode): string {
-	const metadata = node.data.metadata;
-	const fragments = [
-		typeof metadata?.title === 'string' ? metadata.title : null,
-		typeof metadata?.label === 'string' ? metadata.label : null,
-		typeof node.data.content === 'string' ? node.data.content : null,
-		typeof metadata?.summary === 'string' ? metadata.summary : null,
-		typeof metadata?.answer === 'string' ? metadata.answer : null,
-		typeof metadata?.caption === 'string' ? metadata.caption : null,
-		typeof metadata?.altText === 'string' ? metadata.altText : null,
-	]
-		.map((fragment) => compactPromptText(fragment))
-		.filter((fragment): fragment is string => fragment !== null);
-
-	return Array.from(new Set(fragments)).join(' | ') || '[no content]';
 }
 
 function getNodePromptTags(node: AppNode): string[] {

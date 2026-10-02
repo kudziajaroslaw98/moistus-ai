@@ -1,4 +1,8 @@
 import { BLOCKED_NODE_TYPES } from '@/constants/blocked-node-types';
+import {
+	getCanvasSearchMatches,
+	getMatchesInsideCollapsed,
+} from '@/helpers/canvas-search';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import useAppStore from '@/store/mind-map-store';
@@ -72,6 +76,18 @@ const BaseNodeWrapperComponent = ({
 		}))
 	);
 	const isMobile = useIsMobile();
+	// Canvas search: 'active' = current match, 'match' = any match, or a
+	// collapsed node that hides matches ('inside').
+	const searchHighlight = useAppStore((state) => {
+		const { isOpen, query, activeIndex } = state.canvasSearch;
+		if (!isOpen || query.trim().length === 0) return 'none';
+		const matches = getCanvasSearchMatches(state.nodes, query);
+		if (matches.ids[activeIndex] === id) return 'active';
+		if (matches.idSet.has(id)) return 'match';
+		return getMatchesInsideCollapsed(state.nodes, state.edges, query).has(id)
+			? 'inside'
+			: 'none';
+	});
 
 	// State for AI actions popover
 	const [isAIPopoverOpen, setIsAIPopoverOpen] = useState(false);
@@ -182,6 +198,11 @@ const BaseNodeWrapperComponent = ({
 			<motion.div
 				className={cn(
 					'group/node relative flex-col rounded-lg cursor-move gap-4',
+					'transition-shadow duration-200 ease-out',
+					searchHighlight === 'active' &&
+						'shadow-[0_0_0_2px_var(--color-warning-400),0_0_24px_-4px_var(--color-warning-500)]',
+					(searchHighlight === 'match' || searchHighlight === 'inside') &&
+						'shadow-[0_0_0_1.5px_color-mix(in_oklch,var(--color-warning-400)_75%,transparent)]',
 					'bg-elevation-1 bg-[url("/images/groovepaper.png")] bg-repeat bg-blend-color-burn',
 					includePadding ? 'p-4' : 'p-0',
 					nodeClassName
