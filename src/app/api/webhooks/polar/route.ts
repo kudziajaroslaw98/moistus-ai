@@ -54,7 +54,7 @@ export const POST = Webhooks({
 type SubscriptionData = {
 	id: string;
 	customerId?: string;
-	customer?: { id: string; email: string; name?: string | null };
+	customer?: { id: string; email?: string | null; name?: string | null };
 	metadata?: Record<string, unknown>;
 	status?: string;
 	amount?: number;
