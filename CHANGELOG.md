@@ -27,6 +27,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **ai**: Anchored annotations are folded into their host's context (`note(<type>): <text>`) for chat, suggestions, counterpoints, merges, connections and search; approved AI annotation ghosts anchor to their source instead of adding an edge
 - **collapse**: Collapsed-branch redesign: stacked collapsed card with "N nodes hidden" pill, branch roll-up (task progress, pending chip, red/amber severity dot), hover/tap peek outline with expand-path rows, Shift+click expand all, add-child expands, cross-links re-attach to the collapsed ancestor as dashed proxy edges
 - **search**: Ctrl/Cmd+F canvas search that reaches inside collapsed branches ("N matches inside"), with Enter/Shift+Enter navigation that opens the collapsed branch containing a hidden match
+- **groups/drag-membership**: Drag a node over a group and hold to add it, or drag a member outside its group and hold to remove it; release applies the change, and the group's label shows hold/release progress
+  - Why: Group membership could only be changed from menus before
 
 ### Changed
 
@@ -81,12 +83,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **billing/webhooks**: A `subscription.canceled`, `uncanceled` or `revoked` event that arrives before the subscription row exists is now saved from its payload (revoked as `canceled`) instead of updating nothing
   - Why: A late `subscription.created` retry then had no stored version to compare against and re-granted Pro after a revoke
 - **billing/webhooks**: `subscription.created` / `active` on an existing row merges into stored metadata, so plan-change fields (`previous_plan`, `last_plan_change`, `previous_period_start`) are no longer wiped
+- **groups/member-interaction**: Nodes inside a group can be clicked, selected and edited again, even while the group is selected
+  - Why: Groups rendered above their members and captured every click
+- **groups/multi-remove**: Removing several nodes from the same group no longer leaves some of them listed in the group's children
+- **groups/create-from-selection**: Groups created from a selection now share one id with their members, so the original members can be dragged out of the group
+  - Why: The group node was created with a different id than the one written to its members; existing groups with that mismatch are repaired the next time a member is dragged in or out
 
 ### Removed
 
 - **history**: Unused history components and helpers left over from earlier panel versions (`history-entry-card`, `history-actions`, `history-group`, `change-item`, `git-diff-view`, `grouping-utils`)
 - **history**: Unused `formatTimeRange`, `diff-formatter`, `text-diff-utils` helpers and the direct `diff` dependency
 - **hooks**: `useCoarsePointer` (duplicate of `useTouchFirst` without iPad detection)
+- **groups/html5-drop**: Removed unused HTML5 drop handlers from the group node (React Flow node drags never fired them)
 
 ## [2026-10-02]
 

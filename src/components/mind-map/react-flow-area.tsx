@@ -1,4 +1,5 @@
 'use client';
+import { GROUP_NODE_Z_INDEX } from '@/constants/group';
 import { GRID_SIZE } from '@/constants/grid';
 import { NodeRegistry } from '@/registry/node-registry';
 import {
@@ -48,6 +49,7 @@ import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
 import { useAnimatedLayout } from '@/hooks/use-animated-layout';
 import { useContextMenu } from '@/hooks/use-context-menu';
+import { useGroupDragMembership } from '@/hooks/use-group-drag-membership';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useMultiTouchShortcuts } from '@/hooks/use-multi-touch-shortcuts';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
@@ -357,8 +359,14 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	// getVisibleNodes() returns new array on each call via .filter()
 	// Without memoization, ReactFlow sees "new" arrays every render → triggers onNodesChange → state update → re-render loop
 	// isCommentMode is needed because getVisibleNodes() filters based on it internally
+	// Group containers render below their members so members stay clickable/editable.
 	const visibleNodes = useMemo(() => {
-		return [...getVisibleNodes(), ...ghostNodes];
+		const groupAwareNodes = getVisibleNodes().map((node) =>
+			node.data.metadata?.isGroup
+				? { ...node, zIndex: GROUP_NODE_Z_INDEX }
+				: node
+		);
+		return [...groupAwareNodes, ...ghostNodes];
 	}, [nodes, ghostNodes, getVisibleNodes, isCommentMode]);
 
 	// Memoize visible edges to prevent infinite re-renders
@@ -784,13 +792,19 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		setDragging(); // Track dragging activity
 	}, [setIsDraggingNodes, isDraggingNodes, setDragging]);
 
+	const {
+		onNodeDrag: handleNodeDrag,
+		onNodeDragStop: handleGroupMembershipDragStop,
+	} = useGroupDragMembership({ canEdit });
+
 	const handleNodeDragStop = useCallback(() => {
+		handleGroupMembershipDragStop();
 		// Short delay to ensure drag operation completes before allowing auto-resize
 		setTimeout(() => {
 			setIsDraggingNodes(false);
 			setViewing(); // Return to viewing state
 		}, 100);
-	}, [setIsDraggingNodes, setViewing]);
+	}, [handleGroupMembershipDragStop, setIsDraggingNodes, setViewing]);
 
 	const handleToggleSharePanel = useCallback(() => {
 		setPopoverOpen({ sharePanel: true });
@@ -889,6 +903,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					onNodeClick={handleNodeClick}
 					onNodeDoubleClick={handleNodeDoubleClick}
 					onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
+					onNodeDrag={handleNodeDrag}
 					onNodeDragStart={handleNodeDragStart}
 					onNodeDragStop={handleNodeDragStop}
 					onNodesChange={onNodesChange}
