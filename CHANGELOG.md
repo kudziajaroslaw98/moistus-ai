@@ -17,6 +17,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **groups/member-interaction**: Nodes inside a group can be clicked, selected and edited again, even while the group is selected
   - Why: Groups rendered above their members and captured every click
 - **groups/multi-remove**: Removing several nodes from the same group no longer leaves some of them listed in the group's children
+- **groups/create-from-selection**: Groups created from a selection now share one id with their members, so the original members can be dragged out of the group
+  - Why: The group node was created with a different id than the one written to its members; existing groups with that mismatch are repaired the next time a member is dragged in or out
 
 ### Removed
 

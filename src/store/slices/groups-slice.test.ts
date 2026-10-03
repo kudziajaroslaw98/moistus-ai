@@ -128,3 +128,73 @@ describe('groups-slice setNodesGroup', () => {
 		);
 	});
 });
+
+describe('groups-slice phantom group ids', () => {
+	it('strips a phantom-id member from the real group that lists it', async () => {
+		const { slice, getNode } = createHarness([
+			makeNode('G', { isGroup: true, groupChildren: ['a', 'b'] }),
+			makeNode('a', { groupId: 'phantom' }),
+			makeNode('b', { groupId: 'phantom' }),
+		]);
+
+		await slice.setNodesGroup(['a'], null);
+
+		expect(getNode('G').data.metadata?.groupChildren).toEqual(['b']);
+		expect(getNode('a').data.metadata?.groupId).toBeUndefined();
+	});
+
+	it('repairs a phantom groupId when re-attached to its real group', async () => {
+		const { slice, getNode } = createHarness([
+			makeNode('G', { isGroup: true, groupChildren: ['a'] }),
+			makeNode('a', { groupId: 'phantom' }),
+		]);
+
+		await slice.setNodesGroup(['a'], 'G');
+
+		expect(getNode('G').data.metadata?.groupChildren).toEqual(['a']);
+		expect(getNode('a').data.metadata?.groupId).toBe('G');
+	});
+});
+
+describe('groups-slice createGroupFromSelected', () => {
+	it('creates the group with the same id its members reference', async () => {
+		const { slice, state, getNode } = createHarness([
+			makeNode('a'),
+			makeNode('b'),
+		]);
+		const addNode = jest.fn(
+			async (props: {
+				nodeId?: string;
+				nodeType?: string;
+				data?: { metadata?: Record<string, unknown> };
+			}) => {
+				state.nodes = [
+					...state.nodes,
+					{
+						id: props.nodeId ?? 'random-id',
+						position: { x: 0, y: 0 },
+						data: {
+							id: props.nodeId ?? 'random-id',
+							node_type: props.nodeType,
+							metadata: props.data?.metadata ?? {},
+						},
+					} as unknown as AppNode,
+				];
+			}
+		);
+		state.addNode = addNode;
+		state.selectedNodes = [getNode('a'), getNode('b')];
+
+		await slice.createGroupFromSelected('My group');
+
+		expect(addNode).toHaveBeenCalledWith(
+			expect.objectContaining({ nodeId: 'mock-uuid', nodeType: 'groupNode' })
+		);
+		expect(getNode('a').data.metadata?.groupId).toBe('mock-uuid');
+		expect(getNode('b').data.metadata?.groupId).toBe('mock-uuid');
+		expect(getNode('mock-uuid').data.metadata?.groupChildren).toEqual([
+			'a',
+			'b',
+		]);
+	});
+});

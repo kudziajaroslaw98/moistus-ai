@@ -17,6 +17,35 @@ const isGroupNode = (node: AppNode): boolean =>
 	Boolean(node.data.metadata?.isGroup);
 
 /**
+ * Resolve the group a node belongs to. Mirrors GroupNode's membership rule
+ * (`groupChildren` includes the node OR `metadata.groupId` matches): prefers
+ * an existing `metadata.groupId` group, then any group listing the node in
+ * `groupChildren`. The fallback heals groups whose members carry a stale or
+ * phantom `groupId` (pre-fix `createGroupFromSelected` produced these).
+ */
+export function findNodeGroup(
+	allNodes: AppNode[],
+	node: AppNode
+): AppNode | null {
+	const groupId = node.data.metadata?.groupId;
+
+	if (groupId) {
+		const byId = allNodes.find((n) => n.id === groupId);
+		if (byId && isGroupNode(byId)) return byId;
+	}
+
+	return (
+		allNodes.find(
+			(n) =>
+				isGroupNode(n) &&
+				((n.data.metadata?.groupChildren as string[] | undefined) ?? []).includes(
+					node.id
+				)
+		) ?? null
+	);
+}
+
+/**
  * Get a node's flow-space rectangle (measured size first, then explicit size)
  */
 export function getNodeRect(node: AppNode): GroupBounds {
@@ -78,11 +107,11 @@ export function resolveGroupDragIntent({
 	const rect = getNodeRect(primaryNode);
 	const center = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
 	const target = findGroupAtPoint(allNodes, center);
-	const currentGroupId = primaryNode.data.metadata?.groupId;
+	const currentGroupId = findNodeGroup(allNodes, primaryNode)?.id;
 
 	if (target && target.id !== currentGroupId) {
 		const nodeIds = draggedNodes
-			.filter((node) => node.data.metadata?.groupId !== target.id)
+			.filter((node) => findNodeGroup(allNodes, node)?.id !== target.id)
 			.map((node) => node.id);
 		return nodeIds.length > 0
 			? { type: 'add', groupId: target.id, nodeIds }
@@ -91,7 +120,7 @@ export function resolveGroupDragIntent({
 
 	if (!target && currentGroupId) {
 		const nodeIds = draggedNodes
-			.filter((node) => Boolean(node.data.metadata?.groupId))
+			.filter((node) => findNodeGroup(allNodes, node) !== null)
 			.map((node) => node.id);
 		return { type: 'remove', groupId: currentGroupId, nodeIds };
 	}

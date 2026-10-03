@@ -19,7 +19,7 @@ export const createGroupsSlice: StateCreator<AppState, [], [], GroupsSlice> = (
 
 	createGroupFromSelected: withLoadingAndToast(
 		async (label?: string): Promise<void> => {
-			const { selectedNodes, nodes, addNode, updateNode } = get();
+			const { selectedNodes, nodes, addNode } = get();
 
 			if (selectedNodes.length < 2) {
 				throw new Error('At least 2 nodes must be selected to create a group');
@@ -30,20 +30,26 @@ export const createGroupsSlice: StateCreator<AppState, [], [], GroupsSlice> = (
 			const bounds = calculateGroupBounds(selectedNodes, padding);
 			const groupLabel = label || generateGroupName(nodes);
 			const groupId = generateUuid();
+			// Groups never nest, so selected groups are not members.
+			const memberIds = selectedNodes
+				.filter((node) => !node.data.metadata?.isGroup)
+				.map((node) => node.id);
 
-			// Create the group node
+			// Create the group node. The id must go through `nodeId`: addNode
+			// ignores `data.id`, which previously left members pointing at a
+			// phantom group id.
 			await addNode({
 				parentNode: null,
 				content: groupLabel,
 				nodeType: 'groupNode',
+				nodeId: groupId,
 				position: { x: bounds.x, y: bounds.y },
 				data: {
-					id: groupId,
 					width: bounds.width,
 					height: bounds.height,
 					metadata: {
 						isGroup: true,
-						groupChildren: selectedNodes.map((n) => n.id),
+						groupChildren: memberIds,
 						label: groupLabel,
 						backgroundColor: 'rgba(113, 113, 122, 0.1)',
 						borderColor: '#52525b',
@@ -52,18 +58,8 @@ export const createGroupsSlice: StateCreator<AppState, [], [], GroupsSlice> = (
 				},
 			});
 
-			// Update selected nodes to reference this group
-			for (const node of selectedNodes) {
-				await updateNode({
-					nodeId: node.id,
-					data: {
-						metadata: {
-							...node.data.metadata,
-							groupId: groupId,
-						},
-					},
-				});
-			}
+			// Point members at this group (detaching them from any previous group)
+			await get().setNodesGroup(memberIds, groupId);
 		},
 		'isAddingContent',
 		{
@@ -87,13 +83,42 @@ export const createGroupsSlice: StateCreator<AppState, [], [], GroupsSlice> = (
 			throw new Error('Invalid group node');
 		}
 
-		// Groups never nest; nodes already in the target are no-ops.
+		const groupNodes = nodes.filter((node) => node.data.metadata?.isGroup);
+
+		// Every group that currently claims the node, via groupId or groupChildren
+		// (they can disagree, e.g. phantom groupIds from older group creation).
+		const getClaimingGroupIds = (nodeId: string): Set<string> => {
+			const claiming = new Set<string>();
+			const groupId = nodeById.get(nodeId)?.data.metadata?.groupId;
+
+			if (groupId && nodeById.get(groupId)?.data.metadata?.isGroup) {
+				claiming.add(groupId);
+			}
+
+			for (const group of groupNodes) {
+				const children = (group.data.metadata?.groupChildren as string[]) || [];
+				if (children.includes(nodeId)) claiming.add(group.id);
+			}
+
+			return claiming;
+		};
+
+		// Groups never nest; nodes already in the requested state are no-ops.
 		const movingIds = nodeIds.filter((nodeId) => {
 			const node = nodeById.get(nodeId);
+			if (!node || node.data.metadata?.isGroup) return false;
+
+			const claiming = getClaimingGroupIds(nodeId);
+			const groupId = node.data.metadata?.groupId;
+
+			if (targetGroupId === null) {
+				return claiming.size > 0 || Boolean(groupId);
+			}
+
 			return (
-				node &&
-				!node.data.metadata?.isGroup &&
-				node.data.metadata?.groupId !== (targetGroupId ?? undefined)
+				groupId !== targetGroupId ||
+				claiming.size !== 1 ||
+				!claiming.has(targetGroupId)
 			);
 		});
 
@@ -104,12 +129,13 @@ export const createGroupsSlice: StateCreator<AppState, [], [], GroupsSlice> = (
 		const removalsByGroup = new Map<string, Set<string>>();
 
 		for (const nodeId of movingIds) {
-			const oldGroupId = nodeById.get(nodeId)?.data.metadata?.groupId;
-			if (!oldGroupId) continue;
+			for (const oldGroupId of getClaimingGroupIds(nodeId)) {
+				if (oldGroupId === targetGroupId) continue;
 
-			const removals = removalsByGroup.get(oldGroupId) ?? new Set<string>();
-			removals.add(nodeId);
-			removalsByGroup.set(oldGroupId, removals);
+				const removals = removalsByGroup.get(oldGroupId) ?? new Set<string>();
+				removals.add(nodeId);
+				removalsByGroup.set(oldGroupId, removals);
+			}
 		}
 
 		for (const [oldGroupId, removals] of removalsByGroup) {

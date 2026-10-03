@@ -1,6 +1,7 @@
 import type { AppNode } from '@/types/app-node';
 import {
 	findGroupAtPoint,
+	findNodeGroup,
 	getNodeRect,
 	resolveGroupDragIntent,
 } from './group-utils';
@@ -181,6 +182,53 @@ describe('resolveGroupDragIntent', () => {
 				allNodes: [groupA, free],
 				draggedNodes: [free],
 				primaryNode: free,
+			})
+		).toBeNull();
+	});
+});
+
+describe('findNodeGroup', () => {
+	const group = makeGroup('G', 0, 0, 400, 400, ['listed']);
+
+	it('resolves via metadata.groupId when that group exists', () => {
+		const member = makeNode('m', 0, 0, 10, 10, { groupId: 'G' });
+		expect(findNodeGroup([group, member], member)?.id).toBe('G');
+	});
+
+	it('falls back to groupChildren when groupId points at a missing node', () => {
+		const listed = makeNode('listed', 0, 0, 10, 10, { groupId: 'phantom' });
+		expect(findNodeGroup([group, listed], listed)?.id).toBe('G');
+	});
+
+	it('returns null for orphan groupIds that no group lists', () => {
+		const orphan = makeNode('orphan', 0, 0, 10, 10, { groupId: 'phantom' });
+		expect(findNodeGroup([group, orphan], orphan)).toBeNull();
+	});
+});
+
+describe('resolveGroupDragIntent with phantom groupIds', () => {
+	// Groups created before the createGroupFromSelected id fix: members point
+	// at a non-existent id while the real group lists them in groupChildren.
+	const group = makeGroup('G', 0, 0, 400, 400, ['m']);
+
+	it('targets the real group when a phantom-id member leaves it', () => {
+		const member = makeNode('m', 900, 900, 100, 50, { groupId: 'phantom' });
+		expect(
+			resolveGroupDragIntent({
+				allNodes: [group, member],
+				draggedNodes: [member],
+				primaryNode: member,
+			})
+		).toEqual({ type: 'remove', groupId: 'G', nodeIds: ['m'] });
+	});
+
+	it('returns null while a phantom-id member stays inside its real group', () => {
+		const member = makeNode('m', 100, 100, 100, 50, { groupId: 'phantom' });
+		expect(
+			resolveGroupDragIntent({
+				allNodes: [group, member],
+				draggedNodes: [member],
+				primaryNode: member,
 			})
 		).toBeNull();
 	});
