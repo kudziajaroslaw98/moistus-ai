@@ -149,7 +149,7 @@ pnpm pretty          # Prettier
 
 **Dependency security overrides**: Keep `pnpm.overrides` pins narrow and evidence-based. Current required overrides are `partykit>esbuild` because PartyKit still pins older esbuild, `miniflare>undici` scoped to PartyKit's Miniflare path, and `@serwist/turbopack>browserslist` because Serwist pins an exact vulnerable browserslist. The global `postcss` override was dropped once Next 16.3.8 resolved a patched internal PostCSS; do not re-add it unless `pnpm audit` flags PostCSS again. Prefer direct/transitive package updates over broad overrides, keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes, and re-run `pnpm audit` plus `pnpm why esbuild undici postcss browserslist` after PartyKit/miniflare/Next/PostCSS/Serwist bumps. Unpatchable advisories go in `pnpm-workspace.yaml#auditConfig.ignoreGhsas` only when no fixed release exists and every path is dev-only; current entry `GHSA-vfj7-8cjw-p6xm` (`braces` <=3.0.3 via eslint-config-next/fast-glob/ts-morph). Drop it once `braces` ships a patch.
 
-<!-- Updated: 2026-10-02 - Dropped postcss override, added scoped Serwist browserslist override -->
+<!-- Updated: 2026-10-03 - Added braces GHSA audit ignore policy (no upstream patch) -->
 
 **Vercel package manager**: Keep repo-level `vercel.json` install/build commands pinned to pnpm (`pnpm install --frozen-lockfile`, `pnpm build`) so Vercel does not default to `npm i` and fail on npm-only peer resolution of the current lint stack.
 
