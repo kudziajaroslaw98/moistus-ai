@@ -21,6 +21,7 @@ export const KEYBOARD_SHORTCUTS: KeyboardShortcut[] = [
 	},
 
 	// General
+	{ keys: ['⌘', 'F'], label: 'Find in map', category: 'general' },
 	{ keys: ['⌘', 'C'], label: 'Copy selected nodes', category: 'general' },
 	{ keys: ['⌘', 'V'], label: 'Paste nodes', category: 'general' },
 

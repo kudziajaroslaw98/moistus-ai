@@ -1,10 +1,18 @@
-import { Polar } from '@polar-sh/sdk';
+import { createPolar, type Environment, type Polar } from '@polar-sh/sdk/2026-10';
 
 /**
- * Creates a Polar client instance.
- * Uses sandbox in development, production in production.
+ * Polar environment: sandbox in development, production in production.
+ */
+export function getPolarEnvironment(): Environment {
+	return process.env.NODE_ENV === 'production' ? 'production' : 'sandbox';
+}
+
+/**
+ * Creates a Polar client pinned to API version 2026-10.
+ * Keep the webhook endpoint's `api_version` in Polar aligned with this version:
+ * webhook payloads are not schema-validated, only typed against it.
  *
- * @see https://docs.polar.sh/api/authentication
+ * @see https://polar.sh/docs/api-reference
  */
 export function createPolarClient(): Polar {
 	const accessToken = process.env.POLAR_ACCESS_TOKEN;
@@ -13,10 +21,9 @@ export function createPolarClient(): Polar {
 		throw new Error('POLAR_ACCESS_TOKEN is not configured');
 	}
 
-	return new Polar({
+	return createPolar({
 		accessToken,
-		server:
-			process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
+		environment: getPolarEnvironment(),
 	});
 }
 
@@ -69,6 +76,8 @@ export function mapPolarStatus(
 		case 'revoked':
 			return 'canceled';
 		case 'unpaid':
+		// Paused subscriptions lose Pro access until `subscription.resumed`
+		case 'paused':
 			return 'unpaid';
 		case 'incomplete':
 		case 'incomplete_expired':

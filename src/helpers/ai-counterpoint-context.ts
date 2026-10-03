@@ -2,6 +2,7 @@ import {
 	createAiIdAliasMap,
 	type AiIdAliasMap,
 } from '@/helpers/ai-id-alias-map';
+import { foldAnchoredAnnotationNodes } from '@/helpers/ai-anchored-annotations';
 import { extractNodesContext } from '@/helpers/extract-node-context';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
@@ -56,11 +57,17 @@ export function buildCounterpointPromptContext(input: {
 	edges: AppEdge[];
 	context: SuggestionContext;
 }): CounterpointPromptContext {
-	const relevantNodes = selectCounterpointRelevantNodes(
-		input.nodes,
-		input.edges,
-		input.context
-	);
+	// Fold anchored annotations into their host first so a host's notes travel
+	// with it; an annotation source resolves to its host.
+	const { nodes, hostByAnnotationId } = foldAnchoredAnnotationNodes(input.nodes);
+	const sourceNodeId = input.context.sourceNodeId
+		? (hostByAnnotationId.get(input.context.sourceNodeId) ??
+			input.context.sourceNodeId)
+		: input.context.sourceNodeId;
+	const relevantNodes = selectCounterpointRelevantNodes(nodes, input.edges, {
+		...input.context,
+		sourceNodeId,
+	});
 	const aliasMap = createAiIdAliasMap(relevantNodes);
 
 	return {

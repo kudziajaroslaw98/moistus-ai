@@ -136,11 +136,8 @@ export async function POST(req: Request) {
 							abortSignal,
 							output: 'array',
 							schema: counterpointSuggestionSchema,
+							instructions: getCounterpointSystemPrompt(),
 							messages: [
-								{
-									role: 'system',
-									content: getCounterpointSystemPrompt(),
-								},
 								{
 									role: 'user',
 									content: buildCounterpointUserPrompt(

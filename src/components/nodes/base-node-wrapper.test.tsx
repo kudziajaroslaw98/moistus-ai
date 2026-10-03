@@ -11,6 +11,8 @@ let mockSelectedNodes: Array<{ id: string }> = []
 let mockIsDraggingNodes = false
 let mockActiveTool = 'select'
 let mockIsMobile = false
+let mockNodes: unknown[] = []
+let mockEdges: unknown[] = []
 
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
@@ -26,6 +28,9 @@ jest.mock('@/store/mind-map-store', () => ({
 			ghostNodes: [],
 			isStreaming: false,
 			generateSuggestions: mockGenerateSuggestions,
+			canvasSearch: { isOpen: false, query: '', activeIndex: 0 },
+			nodes: mockNodes,
+			edges: mockEdges,
 		})
 	),
 }))
@@ -50,15 +55,18 @@ jest.mock('@xyflow/react', () => ({
 }))
 
 // Mock sub-components
-jest.mock('./node-additions/collapse-button', () => ({
+jest.mock('./node-additions/branch-summary', () => ({
 	__esModule: true,
-	default: () => <button data-testid="collapse-button">Collapse</button>,
+	default: ({ nodeId }: { nodeId: string }) => (
+		<div data-testid="branch-summary" data-node-id={nodeId} />
+	),
 }))
 
 jest.mock('./node-additions/collapsed-indicator', () => ({
 	__esModule: true,
-	default: ({ data }: { data: { metadata?: { isCollapsed?: boolean } } }) =>
-		data.metadata?.isCollapsed ? <div data-testid="collapsed-indicator">Collapsed</div> : null,
+	default: ({ nodeId }: { nodeId: string }) => (
+		<div data-testid="collapsed-indicator" data-node-id={nodeId} />
+	),
 }))
 
 jest.mock('./node-additions/group-button', () => ({
@@ -132,6 +140,8 @@ describe('BaseNodeWrapper', () => {
 		mockActiveTool = 'select'
 		mockIsMobile = false
 		mockCanEdit = true
+		mockNodes = []
+		mockEdges = []
 		mockGetNode.mockReturnValue({
 			id: 'node-1',
 			position: { x: 100, y: 100 },
@@ -144,12 +154,6 @@ describe('BaseNodeWrapper', () => {
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
 			expect(screen.getByTestId('child-content')).toHaveTextContent('Child Content')
-		})
-
-		it('renders collapse button', () => {
-			render(<BaseNodeWrapper {...createDefaultProps()} />)
-
-			expect(screen.getByTestId('collapse-button')).toBeInTheDocument()
 		})
 
 		it('renders group button', () => {
@@ -232,28 +236,11 @@ describe('BaseNodeWrapper', () => {
 	})
 
 	describe('collapsed state', () => {
-		it('shows collapsed indicator when node is collapsed', () => {
-			const props = createDefaultProps({
-				data: {
-					...createDefaultProps().data,
-					metadata: { isCollapsed: true },
-				},
-			})
-			render(<BaseNodeWrapper {...props} />)
+		it('wires collapsed visuals to the node id (they self-hide when expanded)', () => {
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			expect(screen.getByTestId('collapsed-indicator')).toBeInTheDocument()
-		})
-
-		it('hides collapsed indicator when node is not collapsed', () => {
-			const props = createDefaultProps({
-				data: {
-					...createDefaultProps().data,
-					metadata: { isCollapsed: false },
-				},
-			})
-			render(<BaseNodeWrapper {...props} />)
-
-			expect(screen.queryByTestId('collapsed-indicator')).not.toBeInTheDocument()
+			expect(screen.getByTestId('collapsed-indicator')).toHaveAttribute('data-node-id', 'node-1')
+			expect(screen.getByTestId('branch-summary')).toHaveAttribute('data-node-id', 'node-1')
 		})
 	})
 
@@ -265,6 +252,43 @@ describe('BaseNodeWrapper', () => {
 			// No handles should be rendered when hideResizeFrame is true
 			expect(screen.queryByTestId('handle-source-bottom')).not.toBeInTheDocument()
 			expect(screen.queryByTestId('handle-target-top')).not.toBeInTheDocument()
+		})
+	})
+
+	describe('add button clears the collapsed pill', () => {
+		const graphNode = (id: string, y: number, metadata: Record<string, unknown> = {}) => ({
+			id,
+			type: 'defaultNode',
+			position: { x: 0, y },
+			measured: { width: 320, height: 100 },
+			data: { id, node_type: 'defaultNode', content: id, metadata },
+		})
+		const withChild = (position: { x: number; y: number }) => {
+			mockEdges = [{ id: 'e', source: 'node-1', target: 'child', data: {} }]
+			return { ...graphNode('child', 0), position }
+		}
+		const offsets = () => ({
+			add: screen.getByTestId('node-add-button-container').style.bottom,
+			ai: screen.getByTestId('node-suggest-button-container').style.right,
+		})
+
+		it('keeps default positions for leaf and expanded parent nodes', () => {
+			mockSelectedNodes = [{ id: 'node-1' }]
+			mockNodes = [graphNode('node-1', 0), withChild({ x: 600, y: 300 })]
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
+
+			expect(offsets()).toEqual({ add: '-60px', ai: '-60px' })
+		})
+
+		it('moves only the add button below the pill when collapsed', () => {
+			mockSelectedNodes = [{ id: 'node-1' }]
+			mockNodes = [
+				graphNode('node-1', 0, { isCollapsed: true }),
+				withChild({ x: 600, y: 0 }),
+			]
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
+
+			expect(offsets()).toEqual({ add: '-96px', ai: '-60px' })
 		})
 	})
 

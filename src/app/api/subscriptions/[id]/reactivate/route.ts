@@ -48,11 +48,8 @@ export async function POST(
 		try {
 			const polar = createPolarClient();
 
-			await polar.subscriptions.update({
-				id: subscription.polar_subscription_id,
-				subscriptionUpdate: {
-					cancelAtPeriodEnd: false,
-				},
+			await polar.subscriptions.update(subscription.polar_subscription_id, {
+				cancel_at_period_end: false,
 			});
 		} catch (polarError) {
 			console.error('Polar API error during reactivation:', polarError);

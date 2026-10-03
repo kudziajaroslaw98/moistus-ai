@@ -1,5 +1,14 @@
 import { defaultEdgeData } from '@/constants/default-edge-data';
 import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
+import {
+	buildAnchorHostById,
+	getAnchoredAnnotationIdsForHosts,
+	syncAnchoredAnnotationPositions,
+} from '@/helpers/anchored-annotations';
+import {
+	buildBranchIndex,
+	getCollapsedAncestorIds,
+} from '@/helpers/collapse/branch-index';
 import { fetchResourceMetadata } from '@/helpers/fetch-resource-metadata';
 import generateUuid from '@/helpers/generate-uuid';
 import { rerouteAutoWaypointEdges } from '@/helpers/route-auto-waypoint-edges';
@@ -354,6 +363,12 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				}
 			});
 
+			const anchorFollowersByHost = syncAnchoredAnnotationPositions(
+				changes,
+				finalNodes,
+				previousNodeById
+			);
+
 			set({ nodes: finalNodes });
 			const finalNodeById = new Map(finalNodes.map((node) => [node.id, node]));
 			const nodesToPersist = new Set<string>();
@@ -444,6 +459,17 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					replacedNodeIds.add(change.id);
 				}
 			});
+
+			// Persist annotations that followed a committed host move.
+			for (const [hostId, followerIds] of anchorFollowersByHost) {
+				if (!movedNodeIds.has(hostId)) continue;
+				for (const followerId of followerIds) {
+					nodesToPersist.add(followerId);
+					nodesToBroadcast.add(followerId);
+					movedNodeIds.add(followerId);
+				}
+			}
+
 			let finalEdges = previousEdges;
 			let reroutedEdgeIds = new Set<string>();
 
@@ -628,6 +654,31 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					}
 				}
 
+				// A new child is never created out of sight: open a collapsed parent.
+				// The expand rides on the optimistic insert (one addNode history step)
+				// and is only saved once the insert succeeds or is queued.
+				const parentId = parentNode?.id;
+				const expandParentId =
+					parentId &&
+					nodes.find((node) => node.id === parentId)?.data.metadata?.isCollapsed
+						? parentId
+						: null;
+				const withParentCollapsed = (
+					currentNodes: AppNode[],
+					collapsed: boolean
+				): AppNode[] =>
+					currentNodes.map((node) =>
+						node.id === expandParentId
+							? {
+									...node,
+									data: {
+										...node.data,
+										metadata: { ...node.data.metadata, isCollapsed: collapsed },
+									},
+								}
+							: node
+					);
+
 				const newNodeId = props.nodeId ?? generateUuid();
 				let newNodePosition: XYPosition = {
 					x: 0,
@@ -716,16 +767,37 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						}
 					: null;
 
-				set((state) => ({
-					nodes: state.nodes.some((node) => node.id === newNodeId)
-						? state.nodes
-						: [...state.nodes, optimisticNode],
+				set((state) => {
+					const baseNodes = expandParentId
+						? withParentCollapsed(state.nodes, false)
+						: state.nodes;
+					return {
+						nodes: baseNodes.some((node) => node.id === newNodeId)
+							? baseNodes
+							: [...baseNodes, optimisticNode],
 					edges:
 						optimisticFlowEdge &&
 						!state.edges.some((edge) => edge.id === optimisticFlowEdge.id)
 							? [...state.edges, optimisticFlowEdge]
 							: state.edges,
-				}));
+					};
+				});
+
+				const persistExpandedParent = () => {
+					if (!expandParentId) return;
+					const parent = get().nodes.find((node) => node.id === expandParentId);
+					if (!parent) return;
+					const parentUserId = getNodeActorId(parent, actorId);
+					void broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+						id: expandParentId,
+						data: serializeNodeForRealtime(parent, mapId, parentUserId),
+						userId: parentUserId,
+						timestamp: Date.now(),
+					}).catch((error) => {
+						console.warn('[nodes] Failed to sync Yjs node update:', error);
+					});
+					get().triggerNodeSave(expandParentId);
+				};
 
 				const nodeEventUserId = getNodeActorId(optimisticNode, actorId);
 				const nodeRealtimeData = serializeNodeForRealtime(
@@ -811,6 +883,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				});
 
 				if (rpcMutation.status === 'queued') {
+					persistExpandedParent();
 					get().persistDeltaEvent(
 						'addNode',
 						{ nodes, edges },
@@ -830,7 +903,10 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				const rpcResult = rpcMutation.data;
 				if (!rpcResult) {
 					set((state) => ({
-						nodes: state.nodes.filter((node) => node.id !== newNodeId),
+						nodes: withParentCollapsed(
+							state.nodes.filter((node) => node.id !== newNodeId),
+							true
+						),
 						edges: edgeId
 							? state.edges.filter((edge) => edge.id !== edgeId)
 							: state.edges,
@@ -923,6 +999,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					};
 				});
 
+				persistExpandedParent();
+
 				// Persist delta to DB for history tracking
 				get().persistDeltaEvent(
 					'addNode',
@@ -1009,10 +1087,25 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			);
 		},
 		deleteNodes: withLoadingAndToast(
-			async (nodesToDelete: AppNode[]) => {
+			async (requestedNodes: AppNode[]) => {
 				const { mapId, supabase, edges, nodes: allNodes } = get();
 
-				if (!mapId || !nodesToDelete) return;
+				if (!mapId || !requestedNodes) return;
+
+				// Anchored annotations are deleted with their host (same history step).
+				const requestedIds = new Set(requestedNodes.map((node) => node.id));
+				const anchoredIds = new Set(
+					getAnchoredAnnotationIdsForHosts(allNodes, requestedIds).filter(
+						(id) => !requestedIds.has(id)
+					)
+				);
+				const nodesToDelete =
+					anchoredIds.size > 0
+						? [
+								...requestedNodes,
+								...allNodes.filter((node) => anchoredIds.has(node.id)),
+							]
+						: requestedNodes;
 
 				// Capture previous state for history tracking
 				const prevNodes = [...allNodes];
@@ -1264,6 +1357,13 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				}
 			}
 
+			// Anchored annotations disappear with their host
+			for (const [annotationId, hostId] of buildAnchorHostById(nodes)) {
+				if (finalHiddenNodeIds.has(hostId)) {
+					finalHiddenNodeIds.add(annotationId);
+				}
+			}
+
 			// Filter by comment mode
 			const { isCommentMode } = get();
 			const baseVisibleNodes = nodes.filter(
@@ -1303,6 +1403,71 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					},
 				},
 			});
+		},
+
+		setNodesCollapsed: (nodeIds: string[], collapsed: boolean) => {
+			const ids = new Set(
+				nodeIds.filter((id) => {
+					const node = get().nodes.find((candidate) => candidate.id === id);
+					return node && Boolean(node.data.metadata?.isCollapsed) !== collapsed;
+				})
+			);
+			if (ids.size === 0) return;
+
+			const prevNodes = get().nodes;
+			const prevEdges = get().edges;
+			const nextNodes = prevNodes.map((node) =>
+				ids.has(node.id)
+					? {
+							...node,
+							data: {
+								...node.data,
+								metadata: { ...node.data.metadata, isCollapsed: collapsed },
+							},
+						}
+					: node
+			);
+			set({ nodes: nextNodes });
+
+			const { mapId, currentUser } = get();
+			for (const node of nextNodes) {
+				if (!ids.has(node.id)) continue;
+				if (mapId) {
+					const userId = getNodeActorId(node, currentUser?.id);
+					void broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+						id: node.id,
+						data: serializeNodeForRealtime(node, mapId, userId),
+						userId,
+						timestamp: Date.now(),
+					}).catch((error) => {
+						console.warn('[nodes] Failed to sync Yjs node update:', error);
+					});
+				}
+				get().triggerNodeSave(node.id);
+			}
+
+			// One history step for the whole batch.
+			void get().persistDeltaEvent(
+				'saveNodeProperties',
+				{ nodes: prevNodes, edges: prevEdges },
+				{ nodes: get().nodes, edges: get().edges }
+			);
+		},
+
+		expandBranch: (nodeId: string, options?: { all?: boolean }) => {
+			const { nodes, edges } = get();
+			if (!options?.all) {
+				// Expand opens one level: deeper collapsed nodes keep their flag.
+				get().setNodesCollapsed([nodeId], false);
+				return;
+			}
+			const summary = buildBranchIndex(nodes, edges).summaries.get(nodeId);
+			get().setNodesCollapsed([nodeId, ...(summary?.hiddenIds ?? [])], false);
+		},
+
+		expandPathTo: (targetId: string) => {
+			const { nodes, edges } = get();
+			get().setNodesCollapsed(getCollapsedAncestorIds(targetId, nodes, edges), false);
 		},
 
 		subscribeToNodes: async (mapId: string) => {

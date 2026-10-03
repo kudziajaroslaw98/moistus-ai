@@ -8,6 +8,7 @@ import {
 	type ShortcutCategory,
 } from '@/constants/keyboard-shortcuts';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTouchFirst } from '@/hooks/use-touch-first';
 import { useIsMac } from '@/hooks/use-platform';
 import { cn } from '@/utils/cn';
 import { Keyboard, X } from 'lucide-react';
@@ -101,6 +102,9 @@ export function ShortcutsHelpFab() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [isMounted, setIsMounted] = useState(false);
 	const isMobile = useIsMobile();
+	const isTouchFirst = useTouchFirst();
+	// No hardware keyboard can be assumed on phones or touch-first tablets.
+	const isHidden = isMobile || isTouchFirst;
 	const isMac = useIsMac();
 	const shouldReduceMotion = useReducedMotion();
 
@@ -130,12 +134,12 @@ export function ShortcutsHelpFab() {
 		return () => document.removeEventListener('keydown', handleKeyDown);
 	}, [isOpen]);
 
-	// Defensive close when viewport transitions to mobile.
+	// Defensive close when the device class switches to hidden.
 	useEffect(() => {
-		if (isMobile) {
+		if (isHidden) {
 			setIsOpen(false);
 		}
-	}, [isMobile]);
+	}, [isHidden]);
 
 	const handleToggle = useCallback(() => {
 		setIsOpen((prev) => !prev);
@@ -197,7 +201,7 @@ export function ShortcutsHelpFab() {
 				visible: { opacity: 1, y: 0 },
 			};
 
-	if (!isMounted || isMobile) return null;
+	if (!isMounted || isHidden) return null;
 
 	return createPortal(
 		<div className='fixed bottom-6 right-6 z-30'>

@@ -72,9 +72,7 @@ export const DELETE = withAuthValidation(
 			try {
 				const polar = createPolarClient();
 				// Immediately revoke subscription (not cancelAtPeriodEnd)
-				await polar.subscriptions.revoke({
-					id: subscription.polar_subscription_id,
-				});
+				await polar.subscriptions.revoke(subscription.polar_subscription_id);
 				console.log(
 					`[AccountDeletion] Revoked Polar subscription: ${subscription.polar_subscription_id}`
 				);

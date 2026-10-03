@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 jest.mock('@/helpers/api/with-subscription-check', () => ({
 	checkAIQuota: jest.fn(),
 	trackAIUsage: jest.fn(),
@@ -195,10 +198,8 @@ describe('/api/ai/counterpoints route', () => {
 		]);
 		expect(mockedStreamObject).toHaveBeenCalledWith(
 			expect.objectContaining({
-				messages: [
-					{ role: 'system', content: 'SYSTEM_SENTINEL' },
-					{ role: 'user', content: 'USER_SENTINEL' },
-				],
+				instructions: 'SYSTEM_SENTINEL',
+				messages: [{ role: 'user', content: 'USER_SENTINEL' }],
 			})
 		);
 		expect(mockedNormalizeCounterpointSuggestionElement).toHaveBeenCalledWith(

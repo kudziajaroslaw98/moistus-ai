@@ -475,6 +475,118 @@ describe('suggestions slice', () => {
 		expect(harness.getState().ghostNodes).toEqual([]);
 	});
 
+	it('anchors approved annotation ghosts to their source node instead of adding an edge', async () => {
+		mockGenerateUuidString.mockReturnValueOnce('approved-annotation-1');
+
+		const addNode = jest.fn().mockResolvedValue(undefined);
+		const addEdge = jest.fn().mockResolvedValue(undefined);
+		const harness = createSuggestionsSliceHarness({
+			addNode,
+			addEdge,
+			nodes: [createNode('source-node', { x: -100, y: -40 }, 80)],
+			ghostNodes: [
+				createGhostNode(
+					'ghost-annotation-1',
+					'Watch out for rate limits',
+					{ sourceNodeId: 'source-node', trigger: 'magic-wand' },
+					{
+						suggestedType: 'annotationNode',
+						nodePayload: { annotationType: 'warning' },
+					}
+				),
+			],
+			pendingAnimations: new Map<string, boolean>(),
+		});
+
+		await harness.getState().acceptSuggestion('ghost-annotation-1');
+
+		expect(addNode).toHaveBeenCalledWith(
+			expect.objectContaining({
+				nodeId: 'approved-annotation-1',
+				nodeType: 'annotationNode',
+				parentNode: null,
+				data: {
+					metadata: {
+						annotationType: 'warning',
+						anchorNodeId: 'source-node',
+						anchorOffset: { x: 100, y: 40 },
+					},
+				},
+			})
+		);
+		expect(addEdge).not.toHaveBeenCalled();
+	});
+
+	it('anchors approved annotation ghosts to the host when the source is an anchored annotation', async () => {
+		mockGenerateUuidString.mockReturnValueOnce('approved-annotation-2');
+
+		const addNode = jest.fn().mockResolvedValue(undefined);
+		const addEdge = jest.fn().mockResolvedValue(undefined);
+		const hostNode = createNode('host-node', { x: -100, y: -40 }, 80);
+		const sourceAnnotation = createNode('source-note', { x: 200, y: 0 }, 80);
+		sourceAnnotation.type = 'annotationNode';
+		sourceAnnotation.data = {
+			...sourceAnnotation.data,
+			node_type: 'annotationNode',
+			metadata: { anchorNodeId: 'host-node', anchorOffset: { x: 300, y: 40 } },
+		};
+		const harness = createSuggestionsSliceHarness({
+			addNode,
+			addEdge,
+			nodes: [hostNode, sourceAnnotation],
+			ghostNodes: [
+				createGhostNode(
+					'ghost-annotation-2',
+					'Follow-up note',
+					{ sourceNodeId: 'source-note', trigger: 'magic-wand' },
+					{ suggestedType: 'annotationNode' }
+				),
+			],
+			pendingAnimations: new Map<string, boolean>(),
+		});
+
+		await harness.getState().acceptSuggestion('ghost-annotation-2');
+
+		expect(addNode).toHaveBeenCalledWith(
+			expect.objectContaining({
+				nodeType: 'annotationNode',
+				data: expect.objectContaining({
+					metadata: expect.objectContaining({ anchorNodeId: 'host-node' }),
+				}),
+			})
+		);
+		expect(addEdge).not.toHaveBeenCalled();
+	});
+
+	it('never adds an edge between an approved annotation and a free annotation source', async () => {
+		mockGenerateUuidString.mockReturnValueOnce('approved-annotation-3');
+
+		const addNode = jest.fn().mockResolvedValue(undefined);
+		const addEdge = jest.fn().mockResolvedValue(undefined);
+		const freeAnnotation = createNode('free-note', { x: 0, y: 0 }, 80);
+		freeAnnotation.type = 'annotationNode';
+		freeAnnotation.data = { ...freeAnnotation.data, node_type: 'annotationNode' };
+		const harness = createSuggestionsSliceHarness({
+			addNode,
+			addEdge,
+			nodes: [freeAnnotation],
+			ghostNodes: [
+				createGhostNode(
+					'ghost-annotation-3',
+					'Another note',
+					{ sourceNodeId: 'free-note', trigger: 'magic-wand' },
+					{ suggestedType: 'annotationNode' }
+				),
+			],
+			pendingAnimations: new Map<string, boolean>(),
+		});
+
+		await harness.getState().acceptSuggestion('ghost-annotation-3');
+
+		expect(addNode).toHaveBeenCalledTimes(1);
+		expect(addEdge).not.toHaveBeenCalled();
+	});
+
 	it('increments click count and rotates lens pairs across repeated clicks', async () => {
 		const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
 		const harness = createSuggestionsSliceHarness();

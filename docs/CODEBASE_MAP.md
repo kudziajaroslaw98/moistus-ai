@@ -38,7 +38,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-01 - Documented stable Supabase SSR auth storage key for LAN logins -->
 <!-- Updated: 2026-04-01 - Corrected node-editor dismissal docs after merging the main autocomplete baseline -->
 <!-- Updated: 2026-04-08 - Documented onboarding paused-coachmark marker and manual-resume anchor-measurement suspension -->
-<!-- Updated: 2026-05-12 - Documented checkpoint-scoped history helpers and extracted history sidebar UI boundaries -->
+<!-- Updated: 2026-10-03 - History sidebar redesign: timeline model, grouped rows, restore confirm -->
 <!-- Updated: 2026-04-01 - Documented the tighter landing-page flow with hero mini-demo, product-proof chapters, and pricing/FAQ close -->
 <!-- Updated: 2026-04-01 - Noted the landing de-densification pass for calmer workflow chrome and screenshot-safe proof notes -->
 <!-- Updated: 2026-04-01 - Noted the landing canvas-fidelity pass for a Shiko-like hero scene and cleaner screenshot-led proof modules -->
@@ -64,6 +64,7 @@ total_tokens: 707972
 <!-- Updated: 2026-07-17 - Documented transient layout commands and their persisted directional reflow contract -->
 <!-- Updated: 2026-04-19 - Documented route-specific helper boundaries for structured AI streaming routes -->
 <!-- Updated: 2026-04-20 - Documented collapsed-branch AI connection proxy rendering and stream-start-gated suggestion replacement -->
+<!-- Updated: 2026-10-03 - Documented anchored annotations, collapsed-branch redesign (branch index, proxy edges, toggle/stack/peek) and canvas search -->
 
 A collaborative mind mapping application built with Next.js 16, React 19, TypeScript, Zustand, React Flow, and Supabase.
 
@@ -197,7 +198,7 @@ shiko/
 │   │   ├── dashboard/          # Map cards, settings, and loading skeleton shells
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
-│   │   ├── history/            # Timeline history sidebar, readable change rows, hooks, and view-model adapters
+│   │   ├── history/            # History sidebar: grouped rows, filter chips, one-line diffs, restore confirm, timeline model
 │   │   ├── landing/            # Marketing flow + shared CTA link feedback (Start Mapping/Get Started/Go Pro with next/link pending + optimistic click hint + top progress bar)
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
@@ -296,7 +297,7 @@ shiko/
 | textNode       | content   | `$text`       | Plain text                    |
 | taskNode       | content   | `$task`       | Checklist (+ hide done/title) |
 | codeNode       | content   | `$code`       | Syntax highlighted            |
-| annotationNode | content   | `$annotation` | Comments/notes                |
+| annotationNode | content   | `$annotation` | Notes; optionally anchored    |
 | resourceNode   | content   | `$link`       | URL preview                   |
 | imageNode      | media     | `$image`      | Image display                 |
 | questionNode   | ai        | `$question`   | Q&A format                    |
@@ -309,6 +310,12 @@ shiko/
 Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
 <!-- Updated: 2026-04-27 - Documented divider-aligned tab-strip and baseline-centered gutter-number behavior -->
+
+**Anchored annotations:** An `annotationNode` may carry `metadata.anchorNodeId` + `metadata.anchorOffset` (never `parent_id`). Annotations created from a node (quick input with a parent, child-create entry points) and approved AI annotation ghosts are anchored; the annotation toolbar offers Attach (nearest visible node) / Detach. Anchored annotations follow host moves (`syncAnchoredAnnotationPositions` in `onNodesChange`), cascade-delete with the host in the same history step, hide when the host is hidden, reject new connections, are skipped by every layout pass (`src/helpers/layout/anchored-annotation-layout.ts`, wrapped around `runElkLayout` and local branch reflow), and render a derived display-only `annotationTether` edge. AI routes fold them into host content as `note(<type>): <text>` via `src/helpers/ai-anchored-annotations.ts`. Core helpers: `src/helpers/anchored-annotations.ts`.
+
+**Collapsed branches:** `metadata.isCollapsed` stays shared (synced + undoable). `src/helpers/collapse/branch-index.ts` (`getBranchIndex`, memoized by nodes/edges identity) is the single source for structural children and per-collapsed-node summaries (full hidden subtree, branch task progress, pending statuses, severity, peek outline). Collapse is triggered from the node context menu or `Ctrl/Cmd+-` (no on-node button). UI lives in `src/components/nodes/node-additions/`: `collapsed-indicator.tsx` (stacked card edges + "N nodes hidden" pill with hover/tap peek), `branch-summary.tsx` (roll-up row + severity dot), `branch-peek.tsx` (outline overlay). Store actions: `setNodesCollapsed` (one history step), `expandBranch(id, {all})`, `expandPathTo(id)`. `getVisibleEdges` re-attaches cross-links into hidden nodes to the visible collapsed ancestor as derived dashed `collapsedProxy` edges (`src/helpers/collapse/collapsed-proxy-edges.ts`).
+
+**Canvas search:** Ctrl/Cmd+F opens `src/components/mind-map/canvas-search-bar.tsx` (state `canvasSearch` in ui-slice). Matching (`src/helpers/canvas-search.ts`) is case/diacritic-insensitive over `getNodeSearchText` (`src/helpers/node-semantic-text.ts`, shared with AI rows) and includes nodes hidden in collapsed branches; collapsed nodes hiding matches show "N matches inside", and navigating to a hidden match calls `expandPathTo` then `centerOnNode`.
 
 **Key Files:**
 
@@ -387,8 +394,9 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
         ├── Selection state
         ├── Node toolbar
         ├── Metadata bar
-        ├── Collapse button
-        └── [Content]Content.tsx
+        ├── Collapsed stack + "N nodes hidden" pill (node-additions/)
+        ├── [Content]Content.tsx
+        └── Branch summary (only while collapsed)
 ```
 
 **UI Primitives (42 components):**
@@ -530,7 +538,7 @@ sequenceDiagram
 
 **AI suggestion note:** Map-scoped toolbar suggestions now reuse the node-suggestion stream with literal full-map eligible-anchor context. The client persists per-map recent suggestion history plus a shuffled exploration-lens cycle in `localStorage`, sends the active lens pair and recent ideas with each click, and the API prompts `gpt-5-mini` with every eligible non-system anchor instead of a rotating top window. The API only accepts model-returned anchor IDs from the provided candidate list, rejects near-duplicate ideas against recent/current suggestions, fails explicitly when the literal full-map prompt exceeds the model request limit, and the slice falls back to viewport-centered unanchored ghosts if no valid anchor survives.
 
-**History presentation and scope:** Stored history still uses JSONB deltas, and list/delta endpoints still derive deterministic local object-first summaries from normalized action intents plus delta semantics (property edits, movement, reroutes, lifecycle events). Manual checkpoints are full-state baselines read from persisted node/edge rows inside the `create_history_checkpoint_and_prune` Supabase RPC (`supabase/migrations/20260512130000_create_history_checkpoint_and_prune.sql`), so snapshot insert, current-pointer update, and old-history pruning happen in one transaction. The active sidebar scope is the current checkpoint plus its later events, with older snapshots/events pruned on checkpoint creation and hidden from list/delta/revert routes. History route helpers live under `src/helpers/history/server/` for access checks, RPC invocation, current-scope utilities, and list DTO assembly. The sidebar renders as a timeline-first surface (pinned `Current`, left-border rail+dots, action clusters), while `HistoryItem` delegates delta loading, focus behavior, view-model fallback decisions, and card rendering to smaller history modules. Mobile history rows remain edge-to-edge with full-width Focus/Revert controls, expanded details stay human-readable only (including `After`-first value blocks), and raw technical patch paths are not exposed in the panel UI.
+**History presentation and scope:** Stored history still uses JSONB deltas, and list/delta endpoints still derive deterministic local object-first summaries from normalized action intents plus delta semantics (property edits, movement, reroutes, lifecycle events). Manual checkpoints are full-state baselines read from persisted node/edge rows inside the `create_history_checkpoint_and_prune` Supabase RPC (`supabase/migrations/20260512130000_create_history_checkpoint_and_prune.sql`), so snapshot insert, current-pointer update, and old-history pruning happen in one transaction. The active sidebar scope is the current checkpoint plus its later events, with older snapshots/events pruned on checkpoint creation and hidden from list/delta/revert routes. History route helpers live under `src/helpers/history/server/` for access checks, RPC invocation, current-scope utilities, and list DTO assembly. The sidebar is a compact grouped list: `model/history-timeline.ts` (pure) owns filter categories (All/Edits/Added/Links, Removed when present), verb+type row titles, subject lines (live node label or `#id`), day sections and collapsing of consecutive identical runs (same author, title and `fieldLabels`; never the current entry) into `history-row-group.tsx`. List items carry server-derived `fieldLabels` (`collectHistoryFieldLabels`). `HistoryItem` is the store/delta container rendering `history-row.tsx`; Focus/Revert icons appear on hover or keyboard focus (touch uses the expanded panel's actions), diffs are one line per property (`old → new`), and Revert goes through `history-revert-confirm.tsx`, which states that restoring undoes every newer change. Raw technical patch paths are not exposed in the panel UI.
 
 **AI suggestion helper split:** `/api/ai/suggestions` now delegates graph context modeling to `src/helpers/ai-suggestion-graph.ts`, row serialization to `src/helpers/ai-suggestion-rows.ts`, user-prompt assembly to `src/helpers/ai-suggestion-user-prompt.ts`, system prompt text to `src/helpers/ai-suggestion-prompts.ts`, and streamed normalization/duplicate filtering/error mapping to `src/helpers/ai-suggestion-postprocess.ts`. `src/helpers/ai-suggestion-context.ts` is the thin entrypoint that stitches graph rows + user prompt together for the route.
 

@@ -282,7 +282,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 				title='Map Settings'
 			>
 				{/* Scrollable Content */}
-				<div className='flex flex-col gap-5 p-6'>
+				<div className='min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-6'>
 					{/* General Section */}
 					<motion.section
 						{...getSectionMotionProps(0)}
