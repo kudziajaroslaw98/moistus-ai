@@ -21,7 +21,7 @@ import {
 	DEFAULT_LAYOUT_CONFIG,
 	normalizeLayoutDirection,
 } from '@/types/layout-types';
-import type { MindMapData } from '@/types/mind-map-data';
+import type { MindMapData, MindMapUpdates } from '@/types/mind-map-data';
 import { UserProfile } from '@/types/user-profile-types';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -602,7 +602,7 @@ export const createCoreDataSlice: StateCreator<
 	),
 
 	updateMindMap: withLoadingAndToast(
-		async (mapId: string, updates: Partial<MindMapData>) => {
+		async (mapId: string, updates: MindMapUpdates) => {
 			if (!mapId) {
 				throw new Error('Map ID is required.');
 			}

@@ -1,5 +1,7 @@
 import { SubscriptionHydrationProvider } from '@/components/providers/subscription-hydration-provider';
+import { isUserAdmin } from '@/helpers/auth/is-admin';
 import { getServerSubscriptionHydrationState } from '@/helpers/subscription/get-server-subscription-hydration-state';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import { checkDashboardAuth } from '../auth-check';
@@ -29,16 +31,17 @@ export default async function TemplatesPage() {
 		redirect(redirectPath);
 	}
 
-	const initialSubscriptionState = await getServerSubscriptionHydrationState(
-		auth.userId
-	);
+	const [initialSubscriptionState, isAdmin] = await Promise.all([
+		getServerSubscriptionHydrationState(auth.userId),
+		isUserAdmin(createServiceRoleClient(), auth.userId),
+	]);
 
 	return (
 		<Suspense fallback={<TemplatesLoading />}>
 			<SubscriptionHydrationProvider
 				initialSubscriptionState={initialSubscriptionState}
 			>
-				<TemplatesContent />
+				<TemplatesContent isAdmin={isAdmin} />
 			</SubscriptionHydrationProvider>
 		</Suspense>
 	);

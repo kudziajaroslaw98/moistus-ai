@@ -1,6 +1,7 @@
 'use client';
 
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
+import { DeleteMapConfirmationDialog } from '@/components/mind-map/delete-map-confirmation-dialog';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
@@ -17,7 +18,9 @@ import {
 	Lightbulb,
 	List,
 	Loader2,
+	Pencil,
 	Plus,
+	Trash2,
 	User,
 	Zap,
 	type LucideIcon,
@@ -108,6 +111,8 @@ interface TemplateCardProps {
 	template: TemplateFromAPI;
 	onUse: (templateId: string) => void;
 	onView: (templateDbId: string) => void;
+	/** Admin-only; when set, Edit/Delete controls are shown. */
+	onDelete?: (template: TemplateFromAPI) => void;
 	isCreating: boolean;
 	isAtMapLimit: boolean;
 	viewMode: 'grid' | 'list';
@@ -118,6 +123,7 @@ const TemplateCard = memo(function TemplateCard({
 	template,
 	onUse,
 	onView,
+	onDelete,
 	isCreating,
 	isAtMapLimit,
 	viewMode,
@@ -148,6 +154,38 @@ const TemplateCard = memo(function TemplateCard({
 		e.stopPropagation();
 		onUse(template.templateId);
 	};
+
+	const adminActions = onDelete ? (
+		<div className='flex items-center gap-1'>
+			<Button
+				aria-label={`Edit template ${template.name}`}
+				className='h-7 w-7'
+				size='icon'
+				title='Edit template'
+				variant='ghost'
+				onClick={(e) => {
+					e.stopPropagation();
+					onView(template.id);
+				}}
+			>
+				<Pencil className='w-3.5 h-3.5' />
+			</Button>
+
+			<Button
+				aria-label={`Delete template ${template.name}`}
+				className='h-7 w-7 text-error-400 hover:text-error-300'
+				size='icon'
+				title='Delete template'
+				variant='ghost'
+				onClick={(e) => {
+					e.stopPropagation();
+					onDelete(template);
+				}}
+			>
+				<Trash2 className='w-3.5 h-3.5' />
+			</Button>
+		</div>
+	) : null;
 
 	if (viewMode === 'list') {
 		return (
@@ -193,6 +231,8 @@ const TemplateCard = memo(function TemplateCard({
 					<span>{template.nodeCount} nodes</span>
 					<span>{template.usageCount} uses</span>
 				</div>
+
+				{adminActions}
 				<Button
 					size='sm'
 					onClick={handleUseClick}
@@ -263,6 +303,8 @@ const TemplateCard = memo(function TemplateCard({
 						<span>•</span>
 						<span>{template.usageCount} uses</span>
 					</div>
+
+					{adminActions}
 					<Button
 						size='sm'
 						variant='ghost'
@@ -346,7 +388,12 @@ const CategoryFilter = memo(function CategoryFilter({
 });
 
 // Main Content Component
-export function TemplatesContent() {
+interface TemplatesContentProps {
+	/** Resolved server-side from user_profiles.role; server routes re-check. */
+	isAdmin?: boolean;
+}
+
+export function TemplatesContent({ isAdmin = false }: TemplatesContentProps) {
 	const router = useRouter();
 	const prefersReducedMotion = useReducedMotion();
 	const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -354,13 +401,16 @@ export function TemplatesContent() {
 		TemplateCategory | 'all'
 	>('all');
 	const [isCreating, setIsCreating] = useState(false);
+	const [templateToDelete, setTemplateToDelete] =
+		useState<TemplateFromAPI | null>(null);
+	const [isDeletingTemplate, setIsDeletingTemplate] = useState(false);
 
 	// Subscription limits for map creation
 	const { isAtLimit, limits } = useSubscriptionLimits();
 	const isAtMapLimit = isAtLimit('mindMaps');
 
 	// Fetch templates
-	const { data, error, isLoading } = useSWR<{
+	const { data, error, isLoading, mutate } = useSWR<{
 		data: { templates: TemplateFromAPI[] };
 	}>('/api/templates', fetcher, {
 		revalidateOnFocus: false,
@@ -396,6 +446,34 @@ export function TemplatesContent() {
 		},
 		[router]
 	);
+
+	// Admin: delete template (DELETE /api/maps/[id] admin branch)
+	const handleConfirmDeleteTemplate = useCallback(async () => {
+		if (!templateToDelete) return;
+
+		setIsDeletingTemplate(true);
+		try {
+			const response = await fetch(`/api/maps/${templateToDelete.id}`, {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+			});
+			const result = await response.json().catch(() => null);
+
+			if (!response.ok) {
+				toast.error(result?.error || 'Failed to delete template.');
+				return;
+			}
+
+			toast.success(`Deleted "${templateToDelete.name}" template`);
+			setTemplateToDelete(null);
+			await mutate();
+		} catch (err) {
+			console.error('Error deleting template:', err);
+			toast.error('Network error. Please try again.');
+		} finally {
+			setIsDeletingTemplate(false);
+		}
+	}, [mutate, templateToDelete]);
 
 	// Create map from template
 	const handleUseTemplate = useCallback(
@@ -560,6 +638,7 @@ export function TemplatesContent() {
 											template={template}
 											onUse={handleUseTemplate}
 											onView={handleViewTemplate}
+											onDelete={isAdmin ? setTemplateToDelete : undefined}
 											isCreating={isCreating}
 											isAtMapLimit={isAtMapLimit}
 											viewMode={viewMode}
@@ -586,6 +665,20 @@ export function TemplatesContent() {
 						)}
 					</div>
 				</div>
+
+				{isAdmin && (
+					<DeleteMapConfirmationDialog
+						edgeCount={templateToDelete?.edgeCount ?? 0}
+						isDeleting={isDeletingTemplate}
+						mapTitle={templateToDelete?.name ?? ''}
+						nodeCount={templateToDelete?.nodeCount ?? 0}
+						open={templateToDelete !== null}
+						onConfirm={handleConfirmDeleteTemplate}
+						onOpenChange={(open) => {
+							if (!open && !isDeletingTemplate) setTemplateToDelete(null);
+						}}
+					/>
+				)}
 			</DashboardLayout>
 		</SidebarProvider>
 	);

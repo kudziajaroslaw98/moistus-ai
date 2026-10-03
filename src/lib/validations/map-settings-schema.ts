@@ -1,3 +1,7 @@
+import {
+	TEMPLATE_CATEGORY_VALUES,
+	TEMPLATE_PREVIEW_COLOR_COUNT,
+} from '@/constants/template-options';
 import { z } from 'zod';
 
 const layoutDirectionSchema = z.enum([
@@ -7,6 +11,18 @@ const layoutDirectionSchema = z.enum([
 	'BOTTOM_TOP',
 	'RADIAL',
 ]);
+
+export const templateCategorySchema = z.enum(TEMPLATE_CATEGORY_VALUES);
+
+/** Lucide icon component name (e.g. `Lightbulb`). Unknown names render a fallback icon. */
+export const templateIconSchema = z
+	.string()
+	.regex(/^[A-Za-z0-9]{1,50}$/, 'Invalid icon name');
+
+export const templatePreviewColorsSchema = z
+	.array(z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Invalid hex color'))
+	.min(TEMPLATE_PREVIEW_COLOR_COUNT.min)
+	.max(TEMPLATE_PREVIEW_COLOR_COUNT.max);
 
 /**
  * Schema for updating mind map metadata
@@ -34,12 +50,10 @@ export const updateMapSchema = z.object({
 
 	is_template: z.boolean().optional(),
 
-	template_category: z
-		.string()
-		.min(1)
-		.max(100, 'Template category is too long')
-		.nullable()
-		.optional(),
+	// Template-only fields: applied only on the admin template branch of PUT /api/maps/[id]
+	template_category: templateCategorySchema.optional(),
+	template_icon: templateIconSchema.optional(),
+	template_preview_colors: templatePreviewColorsSchema.optional(),
 
 	layout_direction: layoutDirectionSchema.nullable().optional(),
 });
@@ -71,7 +85,7 @@ export const mapUpdateSuccessSchema = z.object({
 	data: z.object({
 		map: z.object({
 			id: z.string().uuid(),
-			user_id: z.string().uuid(),
+			user_id: z.string().uuid().nullable(),
 			title: z.string(),
 			description: z.string().nullable(),
 			tags: z.array(z.string()).optional(),

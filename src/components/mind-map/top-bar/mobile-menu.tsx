@@ -34,6 +34,8 @@ interface MobileMenuProps {
 	canEdit: boolean;
 	isMapReady: boolean;
 	isMapOwner: boolean;
+	/** Admin editing a system template: settings yes, history no. */
+	isTemplateAdmin?: boolean;
 	activityState?: ActivityState;
 	mapId: string;
 	mapTitle?: string;
@@ -53,6 +55,7 @@ export function MobileMenu({
 	canEdit,
 	isMapReady,
 	isMapOwner,
+	isTemplateAdmin = false,
 	activityState,
 	mapId,
 	mapTitle,
@@ -391,7 +394,7 @@ export function MobileMenu({
 									<SectionHeading title='Workspace' />
 
 									<div className='mt-1.5 space-y-0.5'>
-										{isMapReady && canEdit && (
+										{isMapReady && canEdit && !isTemplateAdmin && (
 											<MenuRow
 												description='Browse the map timeline.'
 												label='View history'
@@ -399,7 +402,7 @@ export function MobileMenu({
 											/>
 										)}
 
-										{isMapReady && isMapOwner && (
+										{isMapReady && (isMapOwner || isTemplateAdmin) && (
 											<MenuRow
 												description={
 													isSettingsActive

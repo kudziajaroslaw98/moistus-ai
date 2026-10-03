@@ -979,6 +979,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					canEdit={canEdit}
 					isMapReady={isMapReady}
 					isMapOwner={mindMap?.user_id === currentUser?.id}
+					isTemplateAdmin={Boolean(mindMap?.is_template) && canEdit}
 					activityState={activityState}
 					mapId={mapId as string}
 					mapOwnerId={mindMap?.user_id}

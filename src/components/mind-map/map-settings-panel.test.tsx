@@ -67,6 +67,11 @@ jest.mock('@/components/ui/textarea', () => ({
 	),
 }));
 
+jest.mock('@/components/mind-map/publish-template-dialog', () => ({
+	PublishTemplateDialog: ({ open }: { open: boolean }) =>
+		open ? <div data-testid='publish-dialog'>Publish Dialog</div> : null,
+}));
+
 type StoreState = {
 	mindMap: {
 		id: string;
@@ -74,7 +79,11 @@ type StoreState = {
 		description: string | null;
 		tags: string[];
 		thumbnailUrl: string | null;
+		is_template?: boolean;
+		template_category?: string | null;
 	};
+	permissions?: { can_edit?: boolean };
+	userProfile?: { role?: string | null } | null;
 	updateMindMap: jest.Mock;
 	deleteMindMap: jest.Mock;
 	loadingStates: {
@@ -205,5 +214,110 @@ describe('MapSettingsPanel', () => {
 		await user.click(screen.getByRole('button', { name: 'Discard changes' }));
 
 		expect(onClose).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('MapSettingsPanel template admin', () => {
+	let mockState: StoreState;
+	const originalFetch = global.fetch;
+
+	beforeEach(() => {
+		jest.clearAllMocks();
+		mockState = {
+			...createMockState(),
+			mindMap: {
+				id: 'template-1',
+				title: 'SWOT Analysis',
+				description: 'Template',
+				tags: [],
+				thumbnailUrl: null,
+				is_template: true,
+				template_category: 'business',
+			},
+			permissions: { can_edit: true },
+		};
+		mockUseAppStore.mockImplementation(
+			(selector: (state: StoreState) => unknown) => selector(mockState)
+		);
+		global.fetch = jest.fn().mockResolvedValue({
+			ok: true,
+			json: async () => ({
+				data: {
+					template: {
+						category: 'business',
+						icon: 'Briefcase',
+						previewColors: ['#111111', '#222222', '#333333'],
+					},
+				},
+			}),
+		}) as unknown as typeof fetch;
+	});
+
+	afterEach(() => {
+		global.fetch = originalFetch;
+	});
+
+	it('shows template section for admins and saves icon changes', async () => {
+		const user = userEvent.setup();
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+
+		expect(screen.getByRole('heading', { name: 'Template' })).toBeInTheDocument();
+		expect(global.fetch).toHaveBeenCalledWith('/api/templates/template-1');
+		expect(screen.getByRole('button', { name: 'Delete Template' })).toBeInTheDocument();
+
+		const lightbulb = await screen.findByRole('radio', { name: 'Lightbulb' });
+		expect(screen.getByRole('radio', { name: 'Briefcase' })).toHaveAttribute(
+			'aria-checked',
+			'true'
+		);
+
+		await user.click(lightbulb);
+		await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+		await waitFor(() => {
+			expect(mockState.updateMindMap).toHaveBeenCalledWith('template-1', {
+				template_icon: 'Lightbulb',
+			});
+		});
+	});
+
+	it('hides template section when the viewer cannot edit the template', () => {
+		mockState.permissions = { can_edit: false };
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+
+		expect(screen.queryByRole('heading', { name: 'Template' })).not.toBeInTheDocument();
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
+});
+
+describe('MapSettingsPanel publish as template', () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+	});
+
+	it('offers publishing to admins on their own maps', async () => {
+		const user = userEvent.setup();
+		const state = { ...createMockState(), userProfile: { role: 'admin' } };
+		mockUseAppStore.mockImplementation(
+			(selector: (s: StoreState) => unknown) => selector(state)
+		);
+
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+		await user.click(screen.getByRole('button', { name: 'Publish as template' }));
+
+		expect(screen.getByTestId('publish-dialog')).toBeInTheDocument();
+	});
+
+	it('does not offer publishing to non-admins', () => {
+		const state = { ...createMockState(), userProfile: { role: 'user' } };
+		mockUseAppStore.mockImplementation(
+			(selector: (s: StoreState) => unknown) => selector(state)
+		);
+
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+
+		expect(
+			screen.queryByRole('button', { name: 'Publish as template' })
+		).not.toBeInTheDocument();
 	});
 });

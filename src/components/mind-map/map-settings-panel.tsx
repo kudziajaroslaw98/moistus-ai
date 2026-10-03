@@ -2,6 +2,11 @@
 
 import { DeleteMapConfirmationDialog } from '@/components/mind-map/delete-map-confirmation-dialog';
 import { DiscardSettingsChangesDialog } from '@/components/mind-map/discard-settings-changes-dialog';
+import { PublishTemplateDialog } from '@/components/mind-map/publish-template-dialog';
+import {
+	TemplateSettingsSection,
+	type TemplateSettingsValue,
+} from '@/components/mind-map/template-settings-section';
 import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { SidePanel } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
@@ -9,9 +14,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TagInput } from '@/components/ui/tag-input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+	TEMPLATE_CATEGORY_VALUES,
+	type TemplateCategoryValue,
+} from '@/constants/template-options';
 import useAppStore from '@/store/mind-map-store';
-import type { MindMapData } from '@/types/mind-map-data';
-import { AlertTriangle, Loader2, PenTool, Save } from 'lucide-react';
+import type { MindMapUpdates } from '@/types/mind-map-data';
+import { AlertTriangle, LayoutTemplate, Loader2, PenTool, Save } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { useCallback, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
@@ -41,6 +50,26 @@ function normalizeText(value: string | null | undefined): string {
 	return (value || '').trim();
 }
 
+function toTemplateCategory(
+	value: string | null | undefined
+): TemplateCategoryValue | null {
+	return TEMPLATE_CATEGORY_VALUES.includes(value as TemplateCategoryValue)
+		? (value as TemplateCategoryValue)
+		: null;
+}
+
+function isSameTemplateSettings(
+	a: TemplateSettingsValue | null,
+	b: TemplateSettingsValue | null
+): boolean {
+	if (!a || !b) return a === b;
+	return (
+		a.category === b.category &&
+		a.icon === b.icon &&
+		JSON.stringify(a.previewColors) === JSON.stringify(b.previewColors)
+	);
+}
+
 function isValidUrl(value: string): boolean {
 	if (!value) return true;
 
@@ -64,6 +93,8 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 		edges,
 		updatePreferences,
 		getDefaultNodeType,
+		canEditMap,
+		isAdmin,
 	} = useAppStore(
 		useShallow((state) => ({
 			mindMap: state.mindMap,
@@ -74,8 +105,17 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			edges: state.edges,
 			updatePreferences: state.updatePreferences,
 			getDefaultNodeType: state.getDefaultNodeType,
+			canEditMap: Boolean(state.permissions?.can_edit),
+			isAdmin: state.userProfile?.role === 'admin',
 		}))
 	);
+
+	// Only admins receive can_edit on system templates (see /api/maps/[id]/permissions).
+	const isTemplateAdmin = Boolean(mindMap?.is_template) && canEditMap;
+	const [templateSettings, setTemplateSettings] =
+		useState<TemplateSettingsValue | null>(null);
+	const [initialTemplateSettings, setInitialTemplateSettings] =
+		useState<TemplateSettingsValue | null>(null);
 
 	const [formData, setFormData] = useState<FormData>({
 		title: '',
@@ -86,6 +126,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+	const [showPublishDialog, setShowPublishDialog] = useState(false);
 	const [hasChanges, setHasChanges] = useState(false);
 	const [titleTouched, setTitleTouched] = useState(false);
 	const [descriptionTouched, setDescriptionTouched] = useState(false);
@@ -147,11 +188,14 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			normalizedTitle !== initialTitle ||
 			normalizedDescription !== initialDescription ||
 			JSON.stringify(formData.tags) !== JSON.stringify(mindMap.tags || []) ||
-			normalizedThumbnail !== initialThumbnail
+			normalizedThumbnail !== initialThumbnail ||
+			!isSameTemplateSettings(templateSettings, initialTemplateSettings)
 		);
 	}, [
 		formData.tags,
+		initialTemplateSettings,
 		mindMap,
+		templateSettings,
 		normalizedDescription,
 		normalizedThumbnail,
 		normalizedTitle,
@@ -173,6 +217,52 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			setThumbnailTouched(false);
 		}
 	}, [mindMap, isOpen]);
+
+	// Template metadata (icon/preview colors) lives in mind_maps.metadata, which the
+	// editor's map payload doesn't carry, so admins load it from the template API.
+	const mapId = mindMap?.id;
+	const mapTemplateCategory = mindMap?.template_category;
+	useEffect(() => {
+		if (!isOpen || !isTemplateAdmin || !mapId) {
+			setTemplateSettings(null);
+			setInitialTemplateSettings(null);
+			return;
+		}
+
+		let cancelled = false;
+		const fallback: TemplateSettingsValue = {
+			category: toTemplateCategory(mapTemplateCategory),
+			icon: 'FileText',
+			previewColors: ['#6366f1', '#8b5cf6', '#a855f7'],
+		};
+
+		fetch(`/api/templates/${mapId}`)
+			.then((res) => (res.ok ? res.json() : null))
+			.then((result) => {
+				if (cancelled) return;
+				const template = result?.data?.template;
+				const loaded: TemplateSettingsValue = template
+					? {
+							category: toTemplateCategory(template.category),
+							icon: template.icon || fallback.icon,
+							previewColors: Array.isArray(template.previewColors)
+								? template.previewColors
+								: fallback.previewColors,
+						}
+					: fallback;
+				setTemplateSettings(loaded);
+				setInitialTemplateSettings(loaded);
+			})
+			.catch(() => {
+				if (cancelled) return;
+				setTemplateSettings(fallback);
+				setInitialTemplateSettings(fallback);
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [isOpen, isTemplateAdmin, mapId, mapTemplateCategory]);
 
 	// Track changes
 	useEffect(() => {
@@ -203,7 +293,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 		if (!hasLatestChanges || !isFormValid || isSaving) return;
 
 		// Build updates object (only changed fields)
-		const updates: Partial<MindMapData> = {};
+		const updates: MindMapUpdates = {};
 		const currentTitle = normalizeText(mindMap.title);
 		const currentDescription = normalizeText(mindMap.description);
 		const currentThumbnail = normalizeText(mindMap.thumbnailUrl);
@@ -215,8 +305,23 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			updates.tags = formData.tags;
 		if (normalizedThumbnail !== currentThumbnail)
 			updates.thumbnailUrl = normalizedThumbnail || null;
+		if (isTemplateAdmin && templateSettings && initialTemplateSettings) {
+			if (
+				templateSettings.category &&
+				templateSettings.category !== initialTemplateSettings.category
+			)
+				updates.template_category = templateSettings.category;
+			if (templateSettings.icon !== initialTemplateSettings.icon)
+				updates.template_icon = templateSettings.icon;
+			if (
+				JSON.stringify(templateSettings.previewColors) !==
+				JSON.stringify(initialTemplateSettings.previewColors)
+			)
+				updates.template_preview_colors = templateSettings.previewColors;
+		}
 
 		await updateMindMap(mindMap.id, updates);
+		setInitialTemplateSettings(templateSettings);
 		setFormData((prev) => ({
 			...prev,
 			title: normalizedTitle,
@@ -392,6 +497,31 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 						</div>
 					</motion.section>
 
+					{isTemplateAdmin && (
+						<motion.section
+							{...getSectionMotionProps(0.025)}
+							className='space-y-4 rounded-lg border border-primary/30 bg-primary/5 p-4'
+						>
+							<div className='space-y-1'>
+								<h3 className='flex items-center gap-2 text-lg font-semibold text-text-primary'>
+									<LayoutTemplate className='size-5 text-primary' />
+									Template
+								</h3>
+
+								<p className='text-xs text-text-secondary'>
+									Admin only. Controls how this template appears in the
+									template gallery.
+								</p>
+							</div>
+
+							<TemplateSettingsSection
+								disabled={isSaving}
+								onChange={setTemplateSettings}
+								value={templateSettings}
+							/>
+						</motion.section>
+					)}
+
 					{/* Organization Section */}
 					<motion.section
 						{...getSectionMotionProps(0.05)}
@@ -479,6 +609,34 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 						</div>
 					</motion.section>
 
+					{isAdmin && !mindMap.is_template && (
+						<motion.section
+							{...getSectionMotionProps(0.125)}
+							className='space-y-3 rounded-lg border border-primary/30 bg-primary/5 p-4'
+						>
+							<div className='space-y-1'>
+								<h3 className='flex items-center gap-2 text-lg font-semibold text-text-primary'>
+									<LayoutTemplate className='size-5 text-primary' />
+									Template Gallery
+								</h3>
+
+								<p className='text-xs text-text-secondary'>
+									Admin only. Publish a copy of this map as a template for all
+									users.
+								</p>
+							</div>
+
+							<Button
+								className='w-full'
+								disabled={isSaving}
+								onClick={() => setShowPublishDialog(true)}
+								variant='outline'
+							>
+								Publish as template
+							</Button>
+						</motion.section>
+					)}
+
 					{/* Editor Preferences Section */}
 					<motion.section
 						{...getSectionMotionProps(0.15)}
@@ -539,7 +697,9 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 									</div>
 
 									<p className='text-sm text-error-300/70'>
-										Irreversible actions that affect this mind map
+										{mindMap.is_template
+											? 'Deleting this template removes it from the gallery for everyone. Maps already created from it are not affected.'
+											: 'Irreversible actions that affect this mind map'}
 									</p>
 								</div>
 
@@ -554,6 +714,8 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 											<Loader2 className='mr-2 h-4 w-4 animate-spin' />
 											Deleting...
 										</>
+									) : mindMap.is_template ? (
+										'Delete Template'
 									) : (
 										'Delete Mind Map'
 									)}
@@ -574,6 +736,16 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 				onOpenChange={setShowDeleteDialog}
 				open={showDeleteDialog}
 			/>
+
+			{isAdmin && !mindMap.is_template && (
+				<PublishTemplateDialog
+					defaultDescription={mindMap.description}
+					defaultTitle={mindMap.title}
+					onOpenChange={setShowPublishDialog}
+					open={showPublishDialog}
+					sourceMapId={mindMap.id}
+				/>
+			)}
 
 			<DiscardSettingsChangesDialog
 				onContinueEditing={() => setShowDiscardDialog(false)}

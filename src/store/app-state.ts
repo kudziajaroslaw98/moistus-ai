@@ -20,7 +20,7 @@ import type {
 	HistoryItem,
 } from '@/types/history-state';
 import { LoadingStates } from '@/types/loading-states';
-import type { MindMapData } from '@/types/mind-map-data';
+import type { MindMapData, MindMapUpdates } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
 import type { PermissionEvent } from '@/types/permission-events';
 import {
@@ -101,7 +101,7 @@ export interface CoreDataSlice {
 	// Map operations
 	updateMindMap: (
 		mapId: string,
-		updates: Partial<MindMapData>
+		updates: MindMapUpdates
 	) => Promise<void>;
 	deleteMindMap: (mapId: string) => Promise<void>;
 	// Real-time subscription management
