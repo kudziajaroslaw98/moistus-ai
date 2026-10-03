@@ -1,3 +1,4 @@
+import { foldAnchoredAnnotationData } from '@/helpers/ai-anchored-annotations';
 import { HYBRID_ROW_PROMPT_GUIDE } from '@/helpers/ai-hybrid-rows';
 import {
 	createAiIdAliasMap,
@@ -50,7 +51,7 @@ export const POST = withApiValidation(
 
 			const { data: nodesData, error: fetchError } = await supabase
 				.from('nodes')
-				.select('id, content')
+				.select('id, content, node_type, metadata')
 				.eq('map_id', mapId);
 
 			if (fetchError) {
@@ -70,8 +71,12 @@ export const POST = withApiValidation(
 				);
 			}
 
-			const aliasMap = createAiIdAliasMap(nodesData as NodeData[]);
-			const nodeContentList = extractNodesContext(nodesData as NodeData[], {
+			// Anchored annotations are searchable through their host.
+			const { nodes: searchableNodes } = foldAnchoredAnnotationData(
+				nodesData as NodeData[]
+			);
+			const aliasMap = createAiIdAliasMap(searchableNodes);
+			const nodeContentList = extractNodesContext(searchableNodes, {
 				aliasMap,
 			}).join('\n');
 

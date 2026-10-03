@@ -28,10 +28,13 @@ export const counterpointSuggestionSchema = z.object({
 	position: z
 		.object({ x: z.number(), y: z.number() })
 		.describe('Initial canvas position (may be overridden on client).'),
+	// OpenAI strict structured outputs require every key, so optional fields are nullable
+	// instead of omitted. Citation URLs stay plain strings: strict mode supports only a
+	// small set of string formats.
 	context: z
 		.object({
-			sourceNodeId: aiNodeIdSchema.nullable().optional(),
-			targetNodeId: aiNodeIdSchema.nullable().optional(),
+			sourceNodeId: aiNodeIdSchema.nullable(),
+			targetNodeId: aiNodeIdSchema.nullable(),
 			relationshipType: z
 				.enum([
 					'contradicts',
@@ -41,19 +44,17 @@ export const counterpointSuggestionSchema = z.object({
 					'mitigates',
 					'questions',
 				] as const)
-				.nullable()
-				.optional(),
+				.nullable(),
 			trigger: z.enum(['magic-wand', 'auto']),
 			stance: z
 				.enum(['counterargument', 'risk', 'alternative', 'test'])
-				.nullable()
-				.optional(),
+				.nullable(),
 			citations: z
-				.array(z.object({ title: z.string(), url: z.string().url() }))
-				.optional(),
+				.array(z.object({ title: z.string(), url: z.string() }))
+				.nullable(),
 		})
 		.describe('Enriched context for this suggestion.'),
-	reasoning: z.string().nullable().optional(),
+	reasoning: z.string().nullable(),
 });
 
 type CounterpointSuggestion = z.infer<typeof counterpointSuggestionSchema>;

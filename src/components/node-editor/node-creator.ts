@@ -1,3 +1,7 @@
+import {
+	getDefaultAnchorOffset,
+	isAnnotationNode,
+} from '@/helpers/anchored-annotations';
 import generateUuid from '@/helpers/generate-uuid';
 import { AppState } from '@/store/app-state';
 import type { AppNode } from '@/types/app-node';
@@ -12,6 +16,20 @@ interface CreateNodeOptions {
 	position?: { x: number; y: number };
 	parentNode: AppNode | null;
 	addNode: AppState['addNode'];
+}
+
+/**
+ * Host + offset for a new annotation created "from" a node. Annotations never
+ * anchor to other annotations, so creating from an annotation yields a free one.
+ */
+function resolveAnnotationAnchor(
+	parentNode: AppNode | null
+): { host: AppNode; offset: { x: number; y: number } } | null {
+	if (!parentNode) return null;
+	if (!isAnnotationNode(parentNode)) {
+		return { host: parentNode, offset: getDefaultAnchorOffset(parentNode) };
+	}
+	return null;
 }
 
 export const createNodeFromCommand = async ({
@@ -33,20 +51,39 @@ export const createNodeFromCommand = async ({
 		const nodeDataWithoutId: Partial<NodeData> = { ...nodeData };
 		delete nodeDataWithoutId.id;
 
+		// Annotations created from a node are anchored to it instead of becoming
+		// a hierarchy child: no edge, no parent_id.
+		const anchor =
+			nodeType === 'annotationNode' ? resolveAnnotationAnchor(parentNode) : null;
+		const effectiveParent = nodeType === 'annotationNode' ? null : parentNode;
+		const effectivePosition = anchor
+			? {
+					x: anchor.host.position.x + anchor.offset.x,
+					y: anchor.host.position.y + anchor.offset.y,
+				}
+			: position;
+
 		// Add node to the graph
 		await addNode({
 			nodeId: newNodeId,
 			content: nodeDataWithoutId.content ?? undefined,
 			data: {
 				...nodeDataWithoutId,
+				...(anchor && {
+					metadata: {
+						...nodeDataWithoutId.metadata,
+						anchorNodeId: anchor.host.id,
+						anchorOffset: anchor.offset,
+					},
+				}),
 				node_type: nodeType,
 				created_at: new Date().toISOString(),
 				updated_at: new Date().toISOString(),
-				parent_id: parentNode?.id || null,
+				parent_id: effectiveParent?.id || null,
 			},
 			nodeType: nodeType, // Use the already-validated nodeType instead of newNode.type
-			parentNode,
-			position,
+			parentNode: effectiveParent,
+			position: effectivePosition,
 		});
 
 		return {

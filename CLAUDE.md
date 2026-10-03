@@ -101,7 +101,7 @@ Skipping this = incomplete work.
 pnpm dev:lan         # LAN dev server (0.0.0.0 host binding)
 pnpm type-check      # TypeScript validation (TS 7 native tsc)
 pnpm build           # Production build
-pnpm test            # Unit tests (Jest + RTL, 657 tests)
+pnpm test            # Unit tests (Jest + RTL, 727 tests)
 pnpm e2e             # E2E tests (Playwright)
 pnpm e2e:ui          # E2E with interactive UI
 pnpm e2e:headed      # E2E with browser visible
@@ -133,7 +133,10 @@ pnpm pretty          # Prettier
 
 **Edge routing**: Raw manual waypoint editing is removed. Normal persisted edges use auto-routed `waypointEdge` geometry. Explicit full ELK layout owns ELK label placement metadata (`metadata.elkLabel`) for labeled layered edges, but the converter snaps ELK's returned label center back onto the routed segment before render so the line passes through the label center. Layout presets are transient `LayoutConfig.presetId` commands: clear the ID after success and never show it as an active mode. Directional commands (`roomy-right`, `roomy-down`, `tree-right`, `tree-down`) must set and persist `layoutConfig.direction` for later local reflow, routing, and guided-tour behavior; `radial-tree` intentionally retains the existing direction. `tree-right`, `tree-down`, and `radial-tree` use the shared iterative spanning-forest helper because real maps may include cycles and cross-links; hierarchy placement uses tree edges only while all real edges remain as straight cross-links. Every non-layered preset uses straight `waypointEdge` geometry with `routingStyle: 'custom-layout'`, path-midpoint labels, and cleared `metadata.elkLabel`; local reflow continues to use only the persisted in-memory direction. Any orthogonal reroute/edit path that replaces ELK geometry must still clear stale ELK label metadata instead of reusing it. Future manual edge control must be constraint-based (anchor/bias/lane hints), never absolute bend points.
 
-**Connection vs hierarchy contract**: Standard canvas connect (`onConnect` → `addEdge`) is edge-only and must not mutate node hierarchy (`nodes.parent_id` / React Flow `parentId`). Hierarchy assignment remains explicit-only (child-node creation and `setParentConnection`). Deterministic local branch reflow is tree-oriented and must safe-no-op when parent ancestry is cyclic.
+**Connection vs hierarchy contract**: Standard canvas connect (`onConnect` → `addEdge`) is edge-only and must not mutate node hierarchy (`nodes.parent_id` / `data.parent_id`). Hierarchy assignment remains explicit-only (child-node creation and `setParentConnection`). Deterministic local branch reflow is tree-oriented and must safe-no-op when parent ancestry is cyclic. Never set a top-level React Flow `parentId`/`parentNode` from `parent_id` (map load, history revert via `src/helpers/history/server/revert-state.ts`, `withNodeParent`): it makes the node a sub-flow child, so absolute positions render relative to the parent and the map scatters.
+
+<!-- Updated: 2026-10-04 - Documented that hierarchy lives only in data.parent_id (no React Flow parentId) -->
+
 
 **Identity precedence**: Use `user_profiles` as canonical identity source across sharing + realtime UI (`display_name`, `avatar_url`) with fallback order: auth metadata, then deterministic fallback helpers. Keep resolver logic centralized in `src/helpers/identity/resolve-user-identity.ts`.
 
@@ -146,6 +149,14 @@ pnpm pretty          # Prettier
 **PartyKit WS auth fallback**: Realtime connect auth first verifies JWT via JWKS; if that fails, it falls back to Supabase `/auth/v1/user` token validation using service-role credentials. This is a resilience path for issuer/JWKS drift; treat fallback log lines as configuration debt to clean up.
 
 <!-- Updated: 2026-02-24 - Documented realtime JWT fallback behavior and operational meaning -->
+
+**Database function grants**: SECURITY DEFINER functions in `public` are service_role-only by default, and default privileges for `postgres` no longer grant EXECUTE to PUBLIC/anon/authenticated. A new RPC must either be called via `createServiceRoleClient()` or explicitly `grant execute ... to authenticated` and verify `auth.uid()` itself (never trust a `p_user_id` parameter). On Supabase, `revoke ... from public` alone is not enough: anon/authenticated hold direct grants, so revoke from `public, anon, authenticated`. AI usage RPCs (`increment_ai_usage`, `get_ai_usage`), `increment_usage_count`, `cleanup_old_history` (including cron) and subscription writes run through the service role. Billing tables (`user_subscriptions`, `user_usage_quotas`) have no user write policies.
+
+<!-- Updated: 2026-10-03 - Documented DB function grant contract after production security audit -->
+
+**DB-enforced guards**: Triggers keep `user_profiles.role` (`guard_user_profile_role`) and `mind_maps.is_template`/`template_category` (`guard_mind_map_template_flags`) system-managed for user sessions, and `enforce_map_node_limit` enforces the owner-scoped per-map node limit. That trigger mirrors `checkMapNodeLimit()` in `with-subscription-check.ts` (owner plan `limits.nodesPerMap`, default 50, `-1` unlimited) and skips upserts of existing nodes, so change both together. `user_profiles` rows are visible only to their owner and to users sharing a map (`private.shares_map_with`).
+
+<!-- Updated: 2026-10-03 - Documented role/template/node-limit triggers and profile visibility scope -->
 
 **Dependency security overrides**: Keep `pnpm.overrides` pins narrow and evidence-based. Current required overrides are `partykit>esbuild` because PartyKit still pins older esbuild, `miniflare>undici` scoped to PartyKit's Miniflare path, and `@serwist/turbopack>browserslist` because Serwist pins an exact vulnerable browserslist. The global `postcss` override was dropped once Next 16.3.8 resolved a patched internal PostCSS; do not re-add it unless `pnpm audit` flags PostCSS again. Prefer direct/transitive package updates over broad overrides, keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes, and re-run `pnpm audit` plus `pnpm why esbuild undici postcss browserslist` after PartyKit/miniflare/Next/PostCSS/Serwist bumps. Do not silence advisories with `auditConfig.ignoreGhsas`; remove the vulnerable path instead. `braces` (GHSA-vfj7-8cjw-p6xm, no patched release) is eliminated by aliasing `@next/eslint-plugin-next>fast-glob` to `tinyglobby` (the plugin only calls `globSync(pattern, { onlyDirectories: true })` when `settings.next.rootDir` is set) and by not installing the `shadcn` CLI as a devDependency (run `pnpm dlx shadcn@latest add <component>` instead). Before bumping `eslint-config-next`, confirm the plugin still only uses `globSync`, and drop the alias once it stops depending on `fast-glob`.
 
@@ -179,6 +190,8 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-04-01 - Documented Supabase cookie-name mismatch gotcha for LAN logins -->
 
+**History revert + list scope**: `revertToHistoryState` restores the whole map to that entry, undoing every newer change; it is not a per-change undo. UI copy must say "Restore map to this point" and show the undone count (`countChangesUndoneByRevert`), never "Revert this change". The list API returns only the current checkpoint scope (one snapshot plus its events; older ones are pruned on checkpoint creation), so do not build checkpoint timelines or filters on the loaded list. Row titles, grouping and filters live in `src/components/history/model/history-timeline.ts`. Base UI 1.8 marks selected tabs with `data-active` (not `data-selected`).
+
 **Map Settings templates**: `is_template` and `template_category` are system-managed and not user-editable in the Map Settings panel.
 
 <!-- Updated: 2026-02-27 - Removed non-persisting template controls from map settings UI -->
@@ -200,6 +213,9 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 <!-- Updated: 2026-05-15 - Documented touch-qualified autocomplete presenter selection for iPad/tablet widths -->
 
+**Device class hooks**: `useIsMobile` (`src/hooks/use-mobile.ts`) means "phone layout": `(max-width: 767px), (pointer: coarse) and (max-height: 500px)`, so landscape phones count as mobile while tablets do not. `useTouchFirst` (`src/hooks/use-touch-first.ts`) means "no keyboard can be assumed" (coarse pointer, no hover, or desktop-class iPad) and gates keyboard-shortcut hints (shortcuts help FAB, node editor `Ctrl+Enter` copy) and touch autocomplete surfaces. Do not gate keyboard hints by viewport width alone. On `useIsMobile`, the node editor renders full screen (`data-layout='fullscreen'`), the quick-input body drops its fixed `sm:` dialog height, and the footer shows a Cancel button (`ActionBar` `onCancel`) because there is no backdrop or Escape key to dismiss it.
+
+<!-- Updated: 2026-10-03 - Landscape phones count as mobile; touch-first keyboard-hint gating -->
 **Touch context menu fallback**: Do not rely on native `contextmenu` alone for mobile/iPad. Keep `useTouchContextMenuFallback` wired to the React Flow shell so touch long-press on `.react-flow__node[data-id]`, `.react-flow__edge[data-id]`, or `.react-flow__pane` opens the same context-menu store state path (`openContextMenuAt`) used by desktop right-click handlers. Preserve movement cancellation and trailing click/contextmenu suppression to avoid accidental immediate close/select side-effects after long-press activation.
 
 <!-- Updated: 2026-04-08 - Added iPad/iOS WebKit long-press fallback and post-long-press suppression guardrail -->
@@ -216,6 +232,12 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 <!-- Updated: 2026-04-07 - Added repeated-unsubscribe safety contract for Yjs/broadcast/slice/core teardown paths -->
 
+**Anchored annotation contract**: Annotation-to-host linkage is `metadata.anchorNodeId` + `metadata.anchorOffset` only; never use `parent_id`/React Flow `parentId` (hierarchy) or `targetNodeId` (reference nodes). An anchor whose host is missing, is an annotation, or is the node itself is treated as free. Anchored annotations must stay out of every layout pass (`splitAnchoredAnnotations`/`reattachAnchoredAnnotations`), never become AI node rows or targets (fold via `foldAnchoredAnnotation*` before aliasing), cascade-delete with their host inside the same `deleteNodes` call, and render only a derived `annotationTether` edge that is never stored in the edges slice.
+
+**Collapsed-branch contract**: `getBranchIndex` (`src/helpers/collapse/branch-index.ts`) is the single source for collapse roll-ups (hidden count = full subtree excluding anchored annotations, branch tasks, pending statuses, severity, peek outline); do not rebuild subtree walks in components. Collapsing is deliberate and lives only in the node context menu ("Collapse Branch") and `Ctrl/Cmd+-` — do not reintroduce an on-node collapse button next to the add/AI buttons. Expanding stays on canvas via the "N nodes hidden" pill, always centered under the collapsed stack (the add button moves below it). Expand opens one level (deeper nodes keep their flag); Shift+click / `expandBranch(id, { all: true })` clears the subtree in one history step via `setNodesCollapsed`. Adding a child to a collapsed node expands it inside the same optimistic `addNode` update (one history step; the flag is saved only after the insert succeeds or is queued). Cross-links into hidden nodes are derived `collapsedProxy` edges in `getVisibleEdges` — never stored, selectable, or deletable; edge actions (context menu, double-click edit) must skip derived edges via `isDerivedDisplayEdgeId` (`src/helpers/derived-display-edges.ts`), which also covers `annotationTether`; AI suggestion edges are never proxied (they keep `aiData.connectionProxy`). Collapse state is shared (not per user), so search/peek expansion changes collaborators' view too.
+
+<!-- Updated: 2026-10-03 - Derived-edge action guard and single-step add-child expand -->
+
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 
 **System Updates**: Call `markNodeAsSystemUpdate()` before real-time updates to prevent save loops.
@@ -229,6 +251,11 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 **AI suggestion helper boundaries**: Keep `/api/ai/suggestions` as orchestration only. Suggestion graph modeling belongs in `src/helpers/ai-suggestion-graph.ts`, row serialization in `src/helpers/ai-suggestion-rows.ts`, user-prompt assembly in `src/helpers/ai-suggestion-user-prompt.ts`, system prompt text in `src/helpers/ai-suggestion-prompts.ts`, and streamed normalization/duplicate filtering/error mapping in `src/helpers/ai-suggestion-postprocess.ts`. Do not rebuild graph traversal, prompt text, or duplicate suppression inline in the route.
 
 **Structured AI route boundaries**: Keep `/api/ai/counterpoints`, `/api/ai/suggest-merges`, and `/api/ai/suggest-connections` as orchestration-only routes too. Route-specific request parsing, context shaping, prompt text, alias remapping, and streamed element normalization belong in `src/helpers/ai-counterpoint-*`, `src/helpers/ai-merge-*`, and `src/helpers/ai-connection-*`; the route files should stay limited to auth/quota checks, Supabase reads, `streamObject(...)`, stream-status events, and usage tracking. Do not drift merge duplicate filtering, connection validation, or counterpoint context selection back into the route handlers.
+
+**AI structured-output schemas**: `@ai-sdk/openai` defaults to OpenAI strict structured outputs, so every Zod schema passed to `streamObject` must list every key as required: use `.nullable()` for unused fields, never `.optional()` or `.partial()`, and avoid string formats such as `.url()`. A violation fails the whole request with `invalid_json_schema`. Lenient handling belongs in the postprocess helpers.
+
+<!-- Updated: 2026-10-03 - Documented OpenAI strict structured-output schema rules -->
+
 
 **Collapsed-branch connection suggestion proxying**: `suggestions-slice.addConnectionSuggestion()` may now remap hidden suggestion endpoints to visible collapsed ancestors for rendering and stores the true node IDs in `edge.data.aiData.connectionProxy` (`original*` vs `display*` IDs plus hidden-child labels). Keep dedupe keyed by original IDs, and `acceptConnectionSuggestion()` must create the real edge from original IDs, not display/proxy IDs. Collapse descendant traversal in `nodes-slice.getDescendantNodeIds()` must ignore transient AI suggestion edges so proxy suggestion edges do not hide unrelated visible nodes, and collapsed-ancestor lookup for hidden endpoints should use structural (non-suggested) edges only.
 
@@ -311,3 +338,6 @@ Guideline @./animation-guidelines.md
 2. Set up `supabase gen types` for automated TypeScript type generation
 3. Implement actual conflict resolution for real-time collaboration (currently last-write-wins)
 4. Add `@media (hover: hover)` wrapper for touch device hover states in animations
+5. Reconcile Supabase schema drift: prod migration history stops at 2026-02-12 (`notifications` applied outside history; `offline_op_receipts`, `push_subscriptions`, `create_history_checkpoint_and_prune` missing in prod), local differs too (extra objects, `supabase_admin`-owned functions), and `supabase/` is gitignored so migrations must be force-added
+6. Enforce the Content Security Policy (currently report-only in production; scripts still need `'unsafe-inline'` until nonces are added)
+7. `images.remotePatterns` allows any HTTPS host (open `/_next/image` proxy) for link previews; consider unoptimized remote images or a constrained proxy

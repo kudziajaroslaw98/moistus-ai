@@ -46,6 +46,7 @@ function createNode(id: string, content: string, position = { x: 0, y: 0 }) {
 function createStoreState(overrides: Record<string, unknown> = {}) {
 	return {
 		loadingStates: { isHistoryLoading: false },
+		historyIndex: 3,
 		isReverting: false,
 		revertingIndex: null,
 		revertToHistoryState: jest.fn(),
@@ -96,20 +97,20 @@ describe('HistoryItem focus controls', () => {
 		render(
 			<HistoryItem
 				isCurrent={false}
+				originalIndex={0}
 				meta={{
 					id: 'history-1',
 					type: 'event',
 					actionName: 'updateNode',
 					timestamp: 1_775_000_000_000,
 				}}
-				originalIndex={0}
 			/>
 		);
 
 		fireEvent.click(screen.getByText('Property edit'));
 
 		const focusButtons = await screen.findAllByRole('button', {
-			name: 'Focus Readable node',
+			name: 'Focus Readable node on canvas',
 		});
 		const focusButton = focusButtons[0];
 		fireEvent.click(focusButton);
@@ -181,20 +182,20 @@ describe('HistoryItem focus controls', () => {
 		render(
 			<HistoryItem
 				isCurrent={false}
+				originalIndex={0}
 				meta={{
 					id: 'history-2',
 					type: 'event',
 					actionName: 'addEdge',
 					timestamp: 1_775_000_000_000,
 				}}
-				originalIndex={0}
 			/>
 		);
 
-		fireEvent.click(screen.getByText('Connection change'));
+		fireEvent.click(screen.getByText('Connection added'));
 
 		const focusButtons = await screen.findAllByRole('button', {
-			name: 'Focus Source -> Target',
+			name: 'Focus Source -> Target on canvas',
 		});
 		const focusButton = focusButtons[0];
 		fireEvent.click(focusButton);
@@ -240,20 +241,78 @@ describe('HistoryItem focus controls', () => {
 		render(
 			<HistoryItem
 				isCurrent={false}
+				originalIndex={0}
 				meta={{
 					id: 'history-3',
 					type: 'event',
 					actionName: 'moveNodes',
 					timestamp: 1_775_000_000_000,
 				}}
-				originalIndex={0}
 			/>
 		);
 
-		fireEvent.click(screen.getByText('Node movement'));
+		fireEvent.click(screen.getByText('Moved node'));
 
-		expect((await screen.findAllByText('Node moved')).length).toBeGreaterThan(0);
+		expect(await screen.findByText('Position')).toBeInTheDocument();
+		expect(screen.getByText('(912, 576)')).toBeInTheDocument();
+		expect(screen.getByText('(390, 614)')).toBeInTheDocument();
 		expect(screen.queryByText(/Position\.x/i)).not.toBeInTheDocument();
 		expect(screen.queryByText('Technical details')).not.toBeInTheDocument();
+	});
+});
+
+describe('HistoryItem revert confirmation', () => {
+	const meta = {
+		id: 'history-4',
+		type: 'event' as const,
+		actionName: 'updateNode',
+		timestamp: 1_775_000_000_000,
+		subjects: [{ id: 'node-1', type: 'node' as const, nodeType: 'textNode' }],
+	};
+
+	beforeEach(() => {
+		mockStoreState = createStoreState();
+		global.fetch = jest.fn();
+	});
+
+	it('asks before restoring and names how many changes are undone', () => {
+		render(<HistoryItem isCurrent={false} meta={meta} originalIndex={1} />);
+
+		fireEvent.click(
+			screen.getByRole('button', { name: 'Restore map to this point' })
+		);
+
+		expect(screen.getByText('Restore map to this point?')).toBeInTheDocument();
+		expect(
+			screen.getByText('2 newer changes will be undone.')
+		).toBeInTheDocument();
+		expect(mockStoreState.revertToHistoryState).not.toHaveBeenCalled();
+
+		fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
+
+		expect(mockStoreState.revertToHistoryState).toHaveBeenCalledWith(1);
+	});
+
+	it('cancels without restoring', () => {
+		render(<HistoryItem isCurrent={false} meta={meta} originalIndex={1} />);
+
+		fireEvent.click(
+			screen.getByRole('button', { name: 'Restore map to this point' })
+		);
+		fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+		expect(
+			screen.queryByText('Restore map to this point?')
+		).not.toBeInTheDocument();
+		expect(mockStoreState.revertToHistoryState).not.toHaveBeenCalled();
+	});
+
+	it('offers no restore on the current entry', () => {
+		render(<HistoryItem isCurrent meta={meta} originalIndex={3} />);
+
+		expect(screen.getByText('CURRENT')).toBeInTheDocument();
+		expect(
+			screen.queryByRole('button', { name: 'Restore map to this point' })
+		).not.toBeInTheDocument();
 	});
 });

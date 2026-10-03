@@ -1,86 +1,129 @@
 'use client';
 
+import { getNodeOutlineText } from '@/helpers/collapse/branch-index';
 import useAppStore from '@/store/mind-map-store';
-import type { HistoryItem as HistoryMeta } from '@/types/history-state';
-import { motion } from 'motion/react';
-import { useMemo } from 'react';
-import { Button } from '../ui/button';
+import { useEffect, useState } from 'react';
+import { useShallow } from 'zustand/shallow';
+import { HistoryEmptyState } from './history-empty-state';
 import { HistoryItem } from './history-item';
 import { HistoryItemSkeleton } from './history-item-skeleton';
+import { HistoryRowGroup } from './history-row-group';
+import {
+	buildHistoryTimeline,
+	type HistoryFilter,
+} from './model/history-timeline';
 
-interface HistoryTimelineItem {
-	meta: HistoryMeta;
-	originalIndex: number;
-	isCurrent: boolean;
+const FILTER_EMPTY_COPY: Record<HistoryFilter, string> = {
+	all: 'No changes',
+	edits: 'No edits',
+	added: 'No added nodes',
+	removed: 'No removed nodes',
+	links: 'No connection changes',
+};
+
+/** Re-render relative times ("8 min ago") once a minute. */
+function useMinuteClock(): number {
+	const [now, setNow] = useState(() => Date.now());
+	useEffect(() => {
+		const id = window.setInterval(() => setNow(Date.now()), 60_000);
+		return () => window.clearInterval(id);
+	}, []);
+	return now;
 }
 
-export function HistoryList() {
+interface HistoryListProps {
+	filter: HistoryFilter;
+}
+
+export function HistoryList({ filter }: HistoryListProps) {
 	const isLoading = useAppStore((s) => s.loadingStates?.isHistoryLoading);
 	const historyMeta = useAppStore((s) => s.historyMeta);
 	const historyIndex = useAppStore((s) => s.historyIndex);
-	const mapId = useAppStore((s) => s.mapId);
-	const loadMoreHistory = useAppStore((s) => s.loadMoreHistory);
 	const hasMore = useAppStore((s) => s.historyHasMore);
+	// Shallow-compared id → label map: stays stable while nodes are dragged.
+	const nodeLabels = useAppStore(
+		useShallow((s) => {
+			const labels: Record<string, string> = {};
+			for (const node of s.nodes) {
+				const text = getNodeOutlineText(node);
+				if (text !== 'Untitled') labels[node.id] = text;
+			}
+			return labels;
+		})
+	);
+	const now = useMinuteClock();
 
-	// Compute timeline items from history metadata (DB-only, no in-memory history)
-	const items: HistoryTimelineItem[] = useMemo(() => {
-		const reversed = [...historyMeta].reverse();
-		return reversed.map((meta, idx) => {
-			const originalIndex = historyMeta.length - 1 - idx;
-			// Delta will be fetched on-demand when expanding history item
-			return {
-				meta,
-				originalIndex,
-				isCurrent: originalIndex === historyIndex,
-			};
-		});
-	}, [historyMeta, historyIndex]);
-
-	if (isLoading) {
+	// Skeletons only on first load; "Load older" keeps the list on screen.
+	if (isLoading && historyMeta.length === 0) {
 		return (
-			<div className='flex flex-col gap-2'>
-				{Array.from({ length: 5 }).map((_, i) => (
+			<div className='flex flex-col gap-1'>
+				{Array.from({ length: 6 }).map((_, i) => (
 					<HistoryItemSkeleton key={i} />
 				))}
 			</div>
 		);
 	}
 
+	const sections = buildHistoryTimeline(historyMeta, {
+		historyIndex,
+		filter,
+		now,
+	});
+	const resolveNodeLabel = (nodeId: string) => nodeLabels[nodeId] ?? null;
+
+	if (sections.length === 0) {
+		return (
+			<HistoryEmptyState
+				title={FILTER_EMPTY_COPY[filter]}
+				description={
+					hasMore
+						? 'Nothing in the loaded changes. Load older changes to look further back.'
+						: 'Nothing matches this filter yet.'
+				}
+			/>
+		);
+	}
+
 	return (
-		<motion.div className='relative flex-grow'>
-			{items.length > 0 && (
-				<div className='px-4 pb-1 text-[10px] font-semibold tracking-[0.12em] text-primary-300 uppercase sm:px-0'>
-					Current
-				</div>
-			)}
+		<div className='flex flex-col gap-4'>
+			{sections.map((section) => (
+				<section aria-label={section.label} key={section.key}>
+					<div className='flex items-center gap-3 px-2.5 pb-1.5'>
+						<h3 className='text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55'>
+							{section.label}
+						</h3>
 
-			<div className='flex flex-col gap-2'>
-				{/* Load more (older) at top since list shows newest at top */}
-				{hasMore && (
-					<div className='mb-2 flex justify-center px-4 sm:px-0'>
-						<Button
-							disabled={!mapId}
-							onClick={() => mapId && loadMoreHistory(mapId)}
-							size='sm'
-							variant='outline'
-						>
-							Load older
-						</Button>
-					</div>
-				)}
+						<span aria-hidden className='h-px flex-1 bg-white/[0.07]' />
 
-				{/* Render timeline items */}
-				{items.map((item) => (
-					<div className='relative' key={item.meta.id}>
-						<HistoryItem
-							isCurrent={item.isCurrent}
-							meta={item.meta}
-							originalIndex={item.originalIndex}
-						/>
+						<span className='text-[12px] text-white/40'>
+							{`${section.changeCount} change${section.changeCount === 1 ? '' : 's'}`}
+						</span>
 					</div>
-				))}
-			</div>
-		</motion.div>
+
+					<div className='flex flex-col gap-0.5'>
+						{section.rows.map((row) =>
+							row.kind === 'single' ? (
+								<HistoryItem
+									isCurrent={row.entry.isCurrent}
+									key={row.key}
+									meta={row.entry.meta}
+									now={now}
+									originalIndex={row.entry.originalIndex}
+									resolveNodeLabel={resolveNodeLabel}
+								/>
+							) : (
+								<HistoryRowGroup
+									entries={row.entries}
+									key={row.key}
+									now={now}
+									resolveNodeLabel={resolveNodeLabel}
+								/>
+							)
+						)}
+					</div>
+				</section>
+			))}
+		</div>
 	);
 }
 

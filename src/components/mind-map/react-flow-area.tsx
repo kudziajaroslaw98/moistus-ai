@@ -30,14 +30,19 @@ import {
 import { ChatPanel } from '@/components/ai-chat';
 import { SettingsPanel } from '@/components/dashboard/settings-panel';
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
+import AnnotationTetherEdge from '@/components/edges/annotation-tether-edge';
+import CollapsedProxyEdge from '@/components/edges/collapsed-proxy-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
+import { CanvasSearchBar } from '@/components/mind-map/canvas-search-bar';
 import { ModeIndicator } from '@/components/mode-indicator';
 import { useNotifications } from '@/components/notifications/use-notifications';
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
 import { ShortcutsHelpFab } from '@/components/shortcuts-help/shortcuts-help-fab';
+import { buildAnnotationTetherEdges } from '@/helpers/anchored-annotations';
+import { isDerivedDisplayEdgeId } from '@/helpers/derived-display-edges';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
@@ -359,9 +364,10 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	// Memoize visible edges to prevent infinite re-renders
 	// Edge visibility depends on node visibility (collapsed nodes hide their edges)
 	// isCommentMode affects which nodes are visible, which affects edge visibility
+	// Anchored-annotation tethers are derived here (display-only, never stored).
 	const visibleEdges = useMemo(() => {
-		return getVisibleEdges();
-	}, [edges, nodes, getVisibleEdges, isCommentMode]);
+		return [...getVisibleEdges(), ...buildAnnotationTetherEdges(visibleNodes)];
+	}, [edges, getVisibleEdges, visibleNodes]);
 	const [displayNodes, setDisplayNodes] = useState<AppNode[]>(visibleNodes);
 	const [displayEdges, setDisplayEdges] = useState<AppEdge[]>(visibleEdges);
 	const displayNodesRef = useRef<AppNode[]>(visibleNodes);
@@ -661,6 +667,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
 		(event, edge) => {
+			if (isDerivedDisplayEdgeId(edge.id)) return;
 			// Waypoint edges add a bend point on double-click instead of opening edge edit.
 			if (
 				edge.type === 'waypointEdge' ||
@@ -690,6 +697,8 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 	const edgeTypes: EdgeTypes = useMemo(
 		() => ({
+			annotationTether: AnnotationTetherEdge,
+			collapsedProxy: CollapsedProxyEdge,
 			suggestedMerge: SuggestedMergeEdge,
 			suggestedConnection: SuggestedConnectionEdge,
 			animatedGhostEdge: AnimatedGhostEdge,
@@ -943,6 +952,10 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 								onMobileTapMultiSelectChange={setMobileTapMultiSelectEnabled}
 							/>
 						</div>
+					</Panel>
+
+					<Panel className='mt-16' position='top-center'>
+						<CanvasSearchBar />
 					</Panel>
 
 					<Panel className='m-4 pt-10' position='top-right'></Panel>

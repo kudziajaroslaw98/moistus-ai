@@ -1,5 +1,6 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { createPolarClient } from '@/lib/polar';
 import { z } from 'zod';
 
@@ -52,15 +53,18 @@ export const POST = withAuthValidation(
 			);
 		}
 
-		// Update database to reflect cancellation
-		const { data: updatedSubscription, error: updateError } = await supabase
-			.from('user_subscriptions')
-			.update({
-				cancel_at_period_end: true,
-				updated_at: new Date().toISOString(),
-			})
-			.eq('id', subscriptionId)
-			.select();
+		// Update database to reflect cancellation. Subscriptions are server-managed
+		// (no user UPDATE policy), so write with the service role after the IDOR check above.
+		const { data: updatedSubscription, error: updateError } =
+			await createServiceRoleClient()
+				.from('user_subscriptions')
+				.update({
+					cancel_at_period_end: true,
+					updated_at: new Date().toISOString(),
+				})
+				.eq('id', subscriptionId)
+				.eq('user_id', user.id)
+				.select();
 
 		if (updateError) {
 			console.error(

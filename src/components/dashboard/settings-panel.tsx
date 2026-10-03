@@ -887,7 +887,7 @@ export function SettingsPanel({
 					value={activeTab}
 				>
 					<div className='px-6 pb-2 pt-4'>
-						<TabsList className='grid w-full grid-cols-2'>
+						<TabsList className='grid w-full grid-cols-2 gap-1 rounded-lg border border-border-subtle bg-surface'>
 							<TabsTrigger className='flex items-center gap-2' value='account'>
 								<Settings className='size-4' />
 								Account

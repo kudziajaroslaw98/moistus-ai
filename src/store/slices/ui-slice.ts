@@ -66,6 +66,8 @@ export const createUiStateSlice: StateCreator<
 		activeNodeType: 'defaultNode',
 	},
 
+	canvasSearch: { isOpen: false, query: '', activeIndex: 0 },
+
 	// setters
 	setEdgeInfo: (edgeInfo) => {
 		set({ edgeInfo });
@@ -133,6 +135,20 @@ export const createUiStateSlice: StateCreator<
 				onboardingSource: null,
 			},
 		});
+	},
+
+	// Canvas search actions
+	openCanvasSearch: () => {
+		set({ canvasSearch: { ...get().canvasSearch, isOpen: true } });
+	},
+	closeCanvasSearch: () => {
+		set({ canvasSearch: { isOpen: false, query: '', activeIndex: 0 } });
+	},
+	setCanvasSearchQuery: (query) => {
+		set({ canvasSearch: { ...get().canvasSearch, query, activeIndex: 0 } });
+	},
+	setCanvasSearchActiveIndex: (activeIndex) => {
+		set({ canvasSearch: { ...get().canvasSearch, activeIndex } });
 	},
 
 	// CommandPalette actions
