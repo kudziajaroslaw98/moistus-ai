@@ -12,6 +12,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **deps/security**: Removed `braces` (GHSA-vfj7-8cjw-p6xm, no patched release) from the dependency tree: `@next/eslint-plugin-next>fast-glob` is aliased to `tinyglobby`, and the `shadcn` CLI is no longer a devDependency (use `pnpm dlx shadcn@latest`)
   - Why: Fixes the high-severity audit failure without suppressing the advisory; the Next plugin only uses `globSync` with `onlyDirectories`, which tinyglobby supports
 
+### Fixed
+
+- **billing/webhooks**: A `subscription.canceled`, `uncanceled` or `revoked` event that arrives before the subscription row exists is now saved from its payload (revoked as `canceled`) instead of updating nothing
+  - Why: A late `subscription.created` retry then had no stored version to compare against and re-granted Pro after a revoke
+- **billing/webhooks**: `subscription.created` / `active` on an existing row merges into stored metadata, so plan-change fields (`previous_plan`, `last_plan_change`, `previous_period_start`) are no longer wiped
+
 ## [2026-10-02]
 
 ### Changed
