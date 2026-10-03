@@ -173,9 +173,16 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-04-01 - Documented Supabase cookie-name mismatch gotcha for LAN logins -->
 
-**Map Settings templates**: `is_template` and `template_category` are system-managed and not user-editable in the Map Settings panel.
+**Admin template management**: System templates are `mind_maps` rows with `is_template = true` and `user_id = NULL`.
+- **Who manages them:** only admins (`user_profiles.role = 'admin'`, granted manually via SQL). Owners can never toggle `is_template` or set `template_*` fields through `PUT /api/maps/[id]`.
+- **Role guard:** the `guard_user_profile_role` trigger blocks any `anon`/`authenticated` request that sets or changes `role`. Table-level grants make a column REVOKE useless, so keep the trigger.
+- **Server checks:** use `isUserAdmin(serviceClient, userId)`. Template writes from API routes go through the service role: the admin branches in `PUT`/`DELETE /api/maps/[id]` and `POST /api/templates`.
+- **Editor and realtime:** admins edit templates as `editor` through `/api/maps/[id]/permissions` and PartyKit `getMapAccess` → `getTemplateAdminAccess`. RLS on nodes/edges uses `admin_can_edit_template_map(map_id)`.
+- **Ownerless rows:** template nodes/edges must keep `user_id = NULL`, because the `user_id` FKs are `ON DELETE CASCADE`. The `null_template_graph_user_id` triggers enforce this, and the PartyKit projection mirrors it.
+- **Out of scope for templates:** map history stays owner/share-only, so History UI is hidden for template admins.
+- **Seeding:** `create_template()` is service-role only.
 
-<!-- Updated: 2026-02-27 - Removed non-persisting template controls from map settings UI -->
+<!-- Updated: 2026-10-03 - Replaced system-managed template note with admin template management contract -->
 
 **Node editor parser scope**: Parser syntax no longer supports `bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`, or `$reference` quick-switch in node editor flows. Syntax Help is split into `Universal` (type-filtered) and `Node-specific` sections.
 For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).

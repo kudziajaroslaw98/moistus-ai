@@ -5,6 +5,23 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-03]
+
+### Added
+
+- **templates/admin-edit**: Admins can edit system templates in the full canvas editor, with realtime sync, plus template category, gallery icon and preview colors in Map Settings
+  - Why: Templates were read-only for everyone, so fixing or improving them required raw SQL
+- **templates/admin-publish**: Admins can publish a copy of one of their own maps as a new template (`POST /api/templates`)
+- **templates/admin-delete**: Admins can delete templates from the template gallery or from Map Settings
+
+### Fixed
+
+- **security/profile-role**: Signed-in users can no longer promote themselves to admin by updating or re-inserting their own `user_profiles.role`
+- **security/create-template**: `create_template()` is no longer callable by anonymous or signed-in clients
+- **templates/rls-drift**: The authenticated template read policies on nodes/edges, previously only in the live database, are now in a migration
+
+---
+
 ## [2026-07-18]
 
 ### Fixed
