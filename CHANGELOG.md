@@ -17,6 +17,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Changed
 
+- **deps/security**: Removed `braces` (GHSA-vfj7-8cjw-p6xm, no patched release) from the dependency tree: `@next/eslint-plugin-next>fast-glob` is aliased to `tinyglobby`, and the `shadcn` CLI is no longer a devDependency (use `pnpm dlx shadcn@latest`)
+  - Why: Fixes the high-severity audit failure without suppressing the advisory; the Next plugin only uses `globSync` with `onlyDirectories`, which tinyglobby supports
 - **collapse**: Hidden count now covers the whole subtree (was direct children only); batch collapse changes are a single history step
 - **collapse**: Removed the on-node collapse button; collapsing is done from the node context menu or `Ctrl/Cmd+-`, expanding via the "N nodes hidden" pill
   - Why: The round collapse button duplicated the look of the add / AI buttons on the same side of the node
