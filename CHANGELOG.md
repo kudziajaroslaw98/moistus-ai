@@ -20,6 +20,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **collapse**: Hidden count now covers the whole subtree (was direct children only); batch collapse changes are a single history step
 - **collapse**: Removed the on-node collapse button; collapsing is done from the node context menu or `Ctrl/Cmd+-`, expanding via the "N nodes hidden" pill
   - Why: The round collapse button duplicated the look of the add / AI buttons on the same side of the node
+- **history**: Redesigned history panel: compact rows (icon, short title like "Resized group", colored node type with name or `#id`, time), day headers, runs of identical changes collapsed into one expandable row (`×N`), filter chips with counts (All / Edits / Added / Links, plus Removed when there are any), Checkpoint button in the header, Load older in the footer
+  - Why: ~110px cards showed ~6 changes at a time, duplicate runs filled the list, and titles repeated themselves ("Width & Height updated, Node resized")
+- **history**: Focus and Revert are small icon buttons that appear on hover or keyboard focus; Revert now asks "Restore map to this point? N newer changes will be undone." before doing anything
+  - Why: Revert restores the whole map to that point, and it was a loud one-click button on every row
+- **history**: Expanded changes show one line per property (`not set → 400`) instead of stacked Before/After boxes
 - **mobile**: `useIsMobile` now also matches landscape phones (`(pointer: coarse) and (max-height: 500px)`), so they get the mobile toolbar, top bar, onboarding path and editor instead of desktop UI
   - Why: Landscape phones (~844-932px wide) passed the width-only 768px check
 - **node-editor**: The node editor opens full screen on phones (portrait and landscape) instead of as an inset dialog

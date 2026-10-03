@@ -179,6 +179,8 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-04-01 - Documented Supabase cookie-name mismatch gotcha for LAN logins -->
 
+**History revert + list scope**: `revertToHistoryState` restores the whole map to that entry, undoing every newer change; it is not a per-change undo. UI copy must say "Restore map to this point" and show the undone count (`countChangesUndoneByRevert`), never "Revert this change". The list API returns only the current checkpoint scope (one snapshot plus its events; older ones are pruned on checkpoint creation), so do not build checkpoint timelines or filters on the loaded list. Row titles, grouping and filters live in `src/components/history/model/history-timeline.ts`. Base UI 1.8 marks selected tabs with `data-active` (not `data-selected`).
+
 **Map Settings templates**: `is_template` and `template_category` are system-managed and not user-editable in the Map Settings panel.
 
 <!-- Updated: 2026-02-27 - Removed non-persisting template controls from map settings UI -->
