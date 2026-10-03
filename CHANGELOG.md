@@ -5,6 +5,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-03]
+
+### Changed
+
+- **ci/audit**: Ignored `GHSA-vfj7-8cjw-p6xm` (`braces` stack-exhaustion DoS) via `pnpm-workspace.yaml#auditConfig.ignoreGhsas`
+  - Why: No patched `braces` release exists; all paths are dev-only tooling over repo-controlled globs, and the prod audit is clean
+
 ## [2026-10-02]
 
 ### Changed
