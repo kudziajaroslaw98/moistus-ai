@@ -164,19 +164,3 @@ describe('buildHiddenOwnerById', () => {
 		);
 	});
 });
-
-describe('childSideById', () => {
-	it('points toward the centroid of direct children', () => {
-		const at = (id: string, x: number, y: number) => ({
-			...node(id),
-			position: { x, y },
-			measured: { width: 100, height: 40 },
-		});
-		const index = buildBranchIndex(
-			[at('right', 0, 0), at('r1', 300, -20), at('r2', 300, 60), at('down', 0, 500), at('d1', 20, 700)],
-			[edge('right', 'r1'), edge('right', 'r2'), edge('down', 'd1')]
-		);
-		expect(index.childSideById.get('right')).toBe('right');
-		expect(index.childSideById.get('down')).toBe('bottom');
-	});
-});

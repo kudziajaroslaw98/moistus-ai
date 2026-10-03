@@ -55,15 +55,6 @@ jest.mock('@xyflow/react', () => ({
 }))
 
 // Mock sub-components
-jest.mock('./node-additions/branch-toggle', () => ({
-	__esModule: true,
-	default: ({ nodeId, isSelected }: { nodeId: string; isSelected: boolean }) => (
-		<button data-testid="branch-toggle" data-node-id={nodeId} data-selected={String(isSelected)}>
-			Collapse
-		</button>
-	),
-}))
-
 jest.mock('./node-additions/branch-summary', () => ({
 	__esModule: true,
 	default: ({ nodeId }: { nodeId: string }) => (
@@ -165,13 +156,6 @@ describe('BaseNodeWrapper', () => {
 			expect(screen.getByTestId('child-content')).toHaveTextContent('Child Content')
 		})
 
-		it('renders the branch toggle for this node', () => {
-			render(<BaseNodeWrapper {...createDefaultProps()} />)
-
-			expect(screen.getByTestId('branch-toggle')).toHaveAttribute('data-node-id', 'node-1')
-			expect(screen.getByTestId('branch-toggle')).toHaveAttribute('data-selected', 'false')
-		})
-
 		it('renders group button', () => {
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
@@ -271,7 +255,7 @@ describe('BaseNodeWrapper', () => {
 		})
 	})
 
-	describe('add / AI buttons clear the collapse control', () => {
+	describe('add button clears the collapsed pill', () => {
 		const graphNode = (id: string, y: number, metadata: Record<string, unknown> = {}) => ({
 			id,
 			type: 'defaultNode',
@@ -279,59 +263,32 @@ describe('BaseNodeWrapper', () => {
 			measured: { width: 320, height: 100 },
 			data: { id, node_type: 'defaultNode', content: id, metadata },
 		})
-		const toChild = (from: { x: number; y: number }) => {
+		const withChild = (position: { x: number; y: number }) => {
 			mockEdges = [{ id: 'e', source: 'node-1', target: 'child', data: {} }]
-			return { ...graphNode('child', 0), position: from }
+			return { ...graphNode('child', 0), position }
 		}
-
-		it('keeps the default offset for leaf nodes', () => {
-			mockSelectedNodes = [{ id: 'node-1' }]
-			mockNodes = [graphNode('node-1', 0)]
-			render(<BaseNodeWrapper {...createDefaultProps()} />)
-
-			expect(screen.getByTestId('node-add-button-container').style.bottom).toBe('-60px')
-			expect(screen.getByTestId('node-suggest-button-container').style.right).toBe('-60px')
+		const offsets = () => ({
+			add: screen.getByTestId('node-add-button-container').style.bottom,
+			ai: screen.getByTestId('node-suggest-button-container').style.right,
 		})
 
-		it('moves the add button past the toggle when children are below', () => {
+		it('keeps default positions for leaf and expanded parent nodes', () => {
 			mockSelectedNodes = [{ id: 'node-1' }]
-			mockNodes = [graphNode('node-1', 0), toChild({ x: 0, y: 300 })]
+			mockNodes = [graphNode('node-1', 0), withChild({ x: 600, y: 300 })]
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			expect(screen.getByTestId('node-add-button-container').style.bottom).toBe('-88px')
-			expect(screen.getByTestId('node-suggest-button-container').style.right).toBe('-60px')
+			expect(offsets()).toEqual({ add: '-60px', ai: '-60px' })
 		})
 
-		it('moves the add button past the pill when the node is collapsed', () => {
+		it('moves only the add button below the pill when collapsed', () => {
 			mockSelectedNodes = [{ id: 'node-1' }]
 			mockNodes = [
 				graphNode('node-1', 0, { isCollapsed: true }),
-				toChild({ x: 0, y: 300 }),
+				withChild({ x: 600, y: 0 }),
 			]
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
-			expect(screen.getByTestId('node-add-button-container').style.bottom).toBe('-96px')
-		})
-
-		it('keeps the AI button in place for a collapsed right-branching node (pill sits below)', () => {
-			mockSelectedNodes = [{ id: 'node-1' }]
-			mockNodes = [
-				graphNode('node-1', 0, { isCollapsed: true }),
-				toChild({ x: 600, y: 0 }),
-			]
-			render(<BaseNodeWrapper {...createDefaultProps()} />)
-
-			expect(screen.getByTestId('node-suggest-button-container').style.right).toBe('-60px')
-			expect(screen.getByTestId('node-add-button-container').style.bottom).toBe('-96px')
-		})
-
-		it('moves the AI button instead when children branch to the right', () => {
-			mockSelectedNodes = [{ id: 'node-1' }]
-			mockNodes = [graphNode('node-1', 0), toChild({ x: 600, y: 0 })]
-			render(<BaseNodeWrapper {...createDefaultProps()} />)
-
-			expect(screen.getByTestId('node-suggest-button-container').style.right).toBe('-88px')
-			expect(screen.getByTestId('node-add-button-container').style.bottom).toBe('-60px')
+			expect(offsets()).toEqual({ add: '-96px', ai: '-60px' })
 		})
 	})
 

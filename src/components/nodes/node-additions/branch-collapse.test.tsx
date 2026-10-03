@@ -4,10 +4,8 @@ import type { NodeData } from '@/types/node-data';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { BranchPeek } from './branch-peek';
 import BranchSummary from './branch-summary';
-import BranchToggle from './branch-toggle';
 import CollapsedIndicator from './collapsed-indicator';
 
-const mockSetNodesCollapsed = jest.fn();
 const mockExpandBranch = jest.fn();
 const mockExpandPathTo = jest.fn();
 const mockCenterOnNode = jest.fn();
@@ -21,7 +19,6 @@ jest.mock('@/store/mind-map-store', () => ({
 		selector({
 			nodes: mockNodes,
 			edges: mockEdges,
-			setNodesCollapsed: mockSetNodesCollapsed,
 			expandBranch: mockExpandBranch,
 			expandPathTo: mockExpandPathTo,
 			centerOnNode: mockCenterOnNode,
@@ -118,29 +115,6 @@ beforeEach(() => {
 		edge('child', 'grand'),
 		edge('open', 'leaf'),
 	];
-});
-
-describe('BranchToggle', () => {
-	it('collapses an expanded node with children', () => {
-		render(<BranchToggle isSelected nodeId='open' />);
-
-		fireEvent.click(screen.getByTestId('branch-toggle'));
-
-		expect(mockSetNodesCollapsed).toHaveBeenCalledWith(['open'], true);
-	});
-
-	it('is hidden for leaves and collapsed nodes', () => {
-		const { rerender } = render(<BranchToggle isSelected nodeId='leaf' />);
-		expect(screen.queryByTestId('branch-toggle')).not.toBeInTheDocument();
-
-		rerender(<BranchToggle isSelected nodeId='root' />);
-		expect(screen.queryByTestId('branch-toggle')).not.toBeInTheDocument();
-	});
-
-	it('stays out of the way until hover when not selected', () => {
-		render(<BranchToggle isSelected={false} nodeId='open' />);
-		expect(screen.getByTestId('branch-toggle').className).toContain('opacity-0');
-	});
 });
 
 describe('CollapsedIndicator', () => {

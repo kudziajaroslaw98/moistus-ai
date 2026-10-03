@@ -26,7 +26,6 @@ import { AvatarStack } from '../ui/avatar-stack';
 import { Button } from '../ui/button';
 import { type BaseNodeWrapperProps } from './core/types';
 import BranchSummary from './node-additions/branch-summary';
-import BranchToggle from './node-additions/branch-toggle';
 import CollapsedIndicator from './node-additions/collapsed-indicator';
 import GroupButton from './node-additions/group-button';
 import { UniversalMetadataBar } from './shared/universal-metadata-bar';
@@ -36,11 +35,10 @@ import {
 } from './themes/glassmorphism-theme';
 
 /**
- * Extra outward offset (px) for the add / AI action buttons when a collapse
- * control shares their side: control far edge + 8px gap - button's 20px inset.
- * Toggle: mt-3 + size-6 = 36px. Pill: mt-5 + h-7 = 48px.
+ * Extra downward offset (px) for the add button below a collapsed node so it
+ * clears the "N nodes hidden" pill: pill far edge (mt-5 + h-7 = 48px)
+ * + 8px gap - the button's 20px base inset.
  */
-const BRANCH_TOGGLE_CLEARANCE = 28;
 const BRANCH_PILL_CLEARANCE = 36;
 
 const BaseNodeWrapperComponent = ({
@@ -85,24 +83,12 @@ const BaseNodeWrapperComponent = ({
 		}))
 	);
 	const isMobile = useIsMobile();
-	// Collapse control (toggle or "N hidden" pill) sitting on the children side;
-	// the add / AI action buttons move further out when they share that side.
-	const branchControl = useAppStore((state) => {
-		const index = getBranchIndex(state.nodes, state.edges);
-		if (!index.childIdsById.has(id)) return null;
-		const side = index.childSideById.get(id) ?? 'bottom';
-		return `${side}:${index.summaries.has(id) ? 'pill' : 'toggle'}`;
-	});
-	// The collapsed pill is always centered below the node; the expanded toggle
-	// follows the children side.
-	const isPill = branchControl?.endsWith(':pill') ?? false;
-	const addOffset = isPill
-		? BRANCH_PILL_CLEARANCE
-		: branchControl?.startsWith('bottom:')
-			? BRANCH_TOGGLE_CLEARANCE
-			: 0;
-	const suggestOffset =
-		!isPill && branchControl?.startsWith('right:') ? BRANCH_TOGGLE_CLEARANCE : 0;
+	// Collapsed nodes show the "N nodes hidden" pill centered below the card;
+	// the add button moves past it. (Collapsing itself is in the context menu.)
+	const hasCollapsedPill = useAppStore((state) =>
+		getBranchIndex(state.nodes, state.edges).summaries.has(id)
+	);
+	const addOffset = hasCollapsedPill ? BRANCH_PILL_CLEARANCE : 0;
 	// Canvas search: 'active' = current match, 'match' = any match, or a
 	// collapsed node that hides matches ('inside').
 	const searchHighlight = useAppStore((state) => {
@@ -240,8 +226,6 @@ const BaseNodeWrapperComponent = ({
 				}}
 			>
 				<CollapsedIndicator nodeId={id} />
-
-				<BranchToggle isSelected={isSelected} nodeId={id} />
 
 				{/* Top header controls */}
 				<div className='top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2'>
@@ -420,7 +404,7 @@ const BaseNodeWrapperComponent = ({
 										<motion.div
 											animate={{ opacity: 0.3, scaleX: 1 }}
 											className='absolute -z-10 top-1/2 -translate-y-1/2 h-[1px] bg-overlay'
-											style={{ right: -(32 + suggestOffset), width: 48 + suggestOffset }}
+											style={{ right: -32, width: 48 }}
 											exit={{ opacity: 0, scaleX: 0 }}
 											initial={{ opacity: 0, scaleX: 0 }}
 											transition={{ duration: 0.2 }}
@@ -430,7 +414,7 @@ const BaseNodeWrapperComponent = ({
 											animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
 											className='absolute top-1/2 -translate-y-1/2 z-20'
 											data-testid='node-suggest-button-container'
-											style={{ right: -(60 + suggestOffset) }}
+											style={{ right: -60 }}
 											exit={{ opacity: 0, scale: 0.8 }}
 											initial={{
 												opacity: 0,
