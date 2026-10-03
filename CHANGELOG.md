@@ -42,10 +42,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **ui/tabs**: The selected tab is visibly highlighted again (share panel, dashboard settings)
   - Why: Base UI 1.8 marks the selected tab with `data-active`; the primitive still styled the old `data-selected` attribute, so no tab ever looked selected
 
+- **collapse**: Right-click, long-press and double-click on dashed collapsed-branch lines and annotation tethers no longer open the edge menu or Edge Edit (they are display-only, with no stored edge behind them)
+- **collapse**: Adding a child to a collapsed node records one history step (the expand is part of "Added"), and the parent stays collapsed if the insert fails
+- **collapse**: The "N nodes hidden" pill uses the shared `useTouchFirst` hook, so desktop-mode iPads get the tap peek instead of an instant expand
+- **search**: Matches in annotations anchored to a hidden node now count as "N matches inside" their collapsed ancestor
+- **search**: The match counter and active highlight stay in range when matches disappear (no more "5 of 3")
+- **annotations**: An annotation anchored to another annotation (or itself) is shown as free in its toolbar, matching how it behaves on the canvas
+- **ai**: Approving an AI annotation whose source is an anchored annotation anchors it to that annotation's host; an AI annotation is never linked to another annotation by an edge
 ### Removed
 
 - **history**: Unused history components and helpers left over from earlier panel versions (`history-entry-card`, `history-actions`, `history-group`, `change-item`, `git-diff-view`, `grouping-utils`)
 - **history**: Unused `formatTimeRange`, `diff-formatter`, `text-diff-utils` helpers and the direct `diff` dependency
+- **hooks**: `useCoarsePointer` (duplicate of `useTouchFirst` without iPad detection)
 
 ## [2026-10-02]
 

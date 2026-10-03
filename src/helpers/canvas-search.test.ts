@@ -3,6 +3,7 @@ import type { AppNode } from '@/types/app-node';
 import type { NodeData } from '@/types/node-data';
 import {
 	countMatchesInsideCollapsed,
+	getActiveMatchIndex,
 	normalizeSearchText,
 	searchNodes,
 } from './canvas-search';
@@ -74,6 +75,28 @@ describe('canvas search', () => {
 			['x', 'y']
 		);
 		expect(counts).toEqual(new Map([['root', 2]]));
+	});
+
+	it('counts an anchored annotation whose host is hidden as inside the collapsed node', () => {
+		const tree = [
+			node('root', 'Mind maps', { x: 0, y: 0 }, { isCollapsed: true }),
+			node('host', 'Hidden host', { x: 0, y: 100 }),
+			node(
+				'note',
+				'budget note',
+				{ x: 200, y: 100 },
+				{ anchorNodeId: 'host', anchorOffset: { x: 200, y: 0 } },
+				'annotationNode'
+			),
+		];
+		const counts = countMatchesInsideCollapsed(tree, [edge('root', 'host')], ['note']);
+		expect(counts).toEqual(new Map([['root', 1]]));
+	});
+
+	it('clamps the active match index when the match list shrinks', () => {
+		expect(getActiveMatchIndex(4, 3)).toBe(2);
+		expect(getActiveMatchIndex(1, 3)).toBe(1);
+		expect(getActiveMatchIndex(2, 0)).toBe(0);
 	});
 
 	it('keeps AI semantic text unchanged', () => {

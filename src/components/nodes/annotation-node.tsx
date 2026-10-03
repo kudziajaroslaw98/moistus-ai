@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import {
 	computeAnchorOffset,
 	findNearestAnchorHost,
+	isAnnotationNode,
 } from '@/helpers/anchored-annotations';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import useAppStore from '@/store/mind-map-store';
@@ -46,9 +47,14 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 		useAppStore(
 			useShallow((state) => {
 				const anchorNodeId = data.metadata?.anchorNodeId;
-				const host = anchorNodeId
-					? state.nodes.find((node) => node.id === anchorNodeId)
-					: undefined;
+				// Same rule as getAnchorNodeId: a missing host, an annotation host,
+				// or the annotation itself means free.
+				const host =
+					anchorNodeId && anchorNodeId !== data.id
+						? state.nodes.find(
+								(node) => node.id === anchorNodeId && !isAnnotationNode(node)
+							)
+						: undefined;
 				return {
 					updateNode: state.updateNode,
 					selectedNodes: state.selectedNodes,
@@ -60,7 +66,7 @@ const AnnotationNodeComponent = (props: AnnotationNodeProps) => {
 				};
 			})
 		);
-	// Anchored only while the host exists; a dangling anchor behaves as free.
+	// Anchored only while the host is valid; otherwise the annotation is free.
 	const isAnchored = hostLabel !== null;
 
 	const annotationType = (data.metadata?.annotationType as string) || 'default';

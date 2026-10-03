@@ -4,7 +4,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/h
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getMatchesInsideCollapsed } from '@/helpers/canvas-search';
 import { getBranchIndex } from '@/helpers/collapse/branch-index';
-import { useCoarsePointer } from '@/hooks/use-coarse-pointer';
+import { useTouchFirst } from '@/hooks/use-touch-first';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { ChevronDown } from 'lucide-react';
@@ -48,7 +48,7 @@ const CollapsedIndicatorComponent = ({ nodeId }: CollapsedIndicatorProps) => {
 		if (!isOpen || query.trim().length === 0) return 0;
 		return getMatchesInsideCollapsed(state.nodes, state.edges, query).get(nodeId) ?? 0;
 	});
-	const isCoarsePointer = useCoarsePointer();
+	const isTouchFirst = useTouchFirst();
 	const reduceMotion = useReducedMotion();
 	const [isPeekOpen, setIsPeekOpen] = useState(false);
 
@@ -95,7 +95,7 @@ const CollapsedIndicatorComponent = ({ nodeId }: CollapsedIndicatorProps) => {
 	);
 	const peek = (
 		<BranchPeek
-			onExpand={isCoarsePointer ? handleExpand : undefined}
+			onExpand={isTouchFirst ? handleExpand : undefined}
 			onExpandPath={handleExpandPath}
 			summary={summary}
 		/>
@@ -120,7 +120,7 @@ const CollapsedIndicatorComponent = ({ nodeId }: CollapsedIndicatorProps) => {
 				transition={{ type: 'spring', duration: 0.3, bounce: 0, delay: 0.03 }}
 			/>
 
-			{isCoarsePointer ? (
+			{isTouchFirst ? (
 				<Popover onOpenChange={setIsPeekOpen} open={isPeekOpen}>
 					<PopoverTrigger
 						aria-label={`${label}. Show hidden nodes`}

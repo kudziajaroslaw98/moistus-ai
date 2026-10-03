@@ -655,13 +655,29 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				}
 
 				// A new child is never created out of sight: open a collapsed parent.
+				// The expand rides on the optimistic insert (one addNode history step)
+				// and is only saved once the insert succeeds or is queued.
 				const parentId = parentNode?.id;
-				if (
+				const expandParentId =
 					parentId &&
 					nodes.find((node) => node.id === parentId)?.data.metadata?.isCollapsed
-				) {
-					get().setNodesCollapsed([parentId], false);
-				}
+						? parentId
+						: null;
+				const withParentCollapsed = (
+					currentNodes: AppNode[],
+					collapsed: boolean
+				): AppNode[] =>
+					currentNodes.map((node) =>
+						node.id === expandParentId
+							? {
+									...node,
+									data: {
+										...node.data,
+										metadata: { ...node.data.metadata, isCollapsed: collapsed },
+									},
+								}
+							: node
+					);
 
 				const newNodeId = props.nodeId ?? generateUuid();
 				let newNodePosition: XYPosition = {
@@ -751,16 +767,37 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						}
 					: null;
 
-				set((state) => ({
-					nodes: state.nodes.some((node) => node.id === newNodeId)
-						? state.nodes
-						: [...state.nodes, optimisticNode],
+				set((state) => {
+					const baseNodes = expandParentId
+						? withParentCollapsed(state.nodes, false)
+						: state.nodes;
+					return {
+						nodes: baseNodes.some((node) => node.id === newNodeId)
+							? baseNodes
+							: [...baseNodes, optimisticNode],
 					edges:
 						optimisticFlowEdge &&
 						!state.edges.some((edge) => edge.id === optimisticFlowEdge.id)
 							? [...state.edges, optimisticFlowEdge]
 							: state.edges,
-				}));
+					};
+				});
+
+				const persistExpandedParent = () => {
+					if (!expandParentId) return;
+					const parent = get().nodes.find((node) => node.id === expandParentId);
+					if (!parent) return;
+					const parentUserId = getNodeActorId(parent, actorId);
+					void broadcast(mapId, BROADCAST_EVENTS.NODE_UPDATE, {
+						id: expandParentId,
+						data: serializeNodeForRealtime(parent, mapId, parentUserId),
+						userId: parentUserId,
+						timestamp: Date.now(),
+					}).catch((error) => {
+						console.warn('[nodes] Failed to sync Yjs node update:', error);
+					});
+					get().triggerNodeSave(expandParentId);
+				};
 
 				const nodeEventUserId = getNodeActorId(optimisticNode, actorId);
 				const nodeRealtimeData = serializeNodeForRealtime(
@@ -846,6 +883,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				});
 
 				if (rpcMutation.status === 'queued') {
+					persistExpandedParent();
 					get().persistDeltaEvent(
 						'addNode',
 						{ nodes, edges },
@@ -865,7 +903,10 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				const rpcResult = rpcMutation.data;
 				if (!rpcResult) {
 					set((state) => ({
-						nodes: state.nodes.filter((node) => node.id !== newNodeId),
+						nodes: withParentCollapsed(
+							state.nodes.filter((node) => node.id !== newNodeId),
+							true
+						),
 						edges: edgeId
 							? state.edges.filter((edge) => edge.id !== edgeId)
 							: state.edges,
@@ -957,6 +998,8 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 						edges: nextEdges,
 					};
 				});
+
+				persistExpandedParent();
 
 				// Persist delta to DB for history tracking
 				get().persistDeltaEvent(

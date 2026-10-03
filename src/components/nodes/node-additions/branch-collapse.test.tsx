@@ -11,7 +11,7 @@ const mockExpandPathTo = jest.fn();
 const mockCenterOnNode = jest.fn();
 let mockNodes: AppNode[] = [];
 let mockEdges: AppEdge[] = [];
-let mockCoarsePointer = false;
+let mockTouchFirst = false;
 
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
@@ -27,8 +27,8 @@ jest.mock('@/store/mind-map-store', () => ({
 	),
 }));
 
-jest.mock('@/hooks/use-coarse-pointer', () => ({
-	useCoarsePointer: () => mockCoarsePointer,
+jest.mock('@/hooks/use-touch-first', () => ({
+	useTouchFirst: () => mockTouchFirst,
 }));
 
 // Render overlays inline so tests can assert on them without portals/timers.
@@ -96,7 +96,7 @@ function edge(source: string, target: string, label?: string): AppEdge {
 
 beforeEach(() => {
 	jest.clearAllMocks();
-	mockCoarsePointer = false;
+	mockTouchFirst = false;
 	mockNodes = [
 		node('root', { isCollapsed: true }),
 		node('child', {
@@ -137,7 +137,7 @@ describe('CollapsedIndicator', () => {
 	});
 
 	it('peeks with explicit expand actions on touch devices', () => {
-		mockCoarsePointer = true;
+		mockTouchFirst = true;
 		render(<CollapsedIndicator nodeId='root' />);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Expand all' }));

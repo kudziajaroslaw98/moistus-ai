@@ -1,5 +1,7 @@
 import {
 	computeAnchorOffset,
+	getAnchorHostIds,
+	getAnchorNodeId,
 	isAnnotationNode,
 } from '@/helpers/anchored-annotations';
 import generateUuid from '@/helpers/generate-uuid';
@@ -947,15 +949,32 @@ export const createSuggestionsSlice: StateCreator<
 			}
 		});
 
+		// An anchored annotation takes no connections, so as a source it stands
+		// in for its host.
+		const sourceNode = ghostMetadata.context?.sourceNodeId
+			? state.nodes.find((node) => node.id === ghostMetadata.context?.sourceNodeId)
+			: undefined;
+		const sourceHostId = sourceNode
+			? getAnchorNodeId(sourceNode, getAnchorHostIds(state.nodes))
+			: null;
+		const sourceNodeId = sourceHostId ?? ghostMetadata.context?.sourceNodeId;
+		const effectiveSource = sourceHostId
+			? state.nodes.find((node) => node.id === sourceHostId)
+			: sourceNode;
+
 		// An approved AI annotation anchors to its source node instead of
-		// getting an edge (annotations are notes about a node, not peers).
-		const sourceNodeId = ghostMetadata.context?.sourceNodeId;
+		// getting an edge (annotations are notes about a node, not peers), and
+		// is never linked to another annotation.
+		const isAnnotationApproval = approvedNodeInput.nodeType === 'annotationNode';
 		const anchorHost =
-			approvedNodeInput.nodeType === 'annotationNode' && sourceNodeId
-				? state.nodes.find(
-						(node) => node.id === sourceNodeId && !isAnnotationNode(node)
-					)
+			isAnnotationApproval && effectiveSource && !isAnnotationNode(effectiveSource)
+				? effectiveSource
 				: undefined;
+		const skipEdge =
+			Boolean(anchorHost) ||
+			(isAnnotationApproval &&
+				effectiveSource !== undefined &&
+				isAnnotationNode(effectiveSource));
 		const approvedData = anchorHost
 			? {
 					...approvedNodeInput.data,
@@ -984,7 +1003,7 @@ export const createSuggestionsSlice: StateCreator<
 		state.removeGhostNode(nodeId);
 
 		// If there's a connection context, create the edge
-		if (sourceNodeId && !anchorHost) {
+		if (sourceNodeId && !skipEdge) {
 			await state.addEdge(sourceNodeId, approvedNodeId, {
 				label: ghostMetadata.context?.relationshipType || null,
 				animated: false,

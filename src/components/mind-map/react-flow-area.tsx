@@ -42,6 +42,7 @@ import { useNotifications } from '@/components/notifications/use-notifications';
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
 import { ShortcutsHelpFab } from '@/components/shortcuts-help/shortcuts-help-fab';
 import { buildAnnotationTetherEdges } from '@/helpers/anchored-annotations';
+import { isDerivedDisplayEdgeId } from '@/helpers/derived-display-edges';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
@@ -666,6 +667,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
 		(event, edge) => {
+			if (isDerivedDisplayEdgeId(edge.id)) return;
 			// Waypoint edges add a bend point on double-click instead of opening edge edit.
 			if (
 				edge.type === 'waypointEdge' ||

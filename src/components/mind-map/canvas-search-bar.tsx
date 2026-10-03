@@ -1,6 +1,6 @@
 'use client';
 
-import { getCanvasSearchMatches } from '@/helpers/canvas-search';
+import { getActiveMatchIndex, getCanvasSearchMatches } from '@/helpers/canvas-search';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { ChevronDown, ChevronUp, CornerDownLeft, Search, X } from 'lucide-react';
@@ -17,7 +17,7 @@ export function CanvasSearchBar() {
 	const {
 		isOpen,
 		query,
-		activeIndex,
+		storedActiveIndex,
 		nodes,
 		closeCanvasSearch,
 		setCanvasSearchQuery,
@@ -29,7 +29,7 @@ export function CanvasSearchBar() {
 		useShallow((state) => ({
 			isOpen: state.canvasSearch.isOpen,
 			query: state.canvasSearch.query,
-			activeIndex: state.canvasSearch.activeIndex,
+			storedActiveIndex: state.canvasSearch.activeIndex,
 			nodes: state.nodes,
 			closeCanvasSearch: state.closeCanvasSearch,
 			setCanvasSearchQuery: state.setCanvasSearchQuery,
@@ -45,6 +45,7 @@ export function CanvasSearchBar() {
 	const reduceMotion = useReducedMotion();
 	const matchIds = getCanvasSearchMatches(nodes, query).ids;
 	const total = matchIds.length;
+	const activeIndex = getActiveMatchIndex(storedActiveIndex, total);
 
 	useEffect(() => {
 		if (isOpen) {

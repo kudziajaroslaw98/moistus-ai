@@ -1,5 +1,6 @@
 import { BLOCKED_NODE_TYPES } from '@/constants/blocked-node-types';
 import {
+	getActiveMatchIndex,
 	getCanvasSearchMatches,
 	getMatchesInsideCollapsed,
 } from '@/helpers/canvas-search';
@@ -95,7 +96,9 @@ const BaseNodeWrapperComponent = ({
 		const { isOpen, query, activeIndex } = state.canvasSearch;
 		if (!isOpen || query.trim().length === 0) return 'none';
 		const matches = getCanvasSearchMatches(state.nodes, query);
-		if (matches.ids[activeIndex] === id) return 'active';
+		if (matches.ids[getActiveMatchIndex(activeIndex, matches.ids.length)] === id) {
+			return 'active';
+		}
 		if (matches.idSet.has(id)) return 'match';
 		return getMatchesInsideCollapsed(state.nodes, state.edges, query).has(id)
 			? 'inside'

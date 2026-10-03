@@ -53,7 +53,7 @@ export function searchNodes(nodes: readonly AppNode[], query: string): string[] 
 /**
  * For each visible collapsed node, how many matches it hides.
  * Visibility is derived from the branch index (hidden = inside any collapsed
- * branch), matching `getVisibleNodes` for regular nodes.
+ * branch, or anchored to a hidden host), matching `getVisibleNodes`.
  */
 export function countMatchesInsideCollapsed(
 	nodes: readonly AppNode[],
@@ -70,20 +70,29 @@ export function countMatchesInsideCollapsed(
 	for (const summary of index.summaries.values()) {
 		for (const hiddenId of summary.hiddenIds) hiddenIds.add(hiddenId);
 	}
+	// Summaries exclude anchored annotations; they are hidden with their host.
+	const anchorHostById = buildAnchorHostById(nodes);
+	for (const [annotationId, hostId] of anchorHostById) {
+		if (hiddenIds.has(hostId)) hiddenIds.add(annotationId);
+	}
 	const visibleNodeIds = new Set(
 		nodes.filter((node) => !hiddenIds.has(node.id)).map((node) => node.id)
 	);
 
-	const ownerById = buildHiddenOwnerById(
-		index,
-		visibleNodeIds,
-		buildAnchorHostById(nodes as AppNode[])
-	);
+	const ownerById = buildHiddenOwnerById(index, visibleNodeIds, anchorHostById);
 	for (const matchId of matchIds) {
 		const owner = ownerById.get(matchId);
 		if (owner) counts.set(owner, (counts.get(owner) ?? 0) + 1);
 	}
 	return counts;
+}
+
+/**
+ * Stored active index clamped to the current match list, which can shrink
+ * under it (edits, deletes, remote changes).
+ */
+export function getActiveMatchIndex(activeIndex: number, total: number): number {
+	return total === 0 ? 0 : Math.min(Math.max(activeIndex, 0), total - 1);
 }
 
 let insideMemo: {

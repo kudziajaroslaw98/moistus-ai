@@ -307,3 +307,58 @@ describe('collapse actions in nodes slice', () => {
 		expect(harness.persistDeltaEvent).not.toHaveBeenCalled();
 	});
 });
+
+describe('addNode under a collapsed parent', () => {
+	const originalBypass = process.env.NEXT_PUBLIC_DEV_BYPASS_LIMITS;
+
+	beforeEach(() => {
+		process.env.NEXT_PUBLIC_DEV_BYPASS_LIMITS = 'true';
+		mockBroadcast.mockReset();
+		mockBroadcast.mockResolvedValue(undefined);
+		mockQueueMutation.mockReset();
+	});
+
+	afterAll(() => {
+		process.env.NEXT_PUBLIC_DEV_BYPASS_LIMITS = originalBypass;
+	});
+
+	const collapsedParent = () =>
+		createNode('parent', 'defaultNode', { x: 0, y: 0 }, { isCollapsed: true });
+
+	it('expands the parent inside the single addNode history step', async () => {
+		mockQueueMutation.mockResolvedValue({ status: 'queued' });
+		const harness = createHarness([collapsedParent()]);
+
+		await (harness.slice.addNode as (props: unknown) => Promise<void>)({
+			parentNode: harness.getNode('parent'),
+			nodeId: 'child',
+		});
+
+		expect(harness.getNode('parent')?.data.metadata?.isCollapsed).toBe(false);
+		expect(harness.getNode('child')).toBeDefined();
+		expect(harness.triggerNodeSave).toHaveBeenCalledWith('parent');
+		expect(harness.persistDeltaEvent).toHaveBeenCalledTimes(1);
+		expect(harness.persistDeltaEvent).toHaveBeenCalledWith(
+			'addNode',
+			expect.anything(),
+			expect.anything()
+		);
+	});
+
+	it('restores the collapsed parent without saving it when the insert fails', async () => {
+		mockQueueMutation.mockResolvedValue({ status: 'applied', data: null });
+		const harness = createHarness([collapsedParent()]);
+
+		await expect(
+			(harness.slice.addNode as (props: unknown) => Promise<void>)({
+				parentNode: harness.getNode('parent'),
+				nodeId: 'child',
+			})
+		).rejects.toThrow('Failed to save new node to database.');
+
+		expect(harness.getNode('parent')?.data.metadata?.isCollapsed).toBe(true);
+		expect(harness.getNode('child')).toBeUndefined();
+		expect(harness.triggerNodeSave).not.toHaveBeenCalled();
+		expect(harness.persistDeltaEvent).not.toHaveBeenCalled();
+	});
+});
