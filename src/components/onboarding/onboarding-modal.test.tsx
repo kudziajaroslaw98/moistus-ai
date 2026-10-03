@@ -157,6 +157,10 @@ describe('OnboardingModal mobile rendering', () => {
 		expect(checklist).toHaveStyle({
 			top: 'calc(env(safe-area-inset-top, 0px) + 4.5rem)',
 		});
+		// Short landscape viewports: the checklist is height-capped and its task list scrolls.
+		const taskList = within(checklist).getByTestId('onboarding-checklist-tasks');
+		expect(taskList).toHaveClass('overflow-y-auto');
+		expect(taskList.parentElement?.style.maxHeight).toContain('100dvh');
 		expect(
 			screen.queryByTestId('onboarding-minimized-pill')
 		).not.toBeInTheDocument();

@@ -72,4 +72,22 @@ describe('ActionBar', () => {
 			screen.getByText(/Ctrl\+Space/)
 		).toBeInTheDocument();
 	});
+
+	it('hides keyboard shortcut hints when no keyboard can be assumed', async () => {
+		setNavigatorPlatform('Win32');
+
+		await act(async () => {
+			render(
+				<ActionBar
+					canCreate
+					isCreating={false}
+					onCreate={jest.fn()}
+					showKeyboardHints={false}
+				/>
+			);
+		});
+
+		expect(screen.queryByText(/Enter to create/)).not.toBeInTheDocument();
+		expect(screen.getByTestId('create-button')).toBeInTheDocument();
+	});
 });

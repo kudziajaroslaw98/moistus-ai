@@ -11,6 +11,8 @@ interface ActionBarProps {
 	isCheckingLimit?: boolean;
 	mode?: 'create' | 'edit';
 	className?: string;
+	/** Hide keyboard-shortcut copy on touch-first devices without a keyboard. */
+	showKeyboardHints?: boolean;
 }
 
 export const ActionBar: React.FC<ActionBarProps> = ({
@@ -20,6 +22,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 	isCheckingLimit = false,
 	mode = 'create',
 	className,
+	showKeyboardHints = true,
 }) => {
 	const isBusy = isCreating || isCheckingLimit;
 	const isMac = useIsMac();
@@ -41,13 +44,13 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 			>
 				{isCheckingLimit ? (
 					<span className='text-zinc-400'>Checking map limit...</span>
-				) : (
+				) : showKeyboardHints ? (
 					<>
 						<span className='hidden sm:inline'>Press </span>{modifierKey}+Enter to {mode === 'edit' ? 'update' : 'create'}
 						<span className='hidden sm:inline'> • Enter for new line</span>
 						<span className='hidden sm:inline'> • {suggestionShortcut} for suggestions</span>
 					</>
-				)}
+				) : null}
 			</motion.span>
 
 			<motion.button
