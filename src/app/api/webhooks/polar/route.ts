@@ -144,11 +144,16 @@ async function loadStoredMetadata(
 }
 
 /**
- * Handles subscription creation/activation.
+ * Handles subscription creation/activation. Also persists any event that arrives
+ * before its subscription row exists (`preserveIncomingState`), so the event's
+ * version is recorded and a late `subscription.created` retry is skipped as stale.
  */
 async function handleSubscriptionActive(
 	data: SubscriptionData,
-	options: { preserveIncomingState?: boolean } = {}
+	options: {
+		preserveIncomingState?: boolean;
+		forceStatus?: ReturnType<typeof mapPolarStatus>;
+	} = {}
 ) {
 	const supabase = createServiceRoleClient();
 
@@ -214,9 +219,11 @@ async function handleSubscriptionActive(
 		plan_id: plan.id,
 		polar_subscription_id: data.id,
 		polar_customer_id: customerId,
-		status: options.preserveIncomingState
-			? mapPolarStatus(data.status || 'active')
-			: 'active',
+		status:
+			options.forceStatus ??
+			(options.preserveIncomingState
+				? mapPolarStatus(data.status || 'active')
+				: 'active'),
 		current_period_start: currentPeriodStart.toISOString(),
 		current_period_end: currentPeriodEnd.toISOString(),
 		cancel_at_period_end: options.preserveIncomingState
@@ -257,10 +264,16 @@ async function handleSubscriptionActive(
 		return;
 	}
 
+	// Merge into stored metadata so keys written by other handlers (plan-change
+	// audit fields, previous_period_start) survive a redelivered created/active.
+	const storedMetadata = existingSubscription?.metadata as Record<string, unknown> | null;
 	const { error } = existingSubscription
 		? await supabase
 				.from('user_subscriptions')
-				.update(subscriptionRecord)
+				.update({
+					...subscriptionRecord,
+					metadata: { ...storedMetadata, ...subscriptionRecord.metadata },
+				})
 				.eq('id', existingSubscription.id)
 		: await supabase.from('user_subscriptions').insert(subscriptionRecord);
 
@@ -508,6 +521,11 @@ async function handleSubscriptionCanceled(data: SubscriptionData) {
 	console.log('[Polar] Processing subscription.canceled:', data.id);
 
 	const storedMetadata = await loadStoredMetadata(supabase, data.id);
+	if (!storedMetadata) {
+		// Arrived before subscription.created: persist it so its version is recorded.
+		await handleSubscriptionActive(data, { preserveIncomingState: true });
+		return;
+	}
 	if (isStaleEvent(storedMetadata, data)) {
 		logStaleEvent('subscription.canceled', data);
 		return;
@@ -544,6 +562,11 @@ async function handleSubscriptionUncanceled(data: SubscriptionData) {
 	console.log('[Polar] Processing subscription.uncanceled:', data.id);
 
 	const storedMetadata = await loadStoredMetadata(supabase, data.id);
+	if (!storedMetadata) {
+		// Arrived before subscription.created: persist it so its version is recorded.
+		await handleSubscriptionActive(data, { preserveIncomingState: true });
+		return;
+	}
 	if (isStaleEvent(storedMetadata, data)) {
 		logStaleEvent('subscription.uncanceled', data);
 		return;
@@ -579,6 +602,15 @@ async function handleSubscriptionRevoked(data: SubscriptionData) {
 	console.log('[Polar] Processing subscription.revoked:', data.id);
 
 	const storedMetadata = await loadStoredMetadata(supabase, data.id);
+	if (!storedMetadata) {
+		// Arrived before subscription.created: persist it so its version is recorded.
+		// Revoked always means no access, whatever the payload status says.
+		await handleSubscriptionActive(data, {
+			preserveIncomingState: true,
+			forceStatus: 'canceled',
+		});
+		return;
+	}
 	if (isStaleEvent(storedMetadata, data)) {
 		logStaleEvent('subscription.revoked', data);
 		return;
