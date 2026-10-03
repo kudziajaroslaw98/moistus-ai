@@ -31,6 +31,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **map-settings**: Map Settings content scrolls again and the side panel footer is opaque, so it no longer overlaps panel content
 - **node-editor**: The full-screen phone editor has a footer Cancel button to close without saving
   - Why: Full screen removed the backdrop tap, and touch users have no Escape key
+- **share**: On short (mobile) screens the Room Code tab scrolls as one area (settings + codes), so expanded settings no longer squeeze the codes list to nothing
+- **ui/tabs**: The selected tab is visibly highlighted again (share panel, dashboard settings)
+  - Why: Base UI 1.8 marks the selected tab with `data-active`; the primitive still styled the old `data-selected` attribute, so no tab ever looked selected
 
 ## [2026-10-02]
 
