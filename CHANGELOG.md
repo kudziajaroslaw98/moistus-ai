@@ -9,8 +9,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Changed
 
-- **ci/audit**: Ignored `GHSA-vfj7-8cjw-p6xm` (`braces` stack-exhaustion DoS) via `pnpm-workspace.yaml#auditConfig.ignoreGhsas`
-  - Why: No patched `braces` release exists; all paths are dev-only tooling over repo-controlled globs, and the prod audit is clean
+- **deps/security**: Removed `braces` (GHSA-vfj7-8cjw-p6xm, no patched release) from the dependency tree: `@next/eslint-plugin-next>fast-glob` is aliased to `tinyglobby`, and the `shadcn` CLI is no longer a devDependency (use `pnpm dlx shadcn@latest`)
+  - Why: Fixes the high-severity audit failure without suppressing the advisory; the Next plugin only uses `globSync` with `onlyDirectories`, which tinyglobby supports
 
 ## [2026-10-02]
 

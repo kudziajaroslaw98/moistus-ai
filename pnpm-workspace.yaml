@@ -5,9 +5,3 @@ onlyBuiltDependencies:
   - supabase
   - unrs-resolver
 
-# No patched braces release exists (3.0.3 is latest). Dev-only paths
-# (eslint-config-next, fast-glob, ts-morph) expand repo-controlled globs, so the
-# stack-exhaustion DoS is unreachable. Remove once braces ships a fix.
-auditConfig:
-  ignoreGhsas:
-    - GHSA-vfj7-8cjw-p6xm
