@@ -12,6 +12,10 @@ import type {
 	LayoutConfig,
 	LayoutResult,
 } from '@/types/layout-types';
+import {
+	reattachAnchoredAnnotations,
+	splitAnchoredAnnotations,
+} from './anchored-annotation-layout';
 import { convertFromElkGraph, convertToElkGraph } from './elk-converter';
 import {
 	runDirectionalForestLayout,
@@ -105,6 +109,29 @@ export function terminateElk(): void {
  * cycle-safe placement helper on the client.
  */
 export async function runElkLayout(params: ElkLayoutParams): Promise<LayoutResult> {
+	// Anchored annotations never take part in layout; they follow their host.
+	const split = splitAnchoredAnnotations(params.nodes, params.edges);
+	if (split.anchorHostById.size === 0) {
+		return runLayoutWithoutAnnotations(params);
+	}
+
+	const result = await runLayoutWithoutAnnotations({
+		...params,
+		nodes: split.nodes,
+		edges: split.edges,
+	});
+	const { nodes, edges } = reattachAnchoredAnnotations(
+		params.nodes,
+		params.edges,
+		result,
+		split.anchorHostById
+	);
+	return { nodes, edges };
+}
+
+async function runLayoutWithoutAnnotations(
+	params: ElkLayoutParams
+): Promise<LayoutResult> {
 	const {
 		nodes,
 		edges,

@@ -1,4 +1,10 @@
 import { BLOCKED_NODE_TYPES } from '@/constants/blocked-node-types';
+import {
+	getActiveMatchIndex,
+	getCanvasSearchMatches,
+	getMatchesInsideCollapsed,
+} from '@/helpers/canvas-search';
+import { getBranchIndex } from '@/helpers/collapse/branch-index';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import useAppStore from '@/store/mind-map-store';
@@ -20,7 +26,7 @@ import { AIActionsPopover } from '../ai/ai-actions-popover';
 import { AvatarStack } from '../ui/avatar-stack';
 import { Button } from '../ui/button';
 import { type BaseNodeWrapperProps } from './core/types';
-import CollapseButton from './node-additions/collapse-button';
+import BranchSummary from './node-additions/branch-summary';
 import CollapsedIndicator from './node-additions/collapsed-indicator';
 import GroupButton from './node-additions/group-button';
 import { UniversalMetadataBar } from './shared/universal-metadata-bar';
@@ -28,6 +34,13 @@ import {
 	GlassmorphismTheme,
 	getElevationColor,
 } from './themes/glassmorphism-theme';
+
+/**
+ * Extra downward offset (px) for the add button below a collapsed node so it
+ * clears the "N nodes hidden" pill: pill far edge (mt-5 + h-7 = 48px)
+ * + 8px gap - the button's 20px base inset.
+ */
+const BRANCH_PILL_CLEARANCE = 36;
 
 const BaseNodeWrapperComponent = ({
 	id,
@@ -42,6 +55,7 @@ const BaseNodeWrapperComponent = ({
 	hideAddButton = false,
 	hideSuggestionsButton = false,
 	hideResizeFrame = false,
+	disableConnections = false,
 	accentColor,
 	elevation = 1,
 	metadataColorOverrides,
@@ -70,6 +84,26 @@ const BaseNodeWrapperComponent = ({
 		}))
 	);
 	const isMobile = useIsMobile();
+	// Collapsed nodes show the "N nodes hidden" pill centered below the card;
+	// the add button moves past it. (Collapsing itself is in the context menu.)
+	const hasCollapsedPill = useAppStore((state) =>
+		getBranchIndex(state.nodes, state.edges).summaries.has(id)
+	);
+	const addOffset = hasCollapsedPill ? BRANCH_PILL_CLEARANCE : 0;
+	// Canvas search: 'active' = current match, 'match' = any match, or a
+	// collapsed node that hides matches ('inside').
+	const searchHighlight = useAppStore((state) => {
+		const { isOpen, query, activeIndex } = state.canvasSearch;
+		if (!isOpen || query.trim().length === 0) return 'none';
+		const matches = getCanvasSearchMatches(state.nodes, query);
+		if (matches.ids[getActiveMatchIndex(activeIndex, matches.ids.length)] === id) {
+			return 'active';
+		}
+		if (matches.idSet.has(id)) return 'match';
+		return getMatchesInsideCollapsed(state.nodes, state.edges, query).has(id)
+			? 'inside'
+			: 'none';
+	});
 
 	// State for AI actions popover
 	const [isAIPopoverOpen, setIsAIPopoverOpen] = useState(false);
@@ -179,7 +213,12 @@ const BaseNodeWrapperComponent = ({
 		<motion.div ref={nodeRef} transition={{ type: 'spring', duration: 0.2 }}>
 			<motion.div
 				className={cn(
-					'flex-col rounded-lg cursor-move gap-4',
+					'group/node relative flex-col rounded-lg cursor-move gap-4',
+					'transition-shadow duration-200 ease-out',
+					searchHighlight === 'active' &&
+						'shadow-[0_0_0_2px_var(--color-warning-400),0_0_24px_-4px_var(--color-warning-500)]',
+					(searchHighlight === 'match' || searchHighlight === 'inside') &&
+						'shadow-[0_0_0_1.5px_color-mix(in_oklch,var(--color-warning-400)_75%,transparent)]',
 					'bg-elevation-1 bg-[url("/images/groovepaper.png")] bg-repeat bg-blend-color-burn',
 					includePadding ? 'p-4' : 'p-0',
 					nodeClassName
@@ -189,12 +228,10 @@ const BaseNodeWrapperComponent = ({
 					...accentStyles,
 				}}
 			>
-				<CollapsedIndicator data={data} />
+				<CollapsedIndicator nodeId={id} />
 
 				{/* Top header controls */}
 				<div className='top-0 left-4 absolute -translate-y-full flex items-center justify-center gap-2'>
-					<CollapseButton data={data} />
-
 					<GroupButton />
 				</div>
 
@@ -262,6 +299,8 @@ const BaseNodeWrapperComponent = ({
 
 					{/* Main node content */}
 					{children}
+
+					<BranchSummary inset={!includePadding} nodeId={id} />
 				</div>
 
 				{!isDraggingNodes && !hideResizeFrame && (
@@ -271,7 +310,8 @@ const BaseNodeWrapperComponent = ({
 							position={Position.Bottom}
 							type='source'
 							isConnectable={
-								activeTool === 'default' || activeTool === 'connector'
+								!disableConnections &&
+								(activeTool === 'default' || activeTool === 'connector')
 							}
 							className={cn(
 								'!w-2 !h-2 rounded-full transition-all duration-200',
@@ -295,7 +335,7 @@ const BaseNodeWrapperComponent = ({
 							}}
 						/>
 
-						{activeTool === 'connector' && (
+						{activeTool === 'connector' && !disableConnections && (
 							<Handle
 								position={Position.Top}
 								type='source'
@@ -307,6 +347,7 @@ const BaseNodeWrapperComponent = ({
 						)}
 
 						<Handle
+							isConnectableEnd={!disableConnections}
 							isConnectableStart={false}
 							position={Position.Top}
 							type='target'
@@ -327,7 +368,8 @@ const BaseNodeWrapperComponent = ({
 									<div key={`${data.id}-add-handles`}>
 										<motion.div
 											animate={{ opacity: 0.3, scaleY: 1 }}
-											className='absolute -bottom-12 left-1/2 -translate-x-1/2 w-[1px] h-12 bg-overlay'
+											className='absolute left-1/2 -translate-x-1/2 w-[1px] bg-overlay'
+											style={{ bottom: -(48 + addOffset), height: 48 + addOffset }}
 											exit={{ opacity: 0, scaleY: 0 }}
 											initial={{ opacity: 0, scaleY: 0 }}
 											transition={{ duration: 0.2 }}
@@ -335,7 +377,9 @@ const BaseNodeWrapperComponent = ({
 
 										<motion.div
 											animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
-											className='absolute -bottom-[60px] left-1/2 -translate-x-1/2 z-20'
+											className='absolute left-1/2 -translate-x-1/2 z-20'
+											data-testid='node-add-button-container'
+											style={{ bottom: -(60 + addOffset) }}
 											exit={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
 											initial={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
 											transition={{
@@ -362,7 +406,8 @@ const BaseNodeWrapperComponent = ({
 									<>
 										<motion.div
 											animate={{ opacity: 0.3, scaleX: 1 }}
-											className='absolute -right-8 -z-10 top-1/2 -translate-y-1/2 w-12 h-[1px] bg-overlay'
+											className='absolute -z-10 top-1/2 -translate-y-1/2 h-[1px] bg-overlay'
+											style={{ right: -32, width: 48 }}
 											exit={{ opacity: 0, scaleX: 0 }}
 											initial={{ opacity: 0, scaleX: 0 }}
 											transition={{ duration: 0.2 }}
@@ -370,7 +415,9 @@ const BaseNodeWrapperComponent = ({
 
 										<motion.div
 											animate={{ opacity: 1, scale: 1, filter: 'blur(0)' }}
-											className='absolute -right-[60px] top-1/2 -translate-y-1/2 z-20'
+											className='absolute top-1/2 -translate-y-1/2 z-20'
+											data-testid='node-suggest-button-container'
+											style={{ right: -60 }}
 											exit={{ opacity: 0, scale: 0.8 }}
 											initial={{
 												opacity: 0,

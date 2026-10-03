@@ -1,102 +1,165 @@
-import useAppStore from '@/store/mind-map-store';
-import { NodeData } from '@/types/node-data';
-import { motion } from 'motion/react';
-import { memo, useMemo } from 'react';
-import { useShallow } from 'zustand/shallow';
+'use client';
 
-const CollapsedIndicatorComponent = (props: { data: NodeData }) => {
-	const { data } = props;
-	const { getDirectChildrenCount } = useAppStore(
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { getMatchesInsideCollapsed } from '@/helpers/canvas-search';
+import { getBranchIndex } from '@/helpers/collapse/branch-index';
+import { useTouchFirst } from '@/hooks/use-touch-first';
+import useAppStore from '@/store/mind-map-store';
+import { cn } from '@/utils/cn';
+import { ChevronDown } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
+import { memo, useCallback, useState, type MouseEvent } from 'react';
+import { useShallow } from 'zustand/shallow';
+import { BranchPeek } from './branch-peek';
+
+/**
+ * The pill always sits centered under the stacked card edges, whatever the
+ * layout direction. A wide label on a left/right side would collide with the
+ * node's side actions (AI button) and read as detached from the stack.
+ */
+const PILL_POSITION = 'left-1/2 top-full -translate-x-1/2 mt-5';
+
+interface CollapsedIndicatorProps {
+	nodeId: string;
+}
+
+/**
+ * Collapsed branch visuals: two card edges peek out under the node (a stack,
+ * recognisable at any zoom) and a "N nodes hidden" pill centered beneath them.
+ *
+ * Pointer devices: hover the pill to peek, click to expand one level,
+ * Shift+click to expand everything. Touch devices: tap opens the peek, which
+ * carries explicit Expand / Expand all actions.
+ */
+const CollapsedIndicatorComponent = ({ nodeId }: CollapsedIndicatorProps) => {
+	const summary = useAppStore(
+		(state) => getBranchIndex(state.nodes, state.edges).summaries.get(nodeId)
+	);
+	const { expandBranch, expandPathTo, centerOnNode } = useAppStore(
 		useShallow((state) => ({
-			getDirectChildrenCount: state.getDirectChildrenCount,
+			expandBranch: state.expandBranch,
+			expandPathTo: state.expandPathTo,
+			centerOnNode: state.centerOnNode,
 		}))
 	);
-	const directChildrenCount = useMemo(() => {
-		return getDirectChildrenCount(data.id!);
-	}, [getDirectChildrenCount, data]);
+	const matchesInside = useAppStore((state) => {
+		const { isOpen, query } = state.canvasSearch;
+		if (!isOpen || query.trim().length === 0) return 0;
+		return getMatchesInsideCollapsed(state.nodes, state.edges, query).get(nodeId) ?? 0;
+	});
+	const isTouchFirst = useTouchFirst();
+	const reduceMotion = useReducedMotion();
+	const [isPeekOpen, setIsPeekOpen] = useState(false);
 
-	const collapsed = data?.metadata?.isCollapsed ?? false;
+	const handleExpandPath = useCallback(
+		(targetId: string) => {
+			setIsPeekOpen(false);
+			expandPathTo(targetId);
+			// Let React Flow mount the revealed node before centering on it.
+			requestAnimationFrame(() => centerOnNode(targetId));
+		},
+		[centerOnNode, expandPathTo]
+	);
 
-	if (!collapsed || directChildrenCount === 0) {
-		return null;
-	}
+	const handleExpand = useCallback(
+		(options: { all: boolean }) => {
+			setIsPeekOpen(false);
+			expandBranch(nodeId, options);
+		},
+		[expandBranch, nodeId]
+	);
 
-	// Determine the visual weight based on the number of hidden items
-	const getIndicatorIntensity = (count: number) => {
-		if (count > 10) return { opacity: 0.15, blur: 3 };
-		if (count > 5) return { opacity: 0.12, blur: 2 };
-		return { opacity: 0.08, blur: 1 };
-	};
+	if (!summary) return null;
 
-	const intensity = getIndicatorIntensity(directChildrenCount);
+	const count = summary.hiddenIds.length;
+	const label =
+		matchesInside > 0
+			? `${matchesInside} ${matchesInside === 1 ? 'match' : 'matches'} inside`
+			: `${count} ${count === 1 ? 'node' : 'nodes'} hidden`;
+
+	const pill = (
+		<span className='flex items-center gap-1.5'>
+			<ChevronDown className='size-3.5' />
+
+			<span className='tabular-nums'>{label}</span>
+		</span>
+	);
+	const pillClassName = cn(
+		'nodrag nopan absolute z-20 flex h-7 items-center whitespace-nowrap rounded-full px-3',
+		'border border-border-strong bg-elevated text-xs font-medium text-text-primary shadow-md',
+		'transition-[transform,border-color,background-color] duration-200 ease-out',
+		'hover:border-interactive-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-interactive-primary',
+		matchesInside > 0 && 'border-warning-400 bg-warning-500/15 text-warning-200',
+		PILL_POSITION
+	);
+	const peek = (
+		<BranchPeek
+			onExpand={isTouchFirst ? handleExpand : undefined}
+			onExpandPath={handleExpandPath}
+			summary={summary}
+		/>
+	);
 
 	return (
-		collapsed && (
-			<>
-				{/* First shadow layer - furthest back */}
-				<motion.div
-					animate={{ opacity: 1, scale: 1 }}
-					className='absolute w-full h-full -z-[101] left-0 top-0 rounded-lg translate-2.5'
-					exit={{ opacity: 0, scale: 0.95 }}
-					initial={{ opacity: 0, scale: 0.95 }}
-					transition={{ duration: 0.2, delay: 0.05 }}
-					style={{
-						backgroundColor: '#0d0d0d',
-						border: '1px solid rgba(255, 255, 255, 0.03)',
-						boxShadow: `0 4px 12px rgba(0, 0, 0, ${intensity.opacity * 2})`,
-						filter: `blur(${intensity.blur}px)`,
-					}}
-				/>
+		<>
+			{/* Stacked card edges peeking out underneath */}
+			<motion.div
+				aria-hidden
+				animate={{ opacity: 1, y: 0 }}
+				className='pointer-events-none absolute inset-x-2 top-full -z-10 h-2 -translate-y-1 rounded-b-lg border border-t-0 border-border-default bg-elevated/90'
+				initial={reduceMotion ? false : { opacity: 0, y: -6 }}
+				transition={{ type: 'spring', duration: 0.25, bounce: 0 }}
+			/>
 
-				{/* Second shadow layer - middle */}
-				<motion.div
-					animate={{ opacity: 1, scale: 1 }}
-					className='absolute w-full h-full -z-[100] left-0 top-0 rounded-lg translate-1.5'
-					exit={{ opacity: 0, scale: 0.97 }}
-					initial={{ opacity: 0, scale: 0.97 }}
-					transition={{ duration: 0.2, delay: 0.03 }}
-					style={{
-						backgroundColor: '#121212',
-						border: '1px solid rgba(255, 255, 255, 0.05)',
-						boxShadow: `0 2px 8px rgba(0, 0, 0, ${intensity.opacity})`,
-					}}
-				/>
+			<motion.div
+				aria-hidden
+				animate={{ opacity: 1, y: 0 }}
+				className='pointer-events-none absolute inset-x-4 top-full -z-20 h-2 translate-y-0.5 rounded-b-lg border border-t-0 border-border-subtle bg-surface/90'
+				initial={reduceMotion ? false : { opacity: 0, y: -10 }}
+				transition={{ type: 'spring', duration: 0.3, bounce: 0, delay: 0.03 }}
+			/>
 
-				{/* Count badge with sophisticated styling */}
-				<motion.div
-					animate={{ scale: 1, opacity: 1 }}
-					className='absolute -bottom-1.5 -right-1.5 z-10'
-					exit={{ scale: 0, opacity: 0 }}
-					initial={{ scale: 0, opacity: 0 }}
-					transition={{
-						type: 'spring',
-						delay: 0.3,
-					}}
-				>
-					{/* Badge container */}
-					<div
-						className='relative rounded-full px-2 py-0.5 flex items-center justify-center min-w-[20px] bg-zinc-900 border border-sky-500/50'
-						title={`${directChildrenCount} hidden ${directChildrenCount === 1 ? 'item' : 'items'}`}
+			{isTouchFirst ? (
+				<Popover onOpenChange={setIsPeekOpen} open={isPeekOpen}>
+					<PopoverTrigger
+						aria-label={`${label}. Show hidden nodes`}
+						className={pillClassName}
+						data-testid='collapsed-branch-pill'
 					>
-						{/* Count text with proper hierarchy */}
-						<span className='text-sky-500 text-xs font-semibold leading-3'>
-							{directChildrenCount > 99 ? '99+' : directChildrenCount}
-						</span>
-					</div>
-				</motion.div>
+						{pill}
+					</PopoverTrigger>
 
-				{/* Subtle gradient overlay on the main node to enhance depth
-					<div
-						className='absolute -z-[100] inset-0 rounded-lg pointer-events-none'
-						style={{
-							background:
-								'linear-gradient(135deg, transparent 60%, rgba(0, 0, 0, 0.05) 100%)',
+					<PopoverContent className='w-auto p-0' side='bottom' sideOffset={8}>
+						{peek}
+					</PopoverContent>
+				</Popover>
+			) : (
+				<HoverCard onOpenChange={setIsPeekOpen} open={isPeekOpen}>
+					<HoverCardTrigger
+						aria-label={`${label}. Click to expand, Shift+click to expand all`}
+						className={pillClassName}
+						closeDelay={150}
+						data-testid='collapsed-branch-pill'
+						delay={350}
+						render={<button type='button' />}
+						onClick={(event: MouseEvent) => {
+							event.stopPropagation();
+							handleExpand({ all: event.shiftKey });
 						}}
-					/> */}
-			</>
-		)
+					>
+						{pill}
+					</HoverCardTrigger>
+
+					<HoverCardContent className='w-auto' side='bottom' sideOffset={8}>
+						{peek}
+					</HoverCardContent>
+				</HoverCard>
+			)}
+		</>
 	);
 };
 
 const CollapsedIndicator = memo(CollapsedIndicatorComponent);
+CollapsedIndicator.displayName = 'CollapsedIndicator';
 export default CollapsedIndicator;

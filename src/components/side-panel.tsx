@@ -8,9 +8,15 @@ interface SidePanelProps {
 	isOpen: boolean;
 	onClose: () => void;
 	title: string;
+	/** Secondary line under the title (e.g. the map name). */
+	subtitle?: React.ReactNode;
+	/** Controls rendered before the close button. */
+	headerActions?: React.ReactNode;
 	children: React.ReactNode;
 	footer?: React.ReactNode;
 	className?: string;
+	/** Overrides the default padded body layout. */
+	bodyClassName?: string;
 	clearData?: () => void;
 	'data-testid'?: string;
 }
@@ -19,9 +25,12 @@ export function SidePanel({
 	isOpen,
 	onClose,
 	title,
+	subtitle,
+	headerActions,
 	footer,
 	children,
 	className,
+	bodyClassName,
 	'data-testid': testId,
 }: SidePanelProps) {
 	const shouldReduceMotion = useReducedMotion();
@@ -76,25 +85,44 @@ export function SidePanel({
 						{/* Panel Content */}
 						<div className='flex h-full flex-col'>
 							{/* Panel Header */}
-							<div className='flex shrink-0 items-center justify-between py-2.5 px-4 border-b border-border-subtle'>
-								<h2 className='text-md font-semibold text-text-primary'>
-									{title}
-								</h2>
+							<div className='flex shrink-0 items-center justify-between gap-3 py-2.5 px-4 border-b border-border-subtle'>
+								<div className='min-w-0'>
+									<h2 className='text-md font-semibold text-text-primary'>
+										{title}
+									</h2>
 
-								<button
-									aria-label='Close panel'
-									className='rounded-sm p-1 cursor-pointer text-text-secondary hover:text-text-primary bg-transparent hover:bg-surface focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:outline-none transition-colors duration-300 ease-out'
-									onClick={onClose}
-								>
-									<X className='h-5 w-5' />
-								</button>
+									{subtitle && (
+										<p className='truncate text-xs text-text-secondary'>
+											{subtitle}
+										</p>
+									)}
+								</div>
+
+								<div className='flex shrink-0 items-center gap-2'>
+									{headerActions}
+
+									<button
+										aria-label='Close panel'
+										className='rounded-sm p-1 cursor-pointer text-text-secondary hover:text-text-primary bg-transparent hover:bg-surface focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:outline-none transition-colors duration-300 ease-out'
+										onClick={onClose}
+									>
+										<X className='h-5 w-5' />
+									</button>
+								</div>
 							</div>
 
 							{/* Panel Body - Scrollable */}
-							<div className='flex-1 min-h-0 flex flex-col p-4'>{children}</div>
+							<div
+								className={cn(
+									'flex-1 min-h-0 flex flex-col p-4',
+									bodyClassName
+								)}
+							>
+								{children}
+							</div>
 
 							{footer && (
-								<div className='flex h-fit border-t border-zinc-800 p-4'>
+								<div className='flex h-fit shrink-0 border-t border-zinc-800 bg-base p-4 pb-[max(1rem,env(safe-area-inset-bottom))]'>
 									{footer}
 								</div>
 							)}

@@ -1,5 +1,6 @@
 import {
 	buildHistoryPresentation,
+	collectHistoryFieldLabels,
 	deriveHistorySubjectHints,
 	normalizeHistoryDelta,
 } from '@/helpers/history/presentation';
@@ -94,6 +95,9 @@ export function buildHistoryListItems({
 			timestamp: new Date(event.created_at).getTime(),
 			summary: presentation?.summary,
 			summaryDetail: presentation?.summaryDetail,
+			fieldLabels: presentation
+				? collectHistoryFieldLabels(presentation)
+				: undefined,
 			subjects: storedDelta
 				? storedDelta.subjectHints || deriveHistorySubjectHints(storedDelta)
 				: undefined,

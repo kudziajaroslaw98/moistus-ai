@@ -97,6 +97,9 @@ export interface NodeData extends Record<string, unknown> {
 		annotationType?: 'note' | 'idea' | 'quote' | 'summary' | 'warning' | 'success' | 'info' | 'error';
 		author?: string;
 		timestamp?: string;
+		// Anchored annotations follow a host node (NOT hierarchy: parent_id stays null)
+		anchorNodeId?: string;
+		anchorOffset?: { x: number; y: number }; // annotation position minus host position
 
 		// ------------------------------------------
 		// Question Properties (QuestionNode)

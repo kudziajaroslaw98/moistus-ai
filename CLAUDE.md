@@ -101,7 +101,7 @@ Skipping this = incomplete work.
 pnpm dev:lan         # LAN dev server (0.0.0.0 host binding)
 pnpm type-check      # TypeScript validation (TS 7 native tsc)
 pnpm build           # Production build
-pnpm test            # Unit tests (Jest + RTL, 657 tests)
+pnpm test            # Unit tests (Jest + RTL, 727 tests)
 pnpm e2e             # E2E tests (Playwright)
 pnpm e2e:ui          # E2E with interactive UI
 pnpm e2e:headed      # E2E with browser visible
@@ -179,6 +179,8 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-04-01 - Documented Supabase cookie-name mismatch gotcha for LAN logins -->
 
+**History revert + list scope**: `revertToHistoryState` restores the whole map to that entry, undoing every newer change; it is not a per-change undo. UI copy must say "Restore map to this point" and show the undone count (`countChangesUndoneByRevert`), never "Revert this change". The list API returns only the current checkpoint scope (one snapshot plus its events; older ones are pruned on checkpoint creation), so do not build checkpoint timelines or filters on the loaded list. Row titles, grouping and filters live in `src/components/history/model/history-timeline.ts`. Base UI 1.8 marks selected tabs with `data-active` (not `data-selected`).
+
 **Map Settings templates**: `is_template` and `template_category` are system-managed and not user-editable in the Map Settings panel.
 
 <!-- Updated: 2026-02-27 - Removed non-persisting template controls from map settings UI -->
@@ -200,6 +202,9 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 <!-- Updated: 2026-05-15 - Documented touch-qualified autocomplete presenter selection for iPad/tablet widths -->
 
+**Device class hooks**: `useIsMobile` (`src/hooks/use-mobile.ts`) means "phone layout": `(max-width: 767px), (pointer: coarse) and (max-height: 500px)`, so landscape phones count as mobile while tablets do not. `useTouchFirst` (`src/hooks/use-touch-first.ts`) means "no keyboard can be assumed" (coarse pointer, no hover, or desktop-class iPad) and gates keyboard-shortcut hints (shortcuts help FAB, node editor `Ctrl+Enter` copy) and touch autocomplete surfaces. Do not gate keyboard hints by viewport width alone. On `useIsMobile`, the node editor renders full screen (`data-layout='fullscreen'`), the quick-input body drops its fixed `sm:` dialog height, and the footer shows a Cancel button (`ActionBar` `onCancel`) because there is no backdrop or Escape key to dismiss it.
+
+<!-- Updated: 2026-10-03 - Landscape phones count as mobile; touch-first keyboard-hint gating -->
 **Touch context menu fallback**: Do not rely on native `contextmenu` alone for mobile/iPad. Keep `useTouchContextMenuFallback` wired to the React Flow shell so touch long-press on `.react-flow__node[data-id]`, `.react-flow__edge[data-id]`, or `.react-flow__pane` opens the same context-menu store state path (`openContextMenuAt`) used by desktop right-click handlers. Preserve movement cancellation and trailing click/contextmenu suppression to avoid accidental immediate close/select side-effects after long-press activation.
 
 <!-- Updated: 2026-04-08 - Added iPad/iOS WebKit long-press fallback and post-long-press suppression guardrail -->
@@ -215,6 +220,12 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 **Realtime cleanup idempotency**: Yjs observer cleanup (`unobserve` / awareness `off`) and broadcast unsubscribe wrappers must be safe on repeated invocation. Slice-level unsubscribe flows should null stored handles before awaiting cleanup, and core realtime teardown should coalesce concurrent calls into one in-flight promise.
 
 <!-- Updated: 2026-04-07 - Added repeated-unsubscribe safety contract for Yjs/broadcast/slice/core teardown paths -->
+
+**Anchored annotation contract**: Annotation-to-host linkage is `metadata.anchorNodeId` + `metadata.anchorOffset` only; never use `parent_id`/React Flow `parentId` (hierarchy) or `targetNodeId` (reference nodes). An anchor whose host is missing, is an annotation, or is the node itself is treated as free. Anchored annotations must stay out of every layout pass (`splitAnchoredAnnotations`/`reattachAnchoredAnnotations`), never become AI node rows or targets (fold via `foldAnchoredAnnotation*` before aliasing), cascade-delete with their host inside the same `deleteNodes` call, and render only a derived `annotationTether` edge that is never stored in the edges slice.
+
+**Collapsed-branch contract**: `getBranchIndex` (`src/helpers/collapse/branch-index.ts`) is the single source for collapse roll-ups (hidden count = full subtree excluding anchored annotations, branch tasks, pending statuses, severity, peek outline); do not rebuild subtree walks in components. Collapsing is deliberate and lives only in the node context menu ("Collapse Branch") and `Ctrl/Cmd+-` — do not reintroduce an on-node collapse button next to the add/AI buttons. Expanding stays on canvas via the "N nodes hidden" pill, always centered under the collapsed stack (the add button moves below it). Expand opens one level (deeper nodes keep their flag); Shift+click / `expandBranch(id, { all: true })` clears the subtree in one history step via `setNodesCollapsed`. Adding a child to a collapsed node expands it inside the same optimistic `addNode` update (one history step; the flag is saved only after the insert succeeds or is queued). Cross-links into hidden nodes are derived `collapsedProxy` edges in `getVisibleEdges` — never stored, selectable, or deletable; edge actions (context menu, double-click edit) must skip derived edges via `isDerivedDisplayEdgeId` (`src/helpers/derived-display-edges.ts`), which also covers `annotationTether`; AI suggestion edges are never proxied (they keep `aiData.connectionProxy`). Collapse state is shared (not per user), so search/peek expansion changes collaborators' view too.
+
+<!-- Updated: 2026-10-03 - Derived-edge action guard and single-step add-child expand -->
 
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 

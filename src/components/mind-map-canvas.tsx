@@ -44,6 +44,7 @@ export function MindMapCanvas() {
 		createGroupFromSelected,
 		ungroupNodes,
 		toggleNodeCollapse,
+		openCanvasSearch,
 		openNodeEditor,
 		userProfile,
 		mapAccessError,
@@ -66,6 +67,7 @@ export function MindMapCanvas() {
 			createGroupFromSelected: state.createGroupFromSelected,
 			ungroupNodes: state.ungroupNodes,
 			toggleNodeCollapse: state.toggleNodeCollapse,
+			openCanvasSearch: state.openCanvasSearch,
 			openNodeEditor: state.openNodeEditor,
 			userProfile: state.userProfile,
 			mapAccessError: state.mapAccessError,
@@ -188,6 +190,7 @@ export function MindMapCanvas() {
 		onUngroup: handleUngroup,
 		onToggleCollapse: handleToggleCollapse,
 		onLayout: canEdit ? applyLayout : undefined,
+		onOpenSearch: isRequestedMapReady ? openCanvasSearch : undefined,
 	});
 
 	// Keyboard navigation (arrow keys, Ctrl+Arrow creation, Enter edit)
