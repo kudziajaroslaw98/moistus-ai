@@ -13,6 +13,8 @@ interface ActionBarProps {
 	className?: string;
 	/** Hide keyboard-shortcut copy on touch-first devices without a keyboard. */
 	showKeyboardHints?: boolean;
+	/** Renders a Cancel button (full-screen phone editor has no backdrop or Escape). */
+	onCancel?: () => void;
 }
 
 export const ActionBar: React.FC<ActionBarProps> = ({
@@ -23,6 +25,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 	mode = 'create',
 	className,
 	showKeyboardHints = true,
+	onCancel,
 }) => {
 	const isBusy = isCreating || isCheckingLimit;
 	const isMac = useIsMac();
@@ -36,22 +39,34 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 			initial={{ opacity: 0, y: -15 }}
 			transition={{ delay: 0.1, duration: 0.3, ease: 'easeOut' as const }}
 		>
-			<motion.span
-				animate={{ opacity: 1 }}
-				className='text-xs text-zinc-500'
-				initial={{ opacity: 0 }}
-				transition={{ delay: 0.15, duration: 0.3 }}
-			>
-				{isCheckingLimit ? (
-					<span className='text-zinc-400'>Checking map limit...</span>
-				) : showKeyboardHints ? (
-					<>
-						<span className='hidden sm:inline'>Press </span>{modifierKey}+Enter to {mode === 'edit' ? 'update' : 'create'}
-						<span className='hidden sm:inline'> • Enter for new line</span>
-						<span className='hidden sm:inline'> • {suggestionShortcut} for suggestions</span>
-					</>
-				) : null}
-			</motion.span>
+			{onCancel && !isCheckingLimit ? (
+				<button
+					className='rounded-md px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors duration-200 ease-[ease] active:bg-zinc-800 [@media(hover:hover)]:hover:bg-zinc-800 [@media(hover:hover)]:hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-50'
+					data-testid='cancel-button'
+					disabled={isCreating}
+					onClick={onCancel}
+					type='button'
+				>
+					Cancel
+				</button>
+			) : (
+				<motion.span
+					animate={{ opacity: 1 }}
+					className='text-xs text-zinc-500'
+					initial={{ opacity: 0 }}
+					transition={{ delay: 0.15, duration: 0.3 }}
+				>
+					{isCheckingLimit ? (
+						<span className='text-zinc-400'>Checking map limit...</span>
+					) : showKeyboardHints ? (
+						<>
+							<span className='hidden sm:inline'>Press </span>{modifierKey}+Enter to {mode === 'edit' ? 'update' : 'create'}
+							<span className='hidden sm:inline'> • Enter for new line</span>
+							<span className='hidden sm:inline'> • {suggestionShortcut} for suggestions</span>
+						</>
+					) : null}
+				</motion.span>
+			)}
 
 			<motion.button
 				animate={{ opacity: 1 }}

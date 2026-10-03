@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { ActionBar } from './action-bar';
 
 function setNavigatorPlatform(platform: string) {
@@ -89,5 +89,33 @@ describe('ActionBar', () => {
 
 		expect(screen.queryByText(/Enter to create/)).not.toBeInTheDocument();
 		expect(screen.getByTestId('create-button')).toBeInTheDocument();
+	});
+
+	it('renders a Cancel button that closes without saving when onCancel is set', async () => {
+		const onCancel = jest.fn();
+		const onCreate = jest.fn();
+
+		await act(async () => {
+			render(
+				<ActionBar
+					canCreate
+					isCreating={false}
+					onCancel={onCancel}
+					onCreate={onCreate}
+				/>
+			);
+		});
+
+		fireEvent.click(screen.getByTestId('cancel-button'));
+		expect(onCancel).toHaveBeenCalledTimes(1);
+		expect(onCreate).not.toHaveBeenCalled();
+	});
+
+	it('does not render Cancel without onCancel', async () => {
+		await act(async () => {
+			render(<ActionBar canCreate isCreating={false} onCreate={jest.fn()} />);
+		});
+
+		expect(screen.queryByTestId('cancel-button')).not.toBeInTheDocument();
 	});
 });

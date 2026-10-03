@@ -1100,6 +1100,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 				>
 					<ActionBar
 						className='mt-0 border-t border-zinc-800/80 px-4 py-3'
+						onCancel={isMobile ? closeNodeEditor : undefined}
 						showKeyboardHints={!usesTouchAutocompleteSurface}
 						isCreating={isCreating}
 						isCheckingLimit={isCreateLimitCheckLoading}

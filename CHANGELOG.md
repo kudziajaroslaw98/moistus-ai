@@ -29,6 +29,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **mobile**: Keyboard-shortcut hints (shortcuts help button, `Ctrl+Enter to create`) are hidden on touch-first devices via the new shared `useTouchFirst` hook
 - **onboarding**: The walkthrough checklist is height-capped with a scrolling task list and no longer stacks on the canvas hint in landscape; the mobile intro sheet scrolls on short screens
 - **map-settings**: Map Settings content scrolls again and the side panel footer is opaque, so it no longer overlaps panel content
+- **node-editor**: The full-screen phone editor has a footer Cancel button to close without saving
+  - Why: Full screen removed the backdrop tap, and touch users have no Escape key
 
 ## [2026-10-02]
 
