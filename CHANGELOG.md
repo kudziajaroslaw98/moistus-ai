@@ -43,6 +43,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Removed
 
 - **history**: Unused history components and helpers left over from earlier panel versions (`history-entry-card`, `history-actions`, `history-group`, `change-item`, `git-diff-view`, `grouping-utils`)
+- **history**: Unused `formatTimeRange`, `diff-formatter`, `text-diff-utils` helpers and the direct `diff` dependency
 
 ## [2026-10-02]
 

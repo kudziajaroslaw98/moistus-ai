@@ -60,36 +60,3 @@ export function formatTimestamp(timestamp: number): FormattedTimestamp {
 
 	return { display, tooltip };
 }
-
-/**
- * Formats a time range for display (used in grouped history items)
- * @param startTime Unix timestamp in milliseconds (earlier time)
- * @param endTime Unix timestamp in milliseconds (later time)
- * @returns Formatted time range string
- */
-export function formatTimeRange(startTime: number, endTime: number): string {
-	const now = Date.now();
-	const startDiff = now - startTime;
-	const endDiff = now - endTime;
-
-	const formatSingle = (diff: number): string => {
-		if (diff < 60000) return 'Just now';
-		if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-		if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-
-		const date = new Date(now - diff);
-		return date.toLocaleString('en-US', {
-			month: 'short',
-			day: 'numeric',
-			hour: 'numeric',
-			minute: '2-digit',
-		});
-	};
-
-	// If times are very close (< 1 minute apart), just show one time
-	if (Math.abs(startDiff - endDiff) < 60000) {
-		return formatSingle(endDiff);
-	}
-
-	return `${formatSingle(endDiff)} - ${formatSingle(startDiff)}`;
-}
