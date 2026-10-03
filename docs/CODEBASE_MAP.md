@@ -658,6 +658,10 @@ sequenceDiagram
 
 20. **Task Node Done Visibility + Title Round-Trip** - `taskNode` persists per-node `metadata.hideCompletedTasks` for canvas filtering, but completion stats must still be computed from full `metadata.tasks`. Task titles are parser metadata (`title:"..."`) and should round-trip through quick-input serialize/edit flows.
 
+21. **DB-Level Security Enforcement** - SECURITY DEFINER RPCs in `public` are service_role-only unless explicitly granted to `authenticated` and bound to `auth.uid()` (`supabase/migrations/20261003172506_lock_down_security_definer_functions.sql`). `create_node_with_parent_edge` runs as SECURITY INVOKER under nodes/edges RLS. Triggers guard `user_profiles.role`, `mind_maps` template flags, and the owner-scoped node limit (`enforce_map_node_limit`, mirrors `checkMapNodeLimit()`); billing tables have no user write policies; profile visibility is limited to the owner plus map-sharing users. Server routes that need privileged RPCs (AI usage, template usage count, history cleanup, subscription writes) use `createServiceRoleClient()`.
+
+<!-- Updated: 2026-10-03 - Documented DB-level security enforcement after production audit -->
+
 ## Navigation Guide
 
 **Add a new node type:**

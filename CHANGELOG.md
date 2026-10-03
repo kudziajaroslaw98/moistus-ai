@@ -5,6 +5,19 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-04]
+
+### Fixed
+
+- **history/revert**: Reverting to a checkpoint or event restores deleted nodes in place and keeps layout working
+  - Why: Reverted nodes got a React Flow `parentId`, which made child positions render relative to their parents and scattered the map
+- **edges/hierarchy**: Setting a node's parent no longer shifts it on the canvas
+  - Why: The explicit hierarchy action set the same React Flow `parentId`
+
+### Refactored
+
+- **history/revert-state**: Revert node/edge canonicalization moved to `src/helpers/history/server/revert-state.ts` with unit tests
+
 ## [2026-10-03]
 
 ### Added
@@ -30,6 +43,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **mobile**: `useIsMobile` now also matches landscape phones (`(pointer: coarse) and (max-height: 500px)`), so they get the mobile toolbar, top bar, onboarding path and editor instead of desktop UI
   - Why: Landscape phones (~844-932px wide) passed the width-only 768px check
 - **node-editor**: The node editor opens full screen on phones (portrait and landscape) instead of as an inset dialog
+- **api/service-role-calls**: AI usage counters, template usage counts, history cleanup (including cron) and subscription cancel/reactivate writes now use the service-role client
+- **security/headers**: Responses now send nosniff, Referrer-Policy and frame-ancestors protection, plus a report-only Content Security Policy in production
 
 ### Fixed
 
@@ -49,6 +64,21 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **search**: The match counter and active highlight stay in range when matches disappear (no more "5 of 3")
 - **annotations**: An annotation anchored to another annotation (or itself) is shown as free in its toolbar, matching how it behaves on the canvas
 - **ai**: Approving an AI annotation whose source is an anchored annotation anchors it to that annotation's host; an AI annotation is never linked to another annotation by an edge
+- **security/db-functions**: SECURITY DEFINER functions are no longer callable by anonymous or signed-in users unless they verify the caller themselves; node creation now runs under the caller's RLS
+  - Why: A production audit found 24 functions exposed through the default EXECUTE grant, several trusting caller-supplied user/map IDs
+- **security/rls**: Users can no longer change their own profile role, subscription rows, AI usage counters, map template flags, or history attribution
+  - Why: These writes were allowed by own-row RLS policies and enabled privilege and billing escalation
+- **security/profiles**: Profiles (including email) are visible only to their owner and to users who share a map with them
+  - Why: Every authenticated user, including anonymous guests, could read all non-private profiles
+- **limits/nodes**: The owner-scoped per-map node limit is now enforced in the database as well as in the client preflight
+  - Why: Direct inserts, offline replay and RPC calls could exceed the limit
+- **history/checkpoints**: `create_history_checkpoint_and_prune` is now service-role-only
+  - Why: Revoking from PUBLIC alone left it callable by anon/authenticated on Supabase
+- **history/checkpoints**: Manual checkpoints no longer fail with `COALESCE types text and boolean cannot be matched`
+  - Why: The checkpoint function treated `edges.animated` (a text column) as a boolean
+- **ai/structured-outputs**: AI suggestions (expand) and counterpoints no longer fail with `invalid_json_schema`
+  - Why: `@ai-sdk/openai` 3.x enables OpenAI strict structured outputs by default, which rejects optional (`.partial()`/`.optional()`) keys and the `uri` string format
+
 ### Removed
 
 - **history**: Unused history components and helpers left over from earlier panel versions (`history-entry-card`, `history-actions`, `history-group`, `change-item`, `git-diff-view`, `grouping-utils`)
