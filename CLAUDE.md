@@ -99,9 +99,9 @@ Skipping this = incomplete work.
 
 ```bash
 pnpm dev:lan         # LAN dev server (0.0.0.0 host binding)
-pnpm type-check      # TypeScript validation
+pnpm type-check      # TypeScript validation (TS 7 native tsc)
 pnpm build           # Production build
-pnpm test            # Unit tests (Jest + RTL, 149 tests)
+pnpm test            # Unit tests (Jest + RTL, 657 tests)
 pnpm e2e             # E2E tests (Playwright)
 pnpm e2e:ui          # E2E with interactive UI
 pnpm e2e:headed      # E2E with browser visible
@@ -147,9 +147,9 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-02-24 - Documented realtime JWT fallback behavior and operational meaning -->
 
-**Dependency security overrides**: Keep `pnpm.overrides` pins narrow and evidence-based. Current required overrides are `partykit>esbuild` because PartyKit still pins older esbuild, `miniflare>undici` scoped to PartyKit's Miniflare path, and `postcss` until Next no longer resolves a vulnerable internal PostCSS. Prefer direct/transitive package updates over broad overrides, keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes, and re-run `pnpm audit` plus `pnpm why esbuild undici postcss` after PartyKit/miniflare/Next/PostCSS bumps.
+**Dependency security overrides**: Keep `pnpm.overrides` pins narrow and evidence-based. Current required overrides are `partykit>esbuild` because PartyKit still pins older esbuild, `miniflare>undici` scoped to PartyKit's Miniflare path, and `@serwist/turbopack>browserslist` because Serwist pins an exact vulnerable browserslist. The global `postcss` override was dropped once Next 16.3.8 resolved a patched internal PostCSS; do not re-add it unless `pnpm audit` flags PostCSS again. Prefer direct/transitive package updates over broad overrides, keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes, and re-run `pnpm audit` plus `pnpm why esbuild undici postcss browserslist` after PartyKit/miniflare/Next/PostCSS/Serwist bumps. Do not silence advisories with `auditConfig.ignoreGhsas`; remove the vulnerable path instead. `braces` (GHSA-vfj7-8cjw-p6xm, no patched release) is eliminated by aliasing `@next/eslint-plugin-next>fast-glob` to `tinyglobby` (the plugin only calls `globSync(pattern, { onlyDirectories: true })` when `settings.next.rootDir` is set) and by not installing the `shadcn` CLI as a devDependency (run `pnpm dlx shadcn@latest add <component>` instead). Before bumping `eslint-config-next`, confirm the plugin still only uses `globSync`, and drop the alias once it stops depending on `fast-glob`.
 
-<!-- Updated: 2026-05-14 - Documented scoped dependency security overrides for PartyKit/Miniflare and Next/PostCSS -->
+<!-- Updated: 2026-10-03 - Removed braces via tinyglobby alias + shadcn dlx instead of audit ignore -->
 
 **Vercel package manager**: Keep repo-level `vercel.json` install/build commands pinned to pnpm (`pnpm install --frozen-lockfile`, `pnpm build`) so Vercel does not default to `npm i` and fail on npm-only peer resolution of the current lint stack.
 
@@ -159,9 +159,13 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-04-09 - Documented CI pnpm version-source conflict guardrail -->
 
-**ESLint flat config**: Next.js 16's `eslint-config-next/*` exports flat config arrays. Import those exports directly in `eslint.config.mjs`; do not wrap them in `FlatCompat`, because ESLint 10 legacy config validation can crash on circular plugin objects from `eslint-plugin-react`. Keep `settings.react.version` explicit rather than `detect` while the current React plugin is on the ESLint 9-era context API.
+**TypeScript 6 + 7 side-by-side**: `typescript` is aliased to `@typescript/typescript6` (TS 6 API for typescript-eslint, `next build` type step, Jest/editor tooling) and `@typescript/native` aliases TS 7, which owns the `tsc` binary (`pnpm type-check` ≈2s vs ≈11s). TS 7 ships no JS API until 7.1 and typescript-eslint supports TS `<6.1`, so do not point `typescript` at TS 7 (ESLint crashes). Use `pnpm exec tsc6 --noEmit` to cross-check TS 6. Revisit when typescript-eslint supports TS 7 (tracking issue typescript-eslint#10940).
 
-<!-- Updated: 2026-05-15 - Documented direct Next flat-config imports and explicit React version for ESLint 10 compatibility -->
+<!-- Updated: 2026-10-02 - Adopted official TS 6/7 side-by-side setup -->
+
+**ESLint flat config**: Next.js 16's `eslint-config-next/*` exports flat config arrays. Import those exports directly in `eslint.config.mjs`; do not wrap them in `FlatCompat`, because ESLint 10 legacy config validation can crash on circular plugin objects from `eslint-plugin-react`. Keep `settings.react.version` explicit rather than `detect` while the current React plugin is on the ESLint 9-era context API. Keep `.worktrees/**` in ESLint ignores and `<rootDir>/.worktrees/` in Jest `modulePathIgnorePatterns`; nested worktrees carry their own stale `node_modules`/mocks and crash lint or duplicate Jest mocks.
+
+<!-- Updated: 2026-10-02 - Documented worktree ignores for ESLint/Jest alongside flat-config guidance -->
 
 **LAN-safe local dev URLs**: Browser Supabase + PartyKit clients must derive from `window.location.hostname` whenever the configured public URL is loopback-only and the browser host is non-loopback (LAN device access), even if client `NODE_ENV` is unavailable. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
 
@@ -230,9 +234,17 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 **Suggestion rerun replacement gating**: Connection/merge reruns should clear prior transient AI suggestion edges only when `triggerStream(...)` returns `true`. If stream start is rejected (already streaming/throttled), keep existing suggestion edges/merge state unchanged.
 
+**AI SDK 7 instructions contract**: Pass system prompts via the top-level `instructions` option on `streamObject`/`streamText`/`generateText`, never as `{ role: 'system' }` entries in `messages`. AI SDK 7 rejects system messages in `messages` at runtime (no model call, empty element stream, only `onError` fires) while TypeScript and mocked route tests still pass. Do not enable `allowSystemInMessages`; `/api/ai/chat` filters client-sent system messages and owns instructions server-side. When setting OpenAI `reasoningEffort`, also set `reasoningSummary: null` unless summaries are consumed (v7 defaults it to `'detailed'`). Keep `useChat`'s `onFinish` (the v7 `onFinish`→`onEnd` rename applies to core/stream helpers, not `ChatInit`; the `@ai-sdk/codemod v7` mis-renames it and ignores `--dry`).
+
+<!-- Updated: 2026-10-02 - Documented AI SDK 7 instructions contract after v6->v7 migration -->
+
 **Row-based AI node-id aliasing**: Every compact row-based AI route (`/api/ai/suggestions`, `/api/ai/chat`, `/api/ai/counterpoints`, `/api/ai/suggest-merges`, `/api/search-nodes`) must alias model-visible node IDs through `src/helpers/ai-id-alias-map.ts` before prompt assembly. The model should see dense numeric node IDs in `NODE` / `REL` / `ANCHOR` / `RECENT` rows and any free-text request metadata that mentions node IDs; server code must resolve those aliases back to UUIDs before anchor validation, duplicate suppression, placement, merge validation, search validation, or client streaming. Do not let UUIDs leak into model-visible rows or numeric aliases leak into app-facing payloads.
 
 **Typed AI ghost approval**: `/api/ai/suggestions` may now stream an optional `nodePayload` alongside `content` for safe typed nodes. The route should only emit safe typed v1 nodes (`defaultNode`, `textNode`, `taskNode`, `questionNode`, `annotationNode`, `codeNode`), must downgrade malformed structured payloads to `defaultNode` before ghost creation, and ghost approval in `suggestions-slice` must build the final node from `nodePayload` instead of trying to infer typed metadata from `suggestedContent`. `taskNode` approval is the critical case: checklist rows live in `metadata.tasks`, so approving a task ghost without payload is a bug.
+
+**Polar 1.0 billing contract**: Use `createPolarClient()` / `getPolarEnvironment()` from `src/lib/polar.ts` (`@polar-sh/sdk/2026-10`). Polar webhook payloads are snake_case and are NOT schema-validated by `@polar-sh/nextjs` (signature + event type only), so the webhook types `data` as the SDK `models.Subscription` and the Polar webhook endpoint's `api_version` must stay aligned with the SDK version (sandbox/prod endpoints were still `2026-04` on 2026-10-02; `Subscription` is identical between 2026-04 and 2026-10; the version is not changeable via API/MCP). Checkout sends `external_customer_id = user.id`; portal still resolves the stored `polar_customer_id`. `paused` maps to `unpaid` (no Pro access). Webhook regression test signs a real sandbox wire fixture (`src/app/api/webhooks/polar/__fixtures__`). **Stale-event guard**: Polar retries deliveries out of order (observed 15+ min late), so every handler stores the applied version in `user_subscriptions.metadata.polar_modified_at` (`modified_at`, falling back to `created_at` for created/active payloads) and skips strictly older events while still returning 200. Never write a subscription row from a webhook without updating that version.
+
+<!-- Updated: 2026-10-02 - Documented Polar SDK 1.0 webhook/API-version contract and stale-event guard -->
 
 **Notifications**: `useNotifications` now shares a single cache/socket layer per signed-in user; keep `useSyncExternalStore` snapshots stable and apply `mapId` filtering server-side before `limit` in `/api/notifications`.
 

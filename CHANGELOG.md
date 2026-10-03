@@ -5,6 +5,43 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-03]
+
+### Changed
+
+- **deps/security**: Removed `braces` (GHSA-vfj7-8cjw-p6xm, no patched release) from the dependency tree: `@next/eslint-plugin-next>fast-glob` is aliased to `tinyglobby`, and the `shadcn` CLI is no longer a devDependency (use `pnpm dlx shadcn@latest`)
+  - Why: Fixes the high-severity audit failure without suppressing the advisory; the Next plugin only uses `globSync` with `onlyDirectories`, which tinyglobby supports
+
+## [2026-10-02]
+
+### Changed
+
+- **deps**: Updated all dependencies to latest within their current major (Next 16.3.8, React 19.3, supabase-js 2.117, Base UI 1.8, AI SDK 6.0.300, Motion 12.43, ESLint 10.11, Jest 30.5, Playwright 1.63, etc.) and refreshed transitive lockfile versions
+  - Why: Resolves all open Dependabot alerts, including critical Next.js RCE advisories; `pnpm audit` is clean
+- **deps/overrides**: Bumped `partykit>esbuild` to 0.25.12 and `miniflare>undici` to 6.29.0, added `@serwist/turbopack>browserslist` 4.29.3, removed the global `postcss` override
+  - Why: Previous pins were themselves vulnerable; Next now ships a patched PostCSS
+
+- **deps/majors**: AI SDK 7 (`ai` 7, `@ai-sdk/openai` 4, `@ai-sdk/react` 4), Motion 14, `@supabase/ssr` 0.12, `diff` 9, `uuid` 14, `elkjs` 0.12 (vendored `public/elk-worker.min.js` synced), `dotenv` 18, `jest-dom` 7, Polar sdk 0.49 / nextjs 0.9.6
+- **tooling/typescript**: TypeScript 6 + 7 side-by-side: `tsc` (and `pnpm type-check`) runs TS 7 native (~2s vs ~11s), while `typescript` stays on the TS 6 API via `@typescript/typescript6` for ESLint, Next build and Jest
+  - Why: TS 7 has no JS API yet and typescript-eslint supports TS <6.1; this is the setup recommended by the TypeScript team
+- **billing**: Migrated to Polar SDK 1.0 / `@polar-sh/nextjs` 1.0 (snake_case webhook payloads typed by SDK `Subscription`; checkout links `external_customer_id`; `paused` = no Pro access)
+  - Why: Verified live against Polar sandbox (7/7 webhook deliveries 200, DB state correct) plus signed real-payload regression tests
+- **ai/routes**: System prompts moved from `messages` to the top-level `instructions` option across suggestions, counterpoints, merges, connections, and chat
+  - Why: AI SDK 7 rejects system messages in `messages` at runtime, silently producing empty streams
+- **ci**: Security-audit workflow runs on Node 24 (AI SDK 7 and jest-dom 7 require Node >= 22)
+
+### Fixed
+
+- **api/maps, api/share/join-room**: Explicit null-narrowing and payload typing for stricter supabase-js insert/upsert generics
+- **billing/webhook-ordering**: Late Polar retries (e.g. a `subscription.created` delivered after a revoke) can no longer re-grant Pro access; handlers store the last applied Polar version and skip older events
+  - Why: Sandbox delivery logs showed 15-minute-late retries; verified live by replaying a July event against a newer row (skipped, 200)
+- **tooling**: ESLint and Jest now ignore nested `.worktrees/`
+  - Why: Lint crashed on a worktree's stale node_modules; Jest reported duplicate manual mocks
+- **tests/settings-panel**: Await async background-sync status before asserting badges (React 19.3 scheduling)
+- **tests/ai-routes**: AI route tests run under `@jest-environment node` (were failing with `Request is not defined`); fixed two stale assertions
+- **ai/suggestions**: `reasoningSummary: null` keeps v6 behaviour after AI SDK 7 began defaulting reasoning summaries to `detailed`
+- **billing/webhook**: Polar subscription payloads now allow a null `customer.email`
+
 ## [2026-07-18]
 
 ### Fixed

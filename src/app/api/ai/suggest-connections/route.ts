@@ -4,7 +4,7 @@ import {
 	connectionSuggestionSchema,
 	normalizeConnectionSuggestionElement,
 } from '@/helpers/ai-connection-postprocess';
-import { buildConnectionModelMessages } from '@/helpers/ai-connection-prompts';
+import { buildConnectionModelPrompt } from '@/helpers/ai-connection-prompts';
 import { parseConnectionRequestPayload } from '@/helpers/ai-connection-request';
 import {
 	checkAIQuota,
@@ -166,13 +166,14 @@ export async function POST(req: Request) {
 							minimalEdges
 						);
 
-						const modelMessages =
-							await buildConnectionModelMessages(formattedContext);
+						const { instructions, messages: modelMessages } =
+							buildConnectionModelPrompt(formattedContext);
 						const response = streamObject({
 							model: openai('gpt-5.4-nano'),
 							abortSignal,
 							schema: connectionSuggestionSchema,
 							output: 'array',
+							instructions,
 							messages: modelMessages,
 						});
 

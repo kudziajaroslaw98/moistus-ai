@@ -1,4 +1,4 @@
-import { convertToModelMessages } from 'ai';
+import type { ModelMessage } from 'ai';
 
 export function getConnectionSystemPrompt(formattedContext: string) {
 	return `You are an expert at analyzing mind maps and discovering meaningful connections between concepts.
@@ -25,22 +25,18 @@ Output:
 ${formattedContext}`;
 }
 
-export async function buildConnectionModelMessages(formattedContext: string) {
-	return convertToModelMessages([
-		{
-			role: 'system',
-			parts: [
-				{ type: 'text', text: getConnectionSystemPrompt(formattedContext) },
-			],
-		},
-		{
-			role: 'user',
-			parts: [
-				{
-					type: 'text',
-					text: 'Please suggest meaningful connections between these nodes.',
-				},
-			],
-		},
-	]);
+export function buildConnectionModelPrompt(formattedContext: string): {
+	instructions: string;
+	messages: ModelMessage[];
+} {
+	// AI SDK 7 rejects system messages inside `messages`; system text goes in `instructions`
+	return {
+		instructions: getConnectionSystemPrompt(formattedContext),
+		messages: [
+			{
+				role: 'user',
+				content: 'Please suggest meaningful connections between these nodes.',
+			},
+		],
+	};
 }

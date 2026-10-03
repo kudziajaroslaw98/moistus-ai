@@ -356,7 +356,7 @@ export const POST = withApiValidation(
 									metadata: edge.metadata || {},
 								};
 							})
-							.filter(Boolean);
+							.filter((edge) => edge !== null);
 
 						if (edgesToInsert.length > 0) {
 							const { error: edgesInsertError } = await supabase

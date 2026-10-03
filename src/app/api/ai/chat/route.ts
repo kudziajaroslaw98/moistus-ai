@@ -192,20 +192,15 @@ export const POST = withApiValidation(
 				}
 			}
 
-			// Prepare messages with system prompt and context
-			const systemMessage = {
-				role: 'system' as const,
-				content: `${CHAT_SYSTEM_PROMPT}\n\n${HYBRID_ROW_PROMPT_GUIDE}${mapContextPrompt}`,
-			};
-
-			// Filter out any system messages from user input and add our system message
+			// Filter out any client-sent system messages; the server owns instructions
+			// (AI SDK 7 also rejects system messages inside `messages`)
 			const userMessages = messages.filter((m) => m.role !== 'system');
-			const allMessages = [systemMessage, ...userMessages];
 
 			// Stream the response
 			const result = streamText({
 				model: openai('gpt-5.4-mini'),
-				messages: allMessages,
+				instructions: `${CHAT_SYSTEM_PROMPT}\n\n${HYBRID_ROW_PROMPT_GUIDE}${mapContextPrompt}`,
+				messages: userMessages,
 			});
 
 			// Track usage (no-ops for Pro) without delaying stream start.

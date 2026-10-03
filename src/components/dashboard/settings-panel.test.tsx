@@ -324,7 +324,9 @@ describe('SettingsPanel', () => {
 		expect(screen.getByText('Appearance')).toBeInTheDocument();
 		expect(screen.getByText('Security')).toBeInTheDocument();
 		expect(await screen.findByText('Background sync')).toBeInTheDocument();
-		expect(screen.getByText('One-off replay supported')).toBeInTheDocument();
+		expect(
+			await screen.findByText('One-off replay supported')
+		).toBeInTheDocument();
 		expect(screen.getByText('Periodic refresh unavailable')).toBeInTheDocument();
 
 		await user.click(screen.getByRole('tab', { name: /billing/i }));
