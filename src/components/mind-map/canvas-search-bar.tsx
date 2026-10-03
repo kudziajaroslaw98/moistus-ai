@@ -10,8 +10,8 @@ import { useShallow } from 'zustand/shallow';
 
 /**
  * Canvas find (Ctrl/Cmd+F). Searches every node, including ones hidden inside
- * collapsed branches. Moving to a hidden match expands only the collapsed
- * ancestors on its path, then centers it.
+ * collapsed branches. Moving to a hidden match opens the collapsed nodes above
+ * it, then centers it.
  */
 export function CanvasSearchBar() {
 	const {
@@ -172,7 +172,7 @@ export function CanvasSearchBar() {
 					{total > 0 && (
 						<p className='flex items-center justify-center gap-1.5 text-[11px] text-text-tertiary'>
 							<CornerDownLeft aria-hidden className='size-3' />
-							expands only the path to the match · Shift+Enter goes back
+							opens the branch containing the match · Shift+Enter goes back
 						</p>
 					)}
 				</motion.div>

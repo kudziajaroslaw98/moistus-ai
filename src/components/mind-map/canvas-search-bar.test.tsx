@@ -99,7 +99,7 @@ describe('CanvasSearchBar', () => {
 		expect(mockCenterOnNode).toHaveBeenCalledWith('visible');
 	});
 
-	it('expands only the path to a hidden match before centering it', () => {
+	it('opens collapsed ancestors of a hidden match before centering it', () => {
 		render(<CanvasSearchBar />);
 
 		fireEvent.click(screen.getByLabelText('Next match'));

@@ -14,7 +14,8 @@ interface BranchPeekProps {
 
 /**
  * Overlay outline of a collapsed branch. Nothing on the canvas moves; clicking
- * a row expands only the collapsed ancestors on the path to that node.
+ * a row opens the collapsed nodes on the way to it (their other children appear
+ * too, since a node shows all or none of its children) and centers it.
  */
 export function BranchPeek({ summary, onExpandPath, onExpand, matchIds }: BranchPeekProps) {
 	const total = summary.hiddenIds.length;
@@ -107,7 +108,7 @@ export function BranchPeek({ summary, onExpandPath, onExpand, matchIds }: Branch
 				</div>
 			) : (
 				<div className='border-t border-border-subtle px-3 py-1.5 text-[11px] text-text-tertiary'>
-					Click a row to expand just that path · Shift+click the pill to expand all
+					Click a row to open its branch and jump to it · Shift+click the pill to expand all
 				</div>
 			)}
 		</div>
