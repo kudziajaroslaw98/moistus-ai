@@ -2,6 +2,7 @@ import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { checkUsageLimit } from '@/helpers/api/with-subscription-check';
 import generateUuid from '@/helpers/generate-uuid';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
 
 // Define schema for creating a new map
@@ -372,8 +373,8 @@ export const POST = withApiValidation(
 						}
 					}
 
-					// Increment template usage count
-					await supabase.rpc('increment_usage_count', {
+					// Increment template usage count (service_role-only RPC)
+					await createServiceRoleClient().rpc('increment_usage_count', {
 						template_id: templateMapForSeed.id,
 					});
 				}

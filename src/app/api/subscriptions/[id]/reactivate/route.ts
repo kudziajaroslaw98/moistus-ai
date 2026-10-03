@@ -1,4 +1,7 @@
-import { createClient } from '@/helpers/supabase/server';
+import {
+	createClient,
+	createServiceRoleClient,
+} from '@/helpers/supabase/server';
 import { createPolarClient } from '@/lib/polar';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -64,17 +67,20 @@ export async function POST(
 			);
 		}
 
-		// Update database to match Polar state
-		const { data: updatedSubscription, error: updateError } = await supabase
-			.from('user_subscriptions')
-			.update({
-				cancel_at_period_end: false,
-				canceled_at: null,
-				status: 'active',
-				updated_at: new Date().toISOString(),
-			})
-			.eq('id', params.id)
-			.select();
+		// Update database to match Polar state. Subscriptions are server-managed
+		// (no user UPDATE policy), so write with the service role after the IDOR check above.
+		const { data: updatedSubscription, error: updateError } =
+			await createServiceRoleClient()
+				.from('user_subscriptions')
+				.update({
+					cancel_at_period_end: false,
+					canceled_at: null,
+					status: 'active',
+					updated_at: new Date().toISOString(),
+				})
+				.eq('id', params.id)
+				.eq('user_id', user.id)
+				.select();
 
 		if (updateError) {
 			console.error(

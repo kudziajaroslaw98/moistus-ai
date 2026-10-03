@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/helpers/supabase/server';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 
 export async function POST(req: NextRequest) {
 	const authHeader = req.headers.get('authorization');
@@ -8,7 +8,8 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 	}
 
-	const supabase = await createClient();
+	// Cron requests carry no user session; cleanup_old_history is service_role-only.
+	const supabase = createServiceRoleClient();
 	try {
 		const { data, error } = await supabase.rpc('cleanup_old_history');
 		if (error) throw error;

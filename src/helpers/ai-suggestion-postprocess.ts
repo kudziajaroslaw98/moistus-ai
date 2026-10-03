@@ -48,6 +48,9 @@ function createEmptySuggestionNodePayload(): NormalizedSuggestionNodePayload {
 	};
 }
 
+// OpenAI strict structured outputs (the @ai-sdk/openai default) require every key to be
+// listed as required, so unused fields are null rather than omitted. Never add .partial()
+// or .optional() to schemas passed to streamObject.
 const suggestionNodePayloadSchema = z
 	.object({
 		title: z.string().trim().min(1).nullable(),
@@ -58,7 +61,6 @@ const suggestionNodePayloadSchema = z
 		language: z.string().trim().min(1).nullable(),
 		fileName: z.string().trim().min(1).nullable(),
 	})
-	.partial()
 	.nullable();
 
 export const suggestionObjectSchema = z.object({

@@ -118,9 +118,11 @@ function hasMeaningfulEdgeDifference(
 }
 
 function withNodeParent(node: AppNode, parentId: string | null): AppNode {
+	// Hierarchy lives in data.parent_id only (matches map load). A top-level React Flow
+	// parentId would turn the node into a sub-flow child and shift its rendered position.
+	const { parentId: _staleParentId, ...nodeWithoutFlowParent } = node;
 	return {
-		...node,
-		parentId: parentId ?? undefined,
+		...nodeWithoutFlowParent,
 		data: {
 			...node.data,
 			parent_id: parentId,

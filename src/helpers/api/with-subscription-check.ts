@@ -1,3 +1,4 @@
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { SubscriptionPlan } from '@/store/slices/subscription-slice';
 import { SupabaseClient, User } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
@@ -205,7 +206,9 @@ export async function trackAIUsage(
 	if (isPro) return;
 
 	const billingPeriod = await getSubscriptionBillingPeriod(user, supabase);
-	const { error } = await supabase.rpc('increment_ai_usage', {
+	// service_role-only RPC: a user-callable version could pass a future period start to
+	// reset their own counter.
+	const { error } = await createServiceRoleClient().rpc('increment_ai_usage', {
 		p_user_id: user.id,
 		p_period_start: billingPeriod.periodStart,
 	});
@@ -222,7 +225,7 @@ export async function getAIUsageCount(
 	supabase: SupabaseClient
 ): Promise<number> {
 	const billingPeriod = await getSubscriptionBillingPeriod(user, supabase);
-	const { data, error } = await supabase.rpc('get_ai_usage', {
+	const { data, error } = await createServiceRoleClient().rpc('get_ai_usage', {
 		p_user_id: user.id,
 		p_period_start: billingPeriod.periodStart,
 	});
