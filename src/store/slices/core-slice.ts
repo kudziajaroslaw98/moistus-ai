@@ -177,6 +177,7 @@ export const createCoreDataSlice: StateCreator<
 				anchorPosition: 0,
 				activeNodeType: 'defaultNode',
 			},
+			canvasSearch: { isOpen: false, query: '', activeIndex: 0 },
 			aiFeature: 'suggest-nodes',
 			ghostNodes: [],
 			isGeneratingSuggestions: false,

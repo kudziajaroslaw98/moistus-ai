@@ -46,7 +46,8 @@ const group = makeNode('G', 0, 0, 400, 400, {
 });
 const inside = makeNode('n', 100, 100, 100, 50);
 const outside = makeNode('n', 900, 900, 100, 50);
-const dragEvent = {} as React.MouseEvent;
+// React Flow passes the native event; the hook ignores it.
+const dragEvent = {} as MouseEvent;
 
 describe('useGroupDragMembership', () => {
 	beforeEach(() => {

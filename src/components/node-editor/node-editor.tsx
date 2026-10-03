@@ -1,16 +1,16 @@
 'use client';
 
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
-import { cn } from '@/utils/cn';
 import {
 	autoUpdate,
 	useDismiss,
 	useFloating,
 	useInteractions,
 } from '@floating-ui/react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
 import { QuickInput } from './components/inputs/quick-input';
@@ -32,6 +32,25 @@ const animationVariants = {
 			filter: 'blur(10px)',
 			transition: { duration: 0.15 },
 		},
+	},
+	// Phones get a full-screen sheet: a short slide, no blur/scale on a full-viewport surface.
+	fullScreen: {
+		initial: { opacity: 0, y: 24 },
+		animate: {
+			opacity: 1,
+			y: 0,
+			transition: { duration: 0.2, ease: 'easeOut' as const },
+		},
+		exit: {
+			opacity: 0,
+			y: 24,
+			transition: { duration: 0.15, ease: 'easeOut' as const },
+		},
+	},
+	reduced: {
+		initial: { opacity: 0 },
+		animate: { opacity: 1, transition: { duration: 0.15 } },
+		exit: { opacity: 0, transition: { duration: 0.1 } },
 	},
 };
 
@@ -55,6 +74,8 @@ export const NodeEditor = () => {
 	);
 
 	const initializedRef = useRef<string | null>(null);
+	const isMobile = useIsMobile();
+	const shouldReduceMotion = useReducedMotion() ?? false;
 	const { canEdit, isLoading: isPermissionLoading } = usePermissions();
 
 	// Get mode and existing node data from store
@@ -129,14 +150,21 @@ export const NodeEditor = () => {
 
 	if (!nodeEditor.isOpen) return null;
 
-	const theme = {
-		container:
-			'bg-base border border-border-subtle w-[calc(100%-12px)] h-[calc(100dvh-12px)] max-h-[calc(100dvh-12px)] overflow-hidden rounded-md sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:w-[min(1100px,calc(100vw-2rem))]',
-	};
+	const backdropClassName = isMobile
+		? 'fixed inset-0 z-[100] flex flex-col bg-base'
+		: 'fixed left-0 top-0 z-[100] flex h-full w-full flex-col items-center justify-start bg-zinc-950/50 px-1.5 py-1.5 backdrop-blur-sm sm:px-0 sm:pb-0 sm:pt-[min(8rem,12dvh)]';
+	const containerClassName = isMobile
+		? 'bg-base h-dvh max-h-dvh w-full overflow-hidden pt-[env(safe-area-inset-top,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]'
+		: 'bg-base border border-border-subtle w-[calc(100%-12px)] h-[calc(100dvh-12px)] max-h-[calc(100dvh-12px)] overflow-hidden rounded-md sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:w-[min(1100px,calc(100vw-2rem))]';
+	const containerVariants = shouldReduceMotion
+		? animationVariants.reduced
+		: isMobile
+			? animationVariants.fullScreen
+			: animationVariants.container;
 
 	return (
 		<div
-			className='fixed left-0 top-0 z-[100] flex h-full w-full flex-col items-center justify-start bg-zinc-950/50 px-1.5 py-1.5 backdrop-blur-sm sm:px-0 sm:pb-0 sm:pt-[min(8rem,12dvh)]'
+			className={backdropClassName}
 			data-node-editor-overlay='true'
 			data-testid='node-editor-backdrop'
 		>
@@ -146,11 +174,12 @@ export const NodeEditor = () => {
 						ref={refs.setFloating}
 						{...getFloatingProps()}
 						animate='animate'
-						className={cn(theme.container)}
+						className={containerClassName}
+						data-layout={isMobile ? 'fullscreen' : 'dialog'}
 						data-testid='node-editor'
 						exit='exit'
 						initial='initial'
-						variants={animationVariants.container}
+						variants={containerVariants}
 					>
 						<QuickInput
 							existingNode={existingNode}

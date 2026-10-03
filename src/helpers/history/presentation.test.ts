@@ -1,7 +1,10 @@
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { HistoryDelta } from '@/types/history-state';
-import { buildHistoryPresentation } from './presentation';
+import {
+	buildHistoryPresentation,
+	collectHistoryFieldLabels,
+} from './presentation';
 
 function createNode(
 	id: string,
@@ -289,5 +292,51 @@ describe('history presentation', () => {
 		});
 
 		expect(presentation.technicalChanges).toBe(delta.changes);
+	});
+
+	it('collects distinct changed field labels without bookkeeping fields', () => {
+		const delta: HistoryDelta = {
+			operation: 'update',
+			entityType: 'node',
+			changes: [
+				{
+					id: 'node-1',
+					type: 'node',
+					op: 'patch',
+					patch: { width: 400, height: 400, updated_at: 'now' },
+					reversePatch: { width: null, height: null, updated_at: 'then' },
+				},
+				{
+					id: 'node-2',
+					type: 'node',
+					op: 'patch',
+					patch: { height: 200, 'position.x': 10, 'position.y': 20 },
+					reversePatch: { height: 100, 'position.x': 0, 'position.y': 0 },
+				},
+			],
+		};
+
+		const presentation = buildHistoryPresentation(delta, {
+			actionName: 'resizeNode',
+		});
+
+		expect(collectHistoryFieldLabels(presentation)).toEqual([
+			'Width',
+			'Height',
+		]);
+	});
+
+	it('returns no field labels for add/remove changes', () => {
+		const delta: HistoryDelta = {
+			operation: 'add',
+			entityType: 'node',
+			changes: [{ id: 'node-1', type: 'node', op: 'add', value: {} }],
+		};
+
+		expect(
+			collectHistoryFieldLabels(
+				buildHistoryPresentation(delta, { actionName: 'addNode' })
+			)
+		).toEqual([]);
 	});
 });

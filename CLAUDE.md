@@ -99,9 +99,9 @@ Skipping this = incomplete work.
 
 ```bash
 pnpm dev:lan         # LAN dev server (0.0.0.0 host binding)
-pnpm type-check      # TypeScript validation
+pnpm type-check      # TypeScript validation (TS 7 native tsc)
 pnpm build           # Production build
-pnpm test            # Unit tests (Jest + RTL, 149 tests)
+pnpm test            # Unit tests (Jest + RTL, 727 tests)
 pnpm e2e             # E2E tests (Playwright)
 pnpm e2e:ui          # E2E with interactive UI
 pnpm e2e:headed      # E2E with browser visible
@@ -133,7 +133,10 @@ pnpm pretty          # Prettier
 
 **Edge routing**: Raw manual waypoint editing is removed. Normal persisted edges use auto-routed `waypointEdge` geometry. Explicit full ELK layout owns ELK label placement metadata (`metadata.elkLabel`) for labeled layered edges, but the converter snaps ELK's returned label center back onto the routed segment before render so the line passes through the label center. Layout presets are transient `LayoutConfig.presetId` commands: clear the ID after success and never show it as an active mode. Directional commands (`roomy-right`, `roomy-down`, `tree-right`, `tree-down`) must set and persist `layoutConfig.direction` for later local reflow, routing, and guided-tour behavior; `radial-tree` intentionally retains the existing direction. `tree-right`, `tree-down`, and `radial-tree` use the shared iterative spanning-forest helper because real maps may include cycles and cross-links; hierarchy placement uses tree edges only while all real edges remain as straight cross-links. Every non-layered preset uses straight `waypointEdge` geometry with `routingStyle: 'custom-layout'`, path-midpoint labels, and cleared `metadata.elkLabel`; local reflow continues to use only the persisted in-memory direction. Any orthogonal reroute/edit path that replaces ELK geometry must still clear stale ELK label metadata instead of reusing it. Future manual edge control must be constraint-based (anchor/bias/lane hints), never absolute bend points.
 
-**Connection vs hierarchy contract**: Standard canvas connect (`onConnect` → `addEdge`) is edge-only and must not mutate node hierarchy (`nodes.parent_id` / React Flow `parentId`). Hierarchy assignment remains explicit-only (child-node creation and `setParentConnection`). Deterministic local branch reflow is tree-oriented and must safe-no-op when parent ancestry is cyclic.
+**Connection vs hierarchy contract**: Standard canvas connect (`onConnect` → `addEdge`) is edge-only and must not mutate node hierarchy (`nodes.parent_id` / `data.parent_id`). Hierarchy assignment remains explicit-only (child-node creation and `setParentConnection`). Deterministic local branch reflow is tree-oriented and must safe-no-op when parent ancestry is cyclic. Never set a top-level React Flow `parentId`/`parentNode` from `parent_id` (map load, history revert via `src/helpers/history/server/revert-state.ts`, `withNodeParent`): it makes the node a sub-flow child, so absolute positions render relative to the parent and the map scatters.
+
+<!-- Updated: 2026-10-04 - Documented that hierarchy lives only in data.parent_id (no React Flow parentId) -->
+
 
 **Identity precedence**: Use `user_profiles` as canonical identity source across sharing + realtime UI (`display_name`, `avatar_url`) with fallback order: auth metadata, then deterministic fallback helpers. Keep resolver logic centralized in `src/helpers/identity/resolve-user-identity.ts`.
 
@@ -147,9 +150,17 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-02-24 - Documented realtime JWT fallback behavior and operational meaning -->
 
-**Dependency security overrides**: Keep `pnpm.overrides` pins narrow and evidence-based. Current required overrides are `partykit>esbuild` because PartyKit still pins older esbuild, `miniflare>undici` scoped to PartyKit's Miniflare path, and `postcss` until Next no longer resolves a vulnerable internal PostCSS. Prefer direct/transitive package updates over broad overrides, keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes, and re-run `pnpm audit` plus `pnpm why esbuild undici postcss` after PartyKit/miniflare/Next/PostCSS bumps.
+**Database function grants**: SECURITY DEFINER functions in `public` are service_role-only by default, and default privileges for `postgres` no longer grant EXECUTE to PUBLIC/anon/authenticated. A new RPC must either be called via `createServiceRoleClient()` or explicitly `grant execute ... to authenticated` and verify `auth.uid()` itself (never trust a `p_user_id` parameter). On Supabase, `revoke ... from public` alone is not enough: anon/authenticated hold direct grants, so revoke from `public, anon, authenticated`. AI usage RPCs (`increment_ai_usage`, `get_ai_usage`), `increment_usage_count`, `cleanup_old_history` (including cron) and subscription writes run through the service role. Billing tables (`user_subscriptions`, `user_usage_quotas`) have no user write policies.
 
-<!-- Updated: 2026-05-14 - Documented scoped dependency security overrides for PartyKit/Miniflare and Next/PostCSS -->
+<!-- Updated: 2026-10-03 - Documented DB function grant contract after production security audit -->
+
+**DB-enforced guards**: Triggers keep `user_profiles.role` (`guard_user_profile_role`) and `mind_maps.is_template`/`template_category` (`guard_mind_map_template_flags`) system-managed for user sessions, and `enforce_map_node_limit` enforces the owner-scoped per-map node limit. That trigger mirrors `checkMapNodeLimit()` in `with-subscription-check.ts` (owner plan `limits.nodesPerMap`, default 50, `-1` unlimited) and skips upserts of existing nodes, so change both together. `user_profiles` rows are visible only to their owner and to users sharing a map (`private.shares_map_with`).
+
+<!-- Updated: 2026-10-03 - Documented role/template/node-limit triggers and profile visibility scope -->
+
+**Dependency security overrides**: Keep `pnpm.overrides` pins narrow and evidence-based. Current required overrides are `partykit>esbuild` because PartyKit still pins older esbuild, `miniflare>undici` scoped to PartyKit's Miniflare path, and `@serwist/turbopack>browserslist` because Serwist pins an exact vulnerable browserslist. The global `postcss` override was dropped once Next 16.3.8 resolved a patched internal PostCSS; do not re-add it unless `pnpm audit` flags PostCSS again. Prefer direct/transitive package updates over broad overrides, keep CI security gates (`security-audit.yml`, `dependency-review.yml`) active for dependency file changes, and re-run `pnpm audit` plus `pnpm why esbuild undici postcss browserslist` after PartyKit/miniflare/Next/PostCSS/Serwist bumps. Do not silence advisories with `auditConfig.ignoreGhsas`; remove the vulnerable path instead. `braces` (GHSA-vfj7-8cjw-p6xm, no patched release) is eliminated by aliasing `@next/eslint-plugin-next>fast-glob` to `tinyglobby` (the plugin only calls `globSync(pattern, { onlyDirectories: true })` when `settings.next.rootDir` is set) and by not installing the `shadcn` CLI as a devDependency (run `pnpm dlx shadcn@latest add <component>` instead). Before bumping `eslint-config-next`, confirm the plugin still only uses `globSync`, and drop the alias once it stops depending on `fast-glob`.
+
+<!-- Updated: 2026-10-03 - Removed braces via tinyglobby alias + shadcn dlx instead of audit ignore -->
 
 **Vercel package manager**: Keep repo-level `vercel.json` install/build commands pinned to pnpm (`pnpm install --frozen-lockfile`, `pnpm build`) so Vercel does not default to `npm i` and fail on npm-only peer resolution of the current lint stack.
 
@@ -159,9 +170,13 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-04-09 - Documented CI pnpm version-source conflict guardrail -->
 
-**ESLint flat config**: Next.js 16's `eslint-config-next/*` exports flat config arrays. Import those exports directly in `eslint.config.mjs`; do not wrap them in `FlatCompat`, because ESLint 10 legacy config validation can crash on circular plugin objects from `eslint-plugin-react`. Keep `settings.react.version` explicit rather than `detect` while the current React plugin is on the ESLint 9-era context API.
+**TypeScript 6 + 7 side-by-side**: `typescript` is aliased to `@typescript/typescript6` (TS 6 API for typescript-eslint, `next build` type step, Jest/editor tooling) and `@typescript/native` aliases TS 7, which owns the `tsc` binary (`pnpm type-check` ≈2s vs ≈11s). TS 7 ships no JS API until 7.1 and typescript-eslint supports TS `<6.1`, so do not point `typescript` at TS 7 (ESLint crashes). Use `pnpm exec tsc6 --noEmit` to cross-check TS 6. Revisit when typescript-eslint supports TS 7 (tracking issue typescript-eslint#10940).
 
-<!-- Updated: 2026-05-15 - Documented direct Next flat-config imports and explicit React version for ESLint 10 compatibility -->
+<!-- Updated: 2026-10-02 - Adopted official TS 6/7 side-by-side setup -->
+
+**ESLint flat config**: Next.js 16's `eslint-config-next/*` exports flat config arrays. Import those exports directly in `eslint.config.mjs`; do not wrap them in `FlatCompat`, because ESLint 10 legacy config validation can crash on circular plugin objects from `eslint-plugin-react`. Keep `settings.react.version` explicit rather than `detect` while the current React plugin is on the ESLint 9-era context API. Keep `.worktrees/**` in ESLint ignores and `<rootDir>/.worktrees/` in Jest `modulePathIgnorePatterns`; nested worktrees carry their own stale `node_modules`/mocks and crash lint or duplicate Jest mocks.
+
+<!-- Updated: 2026-10-02 - Documented worktree ignores for ESLint/Jest alongside flat-config guidance -->
 
 **LAN-safe local dev URLs**: Browser Supabase + PartyKit clients must derive from `window.location.hostname` whenever the configured public URL is loopback-only and the browser host is non-loopback (LAN device access), even if client `NODE_ENV` is unavailable. Keep server-side Supabase traffic on `SUPABASE_INTERNAL_URL` when local services stay on loopback, and do not reintroduce `NEXT_PUBLIC_APP_LOCAL_HREF` for browser fetches.
 
@@ -174,6 +189,8 @@ pnpm pretty          # Prettier
 **Supabase SSR cookie key**: Browser and server Supabase clients must share the same auth storage/cookie key. Derive that key from the configured Supabase URL, not the runtime LAN host, or successful LAN logins will bounce back to `/auth/sign-in` because the server looks for a different `sb-*` cookie name.
 
 <!-- Updated: 2026-04-01 - Documented Supabase cookie-name mismatch gotcha for LAN logins -->
+
+**History revert + list scope**: `revertToHistoryState` restores the whole map to that entry, undoing every newer change; it is not a per-change undo. UI copy must say "Restore map to this point" and show the undone count (`countChangesUndoneByRevert`), never "Revert this change". The list API returns only the current checkpoint scope (one snapshot plus its events; older ones are pruned on checkpoint creation), so do not build checkpoint timelines or filters on the loaded list. Row titles, grouping and filters live in `src/components/history/model/history-timeline.ts`. Base UI 1.8 marks selected tabs with `data-active` (not `data-selected`).
 
 **Map Settings templates**: `is_template` and `template_category` are system-managed and not user-editable in the Map Settings panel.
 
@@ -196,6 +213,9 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 <!-- Updated: 2026-05-15 - Documented touch-qualified autocomplete presenter selection for iPad/tablet widths -->
 
+**Device class hooks**: `useIsMobile` (`src/hooks/use-mobile.ts`) means "phone layout": `(max-width: 767px), (pointer: coarse) and (max-height: 500px)`, so landscape phones count as mobile while tablets do not. `useTouchFirst` (`src/hooks/use-touch-first.ts`) means "no keyboard can be assumed" (coarse pointer, no hover, or desktop-class iPad) and gates keyboard-shortcut hints (shortcuts help FAB, node editor `Ctrl+Enter` copy) and touch autocomplete surfaces. Do not gate keyboard hints by viewport width alone. On `useIsMobile`, the node editor renders full screen (`data-layout='fullscreen'`), the quick-input body drops its fixed `sm:` dialog height, and the footer shows a Cancel button (`ActionBar` `onCancel`) because there is no backdrop or Escape key to dismiss it.
+
+<!-- Updated: 2026-10-03 - Landscape phones count as mobile; touch-first keyboard-hint gating -->
 **Touch context menu fallback**: Do not rely on native `contextmenu` alone for mobile/iPad. Keep `useTouchContextMenuFallback` wired to the React Flow shell so touch long-press on `.react-flow__node[data-id]`, `.react-flow__edge[data-id]`, or `.react-flow__pane` opens the same context-menu store state path (`openContextMenuAt`) used by desktop right-click handlers. Preserve movement cancellation and trailing click/contextmenu suppression to avoid accidental immediate close/select side-effects after long-press activation.
 
 <!-- Updated: 2026-04-08 - Added iPad/iOS WebKit long-press fallback and post-long-press suppression guardrail -->
@@ -211,6 +231,12 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 **Realtime cleanup idempotency**: Yjs observer cleanup (`unobserve` / awareness `off`) and broadcast unsubscribe wrappers must be safe on repeated invocation. Slice-level unsubscribe flows should null stored handles before awaiting cleanup, and core realtime teardown should coalesce concurrent calls into one in-flight promise.
 
 <!-- Updated: 2026-04-07 - Added repeated-unsubscribe safety contract for Yjs/broadcast/slice/core teardown paths -->
+
+**Anchored annotation contract**: Annotation-to-host linkage is `metadata.anchorNodeId` + `metadata.anchorOffset` only; never use `parent_id`/React Flow `parentId` (hierarchy) or `targetNodeId` (reference nodes). An anchor whose host is missing, is an annotation, or is the node itself is treated as free. Anchored annotations must stay out of every layout pass (`splitAnchoredAnnotations`/`reattachAnchoredAnnotations`), never become AI node rows or targets (fold via `foldAnchoredAnnotation*` before aliasing), cascade-delete with their host inside the same `deleteNodes` call, and render only a derived `annotationTether` edge that is never stored in the edges slice.
+
+**Collapsed-branch contract**: `getBranchIndex` (`src/helpers/collapse/branch-index.ts`) is the single source for collapse roll-ups (hidden count = full subtree excluding anchored annotations, branch tasks, pending statuses, severity, peek outline); do not rebuild subtree walks in components. Collapsing is deliberate and lives only in the node context menu ("Collapse Branch") and `Ctrl/Cmd+-` — do not reintroduce an on-node collapse button next to the add/AI buttons. Expanding stays on canvas via the "N nodes hidden" pill, always centered under the collapsed stack (the add button moves below it). Expand opens one level (deeper nodes keep their flag); Shift+click / `expandBranch(id, { all: true })` clears the subtree in one history step via `setNodesCollapsed`. Adding a child to a collapsed node expands it inside the same optimistic `addNode` update (one history step; the flag is saved only after the insert succeeds or is queued). Cross-links into hidden nodes are derived `collapsedProxy` edges in `getVisibleEdges` — never stored, selectable, or deletable; edge actions (context menu, double-click edit) must skip derived edges via `isDerivedDisplayEdgeId` (`src/helpers/derived-display-edges.ts`), which also covers `annotationTether`; AI suggestion edges are never proxied (they keep `aiData.connectionProxy`). Collapse state is shared (not per user), so search/peek expansion changes collaborators' view too.
+
+<!-- Updated: 2026-10-03 - Derived-edge action guard and single-step add-child expand -->
 
 **Rate Limiting**: In-memory only (`src/helpers/api/rate-limiter.ts`), won't scale horizontally without Redis.
 
@@ -228,13 +254,26 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 **Structured AI route boundaries**: Keep `/api/ai/counterpoints`, `/api/ai/suggest-merges`, and `/api/ai/suggest-connections` as orchestration-only routes too. Route-specific request parsing, context shaping, prompt text, alias remapping, and streamed element normalization belong in `src/helpers/ai-counterpoint-*`, `src/helpers/ai-merge-*`, and `src/helpers/ai-connection-*`; the route files should stay limited to auth/quota checks, Supabase reads, `streamObject(...)`, stream-status events, and usage tracking. Do not drift merge duplicate filtering, connection validation, or counterpoint context selection back into the route handlers.
 
+**AI structured-output schemas**: `@ai-sdk/openai` defaults to OpenAI strict structured outputs, so every Zod schema passed to `streamObject` must list every key as required: use `.nullable()` for unused fields, never `.optional()` or `.partial()`, and avoid string formats such as `.url()`. A violation fails the whole request with `invalid_json_schema`. Lenient handling belongs in the postprocess helpers.
+
+<!-- Updated: 2026-10-03 - Documented OpenAI strict structured-output schema rules -->
+
+
 **Collapsed-branch connection suggestion proxying**: `suggestions-slice.addConnectionSuggestion()` may now remap hidden suggestion endpoints to visible collapsed ancestors for rendering and stores the true node IDs in `edge.data.aiData.connectionProxy` (`original*` vs `display*` IDs plus hidden-child labels). Keep dedupe keyed by original IDs, and `acceptConnectionSuggestion()` must create the real edge from original IDs, not display/proxy IDs. Collapse descendant traversal in `nodes-slice.getDescendantNodeIds()` must ignore transient AI suggestion edges so proxy suggestion edges do not hide unrelated visible nodes, and collapsed-ancestor lookup for hidden endpoints should use structural (non-suggested) edges only.
 
 **Suggestion rerun replacement gating**: Connection/merge reruns should clear prior transient AI suggestion edges only when `triggerStream(...)` returns `true`. If stream start is rejected (already streaming/throttled), keep existing suggestion edges/merge state unchanged.
 
+**AI SDK 7 instructions contract**: Pass system prompts via the top-level `instructions` option on `streamObject`/`streamText`/`generateText`, never as `{ role: 'system' }` entries in `messages`. AI SDK 7 rejects system messages in `messages` at runtime (no model call, empty element stream, only `onError` fires) while TypeScript and mocked route tests still pass. Do not enable `allowSystemInMessages`; `/api/ai/chat` filters client-sent system messages and owns instructions server-side. When setting OpenAI `reasoningEffort`, also set `reasoningSummary: null` unless summaries are consumed (v7 defaults it to `'detailed'`). Keep `useChat`'s `onFinish` (the v7 `onFinish`→`onEnd` rename applies to core/stream helpers, not `ChatInit`; the `@ai-sdk/codemod v7` mis-renames it and ignores `--dry`).
+
+<!-- Updated: 2026-10-02 - Documented AI SDK 7 instructions contract after v6->v7 migration -->
+
 **Row-based AI node-id aliasing**: Every compact row-based AI route (`/api/ai/suggestions`, `/api/ai/chat`, `/api/ai/counterpoints`, `/api/ai/suggest-merges`, `/api/search-nodes`) must alias model-visible node IDs through `src/helpers/ai-id-alias-map.ts` before prompt assembly. The model should see dense numeric node IDs in `NODE` / `REL` / `ANCHOR` / `RECENT` rows and any free-text request metadata that mentions node IDs; server code must resolve those aliases back to UUIDs before anchor validation, duplicate suppression, placement, merge validation, search validation, or client streaming. Do not let UUIDs leak into model-visible rows or numeric aliases leak into app-facing payloads.
 
 **Typed AI ghost approval**: `/api/ai/suggestions` may now stream an optional `nodePayload` alongside `content` for safe typed nodes. The route should only emit safe typed v1 nodes (`defaultNode`, `textNode`, `taskNode`, `questionNode`, `annotationNode`, `codeNode`), must downgrade malformed structured payloads to `defaultNode` before ghost creation, and ghost approval in `suggestions-slice` must build the final node from `nodePayload` instead of trying to infer typed metadata from `suggestedContent`. `taskNode` approval is the critical case: checklist rows live in `metadata.tasks`, so approving a task ghost without payload is a bug.
+
+**Polar 1.0 billing contract**: Use `createPolarClient()` / `getPolarEnvironment()` from `src/lib/polar.ts` (`@polar-sh/sdk/2026-10`). Polar webhook payloads are snake_case and are NOT schema-validated by `@polar-sh/nextjs` (signature + event type only), so the webhook types `data` as the SDK `models.Subscription` and the Polar webhook endpoint's `api_version` must stay aligned with the SDK version (sandbox/prod endpoints were still `2026-04` on 2026-10-02; `Subscription` is identical between 2026-04 and 2026-10; the version is not changeable via API/MCP). Checkout sends `external_customer_id = user.id`; portal still resolves the stored `polar_customer_id`. `paused` maps to `unpaid` (no Pro access). Webhook regression test signs a real sandbox wire fixture (`src/app/api/webhooks/polar/__fixtures__`). **Stale-event guard**: Polar retries deliveries out of order (observed 15+ min late), so every handler stores the applied version in `user_subscriptions.metadata.polar_modified_at` (`modified_at`, falling back to `created_at` for created/active payloads) and skips strictly older events while still returning 200. Never write a subscription row from a webhook without updating that version. An event that arrives before its row exists (`updated`, `canceled`, `uncanceled`, `revoked`) must be persisted from its payload via `handleSubscriptionActive(data, { preserveIncomingState: true })` (revoked forces `canceled`), never as a 0-row UPDATE, or a late `subscription.created` retry re-grants Pro. Writes to an existing row merge into stored `metadata` instead of replacing it.
+
+<!-- Updated: 2026-10-03 - Early events persisted from payload; metadata merged on created/active -->
 
 **Notifications**: `useNotifications` now shares a single cache/socket layer per signed-in user; keep `useSyncExternalStore` snapshots stable and apply `mapId` filtering server-side before `limit` in `/api/notifications`.
 
@@ -301,3 +340,6 @@ Guideline @./animation-guidelines.md
 2. Set up `supabase gen types` for automated TypeScript type generation
 3. Implement actual conflict resolution for real-time collaboration (currently last-write-wins)
 4. Add `@media (hover: hover)` wrapper for touch device hover states in animations
+5. Reconcile Supabase schema drift: prod migration history stops at 2026-02-12 (`notifications` applied outside history; `offline_op_receipts`, `push_subscriptions`, `create_history_checkpoint_and_prune` missing in prod), local differs too (extra objects, `supabase_admin`-owned functions), and `supabase/` is gitignored so migrations must be force-added
+6. Enforce the Content Security Policy (currently report-only in production; scripts still need `'unsafe-inline'` until nonces are added)
+7. `images.remotePatterns` allows any HTTPS host (open `/_next/image` proxy) for link previews; consider unoptimized remote images or a constrained proxy

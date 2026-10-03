@@ -27,19 +27,22 @@ global.IntersectionObserver = jest.fn().mockImplementation(() => ({
 }))
 
 // Mock matchMedia (for responsive/media query testing)
-Object.defineProperty(window, 'matchMedia', {
-	writable: true,
-	value: jest.fn().mockImplementation((query) => ({
-		matches: false,
-		media: query,
-		onchange: null,
-		addListener: jest.fn(),
-		removeListener: jest.fn(),
-		addEventListener: jest.fn(),
-		removeEventListener: jest.fn(),
-		dispatchEvent: jest.fn(),
-	})),
-})
+// Guarded so route tests can opt into `@jest-environment node`
+if (typeof window !== 'undefined') {
+	Object.defineProperty(window, 'matchMedia', {
+		writable: true,
+		value: jest.fn().mockImplementation((query) => ({
+			matches: false,
+			media: query,
+			onchange: null,
+			addListener: jest.fn(),
+			removeListener: jest.fn(),
+			addEventListener: jest.fn(),
+			removeEventListener: jest.fn(),
+			dispatchEvent: jest.fn(),
+		})),
+	})
+}
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({

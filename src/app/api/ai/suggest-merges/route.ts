@@ -208,11 +208,8 @@ export async function POST(req: Request) {
 							abortSignal,
 							output: 'array',
 							schema: mergeSuggestionSchema,
+							instructions: getMergeSystemPrompt(),
 							messages: [
-								{
-									role: 'system',
-									content: getMergeSystemPrompt(),
-								},
 								{
 									role: 'user',
 									content: buildMergeUserPrompt(promptContext.nodeRows),

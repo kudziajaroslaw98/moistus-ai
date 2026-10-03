@@ -134,6 +134,8 @@ export interface AnnotationNodeMetadata extends BaseNodeMetadata {
 	fontWeight?: string | number;
 	author?: string;
 	timestamp?: string;
+	anchorNodeId?: string;
+	anchorOffset?: { x: number; y: number };
 }
 
 // Reference metadata
@@ -254,6 +256,8 @@ export interface BaseNodeWrapperProps<
 	hideAddButton?: boolean;
 	hideSuggestionsButton?: boolean;
 	hideResizeFrame?: boolean;
+	/** Keep handles rendered (existing edges) but block new connections. */
+	disableConnections?: boolean;
 	accentColor?: string;
 	elevation?: number;
 	metadataColorOverrides?: {

@@ -1,3 +1,9 @@
+import {
+	computeAnchorOffset,
+	getAnchorHostIds,
+	getAnchorNodeId,
+	isAnnotationNode,
+} from '@/helpers/anchored-annotations';
 import generateUuid from '@/helpers/generate-uuid';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AiConnectionSuggestion } from '@/types/ai-connection-suggestion';
@@ -943,6 +949,46 @@ export const createSuggestionsSlice: StateCreator<
 			}
 		});
 
+		// An anchored annotation takes no connections, so as a source it stands
+		// in for its host.
+		const sourceNode = ghostMetadata.context?.sourceNodeId
+			? state.nodes.find((node) => node.id === ghostMetadata.context?.sourceNodeId)
+			: undefined;
+		const sourceHostId = sourceNode
+			? getAnchorNodeId(sourceNode, getAnchorHostIds(state.nodes))
+			: null;
+		const sourceNodeId = sourceHostId ?? ghostMetadata.context?.sourceNodeId;
+		const effectiveSource = sourceHostId
+			? state.nodes.find((node) => node.id === sourceHostId)
+			: sourceNode;
+
+		// An approved AI annotation anchors to its source node instead of
+		// getting an edge (annotations are notes about a node, not peers), and
+		// is never linked to another annotation.
+		const isAnnotationApproval = approvedNodeInput.nodeType === 'annotationNode';
+		const anchorHost =
+			isAnnotationApproval && effectiveSource && !isAnnotationNode(effectiveSource)
+				? effectiveSource
+				: undefined;
+		const skipEdge =
+			Boolean(anchorHost) ||
+			(isAnnotationApproval &&
+				effectiveSource !== undefined &&
+				isAnnotationNode(effectiveSource));
+		const approvedData = anchorHost
+			? {
+					...approvedNodeInput.data,
+					metadata: {
+						...approvedNodeInput.data?.metadata,
+						anchorNodeId: anchorHost.id,
+						anchorOffset: computeAnchorOffset(
+							ghostNode.position,
+							anchorHost.position
+						),
+					},
+				}
+			: approvedNodeInput.data;
+
 		// Add the new node to the main nodes array using the proper method signature
 		await state.addNode({
 			parentNode: null,
@@ -950,16 +996,16 @@ export const createSuggestionsSlice: StateCreator<
 			content: approvedNodeInput.content,
 			nodeType: approvedNodeInput.nodeType,
 			position: { x: ghostNode.position.x, y: ghostNode.position.y },
-			data: approvedNodeInput.data,
+			data: approvedData,
 		});
 
 		// Remove the ghost node
 		state.removeGhostNode(nodeId);
 
 		// If there's a connection context, create the edge
-		if (ghostMetadata.context?.sourceNodeId) {
-			await state.addEdge(ghostMetadata.context.sourceNodeId, approvedNodeId, {
-				label: ghostMetadata.context.relationshipType || null,
+		if (sourceNodeId && !skipEdge) {
+			await state.addEdge(sourceNodeId, approvedNodeId, {
+				label: ghostMetadata.context?.relationshipType || null,
 				animated: false,
 			});
 		}

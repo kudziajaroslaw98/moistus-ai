@@ -86,6 +86,8 @@ export interface HistoryItem {
 	timestamp: number;
 	summary?: string;
 	summaryDetail?: string;
+	/** Distinct property labels the event changed, e.g. ["Width", "Height"]. */
+	fieldLabels?: string[];
 	subjects?: HistorySubjectHint[];
 	userId?: string;
 	userName?: string;

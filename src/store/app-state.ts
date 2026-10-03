@@ -273,6 +273,12 @@ export interface NodesSlice {
 	getDescendantNodeIds: (nodeId: string) => string[];
 	getVisibleNodes: () => AppNode[];
 	toggleNodeCollapse: (nodeId: string) => Promise<void>;
+	/** Batch collapse/expand as one history step (shared state). */
+	setNodesCollapsed: (nodeIds: string[], collapsed: boolean) => void;
+	/** Expand one level, or the whole subtree with `all` (Shift+click). */
+	expandBranch: (nodeId: string, options?: { all?: boolean }) => void;
+	/** Expand every collapsed ancestor hiding `targetId`. */
+	expandPathTo: (targetId: string) => void;
 
 	// System update tracking
 	markNodeAsSystemUpdate: (nodeId: string) => void;
@@ -555,6 +561,8 @@ export interface UIStateSlice {
 	snapLines: SnapLine[];
 	nodeEditor: NodeEditorState;
 	commandPalette: CommandPaletteState;
+	/** Canvas find (Ctrl/Cmd+F); matches are derived from nodes + query. */
+	canvasSearch: { isOpen: boolean; query: string; activeIndex: number };
 
 	// UI setters
 	setPopoverOpen: (popover: Partial<Popovers>) => void;
@@ -576,6 +584,12 @@ export interface UIStateSlice {
 	setCommandPaletteSelection: (index: number) => void;
 	navigateCommandPalette: (direction: 'up' | 'down') => void;
 	executeCommand: (command: Command) => void;
+
+	// Canvas search actions
+	openCanvasSearch: () => void;
+	closeCanvasSearch: () => void;
+	setCanvasSearchQuery: (query: string) => void;
+	setCanvasSearchActiveIndex: (index: number) => void;
 }
 
 // Realtime Slice
