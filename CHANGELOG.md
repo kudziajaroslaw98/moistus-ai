@@ -20,6 +20,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **collapse**: Hidden count now covers the whole subtree (was direct children only); batch collapse changes are a single history step
 - **collapse**: Removed the on-node collapse button; collapsing is done from the node context menu or `Ctrl/Cmd+-`, expanding via the "N nodes hidden" pill
   - Why: The round collapse button duplicated the look of the add / AI buttons on the same side of the node
+- **mobile**: `useIsMobile` now also matches landscape phones (`(pointer: coarse) and (max-height: 500px)`), so they get the mobile toolbar, top bar, onboarding path and editor instead of desktop UI
+  - Why: Landscape phones (~844-932px wide) passed the width-only 768px check
+- **node-editor**: The node editor opens full screen on phones (portrait and landscape) instead of as an inset dialog
+
+### Fixed
+
+- **mobile**: Keyboard-shortcut hints (shortcuts help button, `Ctrl+Enter to create`) are hidden on touch-first devices via the new shared `useTouchFirst` hook
+- **onboarding**: The walkthrough checklist is height-capped with a scrolling task list and no longer stacks on the canvas hint in landscape; the mobile intro sheet scrolls on short screens
+- **map-settings**: Map Settings content scrolls again and the side panel footer is opaque, so it no longer overlaps panel content
 
 ## [2026-10-02]
 
