@@ -11,6 +11,12 @@ export const createGroupsSlice: StateCreator<AppState, [], [], GroupsSlice> = (
 	set,
 	get
 ) => ({
+	groupDragIntent: null,
+
+	setGroupDragIntent: (intent) => {
+		set({ groupDragIntent: intent });
+	},
+
 	createGroupFromSelected: withLoadingAndToast(
 		async (label?: string): Promise<void> => {
 			const { selectedNodes, nodes, addNode, updateNode } = get();
@@ -67,42 +73,91 @@ export const createGroupsSlice: StateCreator<AppState, [], [], GroupsSlice> = (
 		}
 	),
 
-	addNodesToGroup: withLoadingAndToast(
-		async (groupId: string, nodeIds: string[]): Promise<void> => {
-			const { nodes, updateNode } = get();
+	setNodesGroup: async (
+		nodeIds: string[],
+		targetGroupId: string | null
+	): Promise<void> => {
+		const { nodes, updateNode } = get();
+		const nodeById = new Map(nodes.map((node) => [node.id, node]));
 
-			const groupNode = nodes.find((n) => n.id === groupId);
+		const targetGroup =
+			targetGroupId === null ? null : nodeById.get(targetGroupId);
 
-			if (!groupNode || !groupNode.data.metadata?.isGroup) {
-				throw new Error('Invalid group node');
-			}
+		if (targetGroupId !== null && !targetGroup?.data.metadata?.isGroup) {
+			throw new Error('Invalid group node');
+		}
+
+		// Groups never nest; nodes already in the target are no-ops.
+		const movingIds = nodeIds.filter((nodeId) => {
+			const node = nodeById.get(nodeId);
+			return (
+				node &&
+				!node.data.metadata?.isGroup &&
+				node.data.metadata?.groupId !== (targetGroupId ?? undefined)
+			);
+		});
+
+		if (movingIds.length === 0) return;
+
+		// Batch removals per old group so each group's children are filtered once
+		// (avoids stale reads when several members leave the same group).
+		const removalsByGroup = new Map<string, Set<string>>();
+
+		for (const nodeId of movingIds) {
+			const oldGroupId = nodeById.get(nodeId)?.data.metadata?.groupId;
+			if (!oldGroupId) continue;
+
+			const removals = removalsByGroup.get(oldGroupId) ?? new Set<string>();
+			removals.add(nodeId);
+			removalsByGroup.set(oldGroupId, removals);
+		}
+
+		for (const [oldGroupId, removals] of removalsByGroup) {
+			const oldGroup = nodeById.get(oldGroupId);
+			if (!oldGroup?.data.metadata?.isGroup) continue;
 
 			const currentChildren =
-				(groupNode.data.metadata.groupChildren as string[]) || [];
-			const newChildren = [...new Set([...currentChildren, ...nodeIds])];
+				(oldGroup.data.metadata.groupChildren as string[]) || [];
 
-			// Update group node with new children
 			await updateNode({
-				nodeId: groupId,
+				nodeId: oldGroupId,
 				data: {
 					metadata: {
-						...groupNode.data.metadata,
-						groupChildren: newChildren,
+						groupChildren: currentChildren.filter((id) => !removals.has(id)),
 					},
 				},
 			});
+		}
 
-			// Update target nodes to reference this group
-			for (const nodeId of nodeIds) {
-				await updateNode({
-					nodeId,
-					data: {
-						metadata: {
-							groupId: groupId,
-						},
+		if (targetGroup && targetGroupId !== null) {
+			const currentChildren =
+				(targetGroup.data.metadata?.groupChildren as string[]) || [];
+
+			await updateNode({
+				nodeId: targetGroupId,
+				data: {
+					metadata: {
+						groupChildren: [...new Set([...currentChildren, ...movingIds])],
 					},
-				});
-			}
+				},
+			});
+		}
+
+		for (const nodeId of movingIds) {
+			await updateNode({
+				nodeId,
+				data: {
+					metadata: {
+						groupId: targetGroupId ?? undefined,
+					},
+				},
+			});
+		}
+	},
+
+	addNodesToGroup: withLoadingAndToast(
+		async (groupId: string, nodeIds: string[]): Promise<void> => {
+			await get().setNodesGroup(nodeIds, groupId);
 		},
 		'isAddingContent',
 		{
@@ -114,43 +169,7 @@ export const createGroupsSlice: StateCreator<AppState, [], [], GroupsSlice> = (
 
 	removeNodesFromGroup: withLoadingAndToast(
 		async (nodeIds: string[]): Promise<void> => {
-			const { nodes, updateNode } = get();
-
-			for (const nodeId of nodeIds) {
-				const node = nodes.find((n) => n.id === nodeId);
-				if (!node?.data.metadata?.groupId) continue;
-
-				const groupId = node.data.metadata.groupId;
-				const groupNode = nodes.find((n) => n.id === groupId);
-
-				if (groupNode?.data.metadata?.isGroup) {
-					const currentChildren =
-						(groupNode.data.metadata.groupChildren as string[]) || [];
-					const newChildren = currentChildren.filter((id) => id !== nodeId);
-
-					// Update group node
-					await updateNode({
-						nodeId: groupId,
-						data: {
-							metadata: {
-								...groupNode.data.metadata,
-								groupChildren: newChildren,
-							},
-						},
-					});
-				}
-
-				// Remove group reference from node
-				await updateNode({
-					nodeId,
-					data: {
-						metadata: {
-							...node.data.metadata,
-							groupId: undefined,
-						},
-					},
-				});
-			}
+			await get().setNodesGroup(nodeIds, null);
 		},
 		'isAddingContent',
 		{

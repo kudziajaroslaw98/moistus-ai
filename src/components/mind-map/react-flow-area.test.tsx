@@ -136,6 +136,12 @@ jest.mock('@/hooks/use-touch-context-menu-fallback', () => ({
 	useTouchContextMenuFallback: (...args: unknown[]) =>
 		mockUseTouchContextMenuFallback(...args),
 }));
+jest.mock('@/hooks/use-group-drag-membership', () => ({
+	useGroupDragMembership: () => ({
+		onNodeDrag: (...args: unknown[]) => mockNoop(...args),
+		onNodeDragStop: (...args: unknown[]) => mockNoop(...args),
+	}),
+}));
 jest.mock('@/hooks/use-mobile', () => ({
 	useIsMobile: () => false,
 }));

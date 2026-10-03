@@ -5,6 +5,23 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-03]
+
+### Added
+
+- **groups/drag-membership**: Drag a node over a group and hold to add it, or drag a member outside its group and hold to remove it; release applies the change, and the group's label shows hold/release progress
+  - Why: Group membership could only be changed from menus before
+
+### Fixed
+
+- **groups/member-interaction**: Nodes inside a group can be clicked, selected and edited again, even while the group is selected
+  - Why: Groups rendered above their members and captured every click
+- **groups/multi-remove**: Removing several nodes from the same group no longer leaves some of them listed in the group's children
+
+### Removed
+
+- **groups/html5-drop**: Removed unused HTML5 drop handlers from the group node (React Flow node drags never fired them)
+
 ## [2026-07-18]
 
 ### Fixed
