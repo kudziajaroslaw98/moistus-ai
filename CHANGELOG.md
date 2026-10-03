@@ -7,6 +7,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ## [2026-10-04]
 
+### Added
+
+- **extensions/graph-ops**: `applyGraphOps()` (`src/lib/extensions/graph-ops.ts`) is the single entry point for programmatic graph changes: it checks edit permission and extension data limits, reuses the existing store actions, and records one history event per batch attributed to the actor (`user` / `plugin` / `recipe`)
+  - Why: Foundation for plugins and AI recipes; store actions alone don't enforce permissions or group changes
+- **extensions/metadata**: Reserved `metadata.extension` (extension node data) and `metadata.ext[pluginId]` (per-plugin data on any node) in `NodeData` and the metadata validation schemas
+
 ### Fixed
 
 - **history/revert**: Reverting to a checkpoint or event restores deleted nodes in place and keeps layout working

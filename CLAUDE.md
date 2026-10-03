@@ -252,6 +252,10 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 **Structured AI route boundaries**: Keep `/api/ai/counterpoints`, `/api/ai/suggest-merges`, and `/api/ai/suggest-connections` as orchestration-only routes too. Route-specific request parsing, context shaping, prompt text, alias remapping, and streamed element normalization belong in `src/helpers/ai-counterpoint-*`, `src/helpers/ai-merge-*`, and `src/helpers/ai-connection-*`; the route files should stay limited to auth/quota checks, Supabase reads, `streamObject(...)`, stream-status events, and usage tracking. Do not drift merge duplicate filtering, connection validation, or counterpoint context selection back into the route handlers.
 
+**Programmatic graph changes**: Plugins, recipes and any future API must change the graph through `applyGraphOps()` (`src/lib/extensions/graph-ops.ts`), never by calling node/edge store actions directly. It enforces edit permission, keeps plugin data inside `metadata.ext[<own plugin id>]` (max 16 KB per node) and wraps the batch in `beginHistoryBatch`/`endHistoryBatch` so it records one history event with `changes.actor`. `persistDeltaEvent` returns early while `historyBatchDepth > 0`, so anything that must record history on its own must not run inside a batch. `metadata.extension` and `metadata.ext` are reserved; they are listed explicitly in `baseMetadataSchema` so validation never strips them.
+
+<!-- Updated: 2026-10-04 - Documented graph-ops entry point, history batching and reserved extension metadata -->
+
 **AI structured-output schemas**: `@ai-sdk/openai` defaults to OpenAI strict structured outputs, so every Zod schema passed to `streamObject` must list every key as required: use `.nullable()` for unused fields, never `.optional()` or `.partial()`, and avoid string formats such as `.url()`. A violation fails the whole request with `invalid_json_schema`. Lenient handling belongs in the postprocess helpers.
 
 <!-- Updated: 2026-10-03 - Documented OpenAI strict structured-output schema rules -->

@@ -15,6 +15,7 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { ContextMenuState } from '@/types/context-menu-state';
 import type { EdgeData } from '@/types/edge-data';
+import type { GraphActor } from '@/types/extensions';
 import type {
 	AttributedHistoryDelta,
 	HistoryItem,
@@ -196,8 +197,13 @@ export interface HistorySlice {
 	persistDeltaEvent: (
 		actionName: string,
 		prev: { nodes: AppNode[]; edges: AppEdge[] },
-		next: { nodes: AppNode[]; edges: AppEdge[] }
+		next: { nodes: AppNode[]; edges: AppEdge[] },
+		options?: { actor?: GraphActor }
 	) => Promise<void>;
+	/** While > 0, per-action history events are suppressed so a batch records one event. */
+	historyBatchDepth: number;
+	beginHistoryBatch: () => void;
+	endHistoryBatch: () => void;
 	subscribeToHistoryCurrent: (mapId: string) => Promise<void>;
 	unsubscribeFromHistoryCurrent: () => Promise<void>;
 

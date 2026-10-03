@@ -14,6 +14,7 @@ import {
 } from '@/lib/realtime/graph-sync';
 import { AppEdge } from '@/types/app-edge';
 import { AppNode } from '@/types/app-node';
+import type { GraphActor } from '@/types/extensions';
 import { AttributedHistoryDelta, HistoryItem } from '@/types/history-state';
 import { toast } from 'sonner';
 import { StateCreator } from 'zustand';
@@ -32,6 +33,17 @@ export const createHistorySlice: StateCreator<
 	revertingIndex: null, // Which history item is currently reverting
 	_historyCurrentSubscription: null,
 	_historySubscriptionPending: false, // Guard against concurrent subscription attempts
+	historyBatchDepth: 0,
+
+	beginHistoryBatch: () => {
+		set((state) => ({ historyBatchDepth: state.historyBatchDepth + 1 }));
+	},
+
+	endHistoryBatch: () => {
+		set((state) => ({
+			historyBatchDepth: Math.max(0, state.historyBatchDepth - 1),
+		}));
+	},
 
 	// pagination
 	historyPageOffset: 0,
@@ -254,12 +266,16 @@ export const createHistorySlice: StateCreator<
 	persistDeltaEvent: async (
 		actionName: string,
 		prev: { nodes: AppNode[]; edges: AppEdge[] },
-		next: { nodes: AppNode[]; edges: AppEdge[] }
+		next: { nodes: AppNode[]; edges: AppEdge[] },
+		options?: { actor?: GraphActor }
 	) => {
 		try {
-			const { supabase, mapId, currentUser, isReverting } = get();
+			const { supabase, mapId, currentUser, isReverting, historyBatchDepth } =
+				get();
 			// Suppress DB history recording during revert
 			if (isReverting) return;
+			// Inside a graph-ops batch the batch records a single event when it ends
+			if (historyBatchDepth > 0) return;
 			if (!mapId) return;
 			let userId = currentUser?.id as string | undefined;
 			if (!userId) {
@@ -380,7 +396,7 @@ export const createHistorySlice: StateCreator<
 					action_name: actionName,
 					operation_type: delta.operation,
 					entity_type: delta.entityType,
-					changes: delta,
+					changes: options?.actor ? { ...delta, actor: options.actor } : delta,
 				})
 				.select('id, snapshot_id')
 				.single();

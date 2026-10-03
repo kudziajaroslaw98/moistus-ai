@@ -1,4 +1,5 @@
 import { AvailableNodeTypes } from '@/registry/node-registry';
+import type { NodeExtensionData } from './extensions';
 import type {
 	SuggestionContext,
 	SuggestionNodePayload,
@@ -159,5 +160,11 @@ export interface NodeData extends Record<string, unknown> {
 		nodePayload?: SuggestionNodePayload | null;
 		context?: SuggestionContext;
 		sourceNodeName?: string; // Name of the node that triggered this suggestion
+
+		// ------------------------------------------
+		// Extensions (reserved namespaces)
+		// ------------------------------------------
+		extension?: NodeExtensionData | null; // extensionNode: plugin-owned node data
+		ext?: Record<string, unknown> | null; // per-plugin data on any node, keyed by plugin id
 	} | null;
 }

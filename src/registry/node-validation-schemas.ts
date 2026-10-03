@@ -35,6 +35,19 @@ const baseMetadataSchema = z.object({
 	showBackground: z.boolean().optional(),
 	label: z.string().optional(),
 	title: z.string().optional(),
+
+	// Extensions (reserved namespaces; listed explicitly so validation never strips them)
+	extension: z
+		.object({
+			pluginId: z.string(),
+			kind: z.string(),
+			version: z.string(),
+			data: z.record(z.string(), z.unknown()),
+			snapshot: z.unknown().optional(),
+		})
+		.nullable()
+		.optional(),
+	ext: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 // ═══════════════════════════════════════════════
