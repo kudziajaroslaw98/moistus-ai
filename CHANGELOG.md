@@ -40,6 +40,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **ui/tabs**: The selected tab is visibly highlighted again (share panel, dashboard settings)
   - Why: Base UI 1.8 marks the selected tab with `data-active`; the primitive still styled the old `data-selected` attribute, so no tab ever looked selected
 
+### Removed
+
+- **history**: Unused history components and helpers left over from earlier panel versions (`history-entry-card`, `history-actions`, `history-group`, `change-item`, `git-diff-view`, `grouping-utils`)
+
 ## [2026-10-02]
 
 ### Changed

@@ -198,7 +198,7 @@ shiko/
 │   │   ├── dashboard/          # Map cards, settings, and loading skeleton shells
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
-│   │   ├── history/            # Timeline history sidebar, readable change rows, hooks, and view-model adapters
+│   │   ├── history/            # History sidebar: grouped rows, filter chips, one-line diffs, restore confirm, timeline model
 │   │   ├── landing/            # Marketing flow + shared CTA link feedback (Start Mapping/Get Started/Go Pro with next/link pending + optimistic click hint + top progress bar)
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
