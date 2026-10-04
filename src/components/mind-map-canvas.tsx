@@ -17,6 +17,7 @@ import { useParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { AIStreamMediator } from './ai/ai-stream-mediator';
+import { RecipeContributionsRegistrar } from './recipes/recipe-contributions-registrar';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
 import { StreamingToast } from './streaming-toast';
 import { AnonymousUserBanner } from './auth/anonymous-user-banner';
@@ -231,6 +232,8 @@ export function MindMapCanvas() {
 				<AnonymousUserBanner />
 
 				<AIStreamMediator />
+
+				<RecipeContributionsRegistrar />
 
 				<StreamingToast />
 

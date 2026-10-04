@@ -14,6 +14,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **ai/recipes**: Starter recipes "SWOT this branch" and "Study questions" listed under a "Recipes" heading in the AI popover, a titled "Recipes" section in the context menu, and the Ctrl/Cmd+K palette ("Recipe ·"); ghost cards show the recipe name
 - **ai/recipes**: Recipe output is sanitised (markdown images, link targets and HTML removed) and limited to the recipe's node types, labels and count
   - Why: Approved nodes render markdown, so a shared recipe could otherwise load an image URL carrying map text
+- **ai/recipes**: Saved recipes: `ai_recipes` table (owner-only RLS; install fields and a 50-recipe cap enforced by the `guard_ai_recipes` trigger) and `/api/recipes` (list, create, update, delete), `/api/recipes/shared/[id]` (read an unlisted recipe by link) and `/api/recipes/[id]/install` (add your own copy); saved recipes appear in the AI menus via `RecipeContributionsRegistrar`
+  - Why: Copies instead of live links, so an instruction someone reviewed can't change after they add it
+- **account**: Data export includes AI recipes; account deletion removes them
 - **extensions/graph-ops**: `applyGraphOps()` (`src/lib/extensions/graph-ops.ts`) is the single entry point for programmatic graph changes: it checks edit permission and extension data limits, reuses the existing store actions, and records one history event per batch attributed to the actor (`user` / `plugin` / `recipe`)
   - Why: Foundation for plugins and AI recipes; store actions alone don't enforce permissions or group changes
 - **extensions/command-palette**: Ctrl/Cmd+K command palette listing AI actions plus Search canvas, Open history (editors) and Map settings (owner); acts on the selected node when one is selected

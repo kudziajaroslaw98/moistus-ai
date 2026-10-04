@@ -55,6 +55,7 @@ export async function GET(request: Request) {
 			preferencesResult,
 			usageQuotasResult,
 			activityLogResult,
+			recipesResult,
 		] = await Promise.all([
 			supabase
 				.from('user_profiles')
@@ -71,6 +72,7 @@ export async function GET(request: Request) {
 				.from('profile_activity_log')
 				.select('*')
 				.eq('user_id', user.id),
+			supabase.from('ai_recipes').select('*').eq('user_id', user.id),
 		]);
 
 		// Profile is critical — if it fails, abort
@@ -93,6 +95,7 @@ export async function GET(request: Request) {
 			warnings.push('Failed to export usage quotas');
 		if (activityLogResult.error)
 			warnings.push('Failed to export activity log');
+		if (recipesResult.error) warnings.push('Failed to export AI recipes');
 
 		const mindMaps = mindMapsResult.data ?? [];
 		const mapIds = mindMaps.map((m) => m.id);
@@ -216,6 +219,7 @@ export async function GET(request: Request) {
 			preferences: preferencesResult.data ?? [],
 			mind_maps: enrichedMaps,
 			folders: foldersResult.data ?? [],
+			ai_recipes: recipesResult.data ?? [],
 			sharing: {
 				tokens_created: sanitizedTokens,
 				maps_accessed: shareAccess,

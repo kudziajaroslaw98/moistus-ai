@@ -132,6 +132,8 @@ export const DELETE = withAuthValidation(
 		await deleteFromTable('share_tokens', 'created_by');
 		// map_folders owned by user
 		await deleteFromTable('map_folders');
+		// AI recipes owned by user (copies others made keep working: source_recipe_id is set null)
+		await deleteFromTable('ai_recipes');
 		// mind_maps owned by user (CASCADE handles: nodes, edges, map_history_current)
 		await deleteFromTable('mind_maps');
 

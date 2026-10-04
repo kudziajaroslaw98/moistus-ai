@@ -64,3 +64,24 @@ export const recipeRefSchema = z.object({
 	id: z.string().trim().min(1).max(100),
 	definition: recipeDefinitionSchema,
 });
+
+export const RECIPE_VISIBILITIES = ['private', 'unlisted'] as const;
+export type RecipeVisibility = (typeof RECIPE_VISIBILITIES)[number];
+
+/** Each user can keep this many saved recipes (also enforced by the database). */
+export const MAX_SAVED_RECIPES = 50;
+
+/** A recipe stored in `ai_recipes` and owned by the current user. */
+export interface SavedRecipe extends RecipeRef {
+	visibility: RecipeVisibility;
+	/** The shared recipe this one was copied from, if any. */
+	sourceRecipeId: string | null;
+	installCount: number;
+	updatedAt: string;
+}
+
+/** What anyone with the link sees on a shared (unlisted) recipe. */
+export interface SharedRecipe extends RecipeRef {
+	authorName: string | null;
+	installCount: number;
+}
