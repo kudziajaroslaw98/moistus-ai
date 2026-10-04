@@ -45,6 +45,7 @@ export function MindMapCanvas() {
 		ungroupNodes,
 		toggleNodeCollapse,
 		openCanvasSearch,
+		setPopoverOpen,
 		openNodeEditor,
 		userProfile,
 		mapAccessError,
@@ -68,6 +69,7 @@ export function MindMapCanvas() {
 			ungroupNodes: state.ungroupNodes,
 			toggleNodeCollapse: state.toggleNodeCollapse,
 			openCanvasSearch: state.openCanvasSearch,
+			setPopoverOpen: state.setPopoverOpen,
 			openNodeEditor: state.openNodeEditor,
 			userProfile: state.userProfile,
 			mapAccessError: state.mapAccessError,
@@ -180,6 +182,10 @@ export function MindMapCanvas() {
 		}
 	}, [selectedNodes, toggleNodeCollapse]);
 
+	const openCommandPalette = useCallback(() => {
+		setPopoverOpen({ commandPalette: true });
+	}, [setPopoverOpen]);
+
 	useKeyboardShortcuts({
 		onCopy: handleCopy,
 		onPaste: handlePaste,
@@ -191,6 +197,7 @@ export function MindMapCanvas() {
 		onToggleCollapse: handleToggleCollapse,
 		onLayout: canEdit ? applyLayout : undefined,
 		onOpenSearch: isRequestedMapReady ? openCanvasSearch : undefined,
+		onOpenPalette: isRequestedMapReady ? openCommandPalette : undefined,
 	});
 
 	// Keyboard navigation (arrow keys, Ctrl+Arrow creation, Enter edit)

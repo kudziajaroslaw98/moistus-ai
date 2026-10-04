@@ -3,6 +3,7 @@ import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { generateFunName } from '@/helpers/user-profile-helpers';
 import useAppStore from '@/store/mind-map-store';
 import { HistorySidebar } from '../history/history-sidebar';
+import { CommandPalette } from '../mind-map/command-palette';
 import { MapSettingsPanel } from '../mind-map/map-settings-panel';
 import EdgeEditModal from '../modals/edge-edit-modal';
 import { ReferenceSearchModal } from '../modals/reference-search-modal';
@@ -18,6 +19,8 @@ export function ModalsWrapper() {
 	return (
 		<>
 			{popoverOpen.edgeEdit && <EdgeEditModal />}
+
+			<CommandPalette />
 
 			{canEdit && <HistorySidebar />}
 

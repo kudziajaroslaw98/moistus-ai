@@ -1,6 +1,5 @@
 // eslint-disable-file @typescript-eslint/no-unused-vars
 
-import type { Command } from '@/components/node-editor/core/commands/command-types';
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import type { CollaboratorRealtimeEvent } from '@/lib/realtime/collaborator-events';
 import { AvailableNodeTypes } from '@/registry/node-registry';
@@ -478,6 +477,8 @@ export interface Popovers {
 	referenceSearch: boolean;
 	mapSettings: boolean;
 	upgradeUser: boolean;
+	/** Ctrl/Cmd+K command palette */
+	commandPalette: boolean;
 }
 
 // InlineNodeCreator types
@@ -524,25 +525,6 @@ export interface NodeEditorOptions {
 	openTypePicker?: boolean;
 }
 
-// CommandPalette types
-export interface CommandPaletteState {
-	isOpen: boolean;
-	position: XYPosition;
-	searchQuery: string;
-	selectedIndex: number;
-	filteredCommands: Command[];
-	trigger: '/' | '$' | null;
-	anchorPosition: number;
-	activeNodeType: string;
-}
-
-export interface CommandPaletteOptions {
-	position: XYPosition;
-	trigger: '/' | '$' | null;
-	anchorPosition: number;
-	activeNodeType?: string;
-}
-
 export interface UIStateSlice {
 	// UI state
 	popoverOpen: Popovers;
@@ -554,7 +536,6 @@ export interface UIStateSlice {
 	// editingNodeId: string | null; // Removed - replaced by NodeEditor system
 	snapLines: SnapLine[];
 	nodeEditor: NodeEditorState;
-	commandPalette: CommandPaletteState;
 	/** Canvas find (Ctrl/Cmd+F); matches are derived from nodes + query. */
 	canvasSearch: { isOpen: boolean; query: string; activeIndex: number };
 
@@ -570,14 +551,6 @@ export interface UIStateSlice {
 
 	openNodeEditor: (options: NodeEditorOptions) => void;
 	closeNodeEditor: () => void;
-
-	// CommandPalette actions
-	openCommandPalette: (options: CommandPaletteOptions) => void;
-	closeCommandPalette: () => void;
-	setCommandPaletteSearch: (query: string) => void;
-	setCommandPaletteSelection: (index: number) => void;
-	navigateCommandPalette: (direction: 'up' | 'down') => void;
-	executeCommand: (command: Command) => void;
 
 	// Canvas search actions
 	openCanvasSearch: () => void;

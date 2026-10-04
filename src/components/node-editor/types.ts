@@ -110,15 +110,6 @@ export interface ParsedSize {
 }
 
 // Component props types
-export interface CommandPaletteProps {
-	commands: Command[];
-	onSelectCommand: (command: Command) => void;
-	filterQuery: string;
-	onFilterChange: (query: string) => void;
-	activeIndex: number | null;
-	itemsRef: React.MutableRefObject<(HTMLElement | null)[]>;
-}
-
 export interface QuickInputProps {
 	nodeType: AvailableNodeTypes;
 	parentNode: AppNode | null;

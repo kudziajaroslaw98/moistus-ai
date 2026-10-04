@@ -63,3 +63,47 @@ describe('useKeyboardShortcuts canvas search', () => {
 		expect(onOpenSearch).not.toHaveBeenCalled();
 	});
 });
+
+describe('useKeyboardShortcuts command palette', () => {
+	function setupPalette(onOpenPalette = jest.fn()) {
+		renderHook(() =>
+			useKeyboardShortcuts({
+				onCopy: jest.fn(),
+				onPaste: jest.fn(),
+				selectedNodeId: null,
+				selectedEdgeId: null,
+				isBusy: false,
+				onOpenPalette,
+			})
+		);
+		return onOpenPalette;
+	}
+
+	it('opens the palette on Ctrl/Cmd+K and blocks the browser default', () => {
+		const onOpenPalette = setupPalette();
+		const event = new KeyboardEvent('keydown', {
+			key: 'k',
+			metaKey: true,
+			cancelable: true,
+			bubbles: true,
+		});
+
+		document.body.dispatchEvent(event);
+
+		expect(onOpenPalette).toHaveBeenCalledTimes(1);
+		expect(event.defaultPrevented).toBe(true);
+	});
+
+	it('leaves Ctrl+K alone while typing in an input', () => {
+		const onOpenPalette = setupPalette();
+		const input = document.createElement('input');
+		document.body.appendChild(input);
+
+		input.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })
+		);
+
+		expect(onOpenPalette).not.toHaveBeenCalled();
+		input.remove();
+	});
+});

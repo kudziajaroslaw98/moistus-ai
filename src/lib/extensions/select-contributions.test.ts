@@ -2,8 +2,10 @@ import type { AppState } from '@/store/app-state';
 import type { Contribution, ContributionContext } from '@/types/extensions';
 import { Puzzle } from 'lucide-react';
 import {
+	matchesPaletteQuery,
 	resolveContributionDescription,
 	selectContributions,
+	selectPaletteEntries,
 } from './select-contributions';
 
 const entry = (overrides: Partial<Contribution>): Contribution => ({
@@ -88,5 +90,66 @@ describe('resolveContributionDescription', () => {
 				ctx({ scope: 'node', nodeId: 'n1' })
 			)
 		).toBe('Scope: node');
+	});
+});
+
+describe('selectPaletteEntries', () => {
+	const createContext = (
+		scope: ContributionContext['scope'],
+		nodeId: string | null
+	) => ctx({ scope, nodeId });
+
+	it('lists each entry once, on the selected node when it supports node scope', () => {
+		const list = [
+			entry({ id: 'both' }),
+			entry({ id: 'map-only', scopes: ['map'] }),
+			entry({ id: 'node-only', scopes: ['node'] }),
+			entry({ id: 'menu-only', placements: ['aiMenu'] }),
+		];
+
+		const entries = selectPaletteEntries(list, createContext, 'n1');
+
+		expect(entries.map((e) => [e.contribution.id, e.ctx.scope])).toEqual([
+			['both', 'node'],
+			['map-only', 'map'],
+			['node-only', 'node'],
+		]);
+	});
+
+	it('falls back to map scope without a selected node', () => {
+		const list = [
+			entry({ id: 'both' }),
+			entry({ id: 'node-only', scopes: ['node'] }),
+		];
+
+		const entries = selectPaletteEntries(list, createContext, null);
+
+		expect(entries.map((e) => [e.contribution.id, e.ctx.scope])).toEqual([
+			['both', 'map'],
+		]);
+	});
+});
+
+describe('matchesPaletteQuery', () => {
+	const paletteEntry = {
+		contribution: entry({
+			title: 'Find similar',
+			description: 'Find mergeable nodes',
+			keywords: ['duplicates'],
+		}),
+		ctx: ctx(),
+	};
+
+	it('matches title, description and keywords case-insensitively', () => {
+		expect(matchesPaletteQuery(paletteEntry, '')).toBe(true);
+		expect(matchesPaletteQuery(paletteEntry, 'SIMILAR')).toBe(true);
+		expect(matchesPaletteQuery(paletteEntry, 'mergeable')).toBe(true);
+		expect(matchesPaletteQuery(paletteEntry, 'dupl')).toBe(true);
+		expect(matchesPaletteQuery(paletteEntry, 'expand')).toBe(false);
+	});
+
+	it('requires every word to match', () => {
+		expect(matchesPaletteQuery(paletteEntry, 'find nodes')).toBe(true);
+		expect(matchesPaletteQuery(paletteEntry, 'find history')).toBe(false);
 	});
 });

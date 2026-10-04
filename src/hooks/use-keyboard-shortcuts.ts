@@ -12,6 +12,7 @@ interface UseKeyboardShortcutsProps {
 	onToggleCollapse?: () => void;
 	onLayout?: () => void;
 	onOpenSearch?: () => void;
+	onOpenPalette?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -25,6 +26,7 @@ export function useKeyboardShortcuts({
 	onToggleCollapse,
 	onLayout,
 	onOpenSearch,
+	onOpenPalette,
 }: UseKeyboardShortcutsProps): void {
 	const reactFlowInstance = useAppStore((state) => state.reactFlowInstance);
 	const copySelectedNodes = useAppStore((state) => state.copySelectedNodes);
@@ -58,6 +60,14 @@ export function useKeyboardShortcuts({
 				if (isInputFocused || !onOpenSearch) return;
 				event.preventDefault();
 				onOpenSearch();
+				return;
+			}
+
+			// Ctrl/Cmd + K: command palette
+			if (isCtrlCmd && event.key.toLowerCase() === 'k' && !event.shiftKey) {
+				if (isInputFocused || !onOpenPalette) return;
+				event.preventDefault();
+				onOpenPalette();
 				return;
 			}
 
@@ -138,5 +148,6 @@ export function useKeyboardShortcuts({
 		onUngroup,
 		onToggleCollapse,
 		onOpenSearch,
+		onOpenPalette,
 	]);
 }

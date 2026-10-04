@@ -1,4 +1,5 @@
 import { BUILTIN_AI_ACTIONS } from '@/lib/extensions/builtin-ai-actions';
+import { BUILTIN_COMMANDS } from '@/lib/extensions/builtin-commands';
 import type { AppState } from '@/store/app-state';
 import type { Contribution } from '@/types/extensions';
 import { Puzzle } from 'lucide-react';
@@ -22,11 +23,11 @@ const contribution = (overrides: Partial<Contribution> = {}): Contribution => ({
 });
 
 describe('extensions slice', () => {
-	it('starts with the built-in AI actions', () => {
+	it('starts with the built-in AI actions and commands', () => {
 		const store = createStore();
 
 		expect(store.getState().contributions.map((c) => c.id)).toEqual(
-			BUILTIN_AI_ACTIONS.map((c) => c.id)
+			[...BUILTIN_AI_ACTIONS, ...BUILTIN_COMMANDS].map((c) => c.id)
 		);
 	});
 
