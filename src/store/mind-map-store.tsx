@@ -6,6 +6,7 @@ import { createCommentsSlice } from './slices/comments-slice';
 import { createCoreDataSlice } from './slices/core-slice';
 import { createEdgeSlice } from './slices/edges-slice';
 import { createExportSlice } from './slices/export-slice';
+import { createExtensionsSlice } from './slices/extensions-slice';
 import { createGroupsSlice } from './slices/groups-slice';
 import { createHistorySlice } from './slices/history-slice';
 import { createLayoutSlice } from './slices/layout-slice';
@@ -46,6 +47,7 @@ const sliceCreators = [
 	createLayoutSlice,
 	createExportSlice,
 	createGuidedTourSlice,
+	createExtensionsSlice,
 ];
 
 const useAppStore = create<AppState>((set, get, api) => {

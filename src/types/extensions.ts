@@ -1,4 +1,6 @@
 import type { AvailableNodeTypes } from '@/registry/node-registry';
+import type { AppState } from '@/store/app-state';
+import type { LucideIcon } from 'lucide-react';
 import type { EdgeData } from './edge-data';
 import type { NodeData } from './node-data';
 
@@ -42,5 +44,48 @@ export type GraphOp =
 	| { type: 'deleteEdges'; edgeIds: string[] };
 
 export type GraphOpsResult =
-	| { ok: true; applied: number }
-	| { ok: false; applied: number; error: string };
+	{ ok: true; applied: number } | { ok: false; applied: number; error: string };
+
+/** Whether an entry acts on one node or on the whole map. */
+export type ContributionScope = 'node' | 'map';
+
+/** UI surfaces that list contributed entries. */
+export type ContributionPlacement = 'aiMenu' | 'contextMenu' | 'commandPalette';
+
+export interface ContributionContext {
+	getState: () => AppState;
+	scope: ContributionScope;
+	/** Target node for node-scoped entries; null for map scope. */
+	nodeId: string | null;
+	canEdit: boolean;
+	isMapReady: boolean;
+}
+
+/**
+ * An entry contributed to menus and the command palette. Built-in AI actions use
+ * this today; plugins and recipes will register their own.
+ */
+export interface Contribution {
+	/** Unique id. Built-ins use plain ids; plugins should namespace theirs. */
+	id: string;
+	title: string;
+	description?: string | ((ctx: ContributionContext) => string);
+	icon: LucideIcon;
+	/** Extra search terms for the command palette. */
+	keywords?: string[];
+	owner: 'builtin' | (string & {});
+	scopes: ContributionScope[];
+	placements: ContributionPlacement[];
+	requiresEdit?: boolean;
+	requiresAIQuota?: boolean;
+	when?: (ctx: ContributionContext) => boolean;
+	isBusy?: (ctx: ContributionContext) => boolean;
+	run: (ctx: ContributionContext) => void | Promise<void>;
+}
+
+export interface ExtensionsSlice {
+	contributions: Contribution[];
+	/** Adds (or replaces, by id) an entry. Returns a function that removes it. */
+	registerContribution: (contribution: Contribution) => () => void;
+	unregisterContribution: (id: string) => void;
+}

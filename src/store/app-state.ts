@@ -15,7 +15,7 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { ContextMenuState } from '@/types/context-menu-state';
 import type { EdgeData } from '@/types/edge-data';
-import type { GraphActor } from '@/types/extensions';
+import type { ExtensionsSlice, GraphActor } from '@/types/extensions';
 import type {
 	AttributedHistoryDelta,
 	HistoryItem,
@@ -667,4 +667,5 @@ export interface AppState
 		QuickInputSlice,
 		LayoutSlice,
 		ExportSlice,
-		GuidedTourSlice {}
+		GuidedTourSlice,
+		ExtensionsSlice {}

@@ -83,10 +83,10 @@ export class ContextMenuPage {
 			'[data-testid="context-menu-add-reference"]'
 		);
 		this.suggestConnectionsOption = page.locator(
-			'[data-testid="context-menu-suggest-connections"]'
+			'[data-testid="context-menu-find-connections"]'
 		);
 		this.suggestMergesOption = page.locator(
-			'[data-testid="context-menu-suggest-merges"]'
+			'[data-testid="context-menu-find-similar"]'
 		);
 
 		// Group menu items

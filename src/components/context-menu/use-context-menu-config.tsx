@@ -1,11 +1,14 @@
 'use client';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
+import { useContributions } from '@/hooks/extensions/use-contributions';
+import { selectContributions } from '@/lib/extensions/select-contributions';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import { isAvailableNodeType } from '@/registry/type-guards';
 import type { NodeEditorOptions } from '@/store/app-state';
 import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
+import type { ContributionScope } from '@/types/extensions';
 import { type Edge, type Node, type ReactFlowInstance } from '@xyflow/react';
 import {
 	ChevronDown,
@@ -13,8 +16,6 @@ import {
 	Edit,
 	Group,
 	LocateFixed,
-	Network,
-	NotepadTextDashed,
 	Pause,
 	Play,
 	Plus,
@@ -27,11 +28,6 @@ import { EdgeStyleSelector } from './edge-style-selector';
 import type { MenuSection } from './types';
 
 interface UseContextMenuConfigProps {
-	aiActions: {
-		suggestConnections: () => void;
-		suggestMerges: () => void;
-		suggestCounterpoints?: () => void;
-	};
 	onClose: () => void;
 }
 
@@ -108,9 +104,8 @@ interface BuildNodeMenuParams {
 	deleteNodes: (nodes: AppNode[]) => void;
 	reactFlowInstance: ReactFlowInstance | null;
 	onClose: () => void;
-	aiActions: {
-		suggestCounterpoints?: () => void;
-	};
+	/** Contributed entries (built-in AI actions, plugins) for this node */
+	contributedSection: MenuSection;
 	canEdit: boolean;
 	suppressUngroupAction?: boolean;
 }
@@ -126,7 +121,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 		deleteNodes,
 		reactFlowInstance,
 		onClose,
-		aiActions,
+		contributedSection,
 		canEdit,
 		suppressUngroupAction = false,
 	} = params;
@@ -220,21 +215,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 				},
 			],
 		},
-		{
-			id: 'node-ai',
-			items: [
-				{
-					id: 'generate-counterpoints',
-					icon: <NotepadTextDashed className='h-4 w-4' />,
-					label: 'Generate Counterpoints',
-					onClick: () => {
-						aiActions?.suggestCounterpoints?.();
-						onClose();
-					},
-					hidden: !canEdit,
-				},
-			],
-		},
+		contributedSection,
 		{
 			id: 'node-destructive',
 			items: [
@@ -342,12 +323,8 @@ interface BuildPaneMenuParams {
 	x: number;
 	y: number;
 	openNodeEditor: any;
-	aiActions: {
-		suggestConnections: () => void;
-		suggestMerges: () => void;
-		suggestCounterpoints?: () => void;
-	};
-	loadingStates: any;
+	/** Contributed map-wide entries (built-in AI actions, plugins) */
+	contributedSection: MenuSection;
 	onClose: () => void;
 	canEdit: boolean;
 }
@@ -358,8 +335,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 		x,
 		y,
 		openNodeEditor,
-		aiActions,
-		loadingStates,
+		contributedSection,
 		onClose,
 		canEdit,
 	} = params;
@@ -411,35 +387,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 				},
 			],
 		},
-		{
-			id: 'pane-ai',
-			items: [
-				{
-					id: 'suggest-connections',
-					icon: <Network className='h-4 w-4' />,
-					label: 'Suggest Connections',
-					onClick: aiActions.suggestConnections,
-					loading: loadingStates.isSuggestingConnections,
-					hidden: !canEdit,
-				},
-				{
-					id: 'suggest-counterpoints',
-					icon: <NotepadTextDashed className='h-4 w-4' />,
-					label: 'Generate Counterpoints',
-					onClick: () => aiActions.suggestCounterpoints?.(),
-					loading: loadingStates.isGenerating,
-					hidden: !canEdit,
-				},
-				{
-					id: 'suggest-merges',
-					icon: <NotepadTextDashed className='h-4 w-4' />,
-					label: 'Suggest Merges',
-					onClick: aiActions.suggestMerges,
-					loading: loadingStates.isSuggestingMerges,
-					hidden: !canEdit,
-				},
-			],
-		},
+		contributedSection,
 	];
 }
 
@@ -500,17 +448,13 @@ function buildSelectedNodesMenu(
 // Main Hook - Simplified and focused
 // ============================================================================
 
-export function useContextMenuConfig({
-	aiActions,
-	onClose,
-}: UseContextMenuConfigProps) {
+export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 	const {
 		nodes,
 		edges,
 		updateEdge,
 		deleteNodes,
 		deleteEdges,
-		loadingStates,
 		selectedNodes,
 		reactFlowInstance,
 		contextMenuState,
@@ -528,7 +472,6 @@ export function useContextMenuConfig({
 			updateEdge: state.updateEdge,
 			deleteNodes: state.deleteNodes,
 			deleteEdges: state.deleteEdges,
-			loadingStates: state.loadingStates,
 			selectedNodes: state.selectedNodes,
 			contextMenuState: state.contextMenuState,
 			createGroupFromSelected: state.createGroupFromSelected,
@@ -542,6 +485,8 @@ export function useContextMenuConfig({
 
 	// Get permissions for feature gating
 	const { canEdit } = usePermissions();
+	const { contributions, isStreaming, createContext, runContribution } =
+		useContributions();
 
 	const { x, y, nodeId, edgeId } = contextMenuState;
 
@@ -557,6 +502,34 @@ export function useContextMenuConfig({
 
 	// Build menu configuration from current context.
 	const menuConfig = useMemo((): MenuSection[] => {
+		const buildContributedSection = (
+			id: string,
+			scope: ContributionScope,
+			targetNodeId: string | null
+		): MenuSection => {
+			const ctx = createContext(scope, targetNodeId);
+			return {
+				id,
+				items: selectContributions(contributions, 'contextMenu', ctx).map(
+					(contribution) => {
+						const ContributionIcon = contribution.icon;
+						const isBusy = contribution.isBusy?.(ctx) ?? false;
+						return {
+							id: contribution.id,
+							icon: <ContributionIcon className='h-4 w-4' />,
+							label: contribution.title,
+							onClick: () => {
+								runContribution(contribution, ctx);
+								onClose();
+							},
+							loading: isBusy,
+							disabled: isBusy,
+						};
+					}
+				),
+			};
+		};
+
 		// Node menu
 		if (nodeId && clickedNode) {
 			const hasChildren = getDirectChildrenCount(clickedNode.id) > 0;
@@ -595,7 +568,11 @@ export function useContextMenuConfig({
 				deleteNodes,
 				reactFlowInstance,
 				onClose,
-				aiActions,
+				contributedSection: buildContributedSection(
+					'node-contributions',
+					'node',
+					clickedNode.id
+				),
 				canEdit,
 				suppressUngroupAction:
 					canEdit &&
@@ -634,8 +611,11 @@ export function useContextMenuConfig({
 			x,
 			y,
 			openNodeEditor,
-			aiActions,
-			loadingStates,
+			contributedSection: buildContributedSection(
+				'pane-contributions',
+				'map',
+				null
+			),
 			onClose,
 			canEdit,
 		});
@@ -657,8 +637,10 @@ export function useContextMenuConfig({
 		ungroupNodes,
 		x,
 		y,
-		aiActions,
-		loadingStates,
+		contributions,
+		createContext,
+		runContribution,
+		isStreaming,
 		onClose,
 		canEdit,
 	]);
