@@ -6,6 +6,7 @@
  */
 
 import { AvailableNodeTypes } from '@/registry/node-registry';
+import type { SuggestionContext } from '@/types/ghost-node';
 import type { NodeExtensionData } from '@/types/extensions';
 import { Node, NodeProps } from '@xyflow/react';
 import { ReactNode } from 'react';
@@ -176,12 +177,7 @@ export interface GhostNodeMetadata extends BaseNodeMetadata {
 		fileName?: string | null;
 	} | null;
 	confidence: number;
-	context?: {
-		sourceNodeId?: string | null;
-		targetNodeId?: string | null;
-		relationshipType?: string | null;
-		trigger: 'magic-wand' | 'dangling-edge' | 'auto';
-	};
+	context?: SuggestionContext;
 	sourceNodeName?: string; // Name of the node that triggered this suggestion
 }
 

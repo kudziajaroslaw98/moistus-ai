@@ -4,7 +4,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useContributions } from '@/hooks/extensions/use-contributions';
 import {
 	matchesPaletteQuery,
-	resolveContributionDescription,
+	resolvePaletteDescription,
 	selectPaletteEntries,
 	type PaletteEntry,
 } from '@/lib/extensions/select-contributions';
@@ -156,7 +156,7 @@ export function CommandPalette() {
 										</span>
 
 										<span className='truncate text-xs text-text-tertiary'>
-											{resolveContributionDescription(contribution, ctx)}
+											{resolvePaletteDescription(contribution, ctx)}
 										</span>
 									</span>
 								</li>

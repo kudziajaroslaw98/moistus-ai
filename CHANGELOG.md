@@ -9,6 +9,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Added
 
+- **ai/recipes**: AI recipe engine: `POST /api/ai/recipes/run` runs a recipe (instruction + scope `node` / `branch` / `map` + allowed node types, labels and result count) and streams ghost suggestions attributed to the recipe; `runRecipe()` in `suggestions-slice` drives it
+  - Why: Phase 1 of the extensibility roadmap; recipes reuse the existing ghost approval loop so nothing changes the map until accepted
+- **ai/recipes**: Starter recipes "SWOT this branch" and "Study questions" listed under a "Recipes" heading in the AI popover, a titled "Recipes" section in the context menu, and the Ctrl/Cmd+K palette ("Recipe ·"); ghost cards show the recipe name
+- **ai/recipes**: Recipe output is sanitised (markdown images, link targets and HTML removed) and limited to the recipe's node types, labels and count
+  - Why: Approved nodes render markdown, so a shared recipe could otherwise load an image URL carrying map text
 - **extensions/graph-ops**: `applyGraphOps()` (`src/lib/extensions/graph-ops.ts`) is the single entry point for programmatic graph changes: it checks edit permission and extension data limits, reuses the existing store actions, and records one history event per batch attributed to the actor (`user` / `plugin` / `recipe`)
   - Why: Foundation for plugins and AI recipes; store actions alone don't enforce permissions or group changes
 - **extensions/command-palette**: Ctrl/Cmd+K command palette listing AI actions plus Search canvas, Open history (editors) and Map settings (owner); acts on the selected node when one is selected

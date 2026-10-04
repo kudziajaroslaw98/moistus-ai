@@ -26,7 +26,8 @@ export interface AIActionsPopoverProps {
 /**
  * AIActionsPopover - Shared popover menu for AI actions
  *
- * Lists contributions placed in 'aiMenu' (built-in AI actions today). Used on:
+ * Lists contributions placed in 'aiMenu': built-in AI actions, then recipes under a
+ * "Recipes" heading. Used on:
  * - Node selection (scope='node')
  * - Toolbar (scope='map')
  */
@@ -46,10 +47,62 @@ export function AIActionsPopover({
 		() => selectContributions(contributions, 'aiMenu', ctx),
 		[contributions, ctx]
 	);
+	const builtinActions = visibleActions.filter((action) => !action.group);
+	const recipeActions = visibleActions.filter(
+		(action) => action.group === 'recipes'
+	);
 
 	const handleRun = (contribution: Contribution) => {
 		runContribution(contribution, ctx);
 		onClose();
+	};
+
+	const renderAction = (action: Contribution) => {
+		const ActionIcon = action.icon;
+		const isBusy = action.isBusy?.(ctx) ?? false;
+		return (
+			<button
+				type='button'
+				key={action.id}
+				onClick={() => handleRun(action)}
+				disabled={isBusy}
+				className={cn(
+					'group w-full px-3 py-2.5 flex items-center gap-3 text-left',
+					'hover:bg-elevated focus:bg-elevated data-[highlighted]:bg-elevated active:bg-elevated/80',
+					'transition-all duration-200 ease',
+					'disabled:opacity-50 disabled:cursor-not-allowed',
+					'focus:outline-none'
+				)}
+			>
+				<span
+					className={cn(
+						'text-text-secondary transition-colors duration-200',
+						'group-hover:text-primary-400'
+					)}
+				>
+					{isBusy ? (
+						<Loader2 className='size-4 animate-spin' />
+					) : (
+						<ActionIcon className='size-4' />
+					)}
+				</span>
+
+				<div className='flex flex-col'>
+					<span
+						className={cn(
+							'text-sm font-medium text-text-primary transition-colors duration-200',
+							'group-hover:text-primary-400'
+						)}
+					>
+						{action.title}
+					</span>
+
+					<span className='text-xs text-text-tertiary'>
+						{resolveContributionDescription(action, ctx)}
+					</span>
+				</div>
+			</button>
+		);
 	};
 
 	return (
@@ -69,55 +122,21 @@ export function AIActionsPopover({
 				className
 			)}
 		>
-			<div className='py-1'>
-				{visibleActions.map((action) => {
-					const ActionIcon = action.icon;
-					const isBusy = action.isBusy?.(ctx) ?? false;
-					return (
-						<button
-							type='button'
-							key={action.id}
-							onClick={() => handleRun(action)}
-							disabled={isBusy}
-							className={cn(
-								'group w-full px-3 py-2.5 flex items-center gap-3 text-left',
-								'hover:bg-elevated focus:bg-elevated data-[highlighted]:bg-elevated active:bg-elevated/80',
-								'transition-all duration-200 ease',
-								'disabled:opacity-50 disabled:cursor-not-allowed',
-								'focus:outline-none'
-							)}
-						>
-							<span
-								className={cn(
-									'text-text-secondary transition-colors duration-200',
-									'group-hover:text-primary-400'
-								)}
-							>
-								{isBusy ? (
-									<Loader2 className='size-4 animate-spin' />
-								) : (
-									<ActionIcon className='size-4' />
-								)}
-							</span>
+			<div className='py-1'>{builtinActions.map(renderAction)}</div>
 
-							<div className='flex flex-col'>
-								<span
-									className={cn(
-										'text-sm font-medium text-text-primary transition-colors duration-200',
-										'group-hover:text-primary-400'
-									)}
-								>
-									{action.title}
-								</span>
+			{recipeActions.length > 0 && (
+				<>
+					<div className='flex items-center gap-2.5 px-3 pt-2 pb-1'>
+						<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55'>
+							Recipes
+						</span>
 
-								<span className='text-xs text-text-tertiary'>
-									{resolveContributionDescription(action, ctx)}
-								</span>
-							</div>
-						</button>
-					);
-				})}
-			</div>
+						<span aria-hidden className='h-px flex-1 bg-white/8' />
+					</div>
+
+					<div className='pb-1'>{recipeActions.map(renderAction)}</div>
+				</>
+			)}
 		</motion.div>
 	);
 }

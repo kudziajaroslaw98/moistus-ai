@@ -1,6 +1,8 @@
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import { BUILTIN_AI_ACTIONS } from '@/lib/extensions/builtin-ai-actions';
+import { STARTER_RECIPE_CONTRIBUTIONS } from '@/lib/extensions/recipe-contributions';
+import { STARTER_RECIPES } from '@/lib/extensions/starter-recipes';
 import useAppStore from '@/store/mind-map-store';
 import type { Contribution } from '@/types/extensions';
 import { render, screen } from '@testing-library/react';
@@ -36,6 +38,7 @@ type MockStoreState = {
 	generateConnectionSuggestions: jest.Mock;
 	generateMergeSuggestions: jest.Mock;
 	generateCounterpointsForNode: jest.Mock;
+	runRecipe: jest.Mock;
 	isStreaming: boolean;
 	setPopoverOpen: jest.Mock;
 };
@@ -61,6 +64,7 @@ const createMockStoreState = (
 	generateConnectionSuggestions: jest.fn(),
 	generateMergeSuggestions: jest.fn(),
 	generateCounterpointsForNode: jest.fn(),
+	runRecipe: jest.fn(),
 	isStreaming: false,
 	setPopoverOpen: jest.fn(),
 	...overrides,
@@ -187,6 +191,30 @@ describe('AIActionsPopover', () => {
 			'node-7'
 		);
 		expect(mockState.generateMergeSuggestions).toHaveBeenCalledWith('node-7');
+	});
+
+	it('lists recipes for the scope under a Recipes heading and runs them', async () => {
+		const user = userEvent.setup();
+		const mockState = createMockStoreState({
+			contributions: [...BUILTIN_AI_ACTIONS, ...STARTER_RECIPE_CONTRIBUTIONS],
+		});
+		useMockStore(mockState);
+
+		const { unmount } = render(
+			<AIActionsPopover scope='node' sourceNodeId='node-7' onClose={jest.fn()} />
+		);
+
+		expect(screen.getByText('Recipes')).toBeInTheDocument();
+		await user.click(screen.getByRole('button', { name: /swot this branch/i }));
+
+		const swot = STARTER_RECIPES.find((recipe) => recipe.id === 'starter:swot');
+		expect(mockState.runRecipe).toHaveBeenCalledWith(swot, 'node-7');
+		// Counterpoints is a starter too, but the built-in action already covers it.
+		expect(screen.getAllByRole('button', { name: /counterpoints/i })).toHaveLength(1);
+
+		unmount();
+		render(<AIActionsPopover scope='map' onClose={jest.fn()} />);
+		expect(screen.queryByText('Recipes')).not.toBeInTheDocument();
 	});
 
 	it('blocks actions and offers an upgrade when the AI quota is used up', async () => {

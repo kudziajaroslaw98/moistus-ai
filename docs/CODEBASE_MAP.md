@@ -290,7 +290,7 @@ shiko/
 | **loading-state-slice**   | 33    | Loading flags                                                                 |
 | **realtime-slice**        | 17    | Selection sync                                                                |
 | **permissions-slice**     | —     | Map role/permissions + realtime permission updates                            |
-| **extensions-slice**      | 45    | Contribution registry (built-in AI actions, palette commands, plugin entries) |
+| **extensions-slice**      | 48    | Contribution registry (built-in AI actions, palette commands, starter recipes, plugin entries) |
 
 ### Node System (13 Types)
 
@@ -336,6 +336,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `POST /api/ai/suggest-connections` - Connection recommendations
 - `POST /api/ai/suggest-merges` - Merge suggestions
 - `POST /api/ai/counterpoints` - Opposing viewpoints
+- `POST /api/ai/recipes/run` - Run an AI recipe (saved, starter or draft definition) and stream attributed ghost suggestions
 
 **Maps (4):**
 
@@ -670,9 +671,9 @@ sequenceDiagram
 
 <!-- Updated: 2026-10-04 - Documented graph-ops extension write path -->
 
-23. **Contribution Registry** - `extensions-slice` holds `Contribution` entries (built-ins from `src/lib/extensions/builtin-ai-actions.ts` and `builtin-commands.ts`). `AIActionsPopover`, `use-context-menu-config.tsx` and the Ctrl/Cmd+K `CommandPalette` (mounted in `modals-wrapper.tsx`, flag `popoverOpen.commandPalette`) render them through `src/lib/extensions/select-contributions.ts`; `useContributions()` provides context + quota-guarded `runContribution`. `extensionNode` is the plugin host node type (not user/AI creatable).
+23. **Contribution Registry** - `extensions-slice` holds `Contribution` entries (built-ins from `src/lib/extensions/builtin-ai-actions.ts` and `builtin-commands.ts`). `AIActionsPopover`, `use-context-menu-config.tsx` and the Ctrl/Cmd+K `CommandPalette` (mounted in `modals-wrapper.tsx`, flag `popoverOpen.commandPalette`) render them through `src/lib/extensions/select-contributions.ts`; `useContributions()` provides context + quota-guarded `runContribution`. `extensionNode` is the plugin host node type (not user/AI creatable). Recipes (`src/lib/extensions/recipe-schema.ts`, `starter-recipes.ts`, `recipe-contributions.ts`) register as `group: 'recipes'` contributions that call `runRecipe()`; the route `/api/ai/recipes/run` uses `src/helpers/ai-recipe-*` and `buildBranchSuggestionGraph` for branch scope.
 
-<!-- Updated: 2026-10-04 - Documented contribution registry, command palette and extensionNode -->
+<!-- Updated: 2026-10-04 - Documented contribution registry, command palette, extensionNode and AI recipes -->
 
 ## Navigation Guide
 

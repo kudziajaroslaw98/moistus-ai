@@ -8,7 +8,7 @@ import type { NodeEditorOptions } from '@/store/app-state';
 import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
-import type { ContributionScope } from '@/types/extensions';
+import type { Contribution, ContributionScope } from '@/types/extensions';
 import { type Edge, type Node, type ReactFlowInstance } from '@xyflow/react';
 import {
 	ChevronDown,
@@ -105,7 +105,7 @@ interface BuildNodeMenuParams {
 	reactFlowInstance: ReactFlowInstance | null;
 	onClose: () => void;
 	/** Contributed entries (built-in AI actions, plugins) for this node */
-	contributedSection: MenuSection;
+	contributedSections: MenuSection[];
 	canEdit: boolean;
 	suppressUngroupAction?: boolean;
 }
@@ -121,7 +121,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 		deleteNodes,
 		reactFlowInstance,
 		onClose,
-		contributedSection,
+		contributedSections,
 		canEdit,
 		suppressUngroupAction = false,
 	} = params;
@@ -215,7 +215,7 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 				},
 			],
 		},
-		contributedSection,
+		...contributedSections,
 		{
 			id: 'node-destructive',
 			items: [
@@ -324,7 +324,7 @@ interface BuildPaneMenuParams {
 	y: number;
 	openNodeEditor: any;
 	/** Contributed map-wide entries (built-in AI actions, plugins) */
-	contributedSection: MenuSection;
+	contributedSections: MenuSection[];
 	onClose: () => void;
 	canEdit: boolean;
 }
@@ -335,7 +335,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 		x,
 		y,
 		openNodeEditor,
-		contributedSection,
+		contributedSections,
 		onClose,
 		canEdit,
 	} = params;
@@ -387,7 +387,7 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 				},
 			],
 		},
-		contributedSection,
+		...contributedSections,
 	];
 }
 
@@ -502,32 +502,41 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 
 	// Build menu configuration from current context.
 	const menuConfig = useMemo((): MenuSection[] => {
-		const buildContributedSection = (
+		// Built-in actions first, then recipes under their own titled section.
+		const buildContributedSections = (
 			id: string,
 			scope: ContributionScope,
 			targetNodeId: string | null
-		): MenuSection => {
+		): MenuSection[] => {
 			const ctx = createContext(scope, targetNodeId);
-			return {
-				id,
-				items: selectContributions(contributions, 'contextMenu', ctx).map(
-					(contribution) => {
-						const ContributionIcon = contribution.icon;
-						const isBusy = contribution.isBusy?.(ctx) ?? false;
-						return {
-							id: contribution.id,
-							icon: <ContributionIcon className='h-4 w-4' />,
-							label: contribution.title,
-							onClick: () => {
-								runContribution(contribution, ctx);
-								onClose();
-							},
-							loading: isBusy,
-							disabled: isBusy,
-						};
-					}
-				),
+			const toItem = (contribution: Contribution) => {
+				const ContributionIcon = contribution.icon;
+				const isBusy = contribution.isBusy?.(ctx) ?? false;
+				return {
+					id: contribution.id,
+					icon: <ContributionIcon className='h-4 w-4' />,
+					label: contribution.title,
+					onClick: () => {
+						runContribution(contribution, ctx);
+						onClose();
+					},
+					loading: isBusy,
+					disabled: isBusy,
+				};
 			};
+			const visible = selectContributions(contributions, 'contextMenu', ctx);
+
+			return [
+				{
+					id,
+					items: visible.filter((entry) => !entry.group).map(toItem),
+				},
+				{
+					id: `${id}-recipes`,
+					title: 'Recipes',
+					items: visible.filter((entry) => entry.group === 'recipes').map(toItem),
+				},
+			];
 		};
 
 		// Node menu
@@ -568,7 +577,7 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 				deleteNodes,
 				reactFlowInstance,
 				onClose,
-				contributedSection: buildContributedSection(
+				contributedSections: buildContributedSections(
 					'node-contributions',
 					'node',
 					clickedNode.id
@@ -611,7 +620,7 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 			x,
 			y,
 			openNodeEditor,
-			contributedSection: buildContributedSection(
+			contributedSections: buildContributedSections(
 				'pane-contributions',
 				'map',
 				null

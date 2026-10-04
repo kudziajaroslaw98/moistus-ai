@@ -1,5 +1,6 @@
 'use client';
 
+import { RECIPE_ICONS } from '@/lib/extensions/recipe-icons';
 import { cn } from '@/lib/utils';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import { NodeRegistry } from '@/registry/node-registry';
@@ -110,7 +111,13 @@ function GhostNodeComponent(props: GhostNodeProps) {
 		data.metadata;
 
 	const backgroundColor = getNodeTypeColor(suggestedType);
-	const nodeIcon = getNodeTypeIcon(suggestedType);
+	const recipe = context?.recipe ?? null;
+	const RecipeIcon = recipe ? RECIPE_ICONS[recipe.icon]?.icon : undefined;
+	const nodeIcon = RecipeIcon ? (
+		<RecipeIcon className='h-4 w-4' />
+	) : (
+		getNodeTypeIcon(suggestedType)
+	);
 
 	// Use theme-based confidence colors
 	const confidenceColor =
@@ -191,7 +198,7 @@ function GhostNodeComponent(props: GhostNodeProps) {
 							className='text-xs font-medium'
 							style={{ color: GlassmorphismTheme.text.medium }}
 						>
-							AI Suggestion
+							{recipe?.title ?? 'AI Suggestion'}
 						</span>
 					</div>
 
@@ -260,7 +267,7 @@ function GhostNodeComponent(props: GhostNodeProps) {
 						className='mb-3 text-xs'
 						style={{ color: GlassmorphismTheme.text.disabled }}
 					>
-						Trigger: {context.trigger}
+						{recipe ? `Recipe: ${recipe.title}` : `Trigger: ${context.trigger}`}
 
 						{context.relationshipType && (
 							<span className='ml-2'>→ {context.relationshipType}</span>

@@ -74,6 +74,8 @@ export interface Contribution {
 	/** Extra search terms for the command palette. */
 	keywords?: string[];
 	owner: 'builtin' | (string & {});
+	/** Grouped entries render under their own heading ("Recipes") after ungrouped ones. */
+	group?: 'recipes';
 	scopes: ContributionScope[];
 	placements: ContributionPlacement[];
 	requiresEdit?: boolean;

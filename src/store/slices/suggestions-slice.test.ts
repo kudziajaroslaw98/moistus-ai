@@ -999,3 +999,99 @@ describe('suggestions slice', () => {
 		]);
 	});
 });
+
+describe('runRecipe', () => {
+	const recipe = {
+		id: 'recipe-1',
+		definition: {
+			title: 'Pre-mortem',
+			description: '',
+			icon: 'alert' as const,
+			scope: 'node' as const,
+			instruction: 'List the likely causes of failure.',
+			output: { maxItems: 3, nodeTypes: ['defaultNode' as const], labels: ['risk'] },
+		},
+	};
+	const staleGhost = {
+		id: 'stale-ghost',
+		type: 'ghostNode',
+		position: { x: 0, y: 0 },
+		data: { id: 'stale-ghost', metadata: {} },
+	} as unknown as AppNode;
+
+	beforeEach(() => {
+		jest.clearAllMocks();
+	});
+
+	it('streams the recipe, replaces earlier ghosts and attributes new ones', () => {
+		mockGenerateUuidString.mockReturnValueOnce('ghost-r1');
+		const harness = createSuggestionsSliceHarness({
+			nodes: [createNode('focus', { x: 100, y: 100 }, 60)],
+			ghostNodes: [staleGhost],
+		});
+
+		harness.getState().runRecipe(recipe, 'focus');
+
+		const state = harness.getState();
+		expect(state.streamTrigger.api).toBe('/api/ai/recipes/run');
+		expect(state.streamTrigger.body).toMatchObject({
+			mapId: 'map-1',
+			mapMeta: { title: 'Mind Map', description: 'Map description' },
+			recipe,
+			sourceNodeId: 'focus',
+		});
+		expect(state.ghostNodes).toHaveLength(0);
+		expect(state.showStreamingToast).toHaveBeenCalledWith('Pre-mortem');
+
+		streamSuggestion(harness, {
+			id: 'r-1',
+			content: 'Testers churn after week one',
+			nodeType: 'defaultNode',
+			nodePayload: null,
+			confidence: 0.8,
+			position: { x: 0, y: 0 },
+			context: {
+				sourceNodeId: 'focus',
+				targetNodeId: null,
+				relationshipType: 'risk',
+				trigger: 'magic-wand',
+				recipe: { id: 'recipe-1', title: 'Pre-mortem', icon: 'alert' },
+			},
+		});
+
+		const [ghost] = harness.getState().ghostNodes;
+		expect(ghost.position).toEqual({ x: 100, y: 210 });
+		expect(ghost.data.metadata.context.recipe).toEqual({
+			id: 'recipe-1',
+			title: 'Pre-mortem',
+			icon: 'alert',
+		});
+	});
+
+	it('sends no node for map recipes and does nothing for node recipes without a node', () => {
+		const harness = createSuggestionsSliceHarness();
+
+		harness.getState().runRecipe(recipe, null);
+		expect(harness.getState().streamTrigger).toBeNull();
+
+		harness
+			.getState()
+			.runRecipe(
+				{ ...recipe, definition: { ...recipe.definition, scope: 'map' as const } },
+				'ignored'
+			);
+		expect(harness.getState().streamTrigger.body.sourceNodeId).toBeNull();
+	});
+
+	it('keeps existing ghosts when another stream is already running', () => {
+		const harness = createSuggestionsSliceHarness({
+			isStreaming: true,
+			ghostNodes: [staleGhost],
+		});
+
+		harness.getState().runRecipe(recipe, 'focus');
+
+		expect(harness.getState().ghostNodes).toEqual([staleGhost]);
+		expect(harness.getState().showStreamingToast).not.toHaveBeenCalled();
+	});
+});

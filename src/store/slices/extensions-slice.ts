@@ -1,5 +1,6 @@
 import { BUILTIN_AI_ACTIONS } from '@/lib/extensions/builtin-ai-actions';
 import { BUILTIN_COMMANDS } from '@/lib/extensions/builtin-commands';
+import { STARTER_RECIPE_CONTRIBUTIONS } from '@/lib/extensions/recipe-contributions';
 import type { ExtensionsSlice } from '@/types/extensions';
 import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
@@ -10,7 +11,11 @@ export const createExtensionsSlice: StateCreator<
 	[],
 	ExtensionsSlice
 > = (set, get) => ({
-	contributions: [...BUILTIN_AI_ACTIONS, ...BUILTIN_COMMANDS],
+	contributions: [
+		...BUILTIN_AI_ACTIONS,
+		...BUILTIN_COMMANDS,
+		...STARTER_RECIPE_CONTRIBUTIONS,
+	],
 
 	registerContribution: (contribution) => {
 		set((state) => {

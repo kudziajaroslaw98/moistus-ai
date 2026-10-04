@@ -28,6 +28,16 @@ export function resolveContributionDescription(
 		: contribution.description;
 }
 
+/** Palette rows label recipes so they read apart from built-in commands. */
+export function resolvePaletteDescription(
+	contribution: Contribution,
+	ctx: ContributionContext
+): string | undefined {
+	const description = resolveContributionDescription(contribution, ctx);
+	if (contribution.group !== 'recipes') return description;
+	return description ? `Recipe · ${description}` : 'Recipe';
+}
+
 export interface PaletteEntry {
 	contribution: Contribution;
 	ctx: ContributionContext;

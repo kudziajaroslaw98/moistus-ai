@@ -5,6 +5,7 @@ import {
 	isAnnotationNode,
 } from '@/helpers/anchored-annotations';
 import generateUuid from '@/helpers/generate-uuid';
+import type { RecipeRef } from '@/lib/extensions/recipe-schema';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AiConnectionSuggestion } from '@/types/ai-connection-suggestion';
 import type { AiMergeSuggestion } from '@/types/ai-merge-suggestion';
@@ -752,6 +753,13 @@ export interface SuggestionsSlice {
 	// Counterpoints
 	generateCounterpointsForNode: (nodeId: string) => void;
 
+	/**
+	 * Runs an AI recipe (saved, starter or unsaved draft). Results replace current
+	 * ghost suggestions once the stream starts. `sourceNodeId` is ignored for
+	 * map-scoped recipes and required otherwise.
+	 */
+	runRecipe: (recipe: RecipeRef, sourceNodeId: string | null) => void;
+
 	triggerStream: (
 		api: string,
 		body: Record<string, unknown>,
@@ -1471,6 +1479,84 @@ export const createSuggestionsSlice: StateCreator<
 		};
 
 		triggerStream('/api/ai/counterpoints', body, handleChunk);
+	},
+
+	runRecipe: (recipe, sourceNodeId) => {
+		const {
+			nodes,
+			edges,
+			mapId,
+			mindMap,
+			reactFlowInstance,
+			triggerStream,
+			clearGhostNodes,
+			addGhostNode,
+			showStreamingToast,
+			updateStreamingToast,
+			setStreamingToastError,
+			setStreamSteps,
+		} = get();
+
+		const isMapScoped = recipe.definition.scope === 'map';
+		if (!mapId || (!isMapScoped && !sourceNodeId)) {
+			return;
+		}
+
+		const anchorSuggestionCounts = new Map<string, number>();
+		const handleChunk = (chunk: any) => {
+			if (!chunk || !chunk.type) return;
+
+			switch (chunk.type) {
+				case 'data-stream-info':
+					if (chunk.data?.steps) setStreamSteps(chunk.data.steps);
+					break;
+				case 'data-stream-status':
+					if (chunk.data?.error) setStreamingToastError(chunk.data.error);
+					else updateStreamingToast(chunk.data);
+					break;
+				case 'data-node-suggestion': {
+					if (!chunk.data) break;
+					const placement = getStreamedSuggestionPlacement({
+						nodes,
+						suggestionContext: chunk.data.context,
+						reactFlowInstance,
+						anchorSuggestionCounts,
+					});
+					addGhostNode({
+						...chunk.data,
+						context: {
+							...chunk.data.context,
+							sourceNodeId: placement.resolvedAnchorNodeId,
+						},
+						position: placement.position,
+					});
+					break;
+				}
+				default:
+					break;
+			}
+		};
+
+		const streamStarted = triggerStream(
+			'/api/ai/recipes/run',
+			{
+				mapId,
+				mapMeta: mindMap
+					? { title: mindMap.title, description: mindMap.description }
+					: null,
+				recipe,
+				sourceNodeId: isMapScoped ? null : sourceNodeId,
+				nodes,
+				edges,
+			},
+			handleChunk
+		);
+		if (!streamStarted) {
+			return;
+		}
+
+		clearGhostNodes();
+		showStreamingToast(recipe.definition.title);
 	},
 
 	generateMergeSuggestions: (sourceNodeId?: string) => {

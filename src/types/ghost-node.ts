@@ -1,3 +1,4 @@
+import type { RecipeIconKey } from '@/lib/extensions/recipe-schema';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { NodeData } from './node-data';
 
@@ -6,6 +7,8 @@ export interface SuggestionContext {
 	targetNodeId?: string | null;
 	relationshipType?: string | null;
 	trigger: 'magic-wand' | 'dangling-edge' | 'auto';
+	/** Set when the suggestion came from an AI recipe; shown on the ghost and in history. */
+	recipe?: { id: string; title: string; icon: RecipeIconKey } | null;
 }
 
 export interface SuggestionNodePayload {
