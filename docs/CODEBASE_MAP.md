@@ -46,6 +46,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-01 - Noted the mobile-centered landing pass with simplified mobile hero/section chrome and the desktop feature-width regression fix -->
 <!-- Updated: 2026-04-01 - Noted the parser-driven landing hero editor demo across breakpoints -->
 <!-- Updated: 2026-04-01 - Noted the follow-up removal of mobile-only highlight stacks in support/pricing sections -->
+<!-- Updated: 2026-10-05 - Landing rebuilt as a scroll story with static product frames and a scripted quick-input demo -->
 <!-- Updated: 2026-04-07 - Documented shared landing CTA pending-feedback link (Start Mapping/Get Started/Go Pro) and dashboard route loading boundary -->
 <!-- Updated: 2026-04-07 - Documented mind-map route loading skeleton and map-scoped runtime reset safeguards -->
 <!-- Updated: 2026-04-07 - Documented MindMapCanvas fetch bootstrap to avoid skeleton readiness deadlocks -->
@@ -198,7 +199,7 @@ shiko/
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
 │   │   ├── history/            # Timeline history sidebar, readable change rows, hooks, and view-model adapters
-│   │   ├── landing/            # Marketing flow + shared CTA link feedback (Start Mapping/Get Started/Go Pro with next/link pending + optimistic click hint + top progress bar)
+│   │   ├── landing/            # Scroll-story landing (hero, story chapters, use cases, pricing + trust strip, FAQ, CTA); product/ holds static mocks of real node/edge/ghost UI; quick-input-script.ts drives the animated Capture demo; shared CTA link feedback (Start Mapping/Get Started/Go Pro)
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
 │   │   ├── node-editor/        # Command system, CodeMirror, mobile autocomplete tray

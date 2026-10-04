@@ -18,7 +18,7 @@ import { useCallback, useRef, useState } from 'react';
 import { StartMappingLink } from './start-mapping-link';
 
 const navLinks = [
-	{ label: 'Features', href: '#features' },
+	{ label: 'How a map grows', href: '#story' },
 	{ label: 'Pricing', href: '#pricing' },
 	{ label: 'FAQ', href: '#faq' },
 ];
@@ -61,7 +61,7 @@ export function LandingNav() {
 	return (
 		<motion.header className='fixed left-0 right-0 top-0 z-50'>
 			<motion.div
-				className='absolute inset-0 bg-background/90 backdrop-blur-xl'
+				className='absolute inset-0 bg-zinc-950/90 backdrop-blur-xl'
 				style={{ opacity: shouldReduceMotion ? 1 : backgroundOpacity }}
 			/>
 			<motion.div

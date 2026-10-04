@@ -35,7 +35,7 @@ const faqs = [
 	{
 		question: 'What AI features are included in Pro?',
 		answer:
-			'AI suggests new nodes, connections between ideas, and helps expand your thinking. 100 suggestions per month, refreshes monthly.',
+			'Expand ideas into new nodes, find connections, generate counterpoints and spot similar nodes. You get 100 suggestions a month, refreshed monthly.',
 	},
 ];
 
@@ -137,7 +137,7 @@ export function FaqSection() {
 		<section
 			id='faq'
 			ref={ref}
-			className='relative bg-surface/55 px-6 pb-20 pt-8 sm:px-6 lg:px-8 lg:pb-24'
+			className='relative px-6 pt-40 lg:px-8'
 		>
 			<script type='application/ld+json'>{JSON.stringify(faqJsonLd)}</script>
 			<div className='relative z-10 mx-auto max-w-6xl'>

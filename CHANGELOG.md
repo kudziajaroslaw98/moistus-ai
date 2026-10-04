@@ -5,6 +5,22 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-05]
+
+### Changed
+
+- **landing/redesign**: Rebuilt the landing page as one scroll story (hero, Capture, Grow, Share, Clarity, use cases, pricing with trust strip, FAQ, closing CTA)
+  - Why: Show what a map becomes instead of listing features; every product frame uses the app's real node, edge, ghost and toolbar styling
+- **landing/quick-input-demo**: The Capture chapter plays a pre-scripted typing timeline once when scrolled into view (typed text mirrors into the task preview, progress eases, strike-through draws), then stops with a Replay button
+  - Why: A looping state-swap flashed; the script is static data so the real parser and CodeMirror stay out of the landing bundle
+- **landing/copy**: Removed the offline claim and the app-menu inventory (layout presets, AI action grid, editor hints)
+  - Why: Offline editing is only partly true today and the page should stay outcome-led
+
+### Added
+
+- **landing/product-frames**: Shared static mocks under `src/components/landing/product/` (canvas surface, node card, task node, AI ghost card, edge layer, cursor, editor chrome)
+- **landing/mobile**: Phone layouts for the hero, Grow (root plus AI card) and Clarity frames, plus a menu button in the nav
+
 ## [2026-07-18]
 
 ### Fixed

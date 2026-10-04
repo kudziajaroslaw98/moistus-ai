@@ -1,11 +1,11 @@
 import { FaqSection } from '@/components/landing/faq-section';
-import { FeaturesSection } from '@/components/landing/features-section';
 import { FinalCta } from '@/components/landing/final-cta';
 import { HeroSection } from '@/components/landing/hero-section';
 import { LandingNav } from '@/components/landing/landing-nav';
 import { PricingSection } from '@/components/landing/pricing-section';
-import { ProblemSolution } from '@/components/landing/problem-solution';
 import { ScrollProgress } from '@/components/landing/scroll-progress';
+import { StorySection } from '@/components/landing/story-section';
+import { UseCasesSection } from '@/components/landing/use-cases-section';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -52,16 +52,23 @@ export default function Home() {
 	return (
 		<>
 			<ScrollProgress />
+
 			<LandingNav />
+
 			<main
 				id='main-content'
-				className='min-h-screen h-auto flex flex-col bg-background'
+				className='min-h-screen h-auto flex flex-col bg-zinc-950'
 			>
 				<HeroSection />
-				<ProblemSolution />
-				<FeaturesSection />
+
+				<StorySection />
+
+				<UseCasesSection />
+
 				<PricingSection />
+
 				<FaqSection />
+
 				<FinalCta />
 			</main>
 		</>
