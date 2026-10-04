@@ -1,5 +1,9 @@
-import type { Contribution } from '@/types/extensions';
-import { History, Search, Settings } from 'lucide-react';
+import type { Contribution, ContributionContext } from '@/types/extensions';
+import { ChefHat, History, Plus, Search, Settings } from 'lucide-react';
+
+/** Recipes are saved per account, so guests (anonymous sessions) can't manage them. */
+const canSaveRecipes = (ctx: ContributionContext) =>
+	ctx.isMapReady && ctx.getState().currentUser?.is_anonymous === false;
 
 /** Built-in non-AI commands available in the command palette. */
 export const BUILTIN_COMMANDS: Contribution[] = [
@@ -46,5 +50,30 @@ export const BUILTIN_COMMANDS: Contribution[] = [
 			);
 		},
 		run: (ctx) => ctx.getState().setPopoverOpen({ mapSettings: true }),
+	},
+	{
+		id: 'create-recipe',
+		title: 'Create recipe',
+		description: 'Save your own AI action',
+		icon: Plus,
+		keywords: ['recipe', 'ai', 'new'],
+		owner: 'builtin',
+		scopes: ['map'],
+		placements: ['commandPalette'],
+		when: canSaveRecipes,
+		run: (ctx) =>
+			ctx.getState().openRecipesPanel({ mode: 'edit', recipeId: null, initial: null }),
+	},
+	{
+		id: 'manage-recipes',
+		title: 'Manage recipes',
+		description: 'Edit, share or delete your recipes',
+		icon: ChefHat,
+		keywords: ['recipe', 'ai', 'share'],
+		owner: 'builtin',
+		scopes: ['map'],
+		placements: ['commandPalette'],
+		when: canSaveRecipes,
+		run: (ctx) => ctx.getState().openRecipesPanel(),
 	},
 ];

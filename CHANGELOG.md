@@ -17,6 +17,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **ai/recipes**: Saved recipes: `ai_recipes` table (owner-only RLS; install fields and a 50-recipe cap enforced by the `guard_ai_recipes` trigger) and `/api/recipes` (list, create, update, delete), `/api/recipes/shared/[id]` (read an unlisted recipe by link) and `/api/recipes/[id]/install` (add your own copy); saved recipes appear in the AI menus via `RecipeContributionsRegistrar`
   - Why: Copies instead of live links, so an instruction someone reviewed can't change after they add it
 - **account**: Data export includes AI recipes; account deletion removes them
+- **ai/recipes**: Recipes panel (Manage in the AI menu, Ctrl/Cmd+K "Manage recipes"): your recipes and starters with search, Edit / Duplicate / Copy share link / Turn off link / Delete, and an editor in the Map Settings layout (name, icon, description, runs on, instruction, result count, node types, connection labels) with Try, which runs the unsaved recipe on the selected node; "New recipe…" in the AI menu and "Create recipe" in the palette open it directly
+  - Why: Designed from the existing UI (design canvas linked in the Phase 1 plan); the panel is non-modal so Try results and node selection stay on the canvas
 - **extensions/graph-ops**: `applyGraphOps()` (`src/lib/extensions/graph-ops.ts`) is the single entry point for programmatic graph changes: it checks edit permission and extension data limits, reuses the existing store actions, and records one history event per batch attributed to the actor (`user` / `plugin` / `recipe`)
   - Why: Foundation for plugins and AI recipes; store actions alone don't enforce permissions or group changes
 - **extensions/command-palette**: Ctrl/Cmd+K command palette listing AI actions plus Search canvas, Open history (editors) and Map settings (owner); acts on the selected node when one is selected
@@ -26,6 +28,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Changed
 
+- **ui/side-panel**: `SidePanel` accepts `modal={false}` (no dimmed backdrop, canvas stays interactive); `TagInput` accepts an `id` for label association
 - **ai/suggestions**: Accepting an AI suggestion goes through `applyGraphOps`: node and connection are one history entry (was two), attributed to the recipe when it came from one; the history row shows the recipe name ("Added note · Note #… · Pre-mortem")
 - **ai/suggestions**: If the approved node can't be saved (for example the node limit), the suggestion stays on the canvas instead of disappearing
 - **ai/actions**: AI actions are defined once; the context menu now shares the popover's labels, icons and AI quota check and gains Expand ideas / Expand map

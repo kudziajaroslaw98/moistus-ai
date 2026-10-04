@@ -17,6 +17,11 @@ interface SidePanelProps {
 	className?: string;
 	/** Overrides the default padded body layout. */
 	bodyClassName?: string;
+	/**
+	 * When false, the canvas stays visible and interactive behind the panel (no dimmed
+	 * backdrop). Use for panels whose actions show results on the canvas.
+	 */
+	modal?: boolean;
 	clearData?: () => void;
 	'data-testid'?: string;
 }
@@ -31,6 +36,7 @@ export function SidePanel({
 	children,
 	className,
 	bodyClassName,
+	modal = true,
 	'data-testid': testId,
 }: SidePanelProps) {
 	const shouldReduceMotion = useReducedMotion();
@@ -49,9 +55,12 @@ export function SidePanel({
 		<AnimatePresence>
 			{isOpen && (
 				<motion.div
-					className='fixed top-0 left-0 z-[39] w-full h-full bg-black/50'
 					key={`side-panel-backdrop-${title.toLowerCase().trim()}`}
 					transition={transition}
+					className={cn(
+						'fixed top-0 left-0 z-[39] w-full h-full',
+						modal ? 'bg-black/50' : 'pointer-events-none'
+					)}
 					animate={{
 						opacity: 1,
 					}}
@@ -70,7 +79,7 @@ export function SidePanel({
 							opacity: 1,
 						}}
 						className={cn(
-							'fixed top-0 right-0 bottom-0 z-40 h-full w-full sm:max-w-sm md:max-w-md sm:min-w-sm shadow-xl bg-base border-l border-border-subtle',
+							'pointer-events-auto fixed top-0 right-0 bottom-0 z-40 h-full w-full sm:max-w-sm md:max-w-md sm:min-w-sm shadow-xl bg-base border-l border-border-subtle',
 							className
 						)}
 						exit={{

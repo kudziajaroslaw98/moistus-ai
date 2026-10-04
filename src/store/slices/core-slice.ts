@@ -146,6 +146,7 @@ export const createCoreDataSlice: StateCreator<
 				mapSettings: false,
 				upgradeUser: false,
 				commandPalette: false,
+				recipes: false,
 			},
 			edgeInfo: null,
 			contextMenuState: {

@@ -1,9 +1,18 @@
 import { BUILTIN_AI_ACTIONS } from '@/lib/extensions/builtin-ai-actions';
 import { BUILTIN_COMMANDS } from '@/lib/extensions/builtin-commands';
 import { STARTER_RECIPE_CONTRIBUTIONS } from '@/lib/extensions/recipe-contributions';
-import type { ExtensionsSlice } from '@/types/extensions';
+import type { ExtensionsSlice, RecipesPanelView } from '@/types/extensions';
 import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
+
+let recipesPanelInstance = 0;
+
+/** Gives editor views an instance number, so opening the editor again resets the form. */
+function withEditorInstance(view: RecipesPanelView): RecipesPanelView {
+	if (view.mode !== 'edit' || view.instance !== undefined) return view;
+	recipesPanelInstance += 1;
+	return { ...view, instance: recipesPanelInstance };
+}
 
 export const createExtensionsSlice: StateCreator<
 	AppState,
@@ -16,6 +25,16 @@ export const createExtensionsSlice: StateCreator<
 		...BUILTIN_COMMANDS,
 		...STARTER_RECIPE_CONTRIBUTIONS,
 	],
+	recipesPanelView: { mode: 'list' },
+
+	openRecipesPanel: (view = { mode: 'list' }) => {
+		set({ recipesPanelView: withEditorInstance(view) });
+		get().setPopoverOpen({ recipes: true });
+	},
+
+	setRecipesPanelView: (view) => {
+		set({ recipesPanelView: withEditorInstance(view) });
+	},
 
 	registerContribution: (contribution) => {
 		set((state) => {

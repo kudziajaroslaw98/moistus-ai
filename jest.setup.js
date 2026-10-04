@@ -93,6 +93,7 @@ jest.mock('motion/react', () => {
 			a: createMotionComponent('a'),
 			form: createMotionComponent('form'),
 			input: createMotionComponent('input'),
+			textarea: createMotionComponent('textarea'),
 			section: createMotionComponent('section'),
 			article: createMotionComponent('article'),
 			header: createMotionComponent('header'),

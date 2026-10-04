@@ -2,13 +2,14 @@
 
 import { overlaySurfaceClassName } from '@/components/ui/overlay-surface';
 import { useContributions } from '@/hooks/extensions/use-contributions';
+import useAppStore from '@/store/mind-map-store';
 import {
 	resolveContributionDescription,
 	selectContributions,
 } from '@/lib/extensions/select-contributions';
 import type { Contribution } from '@/types/extensions';
 import { cn } from '@/utils/cn';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useMemo } from 'react';
 
@@ -51,6 +52,16 @@ export function AIActionsPopover({
 	const recipeActions = visibleActions.filter(
 		(action) => action.group === 'recipes'
 	);
+
+	// Recipes are saved per account: guests and viewers only see what they can run.
+	const canManageRecipes = useAppStore(
+		(state) => state.currentUser?.is_anonymous === false
+	) && ctx.canEdit;
+	const openRecipesPanel = useAppStore((state) => state.openRecipesPanel);
+	const openPanel = (view?: Parameters<typeof openRecipesPanel>[0]) => {
+		openRecipesPanel(view);
+		onClose();
+	};
 
 	const handleRun = (contribution: Contribution) => {
 		runContribution(contribution, ctx);
@@ -124,7 +135,7 @@ export function AIActionsPopover({
 		>
 			<div className='py-1'>{builtinActions.map(renderAction)}</div>
 
-			{recipeActions.length > 0 && (
+			{(recipeActions.length > 0 || canManageRecipes) && (
 				<>
 					<div className='flex items-center gap-2.5 px-3 pt-2 pb-1'>
 						<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55'>
@@ -132,9 +143,43 @@ export function AIActionsPopover({
 						</span>
 
 						<span aria-hidden className='h-px flex-1 bg-white/8' />
+
+						{canManageRecipes && (
+							<button
+								className='rounded-sm text-xs text-text-tertiary transition-colors duration-200 ease hover:text-primary-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60'
+								onClick={() => openPanel()}
+								type='button'
+							>
+								Manage
+							</button>
+						)}
 					</div>
 
 					<div className='pb-1'>{recipeActions.map(renderAction)}</div>
+
+					{canManageRecipes && (
+						<div className='border-t border-border-default py-1'>
+							<button
+								type='button'
+								onClick={() =>
+									openPanel({ mode: 'edit', recipeId: null, initial: null })
+								}
+								className={cn(
+									'group w-full px-3 py-2.5 flex items-center gap-3 text-left',
+									'hover:bg-elevated focus:bg-elevated active:bg-elevated/80',
+									'transition-all duration-200 ease focus:outline-none'
+								)}
+							>
+								<span className='text-text-secondary transition-colors duration-200 group-hover:text-primary-400'>
+									<Plus className='size-4' />
+								</span>
+
+								<span className='text-sm font-medium text-text-primary transition-colors duration-200 group-hover:text-primary-400'>
+									New recipe…
+								</span>
+							</button>
+						</div>
+					)}
 				</>
 			)}
 		</motion.div>

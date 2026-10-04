@@ -12,6 +12,7 @@ export const createUiStateSlice: StateCreator<
 	popoverOpen: {
 		contextMenu: false,
 		commandPalette: false,
+		recipes: false,
 		edgeEdit: false,
 		history: false,
 		mergeSuggestions: false,

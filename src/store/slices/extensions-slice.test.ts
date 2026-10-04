@@ -75,3 +75,45 @@ describe('extensions slice', () => {
 		).toBe('Say hi');
 	});
 });
+
+describe('recipes panel view', () => {
+	const createPanelStore = () => {
+		const setPopoverOpen = jest.fn();
+		const store = create<AppState>(
+			(set, get, api) =>
+				({ ...createExtensionsSlice(set, get, api), setPopoverOpen }) as unknown as AppState
+		);
+		return { store, setPopoverOpen };
+	};
+
+	it('opens on the list by default', () => {
+		const { store, setPopoverOpen } = createPanelStore();
+
+		store.getState().openRecipesPanel();
+
+		expect(store.getState().recipesPanelView).toEqual({ mode: 'list' });
+		expect(setPopoverOpen).toHaveBeenCalledWith({ recipes: true });
+	});
+
+	it('gives each new editor view its own instance but keeps one passed explicitly', () => {
+		const { store } = createPanelStore();
+
+		store.getState().openRecipesPanel({ mode: 'edit', recipeId: null, initial: null });
+		const first = store.getState().recipesPanelView;
+		store.getState().openRecipesPanel({ mode: 'edit', recipeId: null, initial: null });
+		const second = store.getState().recipesPanelView;
+
+		expect(first.mode === 'edit' && second.mode === 'edit').toBe(true);
+		if (first.mode !== 'edit' || second.mode !== 'edit') return;
+		expect(second.instance).not.toBe(first.instance);
+
+		store.getState().setRecipesPanelView({
+			mode: 'edit',
+			recipeId: 'saved',
+			initial: null,
+			instance: second.instance,
+		});
+		const saved = store.getState().recipesPanelView;
+		expect(saved.mode === 'edit' && saved.instance).toBe(second.instance);
+	});
+});

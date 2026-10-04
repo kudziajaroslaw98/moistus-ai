@@ -1,3 +1,4 @@
+import type { RecipeDefinition } from '@/lib/extensions/recipe-schema';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AppState } from '@/store/app-state';
 import type { LucideIcon } from 'lucide-react';
@@ -86,8 +87,28 @@ export interface Contribution {
 	run: (ctx: ContributionContext) => void | Promise<void>;
 }
 
+/** What the recipes side panel shows: the list, or the editor for one recipe. */
+export type RecipesPanelView =
+	| { mode: 'list' }
+	| {
+			mode: 'edit';
+			/** Saved recipe being edited; null for a new (possibly duplicated) recipe. */
+			recipeId: string | null;
+			/** Starting values; null starts from the blank template. */
+			initial: RecipeDefinition | null;
+			/**
+			 * Editor instance; a new one resets the form. Assigned by the store unless the
+			 * caller passes the current one (e.g. after saving).
+			 */
+			instance?: number;
+	  };
+
 export interface ExtensionsSlice {
 	contributions: Contribution[];
+	recipesPanelView: RecipesPanelView;
+	/** Opens the recipes panel on the list, or straight into the editor. */
+	openRecipesPanel: (view?: RecipesPanelView) => void;
+	setRecipesPanelView: (view: RecipesPanelView) => void;
 	/** Adds (or replaces, by id) an entry. Returns a function that removes it. */
 	registerContribution: (contribution: Contribution) => () => void;
 	unregisterContribution: (id: string) => void;

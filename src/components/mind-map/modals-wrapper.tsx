@@ -7,6 +7,7 @@ import { CommandPalette } from '../mind-map/command-palette';
 import { MapSettingsPanel } from '../mind-map/map-settings-panel';
 import EdgeEditModal from '../modals/edge-edit-modal';
 import { ReferenceSearchModal } from '../modals/reference-search-modal';
+import { RecipesPanel } from '../recipes/recipes-panel';
 import { SharePanel } from '../sharing/share-panel';
 
 export function ModalsWrapper() {
@@ -46,6 +47,8 @@ export function ModalsWrapper() {
 				isOpen={popoverOpen.mapSettings}
 				onClose={() => setPopoverOpen({ mapSettings: false })}
 			/>
+
+			<RecipesPanel />
 
 			{popoverOpen.referenceSearch && <ReferenceSearchModal />}
 		</>

@@ -479,6 +479,8 @@ export interface Popovers {
 	upgradeUser: boolean;
 	/** Ctrl/Cmd+K command palette */
 	commandPalette: boolean;
+	/** AI recipes side panel (list + editor) */
+	recipes: boolean;
 }
 
 // InlineNodeCreator types

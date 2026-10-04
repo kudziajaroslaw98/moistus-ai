@@ -39,6 +39,8 @@ type MockStoreState = {
 	generateMergeSuggestions: jest.Mock;
 	generateCounterpointsForNode: jest.Mock;
 	runRecipe: jest.Mock;
+	openRecipesPanel?: jest.Mock;
+	currentUser?: { id: string; is_anonymous: boolean } | null;
 	isStreaming: boolean;
 	setPopoverOpen: jest.Mock;
 };
@@ -215,6 +217,38 @@ describe('AIActionsPopover', () => {
 		unmount();
 		render(<AIActionsPopover scope='map' onClose={jest.fn()} />);
 		expect(screen.queryByText('Recipes')).not.toBeInTheDocument();
+	});
+
+	it('lets signed-in editors manage and create recipes from the popover', async () => {
+		const user = userEvent.setup();
+		const onClose = jest.fn();
+		const mockState = createMockStoreState({
+			openRecipesPanel: jest.fn(),
+			currentUser: { id: 'user-1', is_anonymous: false },
+		});
+		useMockStore(mockState);
+
+		render(<AIActionsPopover scope='map' onClose={onClose} />);
+		await user.click(screen.getByRole('button', { name: 'Manage' }));
+		await user.click(screen.getByRole('button', { name: /new recipe/i }));
+
+		expect(mockState.openRecipesPanel).toHaveBeenNthCalledWith(1, undefined);
+		expect(mockState.openRecipesPanel).toHaveBeenNthCalledWith(2, {
+			mode: 'edit',
+			recipeId: null,
+			initial: null,
+		});
+		expect(onClose).toHaveBeenCalledTimes(2);
+	});
+
+	it('hides recipe management from guests', () => {
+		useMockStore(
+			createMockStoreState({ currentUser: { id: 'guest', is_anonymous: true } })
+		);
+
+		render(<AIActionsPopover scope='map' onClose={jest.fn()} />);
+
+		expect(screen.queryByRole('button', { name: /new recipe/i })).not.toBeInTheDocument();
 	});
 
 	it('blocks actions and offers an upgrade when the AI quota is used up', async () => {
