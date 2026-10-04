@@ -6,6 +6,7 @@
  */
 
 import { AvailableNodeTypes } from '@/registry/node-registry';
+import type { NodeExtensionData } from '@/types/extensions';
 import { Node, NodeProps } from '@xyflow/react';
 import { ReactNode } from 'react';
 
@@ -196,6 +197,10 @@ export interface AIMetadata {
 	};
 }
 
+export interface ExtensionNodeMetadata extends BaseNodeMetadata {
+	extension?: NodeExtensionData | null;
+}
+
 // Map all node types to their specific metadata
 export interface NodeMetadataMap {
 	defaultNode: BaseNodeMetadata & AIMetadata;
@@ -210,6 +215,7 @@ export interface NodeMetadataMap {
 	referenceNode: ReferenceNodeMetadata & AIMetadata;
 	commentNode: CommentNodeMetadata;
 	ghostNode: GhostNodeMetadata;
+	extensionNode: ExtensionNodeMetadata;
 }
 
 // Discriminated union for type-safe metadata access

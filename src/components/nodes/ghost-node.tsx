@@ -31,6 +31,7 @@ const getNodeTypeColor = (nodeType: AvailableNodeTypes) => {
 		referenceNode: GlassmorphismTheme.ghost.background,
 		groupNode: GlassmorphismTheme.ghost.background,
 		ghostNode: GlassmorphismTheme.ghost.background,
+		extensionNode: GlassmorphismTheme.ghost.background,
 	} as const;
 
 	return colorMap[nodeType] || colorMap.defaultNode;

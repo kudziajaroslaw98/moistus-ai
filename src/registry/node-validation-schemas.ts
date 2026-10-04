@@ -220,6 +220,11 @@ const commentNodeSchema = baseMetadataSchema.extend({
 /**
  * ghostNode - AI-generated node suggestions (system-only)
  */
+/**
+ * extensionNode - plugin-defined node; plugin data lives in metadata.extension (base schema)
+ */
+const extensionNodeSchema = baseMetadataSchema.extend({});
+
 const ghostNodeSchema = z.object({
 	suggestedContent: z.string(),
 	suggestedType: z.enum([
@@ -284,6 +289,7 @@ export const nodeValidationSchemas = {
 	referenceNode: referenceNodeSchema,
 	commentNode: commentNodeSchema,
 	ghostNode: ghostNodeSchema,
+	extensionNode: extensionNodeSchema,
 } as const;
 
 // Type-safe schema access

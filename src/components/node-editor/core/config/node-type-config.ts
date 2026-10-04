@@ -17,6 +17,7 @@ import {
 	Image,
 	Link,
 	MessageSquare,
+	Puzzle,
 	StickyNote,
 	Tag,
 	Type,
@@ -444,6 +445,12 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 	ghostNode: {
 		icon: FileText,
 		label: 'AI Suggestion',
+		examples: [],
+		parsingPatterns: [],
+	},
+	extensionNode: {
+		icon: Puzzle,
+		label: 'Extension',
 		examples: [],
 		parsingPatterns: [],
 	},
