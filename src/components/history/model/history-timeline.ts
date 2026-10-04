@@ -359,6 +359,7 @@ export function buildHistoryRowSubject(
 function rowGroupKey(meta: HistoryMeta): string {
 	return [
 		meta.userId ?? '',
+		meta.actorLabel ?? '',
 		getHistoryFilterCategory(meta),
 		buildHistoryRowTitle(meta),
 		[...(meta.fieldLabels ?? [])].sort().join(','),

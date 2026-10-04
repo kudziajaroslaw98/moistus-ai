@@ -5,12 +5,14 @@ import {
 	isAnnotationNode,
 } from '@/helpers/anchored-annotations';
 import generateUuid from '@/helpers/generate-uuid';
+import { applyGraphOps } from '@/lib/extensions/graph-ops';
 import type { RecipeRef } from '@/lib/extensions/recipe-schema';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AiConnectionSuggestion } from '@/types/ai-connection-suggestion';
 import type { AiMergeSuggestion } from '@/types/ai-merge-suggestion';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
+import type { GraphActor, GraphOp } from '@/types/extensions';
 import type {
 	NodeSuggestion,
 	SuggestionContext,
@@ -997,25 +999,38 @@ export const createSuggestionsSlice: StateCreator<
 				}
 			: approvedNodeInput.data;
 
-		// Add the new node to the main nodes array using the proper method signature
-		await state.addNode({
-			parentNode: null,
-			nodeId: approvedNodeId,
-			content: approvedNodeInput.content,
-			nodeType: approvedNodeInput.nodeType,
-			position: { x: ghostNode.position.x, y: ghostNode.position.y },
-			data: approvedData,
-		});
-
-		// Remove the ghost node
-		state.removeGhostNode(nodeId);
-
-		// If there's a connection context, create the edge
+		const ops: GraphOp[] = [
+			{
+				type: 'createNode',
+				nodeId: approvedNodeId,
+				content: approvedNodeInput.content,
+				nodeType: approvedNodeInput.nodeType,
+				position: { x: ghostNode.position.x, y: ghostNode.position.y },
+				data: approvedData,
+			},
+		];
 		if (sourceNodeId && !skipEdge) {
-			await state.addEdge(sourceNodeId, approvedNodeId, {
-				label: ghostMetadata.context?.relationshipType || null,
-				animated: false,
+			ops.push({
+				type: 'createEdge',
+				source: sourceNodeId,
+				target: approvedNodeId,
+				data: {
+					label: ghostMetadata.context?.relationshipType || null,
+					animated: false,
+				},
 			});
+		}
+
+		// One history event per approval, attributed to the recipe when there is one.
+		const recipe = ghostMetadata.context?.recipe;
+		const actor: GraphActor = recipe
+			? { kind: 'recipe', id: recipe.id, label: recipe.title }
+			: { kind: 'user', id: state.currentUser?.id ?? 'unknown' };
+		const result = await applyGraphOps(get, ops, actor, { label: 'addNode' });
+
+		// Keep the ghost when the node itself couldn't be created, so it can be retried.
+		if (result.applied > 0) {
+			state.removeGhostNode(nodeId);
 		}
 	},
 

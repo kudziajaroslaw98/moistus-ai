@@ -272,6 +272,22 @@ describe('buildHistoryTimeline', () => {
 		]);
 	});
 
+	it('does not group recipe changes with the same change made by hand', () => {
+		const items = [
+			collapse('a', NOW - 3 * MINUTE),
+			{ ...collapse('b', NOW - 2 * MINUTE), actorLabel: 'Pre-mortem' },
+			{ ...collapse('c', NOW - MINUTE), actorLabel: 'Pre-mortem' },
+		];
+
+		const sections = buildHistoryTimeline(items, {
+			historyIndex: -1,
+			filter: 'all',
+			now: NOW,
+		});
+
+		expect(sections[0].rows.map((row) => row.kind)).toEqual(['group', 'single']);
+	});
+
 	it('applies the filter before grouping', () => {
 		const items = [
 			collapse('a', NOW - 3 * MINUTE),

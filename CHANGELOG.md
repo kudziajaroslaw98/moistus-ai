@@ -23,11 +23,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Changed
 
+- **ai/suggestions**: Accepting an AI suggestion goes through `applyGraphOps`: node and connection are one history entry (was two), attributed to the recipe when it came from one; the history row shows the recipe name ("Added note · Note #… · Pre-mortem")
+- **ai/suggestions**: If the approved node can't be saved (for example the node limit), the suggestion stays on the canvas instead of disappearing
 - **ai/actions**: AI actions are defined once; the context menu now shares the popover's labels, icons and AI quota check and gains Expand ideas / Expand map
   - Why: Three divergent definitions; the context menu skipped the quota check
 
 ### Fixed
 
+- **extensions/graph-ops**: `applyGraphOps` now notices when `addNode`/`addEdge` fail (they show a toast and resolve instead of throwing) and stops the batch, so later steps never reference a node that wasn't created
 - **context-menu**: Removed the canvas (pane) "Generate Counterpoints" item, which did nothing because a pane click has no target node
 - **history/revert**: Reverting to a checkpoint or event restores deleted nodes in place and keeps layout working
   - Why: Reverted nodes got a React Flow `parentId`, which made child positions render relative to their parents and scattered the map

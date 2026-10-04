@@ -89,6 +89,8 @@ export interface HistoryItem {
 	/** Distinct property labels the event changed, e.g. ["Width", "Height"]. */
 	fieldLabels?: string[];
 	subjects?: HistorySubjectHint[];
+	/** Recipe or plugin that made the change, e.g. "Pre-mortem". */
+	actorLabel?: string;
 	userId?: string;
 	userName?: string;
 	userAvatar?: string;

@@ -189,8 +189,12 @@ export function HistoryRow({
 							)}
 						</span>
 
-						{(subject || author) && (
-							<HistoryRowSubjectLine author={author} subject={subject} />
+						{(subject || author || meta.actorLabel) && (
+							<HistoryRowSubjectLine
+								actorLabel={meta.actorLabel}
+								author={author}
+								subject={subject}
+							/>
 						)}
 					</span>
 				</button>
@@ -292,9 +296,12 @@ export function HistoryRow({
 function HistoryRowSubjectLine({
 	subject,
 	author,
+	actorLabel,
 }: {
 	subject?: HistoryRowSubject | null;
 	author?: string | null;
+	/** Recipe or plugin that made the change. */
+	actorLabel?: string;
 }) {
 	return (
 		<span className='flex min-w-0 items-baseline gap-1 text-[12.5px] leading-5 text-white/55'>
@@ -321,9 +328,17 @@ function HistoryRowSubjectLine({
 					</>
 				)}
 
+				{actorLabel && (
+					<span className='text-violet-300'>
+						{subject ? ' · ' : ''}
+
+						{actorLabel}
+					</span>
+				)}
+
 				{author && (
 					<span className='text-white/45'>
-						{subject ? ' · ' : ''}
+						{subject || actorLabel ? ' · ' : ''}
 
 						{author}
 					</span>

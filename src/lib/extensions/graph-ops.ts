@@ -1,3 +1,4 @@
+import generateUuid from '@/helpers/generate-uuid';
 import type { AppState } from '@/store/app-state';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
@@ -7,7 +8,15 @@ import type { NodeData } from '@/types/node-data';
 /** Max serialized size of one plugin's `metadata.ext[pluginId]` entry on a node. */
 export const MAX_EXT_DATA_BYTES = 16 * 1024;
 
-const encoder = new TextEncoder();
+/** UTF-8 size without TextEncoder, which jsdom (component tests) doesn't provide. */
+function utf8ByteLength(value: string): number {
+	let bytes = 0;
+	for (const char of value) {
+		const code = char.codePointAt(0) ?? 0;
+		bytes += code < 0x80 ? 1 : code < 0x800 ? 2 : code < 0x10000 ? 3 : 4;
+	}
+	return bytes;
+}
 
 function canEditMap(state: AppState): boolean {
 	const isOwner = Boolean(
@@ -40,7 +49,7 @@ function validateNodeData(
 		if (actor.kind === 'plugin' && namespace !== actor.id) {
 			return `Plugin ${actor.id} cannot write metadata.ext["${namespace}"]`;
 		}
-		const size = encoder.encode(JSON.stringify(value) ?? '').length;
+		const size = utf8ByteLength(JSON.stringify(value) ?? '');
 		if (size > MAX_EXT_DATA_BYTES) {
 			return `metadata.ext["${namespace}"] is ${size} bytes (max ${MAX_EXT_DATA_BYTES})`;
 		}
@@ -95,6 +104,30 @@ async function dispatchOp(state: AppState, op: GraphOp): Promise<void> {
 }
 
 /**
+ * `addNode`/`addEdge` show a toast and resolve normally when they fail, so a step
+ * only counts once its result is actually in the store.
+ */
+function findMissingResult(state: AppState, op: GraphOp): string | null {
+	switch (op.type) {
+		case 'createNode':
+			return state.nodes.some((node) => node.id === op.nodeId)
+				? null
+				: 'Node was not created';
+		case 'createEdge':
+			return state.edges.some(
+				(edge) =>
+					edge.source === op.source &&
+					edge.target === op.target &&
+					edge.data?.aiData?.isSuggested !== true
+			)
+				? null
+				: 'Connection was not created';
+		default:
+			return null;
+	}
+}
+
+/**
  * Single entry point for programmatic graph changes (plugins, recipes, future API).
  *
  * Wraps the existing store actions so realtime sync, offline queueing and node-limit
@@ -128,10 +161,17 @@ export async function applyGraphOps(
 	let applied = 0;
 	let failure: string | null = null;
 
+	// New nodes get their id up front so each step can be verified.
+	const preparedOps = ops.map((op) =>
+		op.type === 'createNode' && !op.nodeId ? { ...op, nodeId: generateUuid() } : op
+	);
+
 	initialState.beginHistoryBatch();
 	try {
-		for (const op of ops) {
+		for (const op of preparedOps) {
 			await dispatchOp(getState(), op);
+			const missing = findMissingResult(getState(), op);
+			if (missing) throw new Error(missing);
 			applied += 1;
 		}
 	} catch (error) {

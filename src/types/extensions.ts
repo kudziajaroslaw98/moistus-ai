@@ -7,8 +7,9 @@ import type { NodeData } from './node-data';
 /** Who initiated a graph change. Recorded on history events for attribution and revert. */
 export type GraphActor =
 	| { kind: 'user'; id: string }
-	| { kind: 'plugin'; id: string }
-	| { kind: 'recipe'; id: string };
+	/** `label` is the display name at the time of the change (survives uninstall/deletion). */
+	| { kind: 'plugin'; id: string; label?: string }
+	| { kind: 'recipe'; id: string; label?: string };
 
 /**
  * Data owned by an extension node (`extensionNode`), stored at `metadata.extension`.

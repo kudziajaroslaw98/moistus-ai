@@ -20,7 +20,7 @@ function createState(options: { userId?: string; canEdit?: boolean } = {}) {
 		currentUser: { id: options.userId ?? OWNER_ID },
 		permissions: { can_edit: options.canEdit ?? false },
 		nodes: [node('root')] as AppNode[],
-		edges: [],
+		edges: [] as Array<{ id: string; source: string; target: string; data: object }>,
 		historyBatchDepth: 0,
 		getNode: jest.fn(
 			(id: string): AppNode | undefined =>
@@ -31,7 +31,11 @@ function createState(options: { userId?: string; canEdit?: boolean } = {}) {
 		}),
 		updateNode: jest.fn(async () => undefined),
 		deleteNodes: jest.fn(async () => undefined),
-		addEdge: jest.fn(async () => ({})),
+		addEdge: jest.fn(async (source: string, target: string) => {
+			const edge = { id: `${source}-${target}`, source, target, data: {} };
+			state.edges = [...state.edges, edge];
+			return edge;
+		}),
 		updateEdge: jest.fn(async () => undefined),
 		deleteEdges: jest.fn(async () => undefined),
 		persistDeltaEvent: jest.fn(async () => undefined),
@@ -152,6 +156,57 @@ describe('applyGraphOps', () => {
 		expect(result).toEqual({ ok: false, applied: 1, error: 'save failed' });
 		expect(state.endHistoryBatch).toHaveBeenCalledTimes(1);
 		expect(state.persistDeltaEvent).toHaveBeenCalledTimes(1);
+	});
+
+	it('stops the batch when a store action fails without throwing', async () => {
+		const state = createState();
+		// The real addNode shows a toast and resolves when saving fails.
+		state.addNode.mockImplementationOnce(async () => undefined);
+
+		const result = await applyGraphOps(
+			asGetState(state),
+			[
+				{ type: 'createNode', nodeId: 'x' },
+				{ type: 'createEdge', source: 'root', target: 'x' },
+			],
+			plugin
+		);
+
+		expect(result).toEqual({ ok: false, applied: 0, error: 'Node was not created' });
+		expect(state.addEdge).not.toHaveBeenCalled();
+		expect(state.endHistoryBatch).toHaveBeenCalledTimes(1);
+	});
+
+	it('reports a connection that was not saved', async () => {
+		const state = createState();
+		state.addEdge.mockImplementationOnce(async () => undefined as never);
+
+		const result = await applyGraphOps(
+			asGetState(state),
+			[{ type: 'createEdge', source: 'root', target: 'root' }],
+			plugin
+		);
+
+		expect(result).toEqual({
+			ok: false,
+			applied: 0,
+			error: 'Connection was not created',
+		});
+	});
+
+	it('gives new nodes an id up front so they can be verified', async () => {
+		const state = createState();
+
+		const result = await applyGraphOps(
+			asGetState(state),
+			[{ type: 'createNode', content: 'No id' }],
+			plugin
+		);
+
+		expect(result).toEqual({ ok: true, applied: 1 });
+		expect(state.addNode).toHaveBeenCalledWith(
+			expect.objectContaining({ nodeId: expect.any(String) })
+		);
 	});
 
 	it('rejects plugin data over the size cap before applying anything', async () => {
