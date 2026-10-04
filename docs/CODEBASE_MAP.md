@@ -90,7 +90,7 @@ graph TB
         Auth[Auth Pages]
     end
 
-    subgraph State["Zustand Store (21 Slices)"]
+    subgraph State["Zustand Store (23 Slices)"]
         Core[core-slice]
         Nodes[nodes-slice]
         Edges[edges-slice]
@@ -203,7 +203,7 @@ shiko/
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
 │   │   ├── node-editor/        # Command system, CodeMirror, mobile autocomplete tray
-│   │   ├── nodes/              # 12 node types + base wrapper
+│   │   ├── nodes/              # 13 node types + base wrapper
 │   │   ├── notifications/      # Notification bell + shared inbox data hook
 │   │   ├── onboarding/         # Editor-first onboarding shell (intro/checklist/coachmarks/upsell)
 │   │   ├── realtime/           # Live cursors, presence
@@ -214,7 +214,7 @@ shiko/
 │   │   └── waitlist/           # Landing page forms
 │   │
 │   ├── store/                  # Zustand state management
-│   │   ├── slices/             # 21 focused slices
+│   │   ├── slices/             # 23 focused slices
 │   │   ├── app-state.ts        # Master state interface
 │   │   └── mind-map-store.tsx  # Store composition
 │   │
@@ -264,7 +264,7 @@ shiko/
 
 ## Module Guide
 
-### State Management (21 Slices)
+### State Management (23 Slices)
 
 | Slice                     | Lines | Purpose                                                                                      |
 | ------------------------- | ----- | -------------------------------------------------------------------------------------------- |
@@ -289,8 +289,10 @@ shiko/
 | **quick-input-slice**     | 55    | Quick node creation                                                           |
 | **loading-state-slice**   | 33    | Loading flags                                                                 |
 | **realtime-slice**        | 17    | Selection sync                                                                |
+| **permissions-slice**     | —     | Map role/permissions + realtime permission updates                            |
+| **extensions-slice**      | 45    | Contribution registry (built-in AI actions, palette commands, plugin entries) |
 
-### Node System (12 Types)
+### Node System (13 Types)
 
 | Type           | Category  | Command       | Purpose                       |
 | -------------- | --------- | ------------- | ----------------------------- |
@@ -306,6 +308,7 @@ shiko/
 | groupNode      | structure | —             | Container (UI only)           |
 | commentNode    | structure | —             | Thread anchor (UI only)       |
 | ghostNode      | ai        | —             | AI suggestions (system only)  |
+| extensionNode  | structure | —             | Plugin host (fallback card)   |
 
 **Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). The editor modal is a wide 50/50 split layout with matching split top/body rows: node type and editor on the left, Preview/Syntax Help tabs and tab content on the right. The split body is bounded so panes fill the modal region without pushing the footer out of view; the editor keeps line/scroll affordance for multi-line input with line-number glyphs horizontally centered but baseline-aligned, preview content starts at the top of its pane, and right-panel controls are styled as a full-height tab strip (strong hover + selected underline rather than button pills) aligned from the split divider. Syntax-help panel mode should rely on right-pane scrolling instead of nested inner max-height clipping. Syntax Help remains split into type-filtered `Universal` plus `Node-specific` sections.
 Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
@@ -666,6 +669,10 @@ sequenceDiagram
 22. **Programmatic Graph Changes** - `applyGraphOps(getState, ops, actor)` in `src/lib/extensions/graph-ops.ts` wraps the existing node/edge store actions for plugins and recipes: edit-permission gate, `metadata.ext[pluginId]` namespace + 16 KB cap, and one history event per batch via `beginHistoryBatch`/`endHistoryBatch` with `changes.actor`. Types live in `src/types/extensions.ts`.
 
 <!-- Updated: 2026-10-04 - Documented graph-ops extension write path -->
+
+23. **Contribution Registry** - `extensions-slice` holds `Contribution` entries (built-ins from `src/lib/extensions/builtin-ai-actions.ts` and `builtin-commands.ts`). `AIActionsPopover`, `use-context-menu-config.tsx` and the Ctrl/Cmd+K `CommandPalette` (mounted in `modals-wrapper.tsx`, flag `popoverOpen.commandPalette`) render them through `src/lib/extensions/select-contributions.ts`; `useContributions()` provides context + quota-guarded `runContribution`. `extensionNode` is the plugin host node type (not user/AI creatable).
+
+<!-- Updated: 2026-10-04 - Documented contribution registry, command palette and extensionNode -->
 
 ## Navigation Guide
 

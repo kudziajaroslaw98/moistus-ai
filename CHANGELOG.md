@@ -11,10 +11,19 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **extensions/graph-ops**: `applyGraphOps()` (`src/lib/extensions/graph-ops.ts`) is the single entry point for programmatic graph changes: it checks edit permission and extension data limits, reuses the existing store actions, and records one history event per batch attributed to the actor (`user` / `plugin` / `recipe`)
   - Why: Foundation for plugins and AI recipes; store actions alone don't enforce permissions or group changes
+- **extensions/command-palette**: Ctrl/Cmd+K command palette listing AI actions plus Search canvas, Open history (editors) and Map settings (owner); acts on the selected node when one is selected
+- **extensions/registry**: Contribution registry (`extensions-slice`) feeding the AI popover, context menu and command palette from one list; node-editor `commandRegistry.register()` for future plugin `$` triggers
+- **extensions/extension-node**: `extensionNode` host type for plugin-defined nodes, with a fallback card naming the required plugin
 - **extensions/metadata**: Reserved `metadata.extension` (extension node data) and `metadata.ext[pluginId]` (per-plugin data on any node) in `NodeData` and the metadata validation schemas
+
+### Changed
+
+- **ai/actions**: AI actions are defined once; the context menu now shares the popover's labels, icons and AI quota check and gains Expand ideas / Expand map
+  - Why: Three divergent definitions; the context menu skipped the quota check
 
 ### Fixed
 
+- **context-menu**: Removed the canvas (pane) "Generate Counterpoints" item, which did nothing because a pane click has no target node
 - **history/revert**: Reverting to a checkpoint or event restores deleted nodes in place and keeps layout working
   - Why: Reverted nodes got a React Flow `parentId`, which made child positions render relative to their parents and scattered the map
 - **edges/hierarchy**: Setting a node's parent no longer shifts it on the canvas

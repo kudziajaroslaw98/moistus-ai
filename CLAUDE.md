@@ -121,7 +121,7 @@ pnpm pretty          # Prettier
 
 ## Architecture
 
-**Stack**: Next.js 16 (App Router) • React 19 • TypeScript • Zustand (21 slices) • React Flow (canvas) • Motion (animations) • Supabase (auth/DB/realtime) • Tailwind CSS • OpenAI GPT
+**Stack**: Next.js 16 (App Router) • React 19 • TypeScript • Zustand (23 slices) • React Flow (canvas) • Motion (animations) • Supabase (auth/DB/realtime) • Tailwind CSS • OpenAI GPT
 
 **Full Reference**: See [docs/CODEBASE_MAP.md](docs/CODEBASE_MAP.md) for directory structure, slices, node types, API routes, component directories, and data flows.
 
@@ -255,6 +255,10 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 **Programmatic graph changes**: Plugins, recipes and any future API must change the graph through `applyGraphOps()` (`src/lib/extensions/graph-ops.ts`), never by calling node/edge store actions directly. It enforces edit permission, keeps plugin data inside `metadata.ext[<own plugin id>]` (max 16 KB per node) and wraps the batch in `beginHistoryBatch`/`endHistoryBatch` so it records one history event with `changes.actor`. `persistDeltaEvent` returns early while `historyBatchDepth > 0`, so anything that must record history on its own must not run inside a batch. `metadata.extension` and `metadata.ext` are reserved; they are listed explicitly in `baseMetadataSchema` so validation never strips them.
 
 <!-- Updated: 2026-10-04 - Documented graph-ops entry point, history batching and reserved extension metadata -->
+
+**Contribution registry**: Menu and command entries live in `extensions-slice` as `Contribution`s (`src/types/extensions.ts`): `scopes` (node/map), `placements` (`aiMenu`, `contextMenu`, `commandPalette`), `when`/`isBusy`/`run`. Built-in AI actions (`src/lib/extensions/builtin-ai-actions.ts`) and palette commands (`builtin-commands.ts`) are the single definitions; the AI popover, context menu and Ctrl/Cmd+K palette (`src/components/mind-map/command-palette.tsx`) render via `selectContributions` / `selectPaletteEntries`. Surfaces must run entries through `useContributions().runContribution` so the AI quota guard applies everywhere. Do not hard-code AI actions in surfaces again, and keep the toolbar curated (plugin commands go to the palette/menus). Node-editor `$` triggers for plugin kinds use `commandRegistry.register()`, which refuses existing ids/triggers.
+
+<!-- Updated: 2026-10-04 - Documented contribution registry, command palette and $ trigger registration -->
 
 **AI structured-output schemas**: `@ai-sdk/openai` defaults to OpenAI strict structured outputs, so every Zod schema passed to `streamObject` must list every key as required: use `.nullable()` for unused fields, never `.optional()` or `.partial()`, and avoid string formats such as `.url()`. A violation fails the whole request with `invalid_json_schema`. Lenient handling belongs in the postprocess helpers.
 
