@@ -20,6 +20,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **landing/legacy-sections**: Deleted the unused problem/solution, features, hero demo, hero scene, hero background and grain overlay components plus the three old screenshot PNGs
   - Why: Replaced by the scroll story; nothing imports them
+- **landing/noise-texture**: Deleted `public/images/noise-blue.png`, whose only user was the removed grain overlay
 
 ### Added
 

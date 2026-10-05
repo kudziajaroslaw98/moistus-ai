@@ -5,7 +5,7 @@ import { NodeCard, type NodeCardProps } from './node-card';
 export const PROGRESS_FILL =
 	'linear-gradient(90deg, rgba(96,165,250,0.6), rgba(96,165,250,0.8))';
 
-export function TaskCheckbox({ done }: { done: boolean }) {
+function TaskCheckbox({ done }: { done: boolean }) {
 	return (
 		<span
 			className={cn(
@@ -23,7 +23,7 @@ interface TaskProgressProps {
 	total: number;
 }
 
-export function TaskProgress({ done, total }: TaskProgressProps) {
+function TaskProgress({ done, total }: TaskProgressProps) {
 	const percent = total === 0 ? 0 : Math.round((done / total) * 100);
 
 	return (
@@ -46,12 +46,12 @@ export function TaskProgress({ done, total }: TaskProgressProps) {
 	);
 }
 
-export interface TaskRowData {
+interface TaskRowData {
 	text: string;
 	done: boolean;
 }
 
-export function TaskRow({ text, done }: TaskRowData) {
+function TaskRow({ text, done }: TaskRowData) {
 	return (
 		<li
 			className={cn(
