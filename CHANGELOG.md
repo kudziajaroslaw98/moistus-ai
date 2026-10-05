@@ -16,6 +16,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **landing/copy**: Removed the offline claim and the app-menu inventory (layout presets, AI action grid, editor hints)
   - Why: Offline editing is only partly true today and the page should stay outcome-led
 
+### Removed
+
+- **landing/legacy-sections**: Deleted the unused problem/solution, features, hero demo, hero scene, hero background and grain overlay components plus the three old screenshot PNGs
+  - Why: Replaced by the scroll story; nothing imports them
+
 ### Added
 
 - **landing/product-frames**: Shared static mocks under `src/components/landing/product/` (canvas surface, node card, task node, AI ghost card, edge layer, cursor, editor chrome)
