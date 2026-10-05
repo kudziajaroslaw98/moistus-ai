@@ -1,5 +1,5 @@
-import type { NextConfig } from 'next';
 import { withSerwist } from '@serwist/turbopack';
+import type { NextConfig } from 'next';
 
 /** HTTP(S) origin plus matching WS(S) origin for a configured service URL. */
 const toConnectOrigins = (value: string | undefined): string[] => {
@@ -16,7 +16,8 @@ const toConnectOrigins = (value: string | undefined): string[] => {
 // Report-only until violations from real traffic are reviewed; then enforce.
 const contentSecurityPolicyReportOnly = [
 	"default-src 'self'",
-	"script-src 'self' 'unsafe-inline'",
+	// 'wasm-unsafe-eval': the plugin sandbox (QuickJS) compiles WebAssembly in a worker.
+	"script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
 	"style-src 'self' 'unsafe-inline'",
 	"img-src 'self' data: blob: https:",
 	"font-src 'self' data:",
