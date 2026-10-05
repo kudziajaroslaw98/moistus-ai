@@ -8,6 +8,27 @@ import { render, screen } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import ExtensionNode from './extension-node';
 
+jest.mock('@/hooks/collaboration/use-permissions', () => ({
+	usePermissions: () => ({ canEdit: true }),
+}));
+jest.mock('@/store/mind-map-store', () => {
+	const state = {
+		loadedPlugins: {},
+		mapPlugins: [],
+		mapPluginsLoaded: true,
+		refreshMapPluginsSoon: jest.fn(),
+	};
+	return {
+		__esModule: true,
+		default: Object.assign(
+			(selector: (value: typeof state) => unknown) => selector(state),
+			{
+				getState: () => state,
+			}
+		),
+	};
+});
+
 jest.mock('./base-node-wrapper', () => ({
 	BaseNodeWrapper: ({
 		children,
@@ -61,7 +82,8 @@ describe('ExtensionNode', () => {
 				{...createProps(
 					{
 						pluginId: 'com.example.kanban',
-						kind: 'Kanban board',
+						kind: 'kanban',
+						kindLabel: 'Kanban board',
 						version: '1.0.0',
 						data: {},
 					},
@@ -76,8 +98,8 @@ describe('ExtensionNode', () => {
 		);
 		expect(screen.getByText('Kanban board')).toBeInTheDocument();
 		expect(screen.getByText('Sprint 12')).toBeInTheDocument();
-		expect(screen.getByTestId('extension-plugin-required')).toHaveTextContent(
-			'Requires plugin com.example.kanban'
+		expect(screen.getByTestId('plugin-node-status')).toHaveTextContent(
+			'Needs the Kanban board plugin (com.example.kanban)'
 		);
 	});
 

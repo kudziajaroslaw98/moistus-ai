@@ -2,12 +2,13 @@
 
 import type { AppState } from '@/store/app-state';
 import type { AppNode } from '@/types/app-node';
-import type { GraphActor } from '@/types/extensions';
+import type { GraphActor, GraphOp } from '@/types/extensions';
 import { applyGraphOps, MAX_EXT_DATA_BYTES } from './graph-ops';
 
 const OWNER_ID = 'owner-1';
 const EDITOR_ID = 'editor-1';
 const plugin: GraphActor = { kind: 'plugin', id: 'com.example.kanban' };
+const user: GraphActor = { kind: 'user', id: OWNER_ID };
 
 function node(id: string): AppNode {
 	return { id, position: { x: 0, y: 0 }, data: { id } } as unknown as AppNode;
@@ -20,11 +21,15 @@ function createState(options: { userId?: string; canEdit?: boolean } = {}) {
 		currentUser: { id: options.userId ?? OWNER_ID },
 		permissions: { can_edit: options.canEdit ?? false },
 		nodes: [node('root')] as AppNode[],
-		edges: [] as Array<{ id: string; source: string; target: string; data: object }>,
+		edges: [] as Array<{
+			id: string;
+			source: string;
+			target: string;
+			data: object;
+		}>,
 		historyBatchDepth: 0,
-		getNode: jest.fn(
-			(id: string): AppNode | undefined =>
-				state.nodes.find((n: AppNode) => n.id === id)
+		getNode: jest.fn((id: string): AppNode | undefined =>
+			state.nodes.find((n: AppNode) => n.id === id)
 		),
 		addNode: jest.fn(async ({ nodeId }: { nodeId?: string }): Promise<void> => {
 			state.nodes = [...state.nodes, node(nodeId ?? 'new-node')];
@@ -62,7 +67,11 @@ describe('applyGraphOps', () => {
 			plugin
 		);
 
-		expect(result).toEqual({ ok: false, applied: 0, error: expect.any(String) });
+		expect(result).toEqual({
+			ok: false,
+			applied: 0,
+			error: expect.any(String),
+		});
 		expect(state.addNode).not.toHaveBeenCalled();
 		expect(state.beginHistoryBatch).not.toHaveBeenCalled();
 	});
@@ -73,7 +82,7 @@ describe('applyGraphOps', () => {
 			const result = await applyGraphOps(
 				asGetState(state),
 				[{ type: 'createNode', content: 'Hi' }],
-				plugin
+				user
 			);
 			expect(result).toEqual({ ok: true, applied: 1 });
 		}
@@ -91,7 +100,7 @@ describe('applyGraphOps', () => {
 				{ type: 'createEdge', source: 'a', target: 'b' },
 				{ type: 'deleteNodes', nodeIds: ['b'] },
 			],
-			plugin
+			user
 		);
 
 		expect(state.addNode).toHaveBeenCalledWith(
@@ -120,7 +129,7 @@ describe('applyGraphOps', () => {
 				{ type: 'createNode', nodeId: 'x' },
 				{ type: 'createNode', nodeId: 'y' },
 			],
-			plugin,
+			user,
 			{ label: 'Kanban: add columns' }
 		);
 
@@ -137,7 +146,7 @@ describe('applyGraphOps', () => {
 		expect(label).toBe('Kanban: add columns');
 		expect(prev.nodes.map((n) => n.id)).toEqual(['root']);
 		expect(next.nodes.map((n) => n.id)).toEqual(['root', 'x', 'y']);
-		expect(options.actor).toEqual(plugin);
+		expect(options.actor).toEqual(user);
 	});
 
 	it('closes the batch and reports partial progress when an op fails', async () => {
@@ -150,7 +159,7 @@ describe('applyGraphOps', () => {
 				{ type: 'createNode', nodeId: 'x' },
 				{ type: 'updateNode', nodeId: 'x', data: { content: 'boom' } },
 			],
-			plugin
+			user
 		);
 
 		expect(result).toEqual({ ok: false, applied: 1, error: 'save failed' });
@@ -169,10 +178,14 @@ describe('applyGraphOps', () => {
 				{ type: 'createNode', nodeId: 'x' },
 				{ type: 'createEdge', source: 'root', target: 'x' },
 			],
-			plugin
+			user
 		);
 
-		expect(result).toEqual({ ok: false, applied: 0, error: 'Node was not created' });
+		expect(result).toEqual({
+			ok: false,
+			applied: 0,
+			error: 'Node was not created',
+		});
 		expect(state.addEdge).not.toHaveBeenCalled();
 		expect(state.endHistoryBatch).toHaveBeenCalledTimes(1);
 	});
@@ -184,7 +197,7 @@ describe('applyGraphOps', () => {
 		const result = await applyGraphOps(
 			asGetState(state),
 			[{ type: 'createEdge', source: 'root', target: 'root' }],
-			plugin
+			user
 		);
 
 		expect(result).toEqual({
@@ -200,7 +213,7 @@ describe('applyGraphOps', () => {
 		const result = await applyGraphOps(
 			asGetState(state),
 			[{ type: 'createNode', content: 'No id' }],
-			plugin
+			user
 		);
 
 		expect(result).toEqual({ ok: true, applied: 1 });
@@ -246,5 +259,120 @@ describe('applyGraphOps', () => {
 
 		expect(result.ok).toBe(false);
 		expect(state.updateNode).not.toHaveBeenCalled();
+	});
+});
+
+describe('applyGraphOps: plugins only touch their own nodes', () => {
+	const kanbanNode = (id: string, pluginId = plugin.id): AppNode =>
+		({
+			id,
+			position: { x: 0, y: 0 },
+			data: {
+				id,
+				node_type: 'extensionNode',
+				metadata: {
+					extension: { pluginId, kind: 'board', version: '1.0.0', data: {} },
+				},
+			},
+		}) as unknown as AppNode;
+	const extension = (pluginId = plugin.id) => ({
+		pluginId,
+		kind: 'board',
+		version: '1.0.0',
+		data: { title: 'Sprint' },
+	});
+
+	it('lets a plugin create and update its own extension nodes', async () => {
+		const state = createState();
+		state.nodes = [...state.nodes, kanbanNode('k1')];
+
+		const result = await applyGraphOps(
+			asGetState(state),
+			[
+				{
+					type: 'createNode',
+					nodeId: 'k2',
+					nodeType: 'extensionNode',
+					data: { metadata: { extension: extension() } },
+				},
+				{
+					type: 'updateNode',
+					nodeId: 'k1',
+					data: { content: 'Sprint', metadata: { extension: extension() } },
+				},
+			],
+			plugin
+		);
+
+		expect(result).toEqual({ ok: true, applied: 2 });
+	});
+
+	it('refuses plain nodes, other plugins’ nodes and connections', async () => {
+		const state = createState();
+		state.nodes = [...state.nodes, kanbanNode('theirs', 'com.other.plugin')];
+		const attempts: GraphOp[] = [
+			{ type: 'createNode', content: 'Plain note' },
+			{
+				type: 'createNode',
+				nodeType: 'extensionNode',
+				data: { metadata: { extension: extension('com.other.plugin') } },
+			},
+			{ type: 'updateNode', nodeId: 'root', data: { content: 'Hijacked' } },
+			{ type: 'updateNode', nodeId: 'theirs', data: { content: 'Hijacked' } },
+			{ type: 'deleteNodes', nodeIds: ['root'] },
+			{ type: 'createEdge', source: 'root', target: 'theirs' },
+		];
+
+		for (const op of attempts) {
+			const result = await applyGraphOps(asGetState(state), [op], plugin);
+			expect(result.ok).toBe(false);
+		}
+		expect(state.addNode).not.toHaveBeenCalled();
+		expect(state.updateNode).not.toHaveBeenCalled();
+		expect(state.deleteNodes).not.toHaveBeenCalled();
+		expect(state.addEdge).not.toHaveBeenCalled();
+	});
+
+	it('refuses changing anything but content and data, or the node’s kind', async () => {
+		const state = createState();
+		state.nodes = [...state.nodes, kanbanNode('k1')];
+
+		for (const data of [
+			{ node_type: 'defaultNode' },
+			{ metadata: { title: 'x' } },
+			{ metadata: { extension: { ...extension(), kind: 'other' } } },
+		]) {
+			const result = await applyGraphOps(
+				asGetState(state),
+				[{ type: 'updateNode', nodeId: 'k1', data } as never],
+				plugin
+			);
+			expect(result.ok).toBe(false);
+		}
+		expect(state.updateNode).not.toHaveBeenCalled();
+	});
+
+	it('caps plugin data and saved views', async () => {
+		const state = createState();
+		state.nodes = [...state.nodes, kanbanNode('k1')];
+		const big = 'x'.repeat(16 * 1024 + 1);
+
+		for (const patch of [
+			{ data: { blob: big } },
+			{ snapshot: { type: 'text', value: big } },
+		]) {
+			const result = await applyGraphOps(
+				asGetState(state),
+				[
+					{
+						type: 'updateNode',
+						nodeId: 'k1',
+						data: { metadata: { extension: { ...extension(), ...patch } } },
+					},
+				],
+				plugin
+			);
+			expect(result.ok).toBe(false);
+		}
 	});
 });

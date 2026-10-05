@@ -4,6 +4,7 @@ import type { HistoryDelta } from '@/types/history-state';
 import {
 	buildHistoryPresentation,
 	collectHistoryFieldLabels,
+	deriveHistorySubjectHints,
 } from './presentation';
 
 function createNode(
@@ -235,7 +236,9 @@ describe('history presentation', () => {
 
 		const presentation = buildHistoryPresentation(delta, {
 			actionName: 'updateNode',
-			nodes: [createNode('abcdef12-3456-7890', 'Very long content without title')],
+			nodes: [
+				createNode('abcdef12-3456-7890', 'Very long content without title'),
+			],
 		});
 
 		expect(presentation.subjects[0].label).toBe('Default node #abcdef12');
@@ -338,5 +341,39 @@ describe('history presentation', () => {
 				buildHistoryPresentation(delta, { actionName: 'addNode' })
 			)
 		).toEqual([]);
+	});
+});
+
+describe('deriveHistorySubjectHints for plugin nodes', () => {
+	it('keeps the plugin kind label so rows can name the node later', () => {
+		const metric = {
+			...createNode('m1', 'Signups: 5 / 10'),
+			type: 'extensionNode',
+			data: {
+				...createNode('m1', 'Signups: 5 / 10').data,
+				node_type: 'extensionNode',
+				metadata: {
+					extension: {
+						pluginId: 'shiko.metric',
+						kind: 'metric',
+						kindLabel: 'Metric',
+						version: '0.1.0',
+						data: {},
+					},
+				},
+			},
+		} as AppNode;
+		const delta: HistoryDelta = {
+			operation: 'add',
+			entityType: 'node',
+			changes: [{ id: 'm1', type: 'node', op: 'add', value: metric }],
+		};
+
+		expect(
+			deriveHistorySubjectHints(delta, { nodes: [metric] })[0]
+		).toMatchObject({
+			nodeType: 'extensionNode',
+			nodeKindLabel: 'Metric',
+		});
 	});
 });

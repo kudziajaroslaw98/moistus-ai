@@ -5,8 +5,8 @@ import type { AppState } from '../app-state';
 import { createPluginsSlice } from './plugins-slice';
 
 const mockHost = { load: jest.fn(), unload: jest.fn() };
-jest.mock('@/lib/plugins/runtime/plugin-host-instance', () => ({
-	getPluginHost: () => mockHost,
+jest.mock('@/lib/plugins/runtime/load-plugin-host', () => ({
+	loadPluginHost: async () => mockHost,
 }));
 jest.mock('sonner', () => ({ toast: { error: jest.fn() } }));
 

@@ -375,6 +375,25 @@ function getNodeType(
 	return node?.type ?? node?.data?.node_type;
 }
 
+/** A plugin node's kind label ("Metric"), read from its extension data. */
+function getNodeKindLabel(
+	nodeId: string,
+	change: HistoryPatchOp,
+	nodeMap: Map<string, AppNode>,
+	previousNodeMap: Map<string, AppNode>
+): string | undefined {
+	const node =
+		nodeMap.get(nodeId) ??
+		previousNodeMap.get(nodeId) ??
+		(change.value as Partial<AppNode> | undefined) ??
+		(change.removedValue as Partial<AppNode> | undefined);
+	const extension = node?.data?.metadata?.extension;
+	if (!extension) return undefined;
+	const label = extension.kindLabel?.trim() || extension.kind?.trim();
+	if (!label) return undefined;
+	return (label.charAt(0).toUpperCase() + label.slice(1)).slice(0, 30);
+}
+
 function getNodeLabel(
 	nodeId: string,
 	change: HistoryPatchOp,
@@ -573,6 +592,12 @@ export function deriveHistorySubjectHints(
 				type: 'node',
 				label: getNodeLabel(change.id, change, nodeMap, previousNodeMap),
 				nodeType: getNodeType(change.id, change, nodeMap, previousNodeMap),
+				nodeKindLabel: getNodeKindLabel(
+					change.id,
+					change,
+					nodeMap,
+					previousNodeMap
+				),
 				position: getNodePosition(change.id, change, nodeMap, previousNodeMap),
 				width: getNodeDimension(
 					change.id,
@@ -772,7 +797,9 @@ function fieldChanges(change: HistoryPatchOp): HistoryReadableChange[] {
 			const label = fieldLabel(path);
 			const isStyle = STYLE_FIELDS.has(fieldKey);
 			const cleared = isEmptyValue(newValue) && !isEmptyValue(oldValue);
-			const verb: HistoryReadableChange['verb'] = cleared ? 'cleared' : undefined;
+			const verb: HistoryReadableChange['verb'] = cleared
+				? 'cleared'
+				: undefined;
 
 			return {
 				id: `${change.id}:${path}`,

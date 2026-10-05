@@ -1,9 +1,11 @@
+import { findActivePluginKind } from '@/lib/plugins/active-plugins';
 import { findCatalogPlugin, isLocalDevPluginUrl } from '@/lib/plugins/catalog';
 import {
 	describeManifestError,
 	pluginManifestSchema,
 	type PluginManifest,
 } from '@/lib/plugins/manifest-schema';
+import { loadPluginHost } from '@/lib/plugins/runtime/load-plugin-host';
 import type {
 	LoadedPlugin,
 	MapPluginRecord,
@@ -84,9 +86,6 @@ async function fetchCode(
 	return code;
 }
 
-/** Imported lazily so maps without plugins never load the worker or QuickJS. */
-const loadHost = async () =>
-	(await import('@/lib/plugins/runtime/plugin-host-instance')).getPluginHost();
 
 export const createPluginsSlice: StateCreator<
 	AppState,
@@ -124,7 +123,7 @@ export const createPluginsSlice: StateCreator<
 		});
 		if (plugin?.manifest) {
 			const pluginId = plugin.manifest.id;
-			void loadHost().then((host) => host.unload(pluginId));
+			void loadPluginHost().then((host) => host.unload(pluginId));
 		}
 	};
 
@@ -167,7 +166,7 @@ export const createPluginsSlice: StateCreator<
 					throw new Error(`${manifest.id} is already loaded on this map`);
 			}
 			const code = await fetchCode(manifestUrl, manifest, source);
-			const host = await loadHost();
+			const host = await loadPluginHost();
 			const kinds = await host.load(manifest.id, code);
 			const missing = manifest.nodeKinds.find(
 				(kind) => !kinds.includes(kind.kind)
@@ -344,18 +343,7 @@ export const createPluginsSlice: StateCreator<
 			});
 		},
 
-		getActivePluginKind: (pluginId, kindName) => {
-			for (const plugin of Object.values(get().loadedPlugins)) {
-				if (plugin.status !== 'ready' || plugin.manifest?.id !== pluginId)
-					continue;
-				const kind = plugin.manifest.nodeKinds.find(
-					(candidate) => candidate.kind === kindName
-				);
-				return kind
-					? { manifest: plugin.manifest, kind, source: plugin.source }
-					: null;
-			}
-			return null;
-		},
+		getActivePluginKind: (pluginId, kindName) =>
+			findActivePluginKind(get().loadedPlugins, pluginId, kindName),
 	};
 };

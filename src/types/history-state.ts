@@ -31,6 +31,8 @@ export interface HistorySubjectHint {
 	type: 'node' | 'edge';
 	label?: string;
 	nodeType?: string;
+	/** Plugin node kind label at the time ("Metric"), so rows name it after uninstall. */
+	nodeKindLabel?: string;
 	position?: { x: number; y: number };
 	width?: number | null;
 	height?: number | null;

@@ -19,6 +19,8 @@ export type GraphActor =
 export interface NodeExtensionData {
 	pluginId: string;
 	kind: string;
+	/** The kind's display label when saved ("Metric"), for when the plugin isn't loaded. */
+	kindLabel?: string;
 	version: string;
 	data: Record<string, unknown>;
 	snapshot?: unknown;

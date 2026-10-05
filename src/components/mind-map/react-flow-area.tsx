@@ -759,7 +759,11 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					screenPosition,
 					parentNode: parentNode ?? null,
 					mode: 'create',
-					suggestedType: parentNode?.data?.node_type ?? 'defaultNode',
+					// A plugin node's kind can't be inferred from node_type alone.
+					suggestedType:
+						parentNode?.data?.node_type === 'extensionNode'
+							? 'defaultNode'
+							: (parentNode?.data?.node_type ?? 'defaultNode'),
 				});
 			}
 
