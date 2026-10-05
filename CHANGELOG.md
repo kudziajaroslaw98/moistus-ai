@@ -16,6 +16,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **landing/copy**: Removed the offline claim and the app-menu inventory (layout presets, AI action grid, editor hints)
   - Why: Offline editing is only partly true today and the page should stay outcome-led
 
+- **landing/quick-input-examples**: The Capture demo now shows three real quick-input examples (Tasks, Question, Note) with example tabs; it plays Tasks on scroll, then advances once through the other two, then stops (Replay restarts)
+  - Why: Show that one typing flow covers different node types, with only verified real syntax
+- **landing/quick-input-accuracy**: The task preview now shows the app's always-present amber `pending` chip and a relative `Tomorrow` date chip (`^tomorrow`) instead of a fixed past date
+  - Why: A fixed 2026-03-12 date would render as red "Overdue" in the real app today
+
 ### Removed
 
 - **landing/legacy-sections**: Deleted the unused problem/solution, features, hero demo, hero scene, hero background and grain overlay components plus the three old screenshot PNGs

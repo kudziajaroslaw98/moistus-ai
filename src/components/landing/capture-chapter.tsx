@@ -1,21 +1,60 @@
 'use client';
 
 import { cn } from '@/utils/cn';
-import { Check, CircleHelp, Eye, ListChecks, RotateCcw } from 'lucide-react';
-import { motion, useInView, useReducedMotion } from 'motion/react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { PROGRESS_FILL } from './product/task-parts';
 import {
-	QUICK_INPUT_LINES,
-	TOTAL_CHARACTERS,
+	CheckSquare,
+	CircleHelp,
+	Eye,
+	FileQuestion,
+	RotateCcw,
+	StickyNote,
+	type LucideIcon,
+} from 'lucide-react';
+import {
+	AnimatePresence,
+	motion,
+	useInView,
+	useReducedMotion,
+} from 'motion/react';
+import {
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from 'react';
+import {
+	NotePreview,
+	QuestionPreview,
+	TasksPreview,
+} from './quick-input-previews';
+import {
+	QUICK_INPUT_SCENARIOS,
 	TYPE_STEP_MS,
 	buildTypingFrames,
 	deriveQuickInputState,
+	totalCharacters,
+	type PreviewKind,
+	type QuickInputScenario,
+	type QuickInputState,
 } from './quick-input-script';
 
-const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 const TICK_AT_MS = [600, 1300] as const;
-const DONE_AT_MS = 1900;
+const TASKS_DONE_AT_MS = 1900;
+/** Short settle after typing for scenarios with no ticking. */
+const SETTLE_MS = 600;
+/** Hold on a finished example before the next one starts. */
+const HOLD_MS = 2500;
+/** Lets the outgoing example fade before the next one starts typing. */
+const SWAP_DELAY_MS = 320;
+
+const SCENARIO_FRAMES = QUICK_INPUT_SCENARIOS.map(buildTypingFrames);
+
+const HEADER_ICONS: Record<PreviewKind, LucideIcon> = {
+	tasks: CheckSquare,
+	question: FileQuestion,
+	note: StickyNote,
+};
 
 type PlayState = 'idle' | 'playing' | 'done';
 
@@ -28,17 +67,15 @@ const syntaxLegend = [
 /** Colour typed text the way the editor does; partial tokens colour as they type. */
 function tokenizeLine(line: string): Array<{ text: string; className: string }> {
 	return line
-		.split(/(\[[ x]?\]?|#\w*|\^[\w-]*)/)
+		.split(/(\[[ x]?\]?|#\w*|\^[\w-]*|!\w*|question:\w*|options:\[[^\]]*\]?)/)
 		.filter((part) => part.length > 0)
 		.map((part) => {
 			if (part.startsWith('[')) {
-				const isDone = part.includes('x');
-
 				return {
 					text: part,
 					className: cn(
 						'rounded-[4px] bg-white/6 px-1 py-0.5 font-mono',
-						isDone ? 'text-[#4ade80]' : 'text-[#8b8b8b]'
+						part.includes('x') ? 'text-[#4ade80]' : 'text-[#8b8b8b]'
 					),
 				};
 			}
@@ -46,14 +83,32 @@ function tokenizeLine(line: string): Array<{ text: string; className: string }> 
 			if (part.startsWith('#')) {
 				return {
 					text: part,
-					className: 'rounded-[4px] bg-[rgba(139,92,246,0.16)] px-[5px] py-0.5 text-[#c4b5fd]',
+					className:
+						'rounded-[4px] bg-[rgba(139,92,246,0.16)] px-[5px] py-0.5 text-[#c4b5fd]',
 				};
 			}
 
 			if (part.startsWith('^')) {
 				return {
 					text: part,
-					className: 'rounded-[4px] bg-[rgba(16,185,129,0.14)] px-[5px] py-0.5 text-[#6ee7b7]',
+					className:
+						'rounded-[4px] bg-[rgba(16,185,129,0.14)] px-[5px] py-0.5 text-[#6ee7b7]',
+				};
+			}
+
+			if (part.startsWith('!')) {
+				return {
+					text: part,
+					className:
+						'rounded-[4px] bg-[rgba(239,68,68,0.16)] px-[5px] py-0.5 text-[#f87171]',
+				};
+			}
+
+			if (part.startsWith('question:') || part.startsWith('options:')) {
+				return {
+					text: part,
+					className:
+						'rounded-[4px] bg-[rgba(59,130,246,0.16)] px-[5px] py-0.5 text-[#93c5fd]',
 				};
 			}
 
@@ -61,61 +116,102 @@ function tokenizeLine(line: string): Array<{ text: string; className: string }> 
 		});
 }
 
-function PreviewRow({ text, done }: { text: string; done: boolean }) {
+/** Fades the outgoing content out, then the incoming content in; reserves no extra space. */
+function Crossfade({
+	id,
+	className,
+	children,
+}: {
+	id: string;
+	className?: string;
+	children: ReactNode;
+}) {
 	return (
-		<motion.li
-			animate={{ opacity: 1, y: 0 }}
-			className='flex items-center gap-3 text-[15px] leading-[22px]'
-			initial={{ opacity: 0, y: 6 }}
-			transition={{ duration: 0.3, ease: EASE_OUT_QUART }}
-		>
-			<motion.span
-				className='flex size-[18px] flex-none items-center justify-center rounded-[4px] border-[1.5px] text-[#34d399]'
-				initial={false}
-				transition={{ duration: 0.25 }}
-				animate={{
-					borderColor: done ? 'rgba(52,211,153,0.6)' : 'rgba(255,255,255,0.3)',
-				}}
+		<AnimatePresence initial={false} mode='wait'>
+			<motion.div
+				animate={{ opacity: 1 }}
+				className={className}
+				exit={{ opacity: 0 }}
+				initial={{ opacity: 0 }}
+				key={id}
+				transition={{ duration: 0.15 }}
 			>
-				<motion.span
-					animate={{ opacity: done ? 1 : 0, scale: done ? 1 : 0.5 }}
-					className='flex'
-					initial={false}
-					transition={{ type: 'spring', stiffness: 400, damping: 26 }}
-				>
-					<Check aria-hidden='true' className='size-3' strokeWidth={3} />
-				</motion.span>
-			</motion.span>
-
-			<motion.span
-				animate={{ color: done ? 'rgba(255,255,255,0.38)' : 'rgba(255,255,255,0.87)' }}
-				className='relative min-w-0 truncate'
-				initial={false}
-				transition={{ duration: 0.3 }}
-			>
-				{text}
-
-				{/* Strike-through draws left to right instead of toggling instantly. */}
-				<motion.span
-					animate={{ width: done ? '100%' : '0%' }}
-					aria-hidden='true'
-					className='absolute left-0 top-1/2 h-px bg-white/40'
-					initial={false}
-					transition={{ duration: 0.35, ease: EASE_OUT_QUART }}
-				/>
-			</motion.span>
-		</motion.li>
+				{children}
+			</motion.div>
+		</AnimatePresence>
 	);
 }
 
+function EditorLines({
+	state,
+	typing,
+}: {
+	state: QuickInputState;
+	typing: boolean;
+}) {
+	return (
+		<>
+			{state.lines.map((line, index) => {
+				const isCaretLine = typing && index === state.caretLine;
+
+				return (
+					<div
+						key={index}
+						className={cn(
+							'flex transition-colors duration-200',
+							isCaretLine ? 'bg-white/4' : 'bg-transparent'
+						)}
+					>
+						<span
+							className={cn(
+								'w-9 flex-none text-center text-xs transition-colors duration-200',
+								isCaretLine ? 'text-[#e5e5e5]' : 'text-[#4a4a4a]'
+							)}
+						>
+							{index + 1}
+						</span>
+
+						<span className='flex min-w-0 flex-wrap items-center gap-x-1'>
+							{tokenizeLine(line).map((token, tokenIndex) => (
+								<span className={token.className} key={tokenIndex}>
+									{token.text}
+								</span>
+							))}
+
+							{isCaretLine ? (
+								<span className='inline-block h-[18px] w-0.5 bg-white' />
+							) : null}
+						</span>
+					</div>
+				);
+			})}
+		</>
+	);
+}
+
+function Preview({ state }: { state: QuickInputState }) {
+	switch (state.kind) {
+		case 'tasks':
+			return <TasksPreview state={state} />;
+		case 'question':
+			return <QuestionPreview state={state} />;
+		case 'note':
+			return <NotePreview state={state} />;
+	}
+}
+
 function QuickInputDemo() {
-	const frames = useMemo(() => buildTypingFrames(), []);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const timersRef = useRef<number[]>([]);
 	const intervalRef = useRef<number | null>(null);
+	// Lets a finished scenario chain the next one without `start` referencing itself.
+	const startRef = useRef<(index: number, auto: boolean, swap: boolean) => void>(
+		() => undefined
+	);
 	const isInView = useInView(containerRef, { once: true, margin: '-25% 0px' });
 	const shouldReduceMotion = useReducedMotion() ?? false;
 
+	const [scenarioIndex, setScenarioIndex] = useState(0);
 	const [frameIndex, setFrameIndex] = useState(0);
 	const [doneCount, setDoneCount] = useState(0);
 	const [playState, setPlayState] = useState<PlayState>('idle');
@@ -130,81 +226,134 @@ function QuickInputDemo() {
 		}
 	}, []);
 
-	const play = useCallback(() => {
-		clearTimers();
-		setFrameIndex(0);
-		setDoneCount(0);
-		setPlayState('playing');
+	/**
+	 * Plays one scenario. With `auto`, the next scenario follows after a hold, once
+	 * through the list; a manual tab click plays just that scenario.
+	 */
+	const start = useCallback(
+		(index: number, auto: boolean, swap: boolean) => {
+			clearTimers();
+			setScenarioIndex(index);
+			setFrameIndex(0);
+			setDoneCount(0);
+			setPlayState('playing');
 
-		// Frame is derived from elapsed time, not tick count, so a throttled or
-		// backgrounded tab catches up instead of stretching the animation.
-		const startedAt = Date.now();
-		let lastIndex = 0;
+			const scenario = QUICK_INPUT_SCENARIOS[index];
+			const frames = SCENARIO_FRAMES[index];
+			// Frame is derived from elapsed time, not tick count, so a throttled or
+			// backgrounded tab catches up instead of stretching the animation.
+			const startedAt = Date.now() + (swap ? SWAP_DELAY_MS : 0);
+			let lastIndex = 0;
 
-		intervalRef.current = window.setInterval(() => {
-			const index = Math.min(
-				frames.length - 1,
-				Math.floor((Date.now() - startedAt) / TYPE_STEP_MS)
-			);
+			const finish = () => {
+				setPlayState('done');
 
-			if (index !== lastIndex) {
-				lastIndex = index;
-				setFrameIndex(index);
-			}
+				if (auto && index < QUICK_INPUT_SCENARIOS.length - 1) {
+					timersRef.current.push(
+						window.setTimeout(
+							() => startRef.current(index + 1, true, true),
+							HOLD_MS
+						)
+					);
+				}
+			};
 
-			if (index < frames.length - 1) {
-				return;
-			}
+			intervalRef.current = window.setInterval(() => {
+				const elapsed = Date.now() - startedAt;
 
-			if (intervalRef.current !== null) {
-				window.clearInterval(intervalRef.current);
-				intervalRef.current = null;
-			}
+				if (elapsed < 0) {
+					return;
+				}
 
-			TICK_AT_MS.forEach((delay, tickIndex) => {
-				timersRef.current.push(
-					window.setTimeout(() => setDoneCount(tickIndex + 1), delay)
+				const next = Math.min(
+					frames.length - 1,
+					Math.floor(elapsed / TYPE_STEP_MS)
 				);
-			});
-			timersRef.current.push(
-				window.setTimeout(() => setPlayState('done'), DONE_AT_MS)
-			);
-		}, TYPE_STEP_MS);
-	}, [clearTimers, frames.length]);
 
-	// Reduced motion skips the timeline entirely; the final state is derived below.
+				if (next !== lastIndex) {
+					lastIndex = next;
+					setFrameIndex(next);
+				}
+
+				if (next < frames.length - 1) {
+					return;
+				}
+
+				if (intervalRef.current !== null) {
+					window.clearInterval(intervalRef.current);
+					intervalRef.current = null;
+				}
+
+				if (scenario.previewKind === 'tasks') {
+					TICK_AT_MS.forEach((delay, tickIndex) => {
+						timersRef.current.push(
+							window.setTimeout(() => setDoneCount(tickIndex + 1), delay)
+						);
+					});
+					timersRef.current.push(window.setTimeout(finish, TASKS_DONE_AT_MS));
+				} else {
+					timersRef.current.push(window.setTimeout(finish, SETTLE_MS));
+				}
+			}, TYPE_STEP_MS);
+		},
+		[clearTimers]
+	);
+
+	useEffect(() => {
+		startRef.current = start;
+	}, [start]);
+
+	// Reduced motion skips the timeline entirely; final states are derived below.
 	useEffect(() => {
 		if (!isInView || shouldReduceMotion) {
 			return undefined;
 		}
 
 		// Start from a timer callback so state is set outside the effect body.
-		const startId = window.setTimeout(play, 0);
+		const startId = window.setTimeout(() => start(0, true, false), 0);
 
 		return () => {
 			window.clearTimeout(startId);
 			clearTimers();
 		};
-	}, [isInView, shouldReduceMotion, play, clearTimers]);
+	}, [isInView, shouldReduceMotion, start, clearTimers]);
 
-	const cursor = shouldReduceMotion ? TOTAL_CHARACTERS : frames[frameIndex];
+	const scenario: QuickInputScenario = QUICK_INPUT_SCENARIOS[scenarioIndex];
+	const cursor = shouldReduceMotion
+		? totalCharacters(scenario)
+		: SCENARIO_FRAMES[scenarioIndex][frameIndex];
 	const ticked = shouldReduceMotion ? TICK_AT_MS.length : doneCount;
 	const status: PlayState = shouldReduceMotion ? 'done' : playState;
+	const state = deriveQuickInputState(scenario, cursor, ticked);
+	const HeaderIcon = HEADER_ICONS[scenario.previewKind];
 
-	const state = deriveQuickInputState(cursor, ticked);
-	const percent = Math.round((state.done / state.total) * 100);
+	const selectScenario = (index: number) => {
+		if (shouldReduceMotion) {
+			setScenarioIndex(index);
+
+			return;
+		}
+
+		start(index, false, index !== scenarioIndex);
+	};
 
 	return (
 		<div ref={containerRef}>
 			<div
-				aria-label='The Shiko node editor: typed task lines, a tag and a date become a task node with chips and progress'
+				aria-label='The Shiko node editor: typed quick input becomes a task list, a question or a note, with chips and progress'
 				className='overflow-hidden rounded-xl border border-[#1f1f1f] bg-[#050505] shadow-[0_30px_80px_rgba(0,0,0,0.5)]'
 				role='img'
 			>
 				<div className='grid grid-cols-2 border-b border-[#1a1a1a]'>
-					<div className='flex h-[52px] items-center gap-2.5 border-r border-[#1a1a1a] px-[18px] text-[15px] font-semibold'>
-						<ListChecks aria-hidden='true' className='size-4 text-[#d4d4d4]' />
-						Task List
+					<div className='flex h-[52px] items-center border-r border-[#1a1a1a] px-[18px]'>
+						<Crossfade
+							className='flex items-center gap-2.5 text-[15px] font-semibold'
+							id={scenario.id}
+						>
+							<HeaderIcon aria-hidden='true' className='size-4 text-[#d4d4d4]' />
+
+							{scenario.headerLabel}
+						</Crossfade>
 					</div>
 
 					<div className='flex items-stretch text-[13px] font-medium'>
@@ -222,91 +371,17 @@ function QuickInputDemo() {
 				</div>
 
 				<div className='grid md:grid-cols-2'>
-					{/* Editor pane: fixed height so typing never reflows the page. */}
-					<div className='h-[204px] overflow-hidden border-b border-[#1a1a1a] py-3.5 pr-3 text-[15px] leading-[34px] md:h-[236px] md:border-b-0 md:border-r'>
-						{QUICK_INPUT_LINES.map((_, index) => {
-							const line = state.lines[index];
-							const isCaretLine = index === state.caretLine && status !== 'idle';
-
-							return (
-								<div
-									key={index}
-									className={cn(
-										'flex transition-colors duration-200',
-										isCaretLine ? 'bg-white/4' : 'bg-transparent'
-									)}
-								>
-									<span
-										className={cn(
-											'w-9 flex-none text-center text-xs transition-colors duration-200',
-											isCaretLine ? 'text-[#e5e5e5]' : 'text-[#4a4a4a]'
-										)}
-									>
-										{index + 1}
-									</span>
-
-									<span className='flex min-w-0 flex-wrap items-center gap-x-1'>
-										{tokenizeLine(line).map((token, tokenIndex) => (
-											<span className={token.className} key={tokenIndex}>
-												{token.text}
-											</span>
-										))}
-
-										{isCaretLine && status === 'playing' ? (
-											<span className='inline-block h-[18px] w-0.5 bg-white' />
-										) : null}
-									</span>
-								</div>
-							);
-						})}
+					{/* Fixed heights: typing and switching examples never reflow the page. */}
+					<div className='h-[236px] overflow-hidden border-b border-[#1a1a1a] py-3.5 pr-3 text-[15px] leading-[34px] md:h-[308px] md:border-b-0 md:border-r'>
+						<Crossfade id={scenario.id}>
+							<EditorLines state={state} typing={status === 'playing'} />
+						</Crossfade>
 					</div>
 
 					<div className='p-5'>
-						<div className='box-border min-h-[196px] rounded-[10px] border border-white/6 bg-[#1e1e1e] bg-[url("/images/groovepaper.png")] bg-repeat bg-blend-color-burn p-[18px] md:min-h-[196px]'>
-							<div className='mb-4 flex h-[26px] items-center gap-1.5 text-xs font-medium'>
-								<motion.span
-									animate={{ opacity: state.hasDate ? 1 : 0, scale: state.hasDate ? 1 : 0.9 }}
-									className='inline-flex h-[26px] items-center rounded-lg border border-white/20 bg-white/10 px-[9px] text-[#d4d4d4]'
-									initial={false}
-									transition={{ duration: 0.25, ease: EASE_OUT_QUART }}
-								>
-									12.03.2026
-								</motion.span>
-
-								<motion.span
-									animate={{ opacity: state.hasTag ? 1 : 0, scale: state.hasTag ? 1 : 0.9 }}
-									className='inline-flex h-[26px] items-center rounded-lg border border-[rgba(168,85,247,0.35)] bg-[rgba(168,85,247,0.12)] px-[9px] text-[#c4b5fd]'
-									initial={false}
-									transition={{ duration: 0.25, ease: EASE_OUT_QUART }}
-								>
-									#launch
-								</motion.span>
-							</div>
-
-							<div className='flex justify-between text-sm'>
-								<span className='text-white/60'>Progress</span>
-
-								<span className='tabular-nums text-white/87'>
-									{`${state.done} / ${state.total}`}
-								</span>
-							</div>
-
-							<div className='mt-2 h-1 rounded-full bg-white/6'>
-								<motion.div
-									animate={{ width: `${percent}%` }}
-									className='h-1 rounded-full'
-									initial={false}
-									style={{ background: PROGRESS_FILL }}
-									transition={{ duration: 0.5, ease: EASE_OUT_QUART }}
-								/>
-							</div>
-
-							<ul className='mt-4 flex h-[130px] flex-col gap-3 overflow-hidden'>
-								{state.rows.map((row, index) => (
-									<PreviewRow done={row.done} key={index} text={row.text} />
-								))}
-							</ul>
-						</div>
+						<Crossfade id={scenario.id}>
+							<Preview state={state} />
+						</Crossfade>
 					</div>
 				</div>
 
@@ -317,9 +392,32 @@ function QuickInputDemo() {
 				</div>
 			</div>
 
-			<div className='mt-2 flex min-h-11 items-center'>
+			<div className='mt-2 flex min-h-11 flex-wrap items-center justify-between gap-x-4'>
+				<div
+					aria-label='Quick input examples'
+					className='flex items-center gap-1'
+					role='group'
+				>
+					{QUICK_INPUT_SCENARIOS.map((item, index) => (
+						<button
+							aria-pressed={index === scenarioIndex}
+							key={item.id}
+							onClick={() => selectScenario(index)}
+							type='button'
+							className={cn(
+								'min-h-11 cursor-pointer rounded-lg px-3 text-[13px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
+								index === scenarioIndex
+									? 'bg-white/6 text-white'
+									: 'text-[#8b8b8b] hover:text-white'
+							)}
+						>
+							{item.tabLabel}
+						</button>
+					))}
+				</div>
+
 				<button
-					onClick={play}
+					onClick={() => start(0, true, scenarioIndex !== 0)}
 					tabIndex={status === 'done' && !shouldReduceMotion ? 0 : -1}
 					type='button'
 					className={cn(
