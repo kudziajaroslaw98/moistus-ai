@@ -5,6 +5,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-06]
+
+### Fixed
+
+- **nodes/note**: Note nodes show each line you type on its own line instead of running lines together; Markdown formatting is unchanged
+  - Why: Markdown treats a single line break inside a paragraph as a space
+
 ## [2026-10-05]
 
 ### Added
