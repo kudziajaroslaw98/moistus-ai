@@ -89,6 +89,7 @@ type StoreState = {
 	edges: unknown[];
 	updatePreferences: jest.Mock;
 	getDefaultNodeType: jest.Mock;
+	userProfile: { is_anonymous?: boolean; preferences?: { developerMode?: boolean } };
 };
 
 const mockUseAppStore = useAppStore as unknown as jest.Mock;
@@ -111,6 +112,7 @@ const createMockState = (): StoreState => ({
 	edges: [],
 	updatePreferences: jest.fn(),
 	getDefaultNodeType: jest.fn(() => 'textNode'),
+	userProfile: { is_anonymous: false, preferences: {} },
 });
 
 describe('MapSettingsPanel', () => {
@@ -133,6 +135,17 @@ describe('MapSettingsPanel', () => {
 		expect(screen.getByText('Editor Preferences')).toBeInTheDocument();
 		expect(screen.getByText('Danger Zone')).toBeInTheDocument();
 		expect(screen.queryByText('Mark as template')).not.toBeInTheDocument();
+	});
+
+	it('turns Developer mode on for the account right away', async () => {
+		const user = userEvent.setup();
+
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+		const toggle = screen.getByRole('switch', { name: 'Developer mode' });
+		expect(toggle).not.toBeChecked();
+		await user.click(toggle);
+
+		expect(mockState.updatePreferences).toHaveBeenCalledWith({ developerMode: true });
 	});
 
 	it('disables save and shows validation feedback for empty title and invalid thumbnail URL', async () => {

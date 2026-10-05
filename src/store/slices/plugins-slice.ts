@@ -148,6 +148,16 @@ export const createPluginsSlice: StateCreator<
 		);
 	};
 
+	// Developer plugins (localhost) are an authoring tool behind the account's Developer mode.
+	const isDeveloperMode = () =>
+		get().userProfile?.preferences?.developerMode === true;
+	const devUrlsForMap = (mapId: string) => {
+		const userId = get().currentUser?.id;
+		return isOwner() && isDeveloperMode() && userId
+			? readDevPluginUrls(userId, mapId)
+			: [];
+	};
+
 	let loadGeneration = 0;
 	// The host keeps one copy of each plugin id. The last load to send code owns it, so
 	// a stale load (older version, other map) never unloads code a newer load sent.
@@ -347,9 +357,7 @@ export const createPluginsSlice: StateCreator<
 				previousVersion: (row.previous_version as string | null) ?? null,
 				updatedAt: (row.updated_at as string | null) ?? null,
 			}));
-			const userId = get().currentUser?.id;
-			const devPluginUrls =
-				isOwner() && userId ? readDevPluginUrls(userId, mapId) : [];
+			const devPluginUrls = devUrlsForMap(mapId);
 			set({ mapPlugins: records, mapPluginsLoaded: true, devPluginUrls });
 			syncLoadedWithMap(records, devPluginUrls);
 		},
@@ -419,6 +427,12 @@ export const createPluginsSlice: StateCreator<
 					error: 'Only the map owner can load developer plugins.',
 				};
 			}
+			if (!isDeveloperMode()) {
+				return {
+					ok: false,
+					error: 'Turn on Developer mode to load plugins from localhost.',
+				};
+			}
 			if (!isLocalDevPluginUrl(url)) {
 				return {
 					ok: false,
@@ -446,6 +460,20 @@ export const createPluginsSlice: StateCreator<
 			set({ devPluginUrls });
 			if (mapId && userId) writeDevPluginUrls(userId, mapId, devPluginUrls);
 			unloadKey(manifestUrl);
+		},
+
+		syncDeveloperPlugins: () => {
+			const mapId = get().mapId;
+			if (!mapId || !get().mapPluginsLoaded) return;
+			const devPluginUrls = devUrlsForMap(mapId);
+			const current = get().devPluginUrls;
+			if (
+				devPluginUrls.length === current.length &&
+				devPluginUrls.every((url, index) => url === current[index])
+			)
+				return;
+			set({ devPluginUrls });
+			syncLoadedWithMap(get().mapPlugins, devPluginUrls);
 		},
 
 		reloadDevPlugin: async (manifestUrl) => {

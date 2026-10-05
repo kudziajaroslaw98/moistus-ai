@@ -1,6 +1,7 @@
 'use client';
 
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
+import { DeveloperModeSetting } from '@/components/plugins/developer-mode-switch';
 import { buttonVariants } from '@/components/ui/button';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { useIsMac } from '@/hooks/use-platform';
@@ -312,7 +313,19 @@ export function BuildGuideContent() {
 
 							<Section id='quick-start' title='Quick start'>
 								<ol className='flex flex-col gap-6'>
-									<Step number={1} title='Download the starter'>
+									<Step number={1} title='Turn on Developer mode'>
+										<p className={bodyClass}>
+											It adds a Developer section to the Plugins panel of maps you
+											own. It&apos;s also in Map Settings › Editor Preferences and
+											in Settings › Editor.
+										</p>
+
+										<div className='rounded-[10px] border border-zinc-800 bg-[#0b0b0b] p-3.5'>
+											<DeveloperModeSetting id='guide-developer-mode' />
+										</div>
+									</Step>
+
+									<Step number={2} title='Download the starter'>
 										<p className={bodyClass}>
 											A Counter plugin in two files. Put both in one folder.
 										</p>
@@ -342,7 +355,7 @@ export function BuildGuideContent() {
 										</div>
 									</Step>
 
-									<Step number={2} title='Serve the folder from localhost'>
+									<Step number={3} title='Serve the folder from localhost'>
 										<CommandLine
 											copy={copy}
 											id='serve'
@@ -361,7 +374,7 @@ export function BuildGuideContent() {
 										</p>
 									</Step>
 
-									<Step number={3} title='Load it on a map you own'>
+									<Step number={4} title='Load it on a map you own'>
 										<p className={bodyClass}>
 											Open the map, press {paletteShortcut} and choose Plugins.
 											Under Developer, paste the manifest URL and press Load.
@@ -375,7 +388,7 @@ export function BuildGuideContent() {
 										/>
 									</Step>
 
-									<Step number={4} title='Add a node'>
+									<Step number={5} title='Add a node'>
 										<p className={bodyClass}>
 											Type <code className={codeChipClass}>${STARTER_KIND.kind}</code>
 

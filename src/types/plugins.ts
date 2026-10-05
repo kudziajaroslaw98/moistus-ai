@@ -63,6 +63,8 @@ export interface PluginsSlice {
 		manifestUrl: string
 	) => Promise<{ ok: boolean; error?: string }>;
 	removeDevPlugin: (manifestUrl: string) => void;
+	/** Loads or unloads developer plugins after Developer mode (or the profile) changes. */
+	syncDeveloperPlugins: () => void;
 	reloadDevPlugin: (manifestUrl: string) => Promise<void>;
 	resetPlugins: () => void;
 	/** Opens the Plugins side panel (closes the other right-hand panels). */

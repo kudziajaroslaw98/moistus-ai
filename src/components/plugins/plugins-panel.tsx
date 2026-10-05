@@ -452,6 +452,7 @@ export function PluginsPanel() {
 		canEdit,
 		mapId,
 		userId,
+		developerMode,
 		mapPlugins,
 		loadedPlugins,
 		nodes,
@@ -472,6 +473,7 @@ export function PluginsPanel() {
 				canEdit: isOwner || Boolean(state.permissions?.can_edit),
 				mapId: state.mapId,
 				userId: state.currentUser?.id ?? null,
+				developerMode: state.userProfile?.preferences?.developerMode === true,
 				mapPlugins: state.mapPlugins,
 				loadedPlugins: state.loadedPlugins,
 				nodes: state.nodes,
@@ -627,7 +629,22 @@ export function PluginsPanel() {
 					</p>
 				)}
 
-				{isOwner && <DeveloperSection />}
+				{isOwner && developerMode && <DeveloperSection />}
+
+				{isOwner && !developerMode && (
+					<p className='text-xs leading-[17px] text-text-secondary'>
+						Building a plugin? Turn on Developer mode in Map Settings › Editor
+						Preferences to load it from localhost.{' '}
+
+						<Link
+							className={`${subtleLinkClass} font-medium text-primary-400 hover:text-primary-300`}
+							href='/dashboard/plugins/build'
+						>
+							How to build a plugin
+							<ArrowUpRight aria-hidden className='size-3.5' />
+						</Link>
+					</p>
+				)}
 			</div>
 		</SidePanel>
 	);

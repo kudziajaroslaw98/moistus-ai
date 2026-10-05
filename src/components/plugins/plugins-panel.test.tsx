@@ -69,6 +69,7 @@ function setup(overrides: Record<string, unknown> = {}) {
 		mapId: 'map-1',
 		mindMap: { id: 'map-1', user_id: 'owner-1' },
 		currentUser: { id: 'owner-1', is_anonymous: false },
+		userProfile: { preferences: { developerMode: true } },
 		permissions: { can_edit: true },
 		mapPlugins: [],
 		loadedPlugins: {},
@@ -242,6 +243,19 @@ describe('PluginsPanel for the owner', () => {
 		await user.click(screen.getByRole('button', { name: 'Load' }));
 
 		expect(await screen.findByRole('alert')).toHaveTextContent('Use a manifest.json URL');
+	});
+
+	it('hides the Developer section until Developer mode is on, and says where to turn it on', async () => {
+		setup({ userProfile: { preferences: {} } });
+
+		expect(screen.queryByLabelText('Plugin manifest URL')).not.toBeInTheDocument();
+		expect(
+			screen.getByText(/Turn on Developer mode in Map Settings › Editor Preferences/)
+		).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: /How to build a plugin/ })).toHaveAttribute(
+			'href',
+			'/dashboard/plugins/build'
+		);
 	});
 
 	it('closes', async () => {

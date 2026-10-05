@@ -30,6 +30,8 @@ export interface UserPreferencesBase {
 	notifications?: NotificationPreferences;
 	defaultNodeType?: UserDefaultNodeTypePreference;
 	privacy?: UserPrivacyPreferences;
+	/** Shows the Plugins panel's Developer section (plugins loaded from localhost). */
+	developerMode?: boolean;
 }
 
 export interface UserProfile {
@@ -102,6 +104,7 @@ export interface UserProfileFormData {
 			push_reactions: boolean;
 		};
 		defaultNodeType: UserDefaultNodeTypePreference;
+		developerMode: boolean;
 		privacy: {
 			profile_visibility: 'public' | 'private' | 'connections';
 		};

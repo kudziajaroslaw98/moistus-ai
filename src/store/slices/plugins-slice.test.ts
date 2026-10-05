@@ -63,6 +63,7 @@ function createStore(
 				mapId: 'map-1',
 				mindMap: { id: 'map-1', user_id: OWNER.id },
 				currentUser: OWNER,
+				userProfile: { preferences: { developerMode: true } },
 				supabase,
 				...overrides,
 				...createPluginsSlice(...args),
@@ -185,6 +186,50 @@ describe('plugins slice', () => {
 		await expect(
 			editor.getState().addDevPlugin('http://localhost:5173/manifest.json')
 		).resolves.toMatchObject({ ok: false });
+	});
+
+	it('keeps developer plugins off until the owner turns on Developer mode', async () => {
+		const url = 'http://localhost:5173/manifest.json';
+		window.localStorage.setItem(
+			'shiko_dev_plugins_v1:owner-1:map-1',
+			JSON.stringify([url])
+		);
+		mockFetch({
+			'/plugins/shiko.metric/0.1.0/manifest.json': manifestJson,
+			'/plugins/shiko.metric/0.1.0/plugin.js': metricCode,
+			'localhost:5173/manifest.json': JSON.stringify({
+				...JSON.parse(manifestJson),
+				id: 'dev.test.metric',
+			}),
+			'localhost:5173/plugin.js': 'definePlugin({ kinds: {} });',
+		});
+		const store = createStore({ userProfile: { preferences: {} } });
+
+		await store.getState().fetchMapPlugins('map-1');
+		expect(store.getState().devPluginUrls).toEqual([]);
+		await expect(store.getState().addDevPlugin(url)).resolves.toEqual({
+			ok: false,
+			error: 'Turn on Developer mode to load plugins from localhost.',
+		});
+
+		store.setState({
+			userProfile: { preferences: { developerMode: true } },
+		} as Partial<AppState>);
+		store.getState().syncDeveloperPlugins();
+		await waitUntil(settled(store));
+		expect(store.getState().devPluginUrls).toEqual([url]);
+		expect(store.getState().loadedPlugins[url]?.status).toBe('ready');
+
+		store.setState({
+			userProfile: { preferences: { developerMode: false } },
+		} as Partial<AppState>);
+		store.getState().syncDeveloperPlugins();
+		expect(store.getState().devPluginUrls).toEqual([]);
+		expect(store.getState().loadedPlugins[url]).toBeUndefined();
+		// The list stays in this browser for when Developer mode is back on.
+		expect(window.localStorage.getItem('shiko_dev_plugins_v1:owner-1:map-1')).toBe(
+			JSON.stringify([url])
+		);
 	});
 
 	it('refuses developer plugin URLs that are not on this machine', async () => {

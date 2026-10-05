@@ -2,6 +2,7 @@
 
 import { DeleteMapConfirmationDialog } from '@/components/mind-map/delete-map-confirmation-dialog';
 import { DiscardSettingsChangesDialog } from '@/components/mind-map/discard-settings-changes-dialog';
+import { DeveloperModeSetting } from '@/components/plugins/developer-mode-switch';
 import { PluginsSettingsLink } from '@/components/plugins/plugins-settings-link';
 import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { SidePanel } from '@/components/side-panel';
@@ -541,6 +542,10 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 									}
 								/>
 							</div>
+
+							<div aria-hidden className='h-px bg-border-subtle' />
+
+							<DeveloperModeSetting id='map-settings-developer-mode' />
 						</div>
 					</motion.section>
 

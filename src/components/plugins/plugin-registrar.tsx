@@ -34,10 +34,20 @@ export function openPluginNodeEditor(
  * menu, which stays editing-only.)
  */
 export function PluginRegistrar() {
-	const { loadedPlugins, registerContribution, ownerMapId } = useAppStore(
+	const {
+		loadedPlugins,
+		registerContribution,
+		ownerMapId,
+		developerMode,
+		mapPluginsLoaded,
+		syncDeveloperPlugins,
+	} = useAppStore(
 		useShallow((state) => ({
 			loadedPlugins: state.loadedPlugins,
 			registerContribution: state.registerContribution,
+			developerMode: state.userProfile?.preferences?.developerMode === true,
+			mapPluginsLoaded: state.mapPluginsLoaded,
+			syncDeveloperPlugins: state.syncDeveloperPlugins,
 			ownerMapId:
 				state.mapId &&
 				state.currentUser &&
@@ -62,6 +72,11 @@ export function PluginRegistrar() {
 			),
 		[loadedPlugins]
 	);
+
+	// Developer mode can change (or the profile can arrive) after the map's plugins load.
+	useEffect(() => {
+		if (mapPluginsLoaded) syncDeveloperPlugins();
+	}, [developerMode, mapPluginsLoaded, ownerMapId, syncDeveloperPlugins]);
 
 	useEffect(() => {
 		const cleanups: Array<() => void> = [];
