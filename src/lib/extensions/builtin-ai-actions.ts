@@ -1,3 +1,4 @@
+import { COUNTERPOINTS_RECIPE } from '@/lib/extensions/starter-recipes';
 import type { Contribution, ContributionContext } from '@/types/extensions';
 import { Link2, Merge, NotepadTextDashed, Sparkles } from 'lucide-react';
 
@@ -68,7 +69,7 @@ export const BUILTIN_AI_ACTIONS: Contribution[] = [
 		isBusy: isStreaming,
 		run: (ctx) => {
 			if (!ctx.nodeId) return;
-			ctx.getState().generateCounterpointsForNode(ctx.nodeId);
+			ctx.getState().runRecipe(COUNTERPOINTS_RECIPE, ctx.nodeId);
 		},
 	},
 	{

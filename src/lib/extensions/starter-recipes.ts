@@ -5,25 +5,28 @@ export interface StarterRecipe extends RecipeRef {
 	hiddenFromMenus?: boolean;
 }
 
-/** Read-only recipes everyone has. Users duplicate them to make their own. */
-export const STARTER_RECIPES: StarterRecipe[] = [
-	{
-		id: 'starter:counterpoints',
-		hiddenFromMenus: true,
-		definition: {
-			title: 'Counterpoints',
-			description: 'Challenge this idea with opposing views',
-			icon: 'alert',
-			scope: 'node',
-			instruction:
-				'Generate rigorous counterpoints to the focus idea: counterarguments, risks, alternatives, or ways to test it. Keep each one concise (under 180 characters), specific to the idea, and different from the others.',
-			output: {
-				maxItems: 4,
-				nodeTypes: ['defaultNode', 'textNode', 'annotationNode', 'taskNode'],
-				labels: ['contradicts', 'risk', 'alternative', 'test-of', 'mitigates', 'questions'],
-			},
+/** Also runs the built-in "Generate counterpoints" action. */
+export const COUNTERPOINTS_RECIPE: StarterRecipe = {
+	id: 'starter:counterpoints',
+	hiddenFromMenus: true,
+	definition: {
+		title: 'Counterpoints',
+		description: 'Challenge this idea with opposing views',
+		icon: 'alert',
+		scope: 'node',
+		instruction:
+			'Generate rigorous counterpoints to the focus idea: counterarguments, risks, alternatives, or ways to test it. Keep each one concise (under 180 characters), specific to the idea, and different from the others.',
+		output: {
+			maxItems: 4,
+			nodeTypes: ['defaultNode', 'textNode', 'annotationNode', 'taskNode'],
+			labels: ['contradicts', 'risk', 'alternative', 'test-of', 'mitigates', 'questions'],
 		},
 	},
+};
+
+/** Read-only recipes everyone has. Users duplicate them to make their own. */
+export const STARTER_RECIPES: StarterRecipe[] = [
+	COUNTERPOINTS_RECIPE,
 	{
 		id: 'starter:swot',
 		definition: {

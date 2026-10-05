@@ -5,6 +5,17 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-05]
+
+### Changed
+
+- **ai/recipes**: "Generate counterpoints" now runs the Counterpoints starter recipe through `POST /api/ai/recipes/run`: its suggestions show the recipe name and accepting one records a single history entry attributed to "Counterpoints"
+  - Why: Counterpoints was already recipe-shaped; one engine means one set of guardrails (fixed system prompt, output sanitisation, type/label/count checks)
+
+### Removed
+
+- **ai/counterpoints**: `POST /api/ai/counterpoints`, `src/helpers/ai-counterpoint-{request,context,prompts,postprocess}.ts` and `generateCounterpointsForNode` (replaced by the starter recipe)
+
 ## [2026-10-04]
 
 ### Added

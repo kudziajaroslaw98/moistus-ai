@@ -38,7 +38,7 @@ function createState(overrides: Record<string, unknown> = {}) {
 		generateSuggestions: jest.fn(),
 		generateMergeSuggestions: jest.fn(),
 		generateConnectionSuggestions: jest.fn(),
-		generateCounterpointsForNode: jest.fn(),
+		runRecipe: jest.fn(),
 		...overrides,
 	};
 	mockUseAppStore.mockImplementation((selector) => selector(state));

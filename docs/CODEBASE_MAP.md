@@ -173,7 +173,7 @@ flowchart LR
 shiko/
 ├── src/
 │   ├── app/                    # Next.js App Router pages & API
-│   │   ├── api/                # 65 API routes
+│   │   ├── api/                # 69 API routes
 │   │   │   ├── ai/             # AI features (suggestions, chat, merges)
 │   │   │   ├── auth/           # Sign-up, upgrade flows
 │   │   │   ├── comments/       # Comment threads & reactions
@@ -335,7 +335,6 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `POST /api/ai/chat` - AI chat with context modes
 - `POST /api/ai/suggest-connections` - Connection recommendations
 - `POST /api/ai/suggest-merges` - Merge suggestions
-- `POST /api/ai/counterpoints` - Opposing viewpoints
 - `POST /api/ai/recipes/run` - Run an AI recipe (saved, starter or draft definition) and stream attributed ghost suggestions
 - `GET/POST /api/recipes`, `PATCH/DELETE /api/recipes/[id]` - Saved AI recipes (owner-only)
 - `GET /api/recipes/shared/[id]` - Read an unlisted recipe by link (service role)
@@ -550,7 +549,7 @@ sequenceDiagram
 
 **AI suggestion helper split:** `/api/ai/suggestions` now delegates graph context modeling to `src/helpers/ai-suggestion-graph.ts`, row serialization to `src/helpers/ai-suggestion-rows.ts`, user-prompt assembly to `src/helpers/ai-suggestion-user-prompt.ts`, system prompt text to `src/helpers/ai-suggestion-prompts.ts`, and streamed normalization/duplicate filtering/error mapping to `src/helpers/ai-suggestion-postprocess.ts`. `src/helpers/ai-suggestion-context.ts` is the thin entrypoint that stitches graph rows + user prompt together for the route.
 
-**Structured AI route helper split:** `/api/ai/counterpoints`, `/api/ai/suggest-merges`, and `/api/ai/suggest-connections` now follow the same orchestration-only pattern as suggestions. Each route keeps auth/quota checks, Supabase fetches, `streamObject(...)`, stream-status writes, and usage tracking inline, but request parsing, prompt/context assembly, and streamed element normalization live in route-specific helpers (`src/helpers/ai-counterpoint-*`, `src/helpers/ai-merge-*`, `src/helpers/ai-connection-*`). Keep alias remapping and duplicate/self-pair filtering in those helper pipelines rather than rebuilding them inside the route handlers.
+**Structured AI route helper split:** `/api/ai/suggest-merges` and `/api/ai/suggest-connections` now follow the same orchestration-only pattern as suggestions. Each route keeps auth/quota checks, Supabase fetches, `streamObject(...)`, stream-status writes, and usage tracking inline, but request parsing, prompt/context assembly, and streamed element normalization live in route-specific helpers (`src/helpers/ai-merge-*`, `src/helpers/ai-connection-*`). Keep alias remapping and duplicate/self-pair filtering in those helper pipelines rather than rebuilding them inside the route handlers.
 
 **Collapsed-branch connection suggestion rendering:** `suggestions-slice.addConnectionSuggestion()` now resolves hidden node endpoints to the nearest visible collapsed ancestor for display while preserving original endpoint IDs in `edge.data.aiData.connectionProxy`. `acceptConnectionSuggestion()` must use those original IDs when converting to a real edge. Suggested-connection rendering surfaces compact “Collapsed child” chips from this metadata and supports same-ancestor proxy self-loops without dropping the edge. `nodes-slice.getDescendantNodeIds()` now ignores transient AI suggestion edges so these proxy edges do not alter collapsed-branch visibility, and hidden-endpoint ancestor lookup uses structural (non-suggested) edges.
 
@@ -558,7 +557,7 @@ sequenceDiagram
 
 **AI typed suggestion payloads:** The suggestions route can now stream an optional `nodePayload` with ghost suggestions for safe typed nodes. Post-processing normalizes or downgrades malformed structured payloads before ghosts reach the client, and `suggestions-slice.acceptSuggestion()` now creates the approved node from that payload instead of reconstructing typed nodes from plain `suggestedContent`. This is especially important for `taskNode`, because approved task ghosts must populate `metadata.tasks` to render anything.
 
-**AI row ID aliasing:** Compact row-based AI routes now share `src/helpers/ai-id-alias-map.ts` so the model sees request-local numeric node IDs instead of UUIDs. `extract-enhanced-node-context.ts`, `extract-node-context.ts`, and the suggestion row/prompt helpers serialize aliased IDs in `NODE`, `REL`, `ANCHOR`, `RECENT`, and request metadata rows; the routes remap returned aliases back to UUIDs before any downstream validation or streamed output. This alias boundary now applies to suggestions, chat, counterpoints, merge suggestions, and AI node search.
+**AI row ID aliasing:** Compact row-based AI routes now share `src/helpers/ai-id-alias-map.ts` so the model sees request-local numeric node IDs instead of UUIDs. `extract-enhanced-node-context.ts`, `extract-node-context.ts`, and the suggestion row/prompt helpers serialize aliased IDs in `NODE`, `REL`, `ANCHOR`, `RECENT`, and request metadata rows; the routes remap returned aliases back to UUIDs before any downstream validation or streamed output. This alias boundary now applies to suggestions, chat, AI recipes, merge suggestions, and AI node search.
 
 ### Notification Flow
 
@@ -674,9 +673,9 @@ sequenceDiagram
 
 <!-- Updated: 2026-10-04 - Documented graph-ops extension write path -->
 
-23. **Contribution Registry** - `extensions-slice` holds `Contribution` entries (built-ins from `src/lib/extensions/builtin-ai-actions.ts` and `builtin-commands.ts`). `AIActionsPopover`, `use-context-menu-config.tsx` and the Ctrl/Cmd+K `CommandPalette` (mounted in `modals-wrapper.tsx`, flag `popoverOpen.commandPalette`) render them through `src/lib/extensions/select-contributions.ts`; `useContributions()` provides context + quota-guarded `runContribution`. `extensionNode` is the plugin host node type (not user/AI creatable). Recipes (`src/lib/extensions/recipe-schema.ts`, `starter-recipes.ts`, `recipe-contributions.ts`) register as `group: 'recipes'` contributions that call `runRecipe()`; the route `/api/ai/recipes/run` uses `src/helpers/ai-recipe-*` and `buildBranchSuggestionGraph` for branch scope. Saved recipes (`ai_recipes` table, `src/helpers/recipes/saved-recipe-rows.ts`) load through `useSavedRecipes()` (SWR) and register via `RecipeContributionsRegistrar` (mounted in `mind-map-canvas.tsx`). The recipes panel (`src/components/recipes/`: `recipes-panel`, `recipe-list`, `recipe-editor`, `recipe-icon-picker`, `recipe-choice-chip`, `recipe-confirm-dialog`) is mounted in `modals-wrapper.tsx`. The shared page `src/app/recipes/[id]/page.tsx` loads via `loadSharedRecipe` and renders `SharedRecipeContent` (dashboard shell) or `SharedRecipePublic` (signed out / guest) around `SharedRecipeCard`.
+23. **Contribution Registry** - `extensions-slice` holds `Contribution` entries (built-ins from `src/lib/extensions/builtin-ai-actions.ts` and `builtin-commands.ts`). `AIActionsPopover`, `use-context-menu-config.tsx` and the Ctrl/Cmd+K `CommandPalette` (mounted in `modals-wrapper.tsx`, flag `popoverOpen.commandPalette`) render them through `src/lib/extensions/select-contributions.ts`; `useContributions()` provides context + quota-guarded `runContribution`. `extensionNode` is the plugin host node type (not user/AI creatable). Recipes (`src/lib/extensions/recipe-schema.ts`, `starter-recipes.ts`, `recipe-contributions.ts`) register as `group: 'recipes'` contributions that call `runRecipe()` (the built-in "Generate counterpoints" action runs `COUNTERPOINTS_RECIPE` the same way); the route `/api/ai/recipes/run` uses `src/helpers/ai-recipe-*` and `buildBranchSuggestionGraph` for branch scope. Saved recipes (`ai_recipes` table, `src/helpers/recipes/saved-recipe-rows.ts`) load through `useSavedRecipes()` (SWR) and register via `RecipeContributionsRegistrar` (mounted in `mind-map-canvas.tsx`). The recipes panel (`src/components/recipes/`: `recipes-panel`, `recipe-list`, `recipe-editor`, `recipe-icon-picker`, `recipe-choice-chip`, `recipe-confirm-dialog`) is mounted in `modals-wrapper.tsx`. The shared page `src/app/recipes/[id]/page.tsx` loads via `loadSharedRecipe` and renders `SharedRecipeContent` (dashboard shell) or `SharedRecipePublic` (signed out / guest) around `SharedRecipeCard`.
 
-<!-- Updated: 2026-10-04 - Documented contribution registry, command palette, extensionNode and AI recipes -->
+<!-- Updated: 2026-10-05 - Documented contribution registry, command palette, extensionNode and AI recipes (Counterpoints on the recipe engine) -->
 
 ## Navigation Guide
 

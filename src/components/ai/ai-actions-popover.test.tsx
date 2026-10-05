@@ -2,7 +2,7 @@ import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import { BUILTIN_AI_ACTIONS } from '@/lib/extensions/builtin-ai-actions';
 import { STARTER_RECIPE_CONTRIBUTIONS } from '@/lib/extensions/recipe-contributions';
-import { STARTER_RECIPES } from '@/lib/extensions/starter-recipes';
+import { COUNTERPOINTS_RECIPE, STARTER_RECIPES } from '@/lib/extensions/starter-recipes';
 import useAppStore from '@/store/mind-map-store';
 import type { Contribution } from '@/types/extensions';
 import { render, screen } from '@testing-library/react';
@@ -37,7 +37,6 @@ type MockStoreState = {
 	generateSuggestions: jest.Mock;
 	generateConnectionSuggestions: jest.Mock;
 	generateMergeSuggestions: jest.Mock;
-	generateCounterpointsForNode: jest.Mock;
 	runRecipe: jest.Mock;
 	openRecipesPanel?: jest.Mock;
 	currentUser?: { id: string; is_anonymous: boolean } | null;
@@ -65,7 +64,6 @@ const createMockStoreState = (
 	generateSuggestions: jest.fn(),
 	generateConnectionSuggestions: jest.fn(),
 	generateMergeSuggestions: jest.fn(),
-	generateCounterpointsForNode: jest.fn(),
 	runRecipe: jest.fn(),
 	isStreaming: false,
 	setPopoverOpen: jest.fn(),
@@ -189,9 +187,7 @@ describe('AIActionsPopover', () => {
 		);
 		await user.click(screen.getByRole('button', { name: /find similar/i }));
 
-		expect(mockState.generateCounterpointsForNode).toHaveBeenCalledWith(
-			'node-7'
-		);
+		expect(mockState.runRecipe).toHaveBeenCalledWith(COUNTERPOINTS_RECIPE, 'node-7');
 		expect(mockState.generateMergeSuggestions).toHaveBeenCalledWith('node-7');
 	});
 
