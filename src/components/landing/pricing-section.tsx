@@ -126,7 +126,7 @@ export function PricingSection() {
 								className={cn(
 									'relative flex flex-col rounded-[22px] border p-8',
 									tier.recommended
-										? 'border-[rgba(96,165,250,0.3)] bg-[#0d0f14]'
+										? 'order-first border-[rgba(96,165,250,0.3)] bg-[#0d0f14] md:order-none'
 										: 'border-white/8 bg-[#0c0c0e]'
 								)}
 							>
