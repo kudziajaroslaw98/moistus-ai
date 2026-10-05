@@ -6,8 +6,9 @@ import { RecipeList } from '@/components/recipes/recipe-list';
 import { SidePanel } from '@/components/side-panel';
 import useAppStore from '@/store/mind-map-store';
 import type { RecipesPanelView } from '@/types/extensions';
-import { ChevronLeft } from 'lucide-react';
+import { ArrowUpRight, ChevronLeft } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -84,7 +85,15 @@ export function RecipesPanel() {
 							<ChevronLeft aria-hidden className='size-3.5' />
 							All recipes
 						</button>
-					) : undefined
+					) : (
+						<Link
+							className='inline-flex items-center gap-0.5 rounded-sm text-text-secondary transition-colors duration-200 ease hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60'
+							href='/dashboard/recipes'
+						>
+							Open Recipes page
+							<ArrowUpRight aria-hidden className='size-3.5' />
+						</Link>
+					)
 				}
 			>
 				<AnimatePresence initial={false} mode='wait'>
@@ -98,6 +107,7 @@ export function RecipesPanel() {
 					>
 						{view.mode === 'edit' ? (
 							<RecipeEditor
+								showTry
 								initial={view.initial}
 								onClose={() => requestLeave('close')}
 								onDirtyChange={handleDirtyChange}

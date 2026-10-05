@@ -119,6 +119,123 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 	);
 }
 
+interface RecipeTrySectionProps {
+	draft: RecipeDefinition;
+	recipeId: string | null;
+	isValid: boolean;
+	/** Shows every field error, so a blocked Try explains itself. */
+	onAttempt: () => void;
+}
+
+/** Runs the unsaved draft on the open map. Only rendered inside a map. */
+function RecipeTrySection({ draft, recipeId, isValid, onAttempt }: RecipeTrySectionProps) {
+	const { createContext, runContribution } = useContributions();
+	const { isAtLimit } = useSubscriptionLimits();
+	const setPopoverOpen = useAppStore((state) => state.setPopoverOpen);
+	const isStreaming = useAppStore((state) => state.isStreaming);
+	const selectedNode = useAppStore((state) =>
+		state.selectedNodes.length === 1 ? state.selectedNodes[0] : null
+	);
+
+	const needsNode = draft.scope !== 'map';
+	const tryBlockedReason = !isValid
+		? 'Fix the highlighted fields to try it.'
+		: needsNode && !selectedNode
+			? 'Select one node on the canvas to try it.'
+			: isStreaming
+				? 'Wait for the current AI run to finish.'
+				: null;
+
+	const handleTry = () => {
+		onAttempt();
+		const parsed = recipeDefinitionSchema.safeParse(draft);
+		if (tryBlockedReason || !parsed.success) return;
+
+		const contribution = recipeToContribution(
+			{ id: recipeId ?? 'draft', definition: parsed.data },
+			'user'
+		);
+		runContribution(
+			contribution,
+			createContext(needsNode ? 'node' : 'map', needsNode ? (selectedNode?.id ?? null) : null)
+		);
+	};
+
+	const selectedNodeText =
+		(typeof selectedNode?.data?.content === 'string' && selectedNode.data.content.trim()) ||
+		(typeof selectedNode?.data?.metadata?.title === 'string' && selectedNode.data.metadata.title) ||
+		'Untitled node';
+	const isAIBlocked = isAtLimit('aiSuggestions');
+
+	return (
+		<Section
+			delay={0.15}
+			description='Runs your unsaved recipe. Results appear on the canvas as suggestions.'
+			title='Try it'
+		>
+			{needsNode && (
+				<div
+					className={cn(
+						'flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm',
+						selectedNode
+							? 'border-blue-400/30 bg-elevation-1 text-text-primary'
+							: 'border-dashed border-border-default text-text-secondary'
+					)}
+				>
+					<FileText aria-hidden className='size-3.5 shrink-0 text-text-secondary' />
+
+					<span className='min-w-0 flex-1 truncate'>
+						{selectedNode ? selectedNodeText : 'No node selected'}
+					</span>
+
+					{selectedNode && <span className='text-xs text-text-secondary'>Selected</span>}
+				</div>
+			)}
+
+			{isAIBlocked ? (
+				<div className='space-y-2'>
+					<Button
+						className='w-full'
+						onClick={() => setPopoverOpen({ upgradeUser: true })}
+						size='md'
+						variant='outline'
+					>
+						<Lock className='mr-2 h-4 w-4' />
+						Upgrade to Pro to run recipes
+					</Button>
+
+					<p className='text-xs text-text-secondary'>
+						You can still save and share this recipe on the Free plan.
+					</p>
+				</div>
+			) : (
+				<div className='space-y-2'>
+					<Button
+						aria-describedby='recipe-try-hint'
+						className='w-full'
+						disabled={Boolean(tryBlockedReason)}
+						onClick={handleTry}
+						size='md'
+						variant='outline'
+					>
+						{isStreaming ? (
+							<Loader2 className='mr-2 h-4 w-4 animate-spin' />
+						) : (
+							<Play className='mr-2 h-4 w-4' />
+						)}
+
+						{needsNode ? 'Try on selected node' : 'Try on this map'}
+					</Button>
+
+					<p className='text-xs text-text-secondary' id='recipe-try-hint'>
+						{tryBlockedReason ?? 'Uses 1 AI suggestion.'}
+					</p>
+				</div>
+			)}
+		</Section>
+	);
+}
+
 interface RecipeEditorProps {
 	/** Saved recipe being edited; null creates a new one. */
 	recipeId: string | null;
@@ -126,6 +243,8 @@ interface RecipeEditorProps {
 	onSaved: (recipe: SavedRecipe) => void;
 	onClose: () => void;
 	onDirtyChange: (isDirty: boolean) => void;
+	/** Show "Try it" (needs an open map). Off on the dashboard Recipes page. */
+	showTry?: boolean;
 }
 
 export function RecipeEditor({
@@ -134,6 +253,7 @@ export function RecipeEditor({
 	onSaved,
 	onClose,
 	onDirtyChange,
+	showTry = false,
 }: RecipeEditorProps) {
 	const [baseline, setBaseline] = useState<RecipeDefinition>(initial ?? BLANK_RECIPE);
 	const [draft, setDraft] = useState<RecipeDefinition>(initial ?? BLANK_RECIPE);
@@ -142,13 +262,6 @@ export function RecipeEditor({
 	const [isSaving, setIsSaving] = useState(false);
 
 	const { canSaveRecipes, createRecipe, updateRecipe } = useSavedRecipes();
-	const { createContext, runContribution } = useContributions();
-	const { isAtLimit } = useSubscriptionLimits();
-	const setPopoverOpen = useAppStore((state) => state.setPopoverOpen);
-	const isStreaming = useAppStore((state) => state.isStreaming);
-	const selectedNode = useAppStore((state) =>
-		state.selectedNodes.length === 1 ? state.selectedNodes[0] : null
-	);
 
 	const errors = useMemo(() => validateDraft(draft), [draft]);
 	const isValid = Object.keys(errors).length === 0;
@@ -200,35 +313,6 @@ export function RecipeEditor({
 		}
 	};
 
-	const needsNode = draft.scope !== 'map';
-	const tryBlockedReason = !isValid
-		? 'Fix the highlighted fields to try it.'
-		: needsNode && !selectedNode
-			? 'Select one node on the canvas to try it.'
-			: isStreaming
-				? 'Wait for the current AI run to finish.'
-				: null;
-
-	const handleTry = () => {
-		setShowAllErrors(true);
-		const parsed = recipeDefinitionSchema.safeParse(draft);
-		if (tryBlockedReason || !parsed.success) return;
-
-		const contribution = recipeToContribution(
-			{ id: recipeId ?? 'draft', definition: parsed.data },
-			'user'
-		);
-		runContribution(
-			contribution,
-			createContext(needsNode ? 'node' : 'map', needsNode ? (selectedNode?.id ?? null) : null)
-		);
-	};
-
-	const selectedNodeText =
-		(typeof selectedNode?.data?.content === 'string' && selectedNode.data.content.trim()) ||
-		(typeof selectedNode?.data?.metadata?.title === 'string' && selectedNode.data.metadata.title) ||
-		'Untitled node';
-	const isAIBlocked = isAtLimit('aiSuggestions');
 	const footerStatus = !canSaveRecipes
 		? 'Create an account to save recipes'
 		: isDirty
@@ -474,73 +558,18 @@ export function RecipeEditor({
 					</div>
 				</Section>
 
-				<Section
-					delay={0.15}
-					description='Runs your unsaved recipe. Results appear on the canvas as suggestions.'
-					title='Try it'
-				>
-					{needsNode && (
-						<div
-							className={cn(
-								'flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm',
-								selectedNode
-									? 'border-blue-400/30 bg-elevation-1 text-text-primary'
-									: 'border-dashed border-border-default text-text-secondary'
-							)}
-						>
-							<FileText aria-hidden className='size-3.5 shrink-0 text-text-secondary' />
-
-							<span className='min-w-0 flex-1 truncate'>
-								{selectedNode ? selectedNodeText : 'No node selected'}
-							</span>
-
-							{selectedNode && (
-								<span className='text-xs text-text-secondary'>Selected</span>
-							)}
-						</div>
-					)}
-
-					{isAIBlocked ? (
-						<div className='space-y-2'>
-							<Button
-								className='w-full'
-								onClick={() => setPopoverOpen({ upgradeUser: true })}
-								size='md'
-								variant='outline'
-							>
-								<Lock className='mr-2 h-4 w-4' />
-								Upgrade to Pro to run recipes
-							</Button>
-
-							<p className='text-xs text-text-secondary'>
-								You can still save and share this recipe on the Free plan.
-							</p>
-						</div>
-					) : (
-						<div className='space-y-2'>
-							<Button
-								aria-describedby='recipe-try-hint'
-								className='w-full'
-								disabled={Boolean(tryBlockedReason)}
-								onClick={handleTry}
-								size='md'
-								variant='outline'
-							>
-								{isStreaming ? (
-									<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-								) : (
-									<Play className='mr-2 h-4 w-4' />
-								)}
-
-								{needsNode ? 'Try on selected node' : 'Try on this map'}
-							</Button>
-
-							<p className='text-xs text-text-secondary' id='recipe-try-hint'>
-								{tryBlockedReason ?? 'Uses 1 AI suggestion.'}
-							</p>
-						</div>
-					)}
-				</Section>
+				{showTry ? (
+					<RecipeTrySection
+						draft={draft}
+						isValid={isValid}
+						onAttempt={() => setShowAllErrors(true)}
+						recipeId={recipeId}
+					/>
+				) : (
+					<p className='px-1 text-xs text-text-secondary'>
+						To try a recipe, open a map and choose Manage under Recipes in the AI menu.
+					</p>
+				)}
 			</div>
 
 			<div className='flex h-fit shrink-0 items-center justify-between gap-3 border-t border-zinc-800 bg-base p-4 pb-[max(1rem,env(safe-area-inset-bottom))]'>

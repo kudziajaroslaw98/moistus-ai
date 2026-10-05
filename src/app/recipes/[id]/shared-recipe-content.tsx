@@ -12,6 +12,7 @@ import {
 import type { SharedRecipe } from '@/lib/extensions/recipe-schema';
 import { Check, Info, Loader2, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { mutate } from 'swr';
@@ -23,6 +24,7 @@ interface SharedRecipeContentProps {
 
 /** Shared recipe page for signed-in accounts, inside the dashboard shell. */
 export function SharedRecipeContent({ recipe, isOwner }: SharedRecipeContentProps) {
+	const router = useRouter();
 	const [status, setStatus] = useState<'idle' | 'adding' | 'added'>('idle');
 	const author = recipe.authorName ?? 'the author';
 
@@ -34,6 +36,10 @@ export function SharedRecipeContent({ recipe, isOwner }: SharedRecipeContentProp
 			setStatus('added');
 			toast.success('Added to your recipes', {
 				description: 'Open a map and find it under Recipes in the AI menu.',
+				action: {
+					label: 'View in Recipes',
+					onClick: () => router.push('/dashboard/recipes'),
+				},
 			});
 		} catch (error) {
 			setStatus('idle');
@@ -43,9 +49,9 @@ export function SharedRecipeContent({ recipe, isOwner }: SharedRecipeContentProp
 		}
 	};
 
-	const dashboardLink = (
-		<Link className={buttonVariants({ variant: 'ghost' })} href='/dashboard'>
-			Go to dashboard
+	const recipesLink = (
+		<Link className={buttonVariants({ variant: 'ghost' })} href='/dashboard/recipes'>
+			View my recipes
 		</Link>
 	);
 
@@ -75,11 +81,11 @@ export function SharedRecipeContent({ recipe, isOwner }: SharedRecipeContentProp
 											This is your recipe
 										</span>
 
-										{dashboardLink}
+										{recipesLink}
 									</>
 								) : (
 									<>
-										{dashboardLink}
+										{recipesLink}
 
 										<Button
 											disabled={status !== 'idle'}

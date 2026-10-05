@@ -7,6 +7,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ## [2026-10-05]
 
+### Added
+
+- **ai/recipes**: Recipes page in the dashboard sidebar (`/dashboard/recipes`): your recipes and starters with search, create, edit, duplicate, share and delete outside a map; the in-map recipes panel links to it and keeps Try; the shared recipe page links to it after adding
+  - Why: Recipes were only reachable from the bottom of the AI menu
+
 ### Changed
 
 - **ui/context-menu**: Right-click menus no longer list AI actions or recipes; they keep editing actions only (AI stays on the node AI button, the toolbar AI menu and Ctrl/Cmd+K)

@@ -74,6 +74,7 @@ export function DashboardRouteLoadingSkeleton() {
 					<Skeleton className='h-9 w-full bg-zinc-900/80' />
 					<Skeleton className='h-9 w-full bg-zinc-900/80' />
 					<Skeleton className='h-9 w-full bg-zinc-900/80' />
+					<Skeleton className='h-9 w-full bg-zinc-900/80' />
 				</div>
 			</aside>
 

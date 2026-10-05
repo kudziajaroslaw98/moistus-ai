@@ -236,7 +236,7 @@ export function RecipeList({ onEdit, onCreate }: RecipeListProps) {
 							</div>
 						) : error ? (
 							<p className='px-2 py-3 text-sm text-text-secondary'>
-								Could not load your recipes. Close the panel and try again.
+								Could not load your recipes. Reload to try again.
 							</p>
 						) : visibleRecipes.length === 0 ? (
 							<p className='px-2 py-3 text-sm text-text-secondary'>

@@ -28,6 +28,7 @@ function setup(
 		selectedNodes?: Array<{ id: string; data: Record<string, unknown> }>;
 		isAtLimit?: boolean;
 		canSaveRecipes?: boolean;
+		showTry?: boolean;
 	} = {}
 ) {
 	const state = {
@@ -54,6 +55,7 @@ function setup(
 			onDirtyChange={jest.fn()}
 			onSaved={onSaved}
 			recipeId={null}
+			showTry={options.showTry ?? true}
 		/>
 	);
 	return { onSaved, user: userEvent.setup() };
@@ -154,6 +156,14 @@ describe('RecipeEditor', () => {
 
 		expect(setPopoverOpen).toHaveBeenCalledWith({ upgradeUser: true });
 		expect(screen.queryByRole('button', { name: /try on/i })).not.toBeInTheDocument();
+	});
+
+	it('leaves out Try when there is no map (dashboard page)', () => {
+		setup({ showTry: false });
+
+		expect(screen.queryByRole('heading', { name: 'Try it' })).not.toBeInTheDocument();
+		expect(screen.getByText(/open a map and choose manage/i)).toBeInTheDocument();
+		expect(useContributions).not.toHaveBeenCalled();
 	});
 
 	it('lets guests explore but not save', () => {

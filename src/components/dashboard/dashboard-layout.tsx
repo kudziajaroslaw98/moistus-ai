@@ -4,7 +4,7 @@ import { AnonymousUserBanner } from '@/components/auth/anonymous-user-banner';
 import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import { Archive, Home, Star, Users } from 'lucide-react';
+import { Archive, ChefHat, Home, Star, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -53,6 +53,12 @@ const mainNavItems: NavItem[] = [
 		label: 'Templates',
 		icon: <Star className='h-4 w-4' />,
 		href: '/dashboard/templates',
+	},
+	{
+		id: 'recipes',
+		label: 'Recipes',
+		icon: <ChefHat className='h-4 w-4' />,
+		href: '/dashboard/recipes',
 	},
 	{
 		id: 'teams',

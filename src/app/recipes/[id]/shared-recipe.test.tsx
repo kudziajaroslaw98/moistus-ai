@@ -13,6 +13,7 @@ jest.mock('@/hooks/extensions/use-saved-recipes', () => {
 	};
 });
 jest.mock('swr', () => ({ mutate: jest.fn() }));
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
 jest.mock('next/image', () => ({
 	__esModule: true,
@@ -93,6 +94,10 @@ describe('shared recipe page', () => {
 		render(<SharedRecipeContent isOwner recipe={recipe} />);
 
 		expect(screen.getByText('This is your recipe')).toBeInTheDocument();
+		expect(screen.getByRole('link', { name: 'View my recipes' })).toHaveAttribute(
+			'href',
+			'/dashboard/recipes'
+		);
 		expect(screen.queryByRole('button', { name: /add to my recipes/i })).not.toBeInTheDocument();
 	});
 });
