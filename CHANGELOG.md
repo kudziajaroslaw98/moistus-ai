@@ -13,13 +13,18 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Custom node types without letting third-party code touch the map, the network or the page
 - **plugins/metric**: First-party Metric plugin: a number against a target with progress and −/+ buttons; each press is one History entry credited to Metric
 - **plugins/editor**: Plugin kinds in the node editor: `$metric` under "Plugins on this map", typed fields (`Weekly active users value:1240 target:2000`) with highlighting, autocomplete and generated Syntax Help, a live preview from the plugin, and double-click editing; Ctrl/Cmd+K "Add Metric"
-- **plugins/settings**: Plugins section in Map Settings (owner): turn first-party plugins on per map (`map_plugins`), with a confirm when nodes would fall back to their saved view; developer plugins load from localhost for the owner only
+- **plugins/settings**: Turning first-party plugins on per map (`map_plugins`), with a confirm when nodes would fall back to their saved view; developer plugins load from localhost for the owner only
 - **plugins/canvas**: Plugin nodes keep a saved view (snapshot) shown while the plugin loads, when it's off on the map, when it fails, or when it isn't available
+- **plugins/panel**: Plugins side panel in the map: the owner turns Shiko plugins on or off and loads developer plugins; everyone else sees which plugins the map uses. Opens from Ctrl/Cmd+K "Plugins", a "More node types…" row at the end of the `$` list, and "Manage plugins" in Map Settings; a running plugin's card says how to add its nodes
+  - Why: Plugins were only a section at the bottom of Map Settings and nothing pointed to it
+- **plugins/dashboard**: Plugins page in the dashboard sidebar (`/dashboard/plugins`): Shiko plugins with what they add and can access, and an "On in N maps" picker to turn each one on for any map you own (`GET /api/plugins/maps`)
+- **plugins/guide**: "Build a plugin" guide (`/dashboard/plugins/build`): a four-step quick start with a downloadable Counter starter, then manifest, typed fields, plugin.js API, UI pieces, limits and the security model; the starter is tested in the real sandbox and the tables read the runtime's own limits
 - **ai/recipes**: Recipes page in the dashboard sidebar (`/dashboard/recipes`): your recipes and starters with search, create, edit, duplicate, share and delete outside a map; the in-map recipes panel links to it and keeps Try; the shared recipe page links to it after adding
   - Why: Recipes were only reachable from the bottom of the AI menu
 
 ### Changed
 
+- **map-settings**: The Plugins section is now a short row with "Manage plugins", which opens the Plugins panel (unsaved title/description edits still ask before closing)
 - **history**: Plugin nodes are named by their kind ("Added metric", "Metric #7c1e…"), and their changes list only the plugin's data fields, not the derived summary and saved view
 - **graph-ops**: Plugin actors may only change their own extension nodes (content and plugin data), their `metadata.ext` namespace, and no connections
 - **node-editor**: `$` type triggers match exactly
@@ -32,6 +37,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 
+- **plugins/dev**: Reloading a developer plugin now redraws its nodes with the new code (views were cached by plugin id and version)
 - **plugins/editor**: Typing `$metric` while editing an existing node now turns it into a Metric node (and `$note` turns a Metric node back into a note, clearing its plugin data); before, the editor highlighted the trigger but silently kept the old type
 
 ### Removed
