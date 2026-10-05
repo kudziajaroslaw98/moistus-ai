@@ -20,6 +20,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Show that one typing flow covers different node types, with only verified real syntax
 - **landing/quick-input-accuracy**: The task preview now shows the app's always-present amber `pending` chip and a relative `Tomorrow` date chip (`^tomorrow`) instead of a fixed past date
   - Why: A fixed 2026-03-12 date would render as red "Overdue" in the real app today
+- **landing/story-rail**: Chapter rail dots are anchored to each chapter's label row, so they line up with the step labels; the final chapter shows the inverted (filled) dot instead of an invisible one
+- **landing/faq**: FAQ matches the design: no card box, "Straight answers." heading, plus/close icon, first answer open, tighter answer copy
+  - Why: The FAQ and the closing CTA were both boxed back to back; only the CTA keeps its box
+- **landing/final-cta**: Removed the decorative "What are you planning?" node from the closing CTA
+  - Why: It looked like a text field people could type into
 
 ### Removed
 

@@ -48,16 +48,7 @@ export function FinalCta() {
 							Shiko will help you find the rest. Free for personal use.
 						</p>
 
-						{/* Decorative: an empty selected node, echoing the hero. */}
-						<div
-							aria-hidden='true'
-							className='mx-auto mt-10 flex h-[66px] w-full max-w-[320px] items-center justify-center rounded-[10px] border border-[rgba(96,165,250,0.3)] bg-[#1e1e1e] bg-[url("/images/groovepaper.png")] bg-repeat bg-blend-color-burn text-[#8b8b94]'
-						>
-							What are you planning?
-							<span className='ml-0.5 h-5 w-0.5 bg-white motion-safe:animate-pulse' />
-						</div>
-
-						<div className='group mt-6 inline-block'>
+						<div className='group mt-10 inline-block'>
 							<StartMappingLink
 								showArrow
 								arrowClassName='h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5'

@@ -10,7 +10,8 @@ interface ChapterProps {
 	number: string;
 	label: string;
 	meta: string;
-	dotClassName?: string;
+	/** Final chapter: inverted dot (filled ring) marks where the story ends. */
+	isFinal?: boolean;
 	topPadding: string;
 	children: ReactNode;
 }
@@ -20,7 +21,7 @@ function Chapter({
 	number,
 	label,
 	meta,
-	dotClassName = 'bg-white',
+	isFinal = false,
 	topPadding,
 	children,
 }: ChapterProps) {
@@ -29,18 +30,21 @@ function Chapter({
 			aria-labelledby={`chapter-${id}`}
 			className={`relative ${topPadding}`}
 		>
-			{/* Rail dot: marks the chapter on the vertical line (desktop only). */}
 			<div
-				aria-hidden='true'
-				className='absolute -left-[72px] top-[110px] hidden size-10 items-center justify-center rounded-full border border-[#292929] bg-zinc-950 md:flex'
-			>
-				<span className={`size-2 rounded-full ${dotClassName}`} />
-			</div>
-
-			<div
-				className='flex items-center justify-between gap-4 border-b border-white/8 pb-4 font-mono text-xs uppercase tracking-[0.12em] text-text-tertiary'
+				className='relative flex items-center justify-between gap-4 border-b border-white/8 pb-4 font-mono text-xs uppercase tracking-[0.12em] text-text-tertiary'
 				id={`chapter-${id}`}
 			>
+				{/* Rail dot (desktop only). Anchored to this row so it centers on the
+				    16px label line (8px - 20px = -12px) whatever the section padding. */}
+				<div
+					aria-hidden='true'
+					className={`absolute -left-[72px] -top-3 hidden size-10 items-center justify-center rounded-full border border-[#292929] md:flex ${isFinal ? 'bg-white' : 'bg-zinc-950'}`}
+				>
+					<span
+						className={`size-2 rounded-full ${isFinal ? 'bg-zinc-950' : 'bg-white'}`}
+					/>
+				</div>
+
 				<span>
 					<span className='text-white'>{number}</span>
 
@@ -110,7 +114,7 @@ export function StorySection() {
 				</Chapter>
 
 				<Chapter
-					dotClassName='bg-zinc-950'
+					isFinal
 					id='clarity'
 					label='Clarity'
 					meta='16 nodes'
