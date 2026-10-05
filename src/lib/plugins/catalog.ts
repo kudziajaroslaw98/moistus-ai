@@ -8,6 +8,8 @@ export interface PluginCatalogEntry {
 	version: string;
 	/** Folder holding manifest.json and the plugin code, ending in `/`. */
 	baseUrl: string;
+	/** SHA-256 of the reviewed plugin code; the loader refuses anything else. */
+	sha256: string;
 }
 
 export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
@@ -15,6 +17,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 		id: 'shiko.metric',
 		version: '0.1.0',
 		baseUrl: '/plugins/shiko.metric/0.1.0/',
+		sha256: 'cfb0e054317a721aa853414c17b5ff4b781135bfbc3fb01f777df1ef1d6214b4',
 	},
 ];
 

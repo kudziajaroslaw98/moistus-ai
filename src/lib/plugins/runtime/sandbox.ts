@@ -55,6 +55,32 @@ export interface PluginSandboxOptions {
 
 const PRELUDE = `"use strict";
 (() => {
+	// No code from text: without eval and the Function constructors a plugin can't run
+	// code it downloaded or built at runtime, so the reviewed code is the code that runs.
+	// (The host evaluates the plugin through the engine API, which this doesn't affect.)
+	const blocked = function () {
+		throw new Error('Plugins cannot run code from text');
+	};
+	for (const ctor of [
+		Function,
+		Object.getPrototypeOf(function* () {}).constructor,
+		Object.getPrototypeOf(async function () {}).constructor,
+		Object.getPrototypeOf(async function* () {}).constructor,
+	]) {
+		Object.defineProperty(ctor.prototype, 'constructor', {
+			value: blocked,
+			writable: false,
+			configurable: false,
+		});
+	}
+	for (const name of ['Function', 'eval']) {
+		Object.defineProperty(globalThis, name, {
+			value: name === 'eval' ? undefined : blocked,
+			writable: false,
+			configurable: false,
+		});
+	}
+
 	const kinds = Object.create(null);
 	let defined = false;
 	const withChildren = (type) => (props, children) =>

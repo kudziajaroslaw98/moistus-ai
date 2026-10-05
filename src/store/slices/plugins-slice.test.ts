@@ -1,4 +1,6 @@
+import { webcrypto } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { TextEncoder as NodeTextEncoder } from 'node:util';
 import { join } from 'node:path';
 import { create } from 'zustand';
 import type { AppState } from '../app-state';
@@ -14,6 +16,18 @@ const manifestJson = readFileSync(
 	join(process.cwd(), 'public/plugins/shiko.metric/0.1.0/manifest.json'),
 	'utf8'
 );
+const metricCode = readFileSync(
+	join(process.cwd(), 'public/plugins/shiko.metric/0.1.0/plugin.js'),
+	'utf8'
+);
+
+// jsdom has no Web Crypto digest or TextEncoder; the loader checks catalog code
+// fingerprints with them.
+Object.defineProperty(globalThis.crypto, 'subtle', {
+	value: webcrypto.subtle,
+	configurable: true,
+});
+Object.assign(globalThis, { TextEncoder: NodeTextEncoder });
 const OWNER = { id: 'owner-1', is_anonymous: false };
 
 function createStore(overrides: Record<string, unknown> = {}) {
@@ -72,7 +86,7 @@ beforeEach(() => {
 	window.localStorage.clear();
 	mockFetch({
 		'/plugins/shiko.metric/0.1.0/manifest.json': manifestJson,
-		'/plugins/shiko.metric/0.1.0/plugin.js': 'definePlugin({ kinds: {} });',
+		'/plugins/shiko.metric/0.1.0/plugin.js': metricCode,
 	});
 });
 
@@ -86,10 +100,7 @@ describe('plugins slice', () => {
 		expect(store.getState().mapPlugins).toEqual([
 			{ pluginId: 'shiko.metric', version: '0.1.0' },
 		]);
-		expect(mockHost.load).toHaveBeenCalledWith(
-			'shiko.metric',
-			'definePlugin({ kinds: {} });'
-		);
+		expect(mockHost.load).toHaveBeenCalledWith('shiko.metric', metricCode);
 		expect(store.getState().loadedPlugins['shiko.metric']).toMatchObject({
 			status: 'ready',
 		});
@@ -190,7 +201,7 @@ describe('plugins slice', () => {
 		const url = 'http://localhost:5173/manifest.json';
 		mockFetch({
 			'/plugins/shiko.metric/0.1.0/manifest.json': manifestJson,
-			'/plugins/shiko.metric/0.1.0/plugin.js': 'definePlugin({ kinds: {} });',
+			'/plugins/shiko.metric/0.1.0/plugin.js': metricCode,
 			'localhost:5173/manifest.json': JSON.stringify({
 				...JSON.parse(manifestJson),
 				id: 'dev.test.metric',
@@ -211,6 +222,23 @@ describe('plugins slice', () => {
 		expect(store.getState().loadedPlugins[url].generation).toBeGreaterThan(
 			first.generation
 		);
+	});
+
+	it('refuses catalog code that does not match the reviewed fingerprint', async () => {
+		mockFetch({
+			'/plugins/shiko.metric/0.1.0/manifest.json': manifestJson,
+			'/plugins/shiko.metric/0.1.0/plugin.js': `${metricCode}\n// tampered`,
+		});
+		const store = createStore();
+
+		await store.getState().fetchMapPlugins('map-1');
+		await waitUntil(settled(store));
+
+		expect(store.getState().loadedPlugins['shiko.metric']).toMatchObject({
+			status: 'error',
+			error: 'The plugin code doesn’t match the reviewed version',
+		});
+		expect(mockHost.load).not.toHaveBeenCalled();
 	});
 
 	it('opens the Plugins panel and closes the other right-hand panels', () => {

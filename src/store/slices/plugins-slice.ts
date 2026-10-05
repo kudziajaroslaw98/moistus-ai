@@ -5,6 +5,7 @@ import {
 	pluginManifestSchema,
 	type PluginManifest,
 } from '@/lib/plugins/manifest-schema';
+import { sha256Hex } from '@/lib/plugins/code-fingerprint';
 import { MAX_PLUGIN_CODE_BYTES } from '@/lib/plugins/limits';
 import { loadPluginHost } from '@/lib/plugins/runtime/load-plugin-host';
 import type {
@@ -68,7 +69,8 @@ async function fetchManifest(
 async function fetchCode(
 	manifestUrl: string,
 	manifest: PluginManifest,
-	source: PluginSource
+	source: PluginSource,
+	expectedSha256?: string
 ) {
 	const codeUrl = new URL(
 		manifest.main,
@@ -82,6 +84,18 @@ async function fetchCode(
 	const code = await response.text();
 	if (code.length > MAX_PLUGIN_CODE_BYTES) {
 		throw new Error('The plugin code is larger than 256 KB');
+	}
+	if (expectedSha256) {
+		const actual = await sha256Hex(code);
+		if (actual === null) {
+			// Web Crypto is missing only on insecure origins (LAN http in development).
+			if (process.env.NODE_ENV === 'production') {
+				throw new Error('This browser can’t verify the plugin code');
+			}
+			console.warn('[plugins] Skipping the code fingerprint check (no Web Crypto)');
+		} else if (actual !== expectedSha256) {
+			throw new Error('The plugin code doesn’t match the reviewed version');
+		}
 	}
 	return code;
 }
@@ -167,7 +181,12 @@ export const createPluginsSlice: StateCreator<
 				if (takenByOther)
 					throw new Error(`${manifest.id} is already loaded on this map`);
 			}
-			const code = await fetchCode(manifestUrl, manifest, source);
+			const code = await fetchCode(
+				manifestUrl,
+				manifest,
+				source,
+				source === 'catalog' ? findCatalogPlugin(key)?.sha256 : undefined
+			);
 			const host = await loadPluginHost();
 			const kinds = await host.load(manifest.id, code);
 			const missing = manifest.nodeKinds.find(

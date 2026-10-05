@@ -91,6 +91,51 @@ describe('plugin sandbox', () => {
 		sandbox.dispose();
 	});
 
+	it('cannot turn text into code, so what was reviewed is what runs', () => {
+		const attempts = [
+			'typeof eval === "function" ? eval("1") : "no eval"',
+			'new Function("return 1")()',
+			'(function () {}).constructor("return 1")()',
+			'(() => {}).constructor("return 1")()',
+			'Object.getPrototypeOf(function* () {}).constructor("yield 1")',
+			'Object.getPrototypeOf(async function () {}).constructor("return 1")',
+			'Object.getPrototypeOf(async function* () {}).constructor("yield 1")',
+			'Reflect.construct(Function, ["return 1"])()',
+		];
+		const sandbox = createPluginSandbox(
+			QuickJS,
+			plugin(
+				`const results = ${JSON.stringify(attempts)}.map((source) => {
+					try { return String((0, globalThis.__probe)(source)); } catch (error) { return 'blocked'; }
+				});
+				return ui.text(results.join(","));`,
+				// Each attempt runs inside the plugin, exactly as written.
+				`globalThis.__probe = (source) => { switch (source) { ${attempts
+					.map((source, index) => `case ${JSON.stringify(source)}: return (() => ${source})();`)
+					.join(' ')} } };`
+			)
+		);
+
+		const output = sandbox.render('probe', {}, {}).tree as { value: string };
+		expect(output.value.split(',')).toEqual([
+			'no eval',
+			...attempts.slice(1).map(() => 'blocked'),
+		]);
+		sandbox.dispose();
+	});
+
+	it('still runs ordinary functions, classes and closures after the lockdown', () => {
+		const sandbox = createPluginSandbox(
+			QuickJS,
+			plugin(
+				'class A { get x() { return 2; } } const add = (a) => (b) => a + b; return ui.text(String(add(1)(new A().x) + [1, 2].map((n) => n * 2).length));'
+			)
+		);
+
+		expect(sandbox.render('probe', {}, {}).tree).toEqual({ type: 'text', value: '5' });
+		sandbox.dispose();
+	});
+
 	it('stops a render that never finishes and marks the sandbox unusable', () => {
 		const sandbox = createPluginSandbox(QuickJS, plugin('while (true) {}'));
 

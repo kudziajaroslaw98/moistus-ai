@@ -37,6 +37,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 
+- **plugins/security**: Plugins can no longer run code built from text (`eval` and the Function constructors are removed inside the sandbox), and first-party plugin code must match its reviewed SHA-256 fingerprint before it loads
 - **plugins/dev**: Reloading a developer plugin now redraws its nodes with the new code (views were cached by plugin id and version)
 - **plugins/editor**: Typing `$metric` while editing an existing node now turns it into a Metric node (and `$note` turns a Metric node back into a note, clearing its plugin data); before, the editor highlighted the trigger but silently kept the old type
 
