@@ -14,6 +14,7 @@ import {
 	useScroll,
 	useTransform,
 } from 'motion/react';
+import Image from 'next/image';
 import { useCallback, useRef, useState } from 'react';
 import { StartMappingLink } from './start-mapping-link';
 
@@ -73,8 +74,9 @@ export function LandingNav() {
 				<div className='flex h-16 items-center justify-between'>
 					<a
 						href='/'
-						className='text-lg font-semibold text-text-primary hover:text-primary-400 transition-colors duration-200'
+						className='flex items-center gap-2.5 text-lg font-semibold text-text-primary hover:text-primary-400 transition-colors duration-200'
 					>
+						<Image alt='' height={22} src='/images/shiko-logo.svg' width={22} />
 						Shiko
 					</a>
 
@@ -119,7 +121,13 @@ export function LandingNav() {
 								className='w-[280px] border-l border-border-subtle p-0'
 							>
 								<SheetHeader className='px-6 pt-6 pb-4 border-b border-border-subtle'>
-									<span className='text-lg font-semibold text-text-primary'>
+									<span className='flex items-center gap-2.5 text-lg font-semibold text-text-primary'>
+										<Image
+											alt=''
+											height={22}
+											src='/images/shiko-logo.svg'
+											width={22}
+										/>
 										Shiko
 									</span>
 								</SheetHeader>
