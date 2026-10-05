@@ -104,6 +104,7 @@ export const createCoreDataSlice: StateCreator<
 		get().clearPermissionsState();
 		get().stopStream?.();
 		get().clearToast?.();
+		get().resetPlugins?.();
 
 		set({
 			mindMap: null,
@@ -576,6 +577,8 @@ export const createCoreDataSlice: StateCreator<
 				get().fetchComments(mapId),
 				// Fetch permissions first; realtime updates apply deltas afterwards.
 				get().fetchInitialPermissions(mapId),
+				// Plugins the owner turned on; their code loads in the background.
+				get().fetchMapPlugins(mapId),
 			]);
 			if (abortIfStale()) {
 				return;
