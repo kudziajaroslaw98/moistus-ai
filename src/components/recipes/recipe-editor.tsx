@@ -188,7 +188,7 @@ export function RecipeEditor({
 			setBaseline(saved.definition);
 			setDraft(saved.definition);
 			toast.success('Recipe saved', {
-				description: 'It’s in the AI menu, the right-click menu and Ctrl/Cmd+K.',
+				description: 'It’s in the AI menu and Ctrl/Cmd+K.',
 			});
 			onSaved(saved);
 		} catch (error) {

@@ -1,14 +1,11 @@
 'use client';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
-import { useContributions } from '@/hooks/extensions/use-contributions';
-import { selectContributions } from '@/lib/extensions/select-contributions';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import { isAvailableNodeType } from '@/registry/type-guards';
 import type { NodeEditorOptions } from '@/store/app-state';
 import useAppStore from '@/store/mind-map-store';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
-import type { Contribution, ContributionScope } from '@/types/extensions';
 import { type Edge, type Node, type ReactFlowInstance } from '@xyflow/react';
 import {
 	ChevronDown,
@@ -104,8 +101,6 @@ interface BuildNodeMenuParams {
 	deleteNodes: (nodes: AppNode[]) => void;
 	reactFlowInstance: ReactFlowInstance | null;
 	onClose: () => void;
-	/** Contributed entries (built-in AI actions, plugins) for this node */
-	contributedSections: MenuSection[];
 	canEdit: boolean;
 	suppressUngroupAction?: boolean;
 }
@@ -121,7 +116,6 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 		deleteNodes,
 		reactFlowInstance,
 		onClose,
-		contributedSections,
 		canEdit,
 		suppressUngroupAction = false,
 	} = params;
@@ -215,7 +209,6 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 				},
 			],
 		},
-		...contributedSections,
 		{
 			id: 'node-destructive',
 			items: [
@@ -323,8 +316,6 @@ interface BuildPaneMenuParams {
 	x: number;
 	y: number;
 	openNodeEditor: any;
-	/** Contributed map-wide entries (built-in AI actions, plugins) */
-	contributedSections: MenuSection[];
 	onClose: () => void;
 	canEdit: boolean;
 }
@@ -335,7 +326,6 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 		x,
 		y,
 		openNodeEditor,
-		contributedSections,
 		onClose,
 		canEdit,
 	} = params;
@@ -387,7 +377,6 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 				},
 			],
 		},
-		...contributedSections,
 	];
 }
 
@@ -485,8 +474,6 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 
 	// Get permissions for feature gating
 	const { canEdit } = usePermissions();
-	const { contributions, isStreaming, createContext, runContribution } =
-		useContributions();
 
 	const { x, y, nodeId, edgeId } = contextMenuState;
 
@@ -502,43 +489,6 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 
 	// Build menu configuration from current context.
 	const menuConfig = useMemo((): MenuSection[] => {
-		// Built-in actions first, then recipes under their own titled section.
-		const buildContributedSections = (
-			id: string,
-			scope: ContributionScope,
-			targetNodeId: string | null
-		): MenuSection[] => {
-			const ctx = createContext(scope, targetNodeId);
-			const toItem = (contribution: Contribution) => {
-				const ContributionIcon = contribution.icon;
-				const isBusy = contribution.isBusy?.(ctx) ?? false;
-				return {
-					id: contribution.id,
-					icon: <ContributionIcon className='h-4 w-4' />,
-					label: contribution.title,
-					onClick: () => {
-						runContribution(contribution, ctx);
-						onClose();
-					},
-					loading: isBusy,
-					disabled: isBusy,
-				};
-			};
-			const visible = selectContributions(contributions, 'contextMenu', ctx);
-
-			return [
-				{
-					id,
-					items: visible.filter((entry) => !entry.group).map(toItem),
-				},
-				{
-					id: `${id}-recipes`,
-					title: 'Recipes',
-					items: visible.filter((entry) => entry.group === 'recipes').map(toItem),
-				},
-			];
-		};
-
 		// Node menu
 		if (nodeId && clickedNode) {
 			const hasChildren = getDirectChildrenCount(clickedNode.id) > 0;
@@ -577,11 +527,6 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 				deleteNodes,
 				reactFlowInstance,
 				onClose,
-				contributedSections: buildContributedSections(
-					'node-contributions',
-					'node',
-					clickedNode.id
-				),
 				canEdit,
 				suppressUngroupAction:
 					canEdit &&
@@ -620,11 +565,6 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 			x,
 			y,
 			openNodeEditor,
-			contributedSections: buildContributedSections(
-				'pane-contributions',
-				'map',
-				null
-			),
 			onClose,
 			canEdit,
 		});
@@ -646,10 +586,6 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 		ungroupNodes,
 		x,
 		y,
-		contributions,
-		createContext,
-		runContribution,
-		isStreaming,
 		onClose,
 		canEdit,
 	]);

@@ -14,7 +14,7 @@ const entry = (overrides: Partial<Contribution>): Contribution => ({
 	icon: Puzzle,
 	owner: 'builtin',
 	scopes: ['node', 'map'],
-	placements: ['aiMenu', 'contextMenu', 'commandPalette'],
+	placements: ['aiMenu', 'commandPalette'],
 	run: jest.fn(),
 	...overrides,
 });

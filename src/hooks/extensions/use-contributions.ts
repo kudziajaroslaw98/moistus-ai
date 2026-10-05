@@ -12,8 +12,8 @@ import { useCallback } from 'react';
 import { toast } from 'sonner';
 
 /**
- * Shared environment for every surface that lists contributions (AI popover, context
- * menu, command palette): the registry, a context builder, and a guarded runner.
+ * Shared environment for every surface that lists contributions (AI popover, command
+ * palette): the registry, a context builder, and a guarded runner.
  */
 export function useContributions() {
 	const contributions = useAppStore((state) => state.contributions);

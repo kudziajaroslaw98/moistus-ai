@@ -9,6 +9,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Changed
 
+- **ui/context-menu**: Right-click menus no longer list AI actions or recipes; they keep editing actions only (AI stays on the node AI button, the toolbar AI menu and Ctrl/Cmd+K)
+  - Why: Every recipe (up to 50) and future plugin entry made the menu bloat quickly
 - **ai/models**: All OpenAI calls (suggestions, recipes, chat, connections, merges, node search, generate answer, URL processing) use `gpt-6-luna` (was `gpt-5.4-mini` / `gpt-5.4-nano`)
 - **ai/recipes**: "Generate counterpoints" now runs the Counterpoints starter recipe through `POST /api/ai/recipes/run`: its suggestions show the recipe name and accepting one records a single history entry attributed to "Counterpoints"
   - Why: Counterpoints was already recipe-shaped; one engine means one set of guardrails (fixed system prompt, output sanitisation, type/label/count checks)

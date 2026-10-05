@@ -5,7 +5,7 @@ import { recipeToContribution } from '@/lib/extensions/recipe-contributions';
 import useAppStore from '@/store/mind-map-store';
 import { useEffect } from 'react';
 
-/** Puts the user's saved recipes into the AI popover, context menu and palette. */
+/** Puts the user's saved recipes into the AI popover and the command palette. */
 export function RecipeContributionsRegistrar() {
 	const { recipes } = useSavedRecipes();
 	const registerContribution = useAppStore((state) => state.registerContribution);

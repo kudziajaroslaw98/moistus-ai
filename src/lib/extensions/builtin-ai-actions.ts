@@ -2,11 +2,7 @@ import { COUNTERPOINTS_RECIPE } from '@/lib/extensions/starter-recipes';
 import type { Contribution, ContributionContext } from '@/types/extensions';
 import { Link2, Merge, NotepadTextDashed, Sparkles } from 'lucide-react';
 
-const allPlacements: Contribution['placements'] = [
-	'aiMenu',
-	'contextMenu',
-	'commandPalette',
-];
+const allPlacements: Contribution['placements'] = ['aiMenu', 'commandPalette'];
 
 const isStreaming = (ctx: ContributionContext) => ctx.getState().isStreaming;
 const isMapReady = (ctx: ContributionContext) => ctx.isMapReady;
@@ -14,8 +10,8 @@ const nodeIdForScope = (ctx: ContributionContext) =>
 	ctx.scope === 'node' ? (ctx.nodeId ?? undefined) : undefined;
 
 /**
- * Built-in AI actions, shown in the toolbar/node AI popover, the context menu and the
- * command palette from this single list.
+ * Built-in AI actions, shown in the toolbar/node AI popover and the command palette
+ * from this single list.
  */
 export const BUILTIN_AI_ACTIONS: Contribution[] = [
 	{

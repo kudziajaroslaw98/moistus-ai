@@ -35,7 +35,7 @@ describe('recipeToContribution', () => {
 		expect(recipeToContribution(recipe('node'), 'user')).toMatchObject({
 			id: 'recipe:abc',
 			group: 'recipes',
-			placements: ['aiMenu', 'contextMenu', 'commandPalette'],
+			placements: ['aiMenu', 'commandPalette'],
 			requiresEdit: true,
 			requiresAIQuota: true,
 		});

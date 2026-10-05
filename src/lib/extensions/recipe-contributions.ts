@@ -7,8 +7,8 @@ import type { Contribution } from '@/types/extensions';
 export const recipeContributionId = (recipeId: string) => `recipe:${recipeId}`;
 
 /**
- * A recipe as a menu entry: listed under "Recipes" in the AI popover, the context menu
- * and the command palette. Node and branch recipes act on a node; map recipes on the map.
+ * A recipe as a menu entry: listed under "Recipes" in the AI popover and the command
+ * palette. Node and branch recipes act on a node; map recipes on the map.
  */
 export function recipeToContribution(
 	recipe: RecipeRef,
@@ -25,7 +25,7 @@ export function recipeToContribution(
 		owner,
 		group: 'recipes',
 		scopes: [definition.scope === 'map' ? 'map' : 'node'],
-		placements: ['aiMenu', 'contextMenu', 'commandPalette'],
+		placements: ['aiMenu', 'commandPalette'],
 		requiresEdit: true,
 		requiresAIQuota: true,
 		when: (ctx) => ctx.isMapReady,

@@ -51,8 +51,8 @@ export type GraphOpsResult =
 /** Whether an entry acts on one node or on the whole map. */
 export type ContributionScope = 'node' | 'map';
 
-/** UI surfaces that list contributed entries. */
-export type ContributionPlacement = 'aiMenu' | 'contextMenu' | 'commandPalette';
+/** UI surfaces that list contributed entries. The right-click menu stays editing-only. */
+export type ContributionPlacement = 'aiMenu' | 'commandPalette';
 
 export interface ContributionContext {
 	getState: () => AppState;
