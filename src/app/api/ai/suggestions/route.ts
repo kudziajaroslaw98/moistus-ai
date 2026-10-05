@@ -318,7 +318,7 @@ export async function POST(req: Request) {
 						await wait(1000);
 
 						const result = streamObject({
-							model: openai('gpt-5.4-mini'),
+							model: openai('gpt-6-luna'),
 
 							abortSignal,
 							output: 'array',

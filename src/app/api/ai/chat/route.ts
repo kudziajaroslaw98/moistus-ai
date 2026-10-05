@@ -202,7 +202,7 @@ export const POST = withApiValidation(
 
 			// Stream the response
 			const result = streamText({
-				model: openai('gpt-5.4-mini'),
+				model: openai('gpt-6-luna'),
 				instructions: `${CHAT_SYSTEM_PROMPT}\n\n${HYBRID_ROW_PROMPT_GUIDE}${mapContextPrompt}`,
 				messages: userMessages,
 			});

@@ -169,7 +169,7 @@ export async function POST(req: Request) {
 						const { instructions, messages: modelMessages } =
 							buildConnectionModelPrompt(formattedContext);
 						const response = streamObject({
-							model: openai('gpt-5.4-nano'),
+							model: openai('gpt-6-luna'),
 							abortSignal,
 							schema: connectionSuggestionSchema,
 							output: 'array',
