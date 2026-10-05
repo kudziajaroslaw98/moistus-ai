@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 jest.mock('@/helpers/api/with-subscription-check', () => ({
 	checkAIQuota: jest.fn(),
 	trackAIUsage: jest.fn(),
@@ -33,7 +36,7 @@ jest.mock('ai', () => ({
 	UIMessage: class UIMessage {},
 }));
 
-import { checkAIQuota } from '@/helpers/api/with-subscription-check';
+import { checkAIQuota, trackAIUsage } from '@/helpers/api/with-subscription-check';
 import { buildSuggestionPromptContext } from '@/helpers/ai-suggestion-context';
 import {
 	getSuggestionStreamErrorMessage,
@@ -50,6 +53,7 @@ import {
 import { POST } from './route';
 
 const mockedCheckAIQuota = jest.mocked(checkAIQuota);
+const mockedTrackAIUsage = jest.mocked(trackAIUsage);
 const mockedBuildSuggestionPromptContext = jest.mocked(
 	buildSuggestionPromptContext
 );
@@ -105,6 +109,7 @@ describe('/api/ai/suggestions route', () => {
 			},
 		} as never);
 
+		mockedTrackAIUsage.mockResolvedValue(undefined);
 		mockedCheckAIQuota.mockResolvedValue({
 			allowed: true,
 			isPro: false,
@@ -232,11 +237,8 @@ describe('/api/ai/suggestions route', () => {
 		expect(mockedGetSuggestionSystemPrompt).toHaveBeenCalledWith('full-map');
 		expect(mockedStreamObject).toHaveBeenCalledWith(
 			expect.objectContaining({
+				instructions: 'SYSTEM_SENTINEL',
 				messages: [
-					{
-						role: 'system',
-						content: 'SYSTEM_SENTINEL',
-					},
 					{
 						role: 'user',
 						content: 'PROMPT_SENTINEL',

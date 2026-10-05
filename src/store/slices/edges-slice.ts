@@ -1,5 +1,6 @@
 import { defaultEdgeData } from '@/constants/default-edge-data';
 import { STORE_SAVE_DEBOUNCE_MS } from '@/constants/store-save-debounce-ms';
+import { buildVisibleEdgesWithCollapsedProxies } from '@/helpers/collapse/collapsed-proxy-edges';
 import generateUuid from '@/helpers/generate-uuid';
 import mergeEdgeData from '@/helpers/merge-edge-data';
 import {
@@ -118,9 +119,11 @@ function hasMeaningfulEdgeDifference(
 }
 
 function withNodeParent(node: AppNode, parentId: string | null): AppNode {
+	// Hierarchy lives in data.parent_id only (matches map load). A top-level React Flow
+	// parentId would turn the node into a sub-flow child and shift its rendered position.
+	const { parentId: _staleParentId, ...nodeWithoutFlowParent } = node;
 	return {
-		...node,
-		parentId: parentId ?? undefined,
+		...nodeWithoutFlowParent,
 		data: {
 			...node.data,
 			parent_id: parentId,
@@ -537,27 +540,15 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 		},
 		getVisibleEdges: (): AppEdge[] => {
 			const { edges, nodes } = get();
-			const visibleNodes = get().getVisibleNodes();
-			const visibleNodeIds = new Set(visibleNodes.map((node) => node.id));
-			const collapsedNodeIds = new Set(
-				nodes
-					.filter((node) => node.data.metadata?.isCollapsed)
+			const visibleNodeIds = new Set(
+				get()
+					.getVisibleNodes()
 					.map((node) => node.id)
 			);
 
-			// Return edges where:
-			// 1. Both source and target are visible, OR
-			// 2. Source is visible and target is a collapsed node (to show connection to collapsed branch)
-			return edges.filter((edge) => {
-				const sourceVisible = visibleNodeIds.has(edge.source);
-				const targetVisible = visibleNodeIds.has(edge.target);
-				const targetIsCollapsed = collapsedNodeIds.has(edge.target);
-
-				return (
-					(sourceVisible && targetVisible) ||
-					(sourceVisible && targetIsCollapsed)
-				);
-			});
+			// Cross-links into collapsed branches re-attach (dashed) to the
+			// visible collapsed ancestor instead of disappearing.
+			return buildVisibleEdgesWithCollapsedProxies(nodes, edges, visibleNodeIds);
 		},
 
 		// actions

@@ -26,6 +26,127 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **landing/product-frames**: Shared static mocks under `src/components/landing/product/` (canvas surface, node card, task node, AI ghost card, edge layer, cursor, editor chrome)
 - **landing/mobile**: Phone layouts for the hero, Grow (root plus AI card) and Clarity frames, plus a menu button in the nav
 
+## [2026-10-04]
+
+### Fixed
+
+- **history/revert**: Reverting to a checkpoint or event restores deleted nodes in place and keeps layout working
+  - Why: Reverted nodes got a React Flow `parentId`, which made child positions render relative to their parents and scattered the map
+- **edges/hierarchy**: Setting a node's parent no longer shifts it on the canvas
+  - Why: The explicit hierarchy action set the same React Flow `parentId`
+
+### Refactored
+
+- **history/revert-state**: Revert node/edge canonicalization moved to `src/helpers/history/server/revert-state.ts` with unit tests
+
+## [2026-10-03]
+
+### Added
+
+- **annotations**: Annotations can be anchored to a host node (`metadata.anchorNodeId` + `anchorOffset`): created anchored from a node, Attach/Detach in the toolbar, follow host moves, dashed tether, cascade-delete with host (one undo step), hidden with host, excluded from all layouts, no new connections
+  - Why: An annotation is a note *about* a node; free-floating annotations linked by edges polluted the graph, layouts and AI context
+- **ai**: Anchored annotations are folded into their host's context (`note(<type>): <text>`) for chat, suggestions, counterpoints, merges, connections and search; approved AI annotation ghosts anchor to their source instead of adding an edge
+- **collapse**: Collapsed-branch redesign: stacked collapsed card with "N nodes hidden" pill, branch roll-up (task progress, pending chip, red/amber severity dot), hover/tap peek outline with expand-path rows, Shift+click expand all, add-child expands, cross-links re-attach to the collapsed ancestor as dashed proxy edges
+- **search**: Ctrl/Cmd+F canvas search that reaches inside collapsed branches ("N matches inside"), with Enter/Shift+Enter navigation that opens the collapsed branch containing a hidden match
+- **groups/drag-membership**: Drag a node over a group and hold to add it, or drag a member outside its group and hold to remove it; release applies the change, and the group's label shows hold/release progress
+  - Why: Group membership could only be changed from menus before
+
+### Changed
+
+- **deps/security**: Removed `braces` (GHSA-vfj7-8cjw-p6xm, no patched release) from the dependency tree: `@next/eslint-plugin-next>fast-glob` is aliased to `tinyglobby`, and the `shadcn` CLI is no longer a devDependency (use `pnpm dlx shadcn@latest`)
+  - Why: Fixes the high-severity audit failure without suppressing the advisory; the Next plugin only uses `globSync` with `onlyDirectories`, which tinyglobby supports
+- **collapse**: Hidden count now covers the whole subtree (was direct children only); batch collapse changes are a single history step
+- **collapse**: Removed the on-node collapse button; collapsing is done from the node context menu or `Ctrl/Cmd+-`, expanding via the "N nodes hidden" pill
+  - Why: The round collapse button duplicated the look of the add / AI buttons on the same side of the node
+- **history**: Redesigned history panel: compact rows (icon, short title like "Resized group", colored node type with name or `#id`, time), day headers, runs of identical changes collapsed into one expandable row (`×N`), filter chips with counts (All / Edits / Added / Links, plus Removed when there are any), Checkpoint button in the header, Load older in the footer
+  - Why: ~110px cards showed ~6 changes at a time, duplicate runs filled the list, and titles repeated themselves ("Width & Height updated, Node resized")
+- **history**: Focus and Revert are small icon buttons that appear on hover or keyboard focus; Revert now asks "Restore map to this point? N newer changes will be undone." before doing anything
+  - Why: Revert restores the whole map to that point, and it was a loud one-click button on every row
+- **history**: Expanded changes show one line per property (`not set → 400`) instead of stacked Before/After boxes
+- **mobile**: `useIsMobile` now also matches landscape phones (`(pointer: coarse) and (max-height: 500px)`), so they get the mobile toolbar, top bar, onboarding path and editor instead of desktop UI
+  - Why: Landscape phones (~844-932px wide) passed the width-only 768px check
+- **node-editor**: The node editor opens full screen on phones (portrait and landscape) instead of as an inset dialog
+- **api/service-role-calls**: AI usage counters, template usage counts, history cleanup (including cron) and subscription cancel/reactivate writes now use the service-role client
+- **security/headers**: Responses now send nosniff, Referrer-Policy and frame-ancestors protection, plus a report-only Content Security Policy in production
+
+### Fixed
+
+- **mobile**: Keyboard-shortcut hints (shortcuts help button, `Ctrl+Enter to create`) are hidden on touch-first devices via the new shared `useTouchFirst` hook
+- **onboarding**: The walkthrough checklist is height-capped with a scrolling task list and no longer stacks on the canvas hint in landscape; the mobile intro sheet scrolls on short screens
+- **map-settings**: Map Settings content scrolls again and the side panel footer is opaque, so it no longer overlaps panel content
+- **node-editor**: The full-screen phone editor has a footer Cancel button to close without saving
+  - Why: Full screen removed the backdrop tap, and touch users have no Escape key
+- **share**: On short (mobile) screens the Room Code tab scrolls as one area (settings + codes), so expanded settings no longer squeeze the codes list to nothing
+- **ui/tabs**: The selected tab is visibly highlighted again (share panel, dashboard settings)
+  - Why: Base UI 1.8 marks the selected tab with `data-active`; the primitive still styled the old `data-selected` attribute, so no tab ever looked selected
+
+- **collapse**: Right-click, long-press and double-click on dashed collapsed-branch lines and annotation tethers no longer open the edge menu or Edge Edit (they are display-only, with no stored edge behind them)
+- **collapse**: Adding a child to a collapsed node records one history step (the expand is part of "Added"), and the parent stays collapsed if the insert fails
+- **collapse**: The "N nodes hidden" pill uses the shared `useTouchFirst` hook, so desktop-mode iPads get the tap peek instead of an instant expand
+- **search**: Matches in annotations anchored to a hidden node now count as "N matches inside" their collapsed ancestor
+- **search**: The match counter and active highlight stay in range when matches disappear (no more "5 of 3")
+- **annotations**: An annotation anchored to another annotation (or itself) is shown as free in its toolbar, matching how it behaves on the canvas
+- **ai**: Approving an AI annotation whose source is an anchored annotation anchors it to that annotation's host; an AI annotation is never linked to another annotation by an edge
+- **security/db-functions**: SECURITY DEFINER functions are no longer callable by anonymous or signed-in users unless they verify the caller themselves; node creation now runs under the caller's RLS
+  - Why: A production audit found 24 functions exposed through the default EXECUTE grant, several trusting caller-supplied user/map IDs
+- **security/rls**: Users can no longer change their own profile role, subscription rows, AI usage counters, map template flags, or history attribution
+  - Why: These writes were allowed by own-row RLS policies and enabled privilege and billing escalation
+- **security/profiles**: Profiles (including email) are visible only to their owner and to users who share a map with them
+  - Why: Every authenticated user, including anonymous guests, could read all non-private profiles
+- **limits/nodes**: The owner-scoped per-map node limit is now enforced in the database as well as in the client preflight
+  - Why: Direct inserts, offline replay and RPC calls could exceed the limit
+- **history/checkpoints**: `create_history_checkpoint_and_prune` is now service-role-only
+  - Why: Revoking from PUBLIC alone left it callable by anon/authenticated on Supabase
+- **history/checkpoints**: Manual checkpoints no longer fail with `COALESCE types text and boolean cannot be matched`
+  - Why: The checkpoint function treated `edges.animated` (a text column) as a boolean
+- **ai/structured-outputs**: AI suggestions (expand) and counterpoints no longer fail with `invalid_json_schema`
+  - Why: `@ai-sdk/openai` 3.x enables OpenAI strict structured outputs by default, which rejects optional (`.partial()`/`.optional()`) keys and the `uri` string format
+- **billing/webhooks**: A `subscription.canceled`, `uncanceled` or `revoked` event that arrives before the subscription row exists is now saved from its payload (revoked as `canceled`) instead of updating nothing
+  - Why: A late `subscription.created` retry then had no stored version to compare against and re-granted Pro after a revoke
+- **billing/webhooks**: `subscription.created` / `active` on an existing row merges into stored metadata, so plan-change fields (`previous_plan`, `last_plan_change`, `previous_period_start`) are no longer wiped
+- **groups/member-interaction**: Nodes inside a group can be clicked, selected and edited again, even while the group is selected
+  - Why: Groups rendered above their members and captured every click
+- **groups/multi-remove**: Removing several nodes from the same group no longer leaves some of them listed in the group's children
+- **groups/create-from-selection**: Groups created from a selection now share one id with their members, so the original members can be dragged out of the group
+  - Why: The group node was created with a different id than the one written to its members; existing groups with that mismatch are repaired the next time a member is dragged in or out
+
+### Removed
+
+- **history**: Unused history components and helpers left over from earlier panel versions (`history-entry-card`, `history-actions`, `history-group`, `change-item`, `git-diff-view`, `grouping-utils`)
+- **history**: Unused `formatTimeRange`, `diff-formatter`, `text-diff-utils` helpers and the direct `diff` dependency
+- **hooks**: `useCoarsePointer` (duplicate of `useTouchFirst` without iPad detection)
+- **groups/html5-drop**: Removed unused HTML5 drop handlers from the group node (React Flow node drags never fired them)
+
+## [2026-10-02]
+
+### Changed
+
+- **deps**: Updated all dependencies to latest within their current major (Next 16.3.8, React 19.3, supabase-js 2.117, Base UI 1.8, AI SDK 6.0.300, Motion 12.43, ESLint 10.11, Jest 30.5, Playwright 1.63, etc.) and refreshed transitive lockfile versions
+  - Why: Resolves all open Dependabot alerts, including critical Next.js RCE advisories; `pnpm audit` is clean
+- **deps/overrides**: Bumped `partykit>esbuild` to 0.25.12 and `miniflare>undici` to 6.29.0, added `@serwist/turbopack>browserslist` 4.29.3, removed the global `postcss` override
+  - Why: Previous pins were themselves vulnerable; Next now ships a patched PostCSS
+
+- **deps/majors**: AI SDK 7 (`ai` 7, `@ai-sdk/openai` 4, `@ai-sdk/react` 4), Motion 14, `@supabase/ssr` 0.12, `diff` 9, `uuid` 14, `elkjs` 0.12 (vendored `public/elk-worker.min.js` synced), `dotenv` 18, `jest-dom` 7, Polar sdk 0.49 / nextjs 0.9.6
+- **tooling/typescript**: TypeScript 6 + 7 side-by-side: `tsc` (and `pnpm type-check`) runs TS 7 native (~2s vs ~11s), while `typescript` stays on the TS 6 API via `@typescript/typescript6` for ESLint, Next build and Jest
+  - Why: TS 7 has no JS API yet and typescript-eslint supports TS <6.1; this is the setup recommended by the TypeScript team
+- **billing**: Migrated to Polar SDK 1.0 / `@polar-sh/nextjs` 1.0 (snake_case webhook payloads typed by SDK `Subscription`; checkout links `external_customer_id`; `paused` = no Pro access)
+  - Why: Verified live against Polar sandbox (7/7 webhook deliveries 200, DB state correct) plus signed real-payload regression tests
+- **ai/routes**: System prompts moved from `messages` to the top-level `instructions` option across suggestions, counterpoints, merges, connections, and chat
+  - Why: AI SDK 7 rejects system messages in `messages` at runtime, silently producing empty streams
+- **ci**: Security-audit workflow runs on Node 24 (AI SDK 7 and jest-dom 7 require Node >= 22)
+
+### Fixed
+
+- **api/maps, api/share/join-room**: Explicit null-narrowing and payload typing for stricter supabase-js insert/upsert generics
+- **billing/webhook-ordering**: Late Polar retries (e.g. a `subscription.created` delivered after a revoke) can no longer re-grant Pro access; handlers store the last applied Polar version and skip older events
+  - Why: Sandbox delivery logs showed 15-minute-late retries; verified live by replaying a July event against a newer row (skipped, 200)
+- **tooling**: ESLint and Jest now ignore nested `.worktrees/`
+  - Why: Lint crashed on a worktree's stale node_modules; Jest reported duplicate manual mocks
+- **tests/settings-panel**: Await async background-sync status before asserting badges (React 19.3 scheduling)
+- **tests/ai-routes**: AI route tests run under `@jest-environment node` (were failing with `Request is not defined`); fixed two stale assertions
+- **ai/suggestions**: `reasoningSummary: null` keeps v6 behaviour after AI SDK 7 began defaulting reasoning summaries to `detailed`
+- **billing/webhook**: Polar subscription payloads now allow a null `customer.email`
+
 ## [2026-07-18]
 
 ### Fixed

@@ -10,6 +10,12 @@ jest.mock('next/server', () => ({
 	},
 }));
 
+// AI usage RPCs are service_role-only; route them to the mock built by the test.
+let mockServiceRoleClient: unknown;
+jest.mock('@/helpers/supabase/server', () => ({
+	createServiceRoleClient: () => mockServiceRoleClient,
+}));
+
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import {
 	checkAIQuota,
@@ -138,10 +144,12 @@ function createSupabaseMock(options: SupabaseMockOptions = {}): SupabaseClient {
 		return { data: 0, error: null };
 	});
 
-	return {
+	const client = {
 		from,
 		rpc,
 	} as unknown as SupabaseClient;
+	mockServiceRoleClient = client;
+	return client;
 }
 
 function createUser(userId = '11111111-1111-4111-8111-111111111111'): User {
@@ -149,6 +157,24 @@ function createUser(userId = '11111111-1111-4111-8111-111111111111'): User {
 }
 
 describe('with-subscription-check', () => {
+	it('reads AI usage through the service-role client, not the user session', async () => {
+		const userClient = createSupabaseMock();
+		const serviceClient = createSupabaseMock({
+			rpcResponses: {
+				get_ai_usage: { data: 3, error: null },
+			},
+		});
+		mockServiceRoleClient = serviceClient;
+
+		await expect(getAIUsageCount(createUser(), userClient)).resolves.toBe(3);
+		expect(
+			(serviceClient as unknown as { rpc: jest.Mock }).rpc
+		).toHaveBeenCalledWith('get_ai_usage', expect.any(Object));
+		expect(
+			(userClient as unknown as { rpc: jest.Mock }).rpc
+		).not.toHaveBeenCalled();
+	});
+
 	it('throws when get_ai_usage RPC returns error', async () => {
 		const supabase = createSupabaseMock({
 			rpcResponses: {

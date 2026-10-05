@@ -3,6 +3,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMapNodeLimit } from '@/hooks/subscription/use-map-node-limit';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTouchFirst } from '@/hooks/use-touch-first';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
 import type { MentionableUser } from '@/types/notification';
@@ -18,6 +19,7 @@ import {
 	type FC,
 	type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
+import { cn } from '@/utils/cn';
 import { useShallow } from 'zustand/shallow';
 import { processNodeTypeSwitch } from '../../core/commands/command-executor';
 import { commandRegistry } from '../../core/commands/command-registry';
@@ -169,69 +171,6 @@ const shouldAutoProcessSwitch = (text: string): boolean => {
 	return !!command?.nodeType;
 };
 
-function matchesMediaQuery(query: string): boolean {
-	if (typeof window === 'undefined' || !window.matchMedia) {
-		return false;
-	}
-
-	return window.matchMedia(query).matches;
-}
-
-function isDesktopClassIpad(): boolean {
-	if (typeof navigator === 'undefined') {
-		return false;
-	}
-
-	return (
-		navigator.maxTouchPoints > 1 &&
-		/\b(iPad|Macintosh)\b/.test(navigator.userAgent)
-	);
-}
-
-function shouldUseTouchAutocompleteSurface(isMobile: boolean): boolean {
-	return (
-		isMobile ||
-		matchesMediaQuery('(pointer: coarse)') ||
-		matchesMediaQuery('(hover: none)') ||
-		isDesktopClassIpad()
-	);
-}
-
-function useTouchAutocompleteSurface(isMobile: boolean): boolean {
-	const [shouldUseTouchSurface, setShouldUseTouchSurface] = useState(() =>
-		shouldUseTouchAutocompleteSurface(isMobile)
-	);
-
-	useEffect(() => {
-		const updateTouchSurface = () => {
-			setShouldUseTouchSurface(shouldUseTouchAutocompleteSurface(isMobile));
-		};
-
-		updateTouchSurface();
-
-		if (typeof window === 'undefined' || !window.matchMedia) {
-			return;
-		}
-
-		const mediaQueries = [
-			window.matchMedia('(pointer: coarse)'),
-			window.matchMedia('(hover: none)'),
-		];
-
-		for (const mediaQuery of mediaQueries) {
-			mediaQuery.addEventListener('change', updateTouchSurface);
-		}
-
-		return () => {
-			for (const mediaQuery of mediaQueries) {
-				mediaQuery.removeEventListener('change', updateTouchSurface);
-			}
-		};
-	}, [isMobile]);
-
-	return shouldUseTouchSurface;
-}
-
 export const QuickInput: FC<QuickInputProps> = ({
 	nodeType: initialNodeType,
 	parentNode,
@@ -242,7 +181,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 	onboardingSource,
 }) => {
 	const isMobile = useIsMobile();
-	const usesTouchAutocompleteSurface = useTouchAutocompleteSurface(isMobile);
+	const isTouchFirst = useTouchFirst();
+	const usesTouchAutocompleteSurface = isMobile || isTouchFirst;
 
 	// Local UI state
 	const [preview, setPreview] = useState<QuickInputPreview | null>(null);
@@ -983,7 +923,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 					>
 						<TabsList className='grid h-full w-full grid-cols-[max-content_max-content] justify-start gap-0 border-b border-zinc-700/80 bg-transparent p-0 sm:w-fit sm:grid-cols-2'>
 							<TabsTrigger
-								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-4 text-sm text-zinc-400 [@media(hover:hover)]:hover:!bg-zinc-900/45 [@media(hover:hover)]:hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50 sm:px-2 sm:text-xs'
+								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-4 text-sm text-zinc-400 [@media(hover:hover)]:hover:!bg-zinc-900/45 [@media(hover:hover)]:hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[active]:!border-b-zinc-100 data-[active]:!bg-zinc-900/45 data-[active]:text-zinc-50 sm:px-2 sm:text-xs'
 								value='preview'
 							>
 								<Eye className='size-3.5' />
@@ -991,7 +931,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 							</TabsTrigger>
 
 							<TabsTrigger
-								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-4 text-sm text-zinc-400 [@media(hover:hover)]:hover:!bg-zinc-900/45 [@media(hover:hover)]:hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[selected]:!border-b-zinc-100 data-[selected]:!bg-zinc-900/45 data-[selected]:text-zinc-50 sm:px-2 sm:text-xs'
+								className='!h-full !rounded-none !border-0 !border-b-2 !border-transparent gap-1.5 px-4 text-sm text-zinc-400 [@media(hover:hover)]:hover:!bg-zinc-900/45 [@media(hover:hover)]:hover:text-zinc-100 aria-selected:!border-b-zinc-100 aria-selected:!bg-zinc-900/45 aria-selected:text-zinc-50 data-[active]:!border-b-zinc-100 data-[active]:!bg-zinc-900/45 data-[active]:text-zinc-50 sm:px-2 sm:text-xs'
 								value='syntax'
 							>
 								<CircleHelp className='size-3.5' />
@@ -1006,13 +946,25 @@ export const QuickInput: FC<QuickInputProps> = ({
 				{/* Parent reference when creating a child node */}
 				{parentNode && (
 					<div className='shrink-0 border-b border-zinc-800/80 px-4 py-3'>
-						<ParentNodeReference parentNode={parentNode} />
+						<ParentNodeReference
+							parentNode={parentNode}
+							label={
+								effectiveNodeType === 'annotationNode' &&
+								parentNode.data?.node_type !== 'annotationNode'
+									? 'Anchored to:'
+									: undefined
+							}
+						/>
 					</div>
 				)}
 
 				<div
-					className='grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(150px,0.48fr)_1px_minmax(170px,0.52fr)] overflow-hidden sm:h-[min(420px,calc(100dvh-10rem))] sm:max-h-[calc(100dvh-10rem)] sm:min-h-[min(360px,calc(100dvh-10rem))] sm:flex-none sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] sm:grid-rows-1'
 					data-testid='quick-input-body'
+					className={cn(
+						'grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(150px,0.48fr)_1px_minmax(170px,0.52fr)] overflow-hidden sm:h-[min(420px,calc(100dvh-10rem))] sm:max-h-[calc(100dvh-10rem)] sm:min-h-[min(360px,calc(100dvh-10rem))] sm:flex-none sm:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] sm:grid-rows-1',
+						// Full-screen editor on phones (incl. landscape): fill the height instead of the dialog's fixed body.
+						isMobile && 'sm:h-auto sm:max-h-none sm:min-h-0 sm:flex-1'
+					)}
 				>
 					<div
 						className='flex min-h-0 min-w-0 flex-col overflow-hidden'
@@ -1139,9 +1091,17 @@ export const QuickInput: FC<QuickInputProps> = ({
 						</motion.div>
 					)}
 
-				<div className='shrink-0' data-testid='quick-input-footer-row'>
+				<div
+					data-testid='quick-input-footer-row'
+					className={cn(
+						'shrink-0',
+						isMobile && 'pb-[env(safe-area-inset-bottom,0px)]'
+					)}
+				>
 					<ActionBar
 						className='mt-0 border-t border-zinc-800/80 px-4 py-3'
+						onCancel={isMobile ? closeNodeEditor : undefined}
+						showKeyboardHints={!usesTouchAutocompleteSurface}
 						isCreating={isCreating}
 						isCheckingLimit={isCreateLimitCheckLoading}
 						mode={mode}

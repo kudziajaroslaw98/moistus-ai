@@ -11,6 +11,7 @@ interface UseKeyboardShortcutsProps {
 	onUngroup?: () => void;
 	onToggleCollapse?: () => void;
 	onLayout?: () => void;
+	onOpenSearch?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -23,6 +24,7 @@ export function useKeyboardShortcuts({
 	onUngroup,
 	onToggleCollapse,
 	onLayout,
+	onOpenSearch,
 }: UseKeyboardShortcutsProps): void {
 	const reactFlowInstance = useAppStore((state) => state.reactFlowInstance);
 	const copySelectedNodes = useAppStore((state) => state.copySelectedNodes);
@@ -50,6 +52,14 @@ export function useKeyboardShortcuts({
 			}
 
 			const isCtrlCmd = event.ctrlKey || event.metaKey;
+
+			// Ctrl/Cmd + F: canvas search (replaces browser find on map routes)
+			if (isCtrlCmd && event.key.toLowerCase() === 'f' && !event.shiftKey) {
+				if (isInputFocused || !onOpenSearch) return;
+				event.preventDefault();
+				onOpenSearch();
+				return;
+			}
 
 			if (isCtrlCmd && event.key.toLowerCase() === 'c') {
 				event.preventDefault();
@@ -127,5 +137,6 @@ export function useKeyboardShortcuts({
 		onGroup,
 		onUngroup,
 		onToggleCollapse,
+		onOpenSearch,
 	]);
 }

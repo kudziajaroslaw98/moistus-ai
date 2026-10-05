@@ -1306,3 +1306,23 @@ export function buildHistoryPresentation(
 		technicalChanges: delta.changes,
 	};
 }
+
+/**
+ * Distinct property labels a change touched (e.g. ["Width", "Height"]), in
+ * first-seen order. Bookkeeping fields (timestamps, ids, raw position) are
+ * skipped. Used by the history list to describe and group rows without
+ * fetching each delta.
+ */
+export function collectHistoryFieldLabels(
+	presentation: HistoryPresentation
+): string[] {
+	const labels: string[] = [];
+	for (const subject of presentation.subjects) {
+		for (const change of subject.changes) {
+			if (change.kind !== 'field' || !change.fieldKey) continue;
+			if (SUMMARY_NOISE_FIELDS.has(change.fieldKey)) continue;
+			if (!labels.includes(change.label)) labels.push(change.label);
+		}
+	}
+	return labels;
+}

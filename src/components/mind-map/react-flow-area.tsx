@@ -1,4 +1,5 @@
 'use client';
+import { GROUP_NODE_Z_INDEX } from '@/constants/group';
 import { GRID_SIZE } from '@/constants/grid';
 import { NodeRegistry } from '@/registry/node-registry';
 import {
@@ -30,19 +31,25 @@ import {
 import { ChatPanel } from '@/components/ai-chat';
 import { SettingsPanel } from '@/components/dashboard/settings-panel';
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
+import AnnotationTetherEdge from '@/components/edges/annotation-tether-edge';
+import CollapsedProxyEdge from '@/components/edges/collapsed-proxy-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
+import { CanvasSearchBar } from '@/components/mind-map/canvas-search-bar';
 import { ModeIndicator } from '@/components/mode-indicator';
 import { useNotifications } from '@/components/notifications/use-notifications';
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
 import { ShortcutsHelpFab } from '@/components/shortcuts-help/shortcuts-help-fab';
+import { buildAnnotationTetherEdges } from '@/helpers/anchored-annotations';
+import { isDerivedDisplayEdgeId } from '@/helpers/derived-display-edges';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
 import { useUpgradePrompt } from '@/hooks/subscription/use-upgrade-prompt';
 import { useAnimatedLayout } from '@/hooks/use-animated-layout';
 import { useContextMenu } from '@/hooks/use-context-menu';
+import { useGroupDragMembership } from '@/hooks/use-group-drag-membership';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useMultiTouchShortcuts } from '@/hooks/use-multi-touch-shortcuts';
 import { useNodeSuggestion } from '@/hooks/use-node-suggestion';
@@ -352,16 +359,23 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	// getVisibleNodes() returns new array on each call via .filter()
 	// Without memoization, ReactFlow sees "new" arrays every render → triggers onNodesChange → state update → re-render loop
 	// isCommentMode is needed because getVisibleNodes() filters based on it internally
+	// Group containers render below their members so members stay clickable/editable.
 	const visibleNodes = useMemo(() => {
-		return [...getVisibleNodes(), ...ghostNodes];
+		const groupAwareNodes = getVisibleNodes().map((node) =>
+			node.data.metadata?.isGroup
+				? { ...node, zIndex: GROUP_NODE_Z_INDEX }
+				: node
+		);
+		return [...groupAwareNodes, ...ghostNodes];
 	}, [nodes, ghostNodes, getVisibleNodes, isCommentMode]);
 
 	// Memoize visible edges to prevent infinite re-renders
 	// Edge visibility depends on node visibility (collapsed nodes hide their edges)
 	// isCommentMode affects which nodes are visible, which affects edge visibility
+	// Anchored-annotation tethers are derived here (display-only, never stored).
 	const visibleEdges = useMemo(() => {
-		return getVisibleEdges();
-	}, [edges, nodes, getVisibleEdges, isCommentMode]);
+		return [...getVisibleEdges(), ...buildAnnotationTetherEdges(visibleNodes)];
+	}, [edges, getVisibleEdges, visibleNodes]);
 	const [displayNodes, setDisplayNodes] = useState<AppNode[]>(visibleNodes);
 	const [displayEdges, setDisplayEdges] = useState<AppEdge[]>(visibleEdges);
 	const displayNodesRef = useRef<AppNode[]>(visibleNodes);
@@ -661,6 +675,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
 		(event, edge) => {
+			if (isDerivedDisplayEdgeId(edge.id)) return;
 			// Waypoint edges add a bend point on double-click instead of opening edge edit.
 			if (
 				edge.type === 'waypointEdge' ||
@@ -690,6 +705,8 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 	const edgeTypes: EdgeTypes = useMemo(
 		() => ({
+			annotationTether: AnnotationTetherEdge,
+			collapsedProxy: CollapsedProxyEdge,
 			suggestedMerge: SuggestedMergeEdge,
 			suggestedConnection: SuggestedConnectionEdge,
 			animatedGhostEdge: AnimatedGhostEdge,
@@ -775,13 +792,19 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		setDragging(); // Track dragging activity
 	}, [setIsDraggingNodes, isDraggingNodes, setDragging]);
 
+	const {
+		onNodeDrag: handleNodeDrag,
+		onNodeDragStop: handleGroupMembershipDragStop,
+	} = useGroupDragMembership({ canEdit });
+
 	const handleNodeDragStop = useCallback(() => {
+		handleGroupMembershipDragStop();
 		// Short delay to ensure drag operation completes before allowing auto-resize
 		setTimeout(() => {
 			setIsDraggingNodes(false);
 			setViewing(); // Return to viewing state
 		}, 100);
-	}, [setIsDraggingNodes, setViewing]);
+	}, [handleGroupMembershipDragStop, setIsDraggingNodes, setViewing]);
 
 	const handleToggleSharePanel = useCallback(() => {
 		setPopoverOpen({ sharePanel: true });
@@ -880,6 +903,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					onNodeClick={handleNodeClick}
 					onNodeDoubleClick={handleNodeDoubleClick}
 					onNodeContextMenu={contextMenuHandlers.onNodeContextMenu}
+					onNodeDrag={handleNodeDrag}
 					onNodeDragStart={handleNodeDragStart}
 					onNodeDragStop={handleNodeDragStop}
 					onNodesChange={onNodesChange}
@@ -943,6 +967,10 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 								onMobileTapMultiSelectChange={setMobileTapMultiSelectEnabled}
 							/>
 						</div>
+					</Panel>
+
+					<Panel className='mt-16' position='top-center'>
+						<CanvasSearchBar />
 					</Panel>
 
 					<Panel className='m-4 pt-10' position='top-right'></Panel>

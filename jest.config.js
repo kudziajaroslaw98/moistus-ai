@@ -41,6 +41,9 @@ const customJestConfig = {
 		'^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
 	},
 
+	// Nested git worktrees carry their own src/ copies and mocks
+	modulePathIgnorePatterns: ['<rootDir>/.worktrees/'],
+
 	// Module file extensions
 	moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
 

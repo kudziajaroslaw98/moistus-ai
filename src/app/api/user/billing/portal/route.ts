@@ -1,4 +1,5 @@
 import { createClient } from '@/helpers/supabase/server';
+import { getPolarEnvironment } from '@/lib/polar';
 import { CustomerPortal } from '@polar-sh/nextjs';
 
 /**
@@ -8,7 +9,7 @@ import { CustomerPortal } from '@polar-sh/nextjs';
  */
 export const GET = CustomerPortal({
 	accessToken: process.env.POLAR_ACCESS_TOKEN!,
-	server: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
+	environment: getPolarEnvironment(),
 
 	getCustomerId: async () => {
 		const supabase = await createClient();
