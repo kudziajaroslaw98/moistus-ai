@@ -15,7 +15,7 @@ import type { AppNode } from '@/types/app-node';
 import { ContextMenuState } from '@/types/context-menu-state';
 import type { EdgeData } from '@/types/edge-data';
 import type { ExtensionsSlice, GraphActor } from '@/types/extensions';
-import type { PluginsSlice } from '@/types/plugins';
+import type { PluginKindRef, PluginsSlice } from '@/types/plugins';
 import type {
 	AttributedHistoryDelta,
 	HistoryItem,
@@ -512,6 +512,8 @@ export interface NodeEditorState {
 	parentNode: AppNode | null;
 	existingNodeId: string | null; // For edit mode
 	suggestedType: AvailableNodeTypes | null;
+	/** Plugin kind to create when suggestedType is `extensionNode`. */
+	extensionKind: PluginKindRef | null;
 	initialValue: string | null;
 	onboardingSource: 'onboarding-pattern' | null;
 }
@@ -523,6 +525,7 @@ export interface NodeEditorOptions {
 	parentNode?: AppNode | null;
 	existingNodeId?: string | null;
 	suggestedType?: AvailableNodeTypes | null;
+	extensionKind?: PluginKindRef | null;
 	initialValue?: string | null;
 	onboardingSource?: 'onboarding-pattern' | null;
 	openTypePicker?: boolean;

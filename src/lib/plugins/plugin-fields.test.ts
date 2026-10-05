@@ -2,6 +2,7 @@ import metricManifest from '../../../public/plugins/shiko.metric/0.1.0/manifest.
 import { pluginManifestSchema } from './manifest-schema';
 import {
 	parsePluginFieldInput,
+	scanPluginFieldTokens,
 	serializePluginFieldInput,
 	validatePluginData,
 } from './plugin-fields';
@@ -151,5 +152,16 @@ describe('validatePluginData', () => {
 		expect(
 			validatePluginData(metric, { label: 'x'.repeat(20_000), target: 1 }).ok
 		).toBe(false);
+	});
+});
+
+describe('scanPluginFieldTokens', () => {
+	it('finds only the given fields, for highlighting', () => {
+		const text = 'Users status:done target:2000 unit:"k €"';
+
+		expect(scanPluginFieldTokens(text, new Set(['target', 'unit']))).toEqual([
+			{ from: 18, to: 29, field: 'target' },
+			{ from: 30, to: 40, field: 'unit' },
+		]);
 	});
 });

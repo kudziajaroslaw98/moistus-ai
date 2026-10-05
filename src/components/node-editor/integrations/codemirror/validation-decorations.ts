@@ -14,6 +14,7 @@ import {
 	hoverTooltip,
 } from '@codemirror/view';
 import { validateInput } from '../../core/validators/input-validator';
+import { readPluginFields } from './plugin-fields';
 
 /**
  * State effect for updating validation decorations
@@ -51,6 +52,8 @@ function buildValidationDecorations(view: EditorView): DecorationSet {
 		decoration: Decoration;
 	}> = [];
 	const text = view.state.doc.toString();
+	// Built-in rules don't apply to plugin node types; their fields are checked on save.
+	if (readPluginFields(view.state)) return Decoration.none;
 
 	// Get validation result
 	const validationResult = validateInput(text);

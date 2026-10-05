@@ -16,6 +16,7 @@ import {
 } from '@codemirror/autocomplete';
 import type { EditorView } from '@codemirror/view';
 import { commandRegistry } from '../../core/commands/command-registry';
+import { readPluginFields, type PluginFieldSpecLite } from './plugin-fields';
 
 // ============================================================================
 // COLLABORATOR MENTION TYPE
@@ -326,6 +327,44 @@ function createChainedApply(insertText: string) {
 // MAIN COMPLETION SOURCE
 // ============================================================================
 
+const PLUGIN_KINDS_SECTION = { name: 'Plugins on this map', rank: 1 };
+
+/** Field names (`target:`) and enum/boolean values for a plugin node type. */
+function completePluginFields(
+	word: { from: number; text: string },
+	explicit: boolean,
+	fields: PluginFieldSpecLite[]
+): CompletionResult | null {
+	const valueMatch = word.text.match(/^([a-z][a-zA-Z0-9]*):(\S*)$/);
+	if (valueMatch) {
+		const field = fields.find((candidate) => candidate.name === valueMatch[1]);
+		const values =
+			field?.type === 'enum'
+				? (field.options ?? [])
+				: field?.type === 'boolean'
+					? ['yes', 'no']
+					: [];
+		const options = values
+			.filter((value) => value.startsWith(valueMatch[2]))
+			.map((value) => ({ label: value, type: 'enum', apply: `${value} ` }));
+		return options.length > 0
+			? { from: word.from + valueMatch[1].length + 1, options, validFor: /^[\w-]*$/ }
+			: null;
+	}
+
+	const isFieldStart = /^[a-z][a-zA-Z0-9]*$/.test(word.text);
+	if (!isFieldStart && !(explicit && word.text === '')) return null;
+	const options = fields
+		.filter((field) => field.name.startsWith(word.text))
+		.map((field) => ({
+			label: `${field.name}:`,
+			type: 'property',
+			detail: field.title,
+			apply: createChainedApply(`${field.name}:`),
+		}));
+	return options.length > 0 ? { from: word.from, options, validFor: /^\w*$/ } : null;
+}
+
 /**
  * Main completion source
  * @returns source - CompletionSource for CodeMirror autocompletion
@@ -346,6 +385,12 @@ export function createCompletions(
 		if (!word) return null;
 
 		const prefix = word.text;
+
+		// Plugin node types: only their own fields (node type triggers still work).
+		const pluginFields = readPluginFields(context.state);
+		if (pluginFields && !prefix.startsWith('$')) {
+			return completePluginFields(word, explicit, pluginFields);
+		}
 
 		// ================================================================
 		// TAG COMPLETIONS (#)
@@ -722,6 +767,9 @@ export function createCompletions(
 					type: 'class',
 					apply: cmd.trigger + ' ',
 					info: cmd.description,
+					...(cmd.extension
+						? { detail: cmd.label, section: PLUGIN_KINDS_SECTION }
+						: {}),
 				}));
 
 			if (options.length === 0) return null;

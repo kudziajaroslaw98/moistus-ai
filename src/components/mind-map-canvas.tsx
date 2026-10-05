@@ -17,6 +17,7 @@ import { useParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { AIStreamMediator } from './ai/ai-stream-mediator';
+import { PluginRegistrar } from './plugins/plugin-registrar';
 import { RecipeContributionsRegistrar } from './recipes/recipe-contributions-registrar';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
 import { StreamingToast } from './streaming-toast';
@@ -234,6 +235,8 @@ export function MindMapCanvas() {
 				<AIStreamMediator />
 
 				<RecipeContributionsRegistrar />
+
+				<PluginRegistrar />
 
 				<StreamingToast />
 

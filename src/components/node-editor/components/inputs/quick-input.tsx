@@ -4,6 +4,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMapNodeLimit } from '@/hooks/subscription/use-map-node-limit';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTouchFirst } from '@/hooks/use-touch-first';
+import { findActivePluginKind } from '@/lib/plugins/active-plugins';
+import {
+	parsePluginFieldInput,
+	serializePluginFieldInput,
+	validatePluginData,
+} from '@/lib/plugins/plugin-fields';
+import { loadPluginHost } from '@/lib/plugins/runtime/load-plugin-host';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import useAppStore from '@/store/mind-map-store';
 import type { MentionableUser } from '@/types/notification';
@@ -50,6 +57,9 @@ import { ExamplesSection } from '../examples-section';
 import { ParentNodeReference } from '../parent-node-reference';
 import { ParsingLegend } from '../parsing-legend';
 import { PreviewSection } from '../preview-section';
+import { PluginEditorPreview } from '../preview/plugin-editor-preview';
+import { toPluginFieldSpecs } from '../../integrations/codemirror/plugin-fields';
+import { buildPluginKindConfig, buildPluginNodeSaveData } from '../../plugin-kind-editor';
 import { EnhancedInput } from './enhanced-input';
 import { MobileCompletionTray } from './mobile-completion-tray';
 
@@ -179,6 +189,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 	existingNode,
 	initialValue,
 	onboardingSource,
+	extensionKind: initialExtensionKind = null,
 }) => {
 	const isMobile = useIsMobile();
 	const isTouchFirst = useTouchFirst();
@@ -222,6 +233,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 	const {
 		quickInputValue: value,
 		quickInputNodeType: currentNodeType,
+		quickInputExtensionKind: currentExtensionKind,
 		quickInputCursorPosition: cursorPosition,
 		setQuickInputValue: setValue,
 		setQuickInputNodeType: setCurrentNodeType,
@@ -229,10 +241,12 @@ export const QuickInput: FC<QuickInputProps> = ({
 		initializeQuickInput,
 		currentShares,
 		mapId,
+		loadedPlugins,
 	} = useAppStore(
 		useShallow((state) => ({
 			quickInputValue: state.quickInputValue,
 			quickInputNodeType: state.quickInputNodeType,
+			quickInputExtensionKind: state.quickInputExtensionKind,
 			quickInputCursorPosition: state.quickInputCursorPosition,
 			setQuickInputValue: state.setQuickInputValue,
 			setQuickInputNodeType: state.setQuickInputNodeType,
@@ -240,6 +254,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 			initializeQuickInput: state.initializeQuickInput,
 			currentShares: state.currentShares,
 			mapId: state.mapId,
+			loadedPlugins: state.loadedPlugins,
 		}))
 	);
 
@@ -266,18 +281,57 @@ export const QuickInput: FC<QuickInputProps> = ({
 	);
 
 	const effectiveNodeType = currentNodeType || initialNodeType || 'defaultNode';
+	// Plugin node kinds (`$metric`): fields, Syntax Help and preview come from the plugin.
+	const effectiveExtensionKind =
+		effectiveNodeType === 'extensionNode'
+			? (currentExtensionKind ?? initialExtensionKind)
+			: null;
+	const activePluginKind = useMemo(
+		() =>
+			effectiveExtensionKind
+				? findActivePluginKind(
+						loadedPlugins,
+						effectiveExtensionKind.pluginId,
+						effectiveExtensionKind.kind
+					)
+				: null,
+		[loadedPlugins, effectiveExtensionKind]
+	);
+	const isPluginNode = effectiveNodeType === 'extensionNode';
+	const pluginFieldSpecs = useMemo(
+		() => (activePluginKind ? toPluginFieldSpecs(activePluginKind.kind) : null),
+		[activePluginKind]
+	);
 	const config = useMemo(
-		() => getNodeTypeConfig(effectiveNodeType),
-		[effectiveNodeType]
+		() =>
+			activePluginKind
+				? buildPluginKindConfig(activePluginKind)
+				: getNodeTypeConfig(effectiveNodeType),
+		[effectiveNodeType, activePluginKind]
 	);
 	const universalPatterns = useMemo(
-		() => getUniversalParsingPatterns(effectiveNodeType),
-		[effectiveNodeType]
+		() => (isPluginNode ? [] : getUniversalParsingPatterns(effectiveNodeType)),
+		[effectiveNodeType, isPluginNode]
 	);
 	const nodeSpecificPatterns = useMemo(
-		() => getNodeSpecificParsingPatterns(effectiveNodeType),
-		[effectiveNodeType]
+		() =>
+			isPluginNode
+				? config.parsingPatterns
+				: getNodeSpecificParsingPatterns(effectiveNodeType),
+		[effectiveNodeType, isPluginNode, config]
 	);
+	const pluginDraft = useMemo(
+		() =>
+			activePluginKind
+				? parsePluginFieldInput(
+						value.replace(/\$\w+\s*/, '').trim(),
+						activePluginKind.kind
+					)
+				: null,
+		[value, activePluginKind]
+	);
+	const pluginDraftInvalid =
+		isPluginNode && (!pluginDraft || pluginDraft.errors.length > 0);
 	const hasSyntaxPatterns =
 		universalPatterns.length > 0 || nodeSpecificPatterns.length > 0;
 	const showOnboardingPatternHint =
@@ -398,6 +452,23 @@ export const QuickInput: FC<QuickInputProps> = ({
 		if (mode === 'edit' && existingNode) {
 			// Edit mode: initialize with existing node content (only once)
 			const nodeType = initialNodeType || 'defaultNode';
+			const extension = existingNode.data.metadata?.extension;
+			if (nodeType === 'extensionNode' && extension) {
+				const active = findActivePluginKind(
+					useAppStore.getState().loadedPlugins,
+					extension.pluginId,
+					extension.kind
+				);
+				const checked = active ? validatePluginData(active.kind, extension.data) : null;
+				initializeQuickInput(
+					active && checked?.ok
+						? serializePluginFieldInput(active.kind, checked.data)
+						: (existingNode.data.content ?? ''),
+					nodeType,
+					{ pluginId: extension.pluginId, kind: extension.kind }
+				);
+				return;
+			}
 			const initialContent = transformNodeToQuickInputString(
 				existingNode,
 				nodeType
@@ -408,14 +479,18 @@ export const QuickInput: FC<QuickInputProps> = ({
 				initialValue &&
 				(onboardingSource === 'onboarding-pattern' || initialValue.length > 0)
 			) {
-				initializeQuickInput(initialValue, initialNodeType || 'defaultNode');
+				initializeQuickInput(
+					initialValue,
+					initialNodeType || 'defaultNode',
+					initialExtensionKind
+				);
 				return;
 			}
 
 			// Create mode: only set initial node type if none exists
 			// Don't override user-selected node types from $nodeType switching
 			if (!currentNodeType && initialNodeType) {
-				setCurrentNodeType(initialNodeType);
+				setCurrentNodeType(initialNodeType, initialExtensionKind);
 			}
 			// Don't reset value in create mode to preserve user input across remounts
 		}
@@ -424,6 +499,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		existingNode?.id,
 		initialValue,
 		initialNodeType,
+		initialExtensionKind,
 		initializeQuickInput,
 		onboardingSource,
 		setCurrentNodeType,
@@ -510,21 +586,30 @@ export const QuickInput: FC<QuickInputProps> = ({
 		// The primary processing should happen via CodeMirror events
 		if (shouldAutoProcessSwitch(value)) {
 			const processed = processNodeTypeSwitch(value);
+			const nextKind = processed.extension ?? null;
+			const kindChanged =
+				nextKind?.pluginId !== currentExtensionKind?.pluginId ||
+				nextKind?.kind !== currentExtensionKind?.kind;
+			// M1: plugin nodes keep their type in edit mode, and existing nodes can't
+			// become plugin nodes there.
+			const blockedInEdit =
+				mode === 'edit' && (currentNodeType === 'extensionNode' || Boolean(nextKind));
 
 			if (
 				processed.hasSwitch &&
 				processed.nodeType &&
-				processed.nodeType !== currentNodeType
+				!blockedInEdit &&
+				(processed.nodeType !== currentNodeType || kindChanged)
 			) {
 				// Update node type and clean text
-				setCurrentNodeType(processed.nodeType as AvailableNodeTypes);
+				setCurrentNodeType(processed.nodeType as AvailableNodeTypes, nextKind);
 				setValue(processed.processedText);
 				lastProcessedText.current = processed.processedText;
 
 				// Announce the change
-				const nodeTypeName = processed.nodeType
-					.replace('Node', '')
-					.toLowerCase();
+				const nodeTypeName = nextKind
+					? nextKind.kind
+					: processed.nodeType.replace('Node', '').toLowerCase();
 				announceToScreenReader(`Switched to ${nodeTypeName} node type`);
 
 				// Update cursor position if needed
@@ -538,6 +623,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 		value,
 		cursorPosition,
 		currentNodeType,
+		currentExtensionKind,
+		mode,
 		setCurrentNodeType,
 		setValue,
 		setCursorPosition,
@@ -600,7 +687,8 @@ export const QuickInput: FC<QuickInputProps> = ({
 			value.trim().length === 0 ||
 			isCreateBlockedByNodeLimit ||
 			isCreateLimitCheckLoading ||
-			isCreating
+			isCreating ||
+			pluginDraftInvalid
 		) {
 			return;
 		}
@@ -611,8 +699,29 @@ export const QuickInput: FC<QuickInputProps> = ({
 			// Clean the input by removing any $nodeType command from anywhere
 			const cleanValue = value.replace(/\$\w+\s*/, '').trim() || value;
 
-			// Parse the input
-			const nodeData = parseInput(cleanValue);
+			// Parse the input (plugin node kinds use their own typed fields)
+			let nodeData: ReturnType<typeof parseInput>;
+			if (isPluginNode) {
+				if (!activePluginKind || !pluginDraft) {
+					throw new Error('This plugin isn’t running on this map');
+				}
+				// Save the plugin's view too, so people without the plugin see it.
+				const rendered = await loadPluginHost()
+					.then((host) =>
+						host.render(activePluginKind.manifest.id, activePluginKind.kind, pluginDraft.data, {
+							canEdit: true,
+						})
+					)
+					.catch(() => null);
+				nodeData = buildPluginNodeSaveData(
+					activePluginKind,
+					pluginDraft,
+					rendered,
+					existingNode?.data.metadata?.extension
+				) as ReturnType<typeof parseInput>;
+			} else {
+				nodeData = parseInput(cleanValue);
+			}
 			const rawAssignees = Array.isArray(nodeData.metadata?.assignee)
 				? nodeData.metadata.assignee
 				: typeof nodeData.metadata?.assignee === 'string'
@@ -764,6 +873,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 		mapId,
 		mentionSlugToUserId,
 		handleOnboardingNodeCreated,
+		isPluginNode,
+		activePluginKind,
+		pluginDraft,
+		pluginDraftInvalid,
 	]);
 
 	// Handle pattern insertion from legend
@@ -913,6 +1026,12 @@ export const QuickInput: FC<QuickInputProps> = ({
 							label={config.label}
 							showSparkles={false}
 						/>
+
+						{activePluginKind && (
+							<span className='ml-2 shrink-0 text-xs text-zinc-500'>
+								{`· ${activePluginKind.manifest.name} plugin`}
+							</span>
+						)}
 					</div>
 
 					<div className='hidden bg-zinc-800/80 sm:block' />
@@ -983,6 +1102,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 							onKeyDown={handleKeyDown}
 							onNodeTypeChange={handleNodeTypeChange}
 							onSelectionChange={handleSelectionChange}
+							pluginFields={pluginFieldSpecs}
 							placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
 							showNativeAutocomplete={!usesTouchAutocompleteSurface}
 							value={value}
@@ -1006,12 +1126,20 @@ export const QuickInput: FC<QuickInputProps> = ({
 							className='mt-0 h-full min-h-0 overflow-hidden'
 							value='preview'
 						>
-							<PreviewSection
-								className='h-full'
-								hasInput={value.trim().length > 0}
-								nodeType={effectiveNodeType}
-								preview={preview}
-							/>
+							{isPluginNode ? (
+								<PluginEditorPreview
+									active={activePluginKind}
+									hasInput={value.trim().length > 0}
+									parsed={pluginDraft}
+								/>
+							) : (
+								<PreviewSection
+									className='h-full'
+									hasInput={value.trim().length > 0}
+									nodeType={effectiveNodeType}
+									preview={preview}
+								/>
+							)}
 						</TabsContent>
 
 						<TabsContent
@@ -1108,6 +1236,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 						onCreate={handleCreate}
 						canCreate={
 							value.trim().length > 0 &&
+							!pluginDraftInvalid &&
 							(!isCreateMode ||
 								(!isCreateBlockedByNodeLimit && !isCreateLimitCheckLoading))
 						}

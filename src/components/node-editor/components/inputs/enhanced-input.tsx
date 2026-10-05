@@ -21,6 +21,10 @@ import { Command } from '../../core/commands/command-types';
 import { validateInput } from '../../core/validators/input-validator';
 import type { CollaboratorMention } from '../../integrations/codemirror/completions';
 import {
+	setPluginFieldsEffect,
+	type PluginFieldSpecLite,
+} from '../../integrations/codemirror/plugin-fields';
+import {
 	createNodeEditor,
 	type NodeEditorView,
 } from '../../integrations/codemirror/setup';
@@ -56,6 +60,8 @@ interface EnhancedInputProps {
 	showNativeAutocomplete?: boolean;
 	enableCommands?: boolean; // Feature flag
 	collaborators?: CollaboratorMention[];
+	/** Set for plugin node types: highlighting and autocomplete use these fields. */
+	pluginFields?: PluginFieldSpecLite[] | null;
 }
 
 export const EnhancedInput = ({
@@ -77,6 +83,7 @@ export const EnhancedInput = ({
 	showNativeAutocomplete = true,
 	enableCommands = true, // Default enabled
 	collaborators,
+	pluginFields = null,
 	...rest
 }: EnhancedInputProps) => {
 	const editorRef = useRef<HTMLDivElement>(null);
@@ -85,6 +92,7 @@ export const EnhancedInput = ({
 	const [validationTooltipOpen, setValidationTooltipOpen] = useState(false);
 	const initializedRef = useRef(false);
 	const lastKnownValueRef = useRef(value);
+	const pluginFieldsRef = useRef(pluginFields);
 
 	// Store the latest callbacks in refs to avoid stale closures
 	const onKeyDownRef = useRef(onKeyDown);
@@ -112,6 +120,8 @@ export const EnhancedInput = ({
 
 	// Get validation results with error boundary using new validator
 	const validationErrors = useMemo(() => {
+		// Built-in rules don't apply to plugin node types.
+		if (pluginFields) return [];
 		try {
 			const result = validateInput(value);
 			return [...(result.errors || []), ...(result.warnings || [])];
@@ -119,7 +129,7 @@ export const EnhancedInput = ({
 			console.error('Validation error:', error);
 			return [];
 		}
-	}, [value]);
+	}, [value, pluginFields]);
 	const hasErrors = validationErrors.some((error) => error.type === 'error');
 	const hasWarnings = validationErrors.some(
 		(error) => error.type === 'warning'
@@ -310,6 +320,9 @@ export const EnhancedInput = ({
 
 			editorViewRef.current = view;
 			initializedRef.current = true;
+			if (pluginFieldsRef.current) {
+				view.dispatch({ effects: setPluginFieldsEffect.of(pluginFieldsRef.current) });
+			}
 			onAutocompleteControllerReadyRef.current?.({
 				acceptOption: (index: number) => {
 					if (!editorViewRef.current) {
@@ -416,6 +429,11 @@ export const EnhancedInput = ({
 			}
 		};
 	}, [collaborators]); // Recreate only when the completion source changes structurally
+
+	useEffect(() => {
+		pluginFieldsRef.current = pluginFields;
+		editorViewRef.current?.dispatch({ effects: setPluginFieldsEffect.of(pluginFields) });
+	}, [pluginFields]);
 
 	useEffect(() => {
 		editorViewRef.current?.updateRuntimeConfig({

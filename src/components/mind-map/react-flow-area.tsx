@@ -754,16 +754,31 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					(node) => node.id === connectingNodeId.current
 				);
 
+				// Dragging out of a plugin node offers the same kind when its plugin runs.
+				const parentExtension =
+					parentNode?.data?.node_type === 'extensionNode'
+						? parentNode.data.metadata?.extension
+						: null;
+				const parentKind =
+					parentExtension &&
+					useAppStore
+						.getState()
+						.getActivePluginKind(parentExtension.pluginId, parentExtension.kind)
+						? { pluginId: parentExtension.pluginId, kind: parentExtension.kind }
+						: null;
+
 				openNodeEditor({
 					position: flowPosition,
 					screenPosition,
 					parentNode: parentNode ?? null,
 					mode: 'create',
-					// A plugin node's kind can't be inferred from node_type alone.
 					suggestedType:
 						parentNode?.data?.node_type === 'extensionNode'
-							? 'defaultNode'
+							? parentKind
+								? 'extensionNode'
+								: 'defaultNode'
 							: (parentNode?.data?.node_type ?? 'defaultNode'),
+					extensionKind: parentKind,
 				});
 			}
 

@@ -3,6 +3,12 @@ import type {
 	PluginNodeKind,
 } from '@/lib/plugins/manifest-schema';
 
+/** Identifies a plugin node kind: the plugin and one of its kinds. */
+export interface PluginKindRef {
+	pluginId: string;
+	kind: string;
+}
+
 /** A plugin the map owner turned on (a `map_plugins` row). */
 export interface MapPluginRecord {
 	pluginId: string;

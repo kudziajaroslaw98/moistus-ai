@@ -38,6 +38,21 @@ export interface ParsedPluginFields {
 /** `name:value` or `name:"quoted value"`, starting a line or after whitespace. */
 const FIELD_TOKEN = /(^|\s)([a-z][a-zA-Z0-9]{0,23}):(?:"([^"\n]*)"|([^\s"]+))/g;
 
+/** Where the given fields appear in editor text (for highlighting). */
+export function scanPluginFieldTokens(
+	text: string,
+	fieldNames: ReadonlySet<string>
+): Array<{ from: number; to: number; field: string }> {
+	const tokens: Array<{ from: number; to: number; field: string }> = [];
+	for (const match of text.matchAll(FIELD_TOKEN)) {
+		const [whole, lead, name] = match;
+		if (!fieldNames.has(name)) continue;
+		const from = (match.index ?? 0) + lead.length;
+		tokens.push({ from, to: (match.index ?? 0) + whole.length, field: name });
+	}
+	return tokens;
+}
+
 const TRUE_WORDS = new Set(['true', 'yes', 'on', '1']);
 const FALSE_WORDS = new Set(['false', 'no', 'off', '0']);
 

@@ -31,6 +31,7 @@ import {
 	getEditorAutocompleteState,
 } from './autocomplete-state';
 import { type CollaboratorMention, createCompletions } from './completions';
+import { pluginFieldsField } from './plugin-fields';
 import { createPatternDecorations } from './pattern-decorations';
 import { nodeEditorTheme } from './theme';
 import { getTooltipSpace } from './tooltip-viewport';
@@ -258,6 +259,7 @@ export function createNodeEditor(
 			)
 		),
 
+		pluginFieldsField,
 		...(enablePatternHighlighting ? [createPatternDecorations()] : []),
 		...(enableValidation ? [createValidationDecorations()] : []),
 

@@ -1,4 +1,5 @@
 import { BLOCKED_NODE_TYPES } from '@/constants/blocked-node-types';
+import { toast } from 'sonner';
 import { StateCreator } from 'zustand';
 import { AppState, UIStateSlice } from '../app-state';
 
@@ -50,6 +51,7 @@ export const createUiStateSlice: StateCreator<
 		parentNode: null,
 		existingNodeId: null,
 		suggestedType: null,
+		extensionKind: null,
 		initialValue: null,
 		onboardingSource: null,
 	},
@@ -96,6 +98,24 @@ export const createUiStateSlice: StateCreator<
 			if (node && BLOCKED_NODE_TYPES.has(node.data.node_type ?? '')) {
 				return;
 			}
+			// Plugin nodes are edited with their plugin's fields, so it must be running.
+			const extension = node?.data.metadata?.extension;
+			if (
+				node?.data.node_type === 'extensionNode' &&
+				(!extension || !get().getActivePluginKind(extension.pluginId, extension.kind))
+			) {
+				toast.info(
+					extension
+						? `Turn on the ${extension.kindLabel ?? extension.kind} plugin to edit this node`
+						: 'This node can’t be edited'
+				);
+				return;
+			}
+		}
+		const extensionKind =
+			options.suggestedType === 'extensionNode' ? (options.extensionKind ?? null) : null;
+		if (options.mode === 'create' && options.suggestedType === 'extensionNode' && !extensionKind) {
+			return;
 		}
 
 		set({
@@ -108,6 +128,7 @@ export const createUiStateSlice: StateCreator<
 				parentNode: options.parentNode || null,
 				existingNodeId: options.existingNodeId || null,
 				suggestedType: options.suggestedType || null,
+				extensionKind,
 				initialValue: options.initialValue ?? null,
 				onboardingSource: options.onboardingSource ?? null,
 			},

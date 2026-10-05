@@ -167,6 +167,7 @@ export const createCoreDataSlice: StateCreator<
 				parentNode: null,
 				existingNodeId: null,
 				suggestedType: null,
+				extensionKind: null,
 				initialValue: null,
 				onboardingSource: null,
 			},
