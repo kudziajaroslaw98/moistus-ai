@@ -291,6 +291,7 @@ shiko/
 | **realtime-slice**        | 17    | Selection sync                                                                |
 | **permissions-slice**     | —     | Map role/permissions + realtime permission updates                            |
 | **extensions-slice**      | 48    | Contribution registry (built-in AI actions, palette commands, starter recipes, plugin entries) |
+| **plugins-slice**         | 349   | Per-map plugins: enabled list (`map_plugins`), loading manifests/code into the sandbox, developer plugins |
 
 ### Node System (13 Types)
 
@@ -339,6 +340,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `GET/POST /api/recipes`, `PATCH/DELETE /api/recipes/[id]` - Saved AI recipes (owner-only)
 - `GET /api/recipes/shared/[id]` - Read an unlisted recipe by link (service role)
 - `POST /api/recipes/[id]/install` - Copy a shared recipe into the caller's recipes
+- `PUT/DELETE /api/maps/[id]/plugins/[pluginId]` - Turn a first-party plugin on/off for a map (owner only, catalog plugins only)
 
 **Maps (4):**
 
@@ -675,7 +677,9 @@ sequenceDiagram
 
 23. **Contribution Registry** - `extensions-slice` holds `Contribution` entries (built-ins from `src/lib/extensions/builtin-ai-actions.ts` and `builtin-commands.ts`). `AIActionsPopover` and the Ctrl/Cmd+K `CommandPalette` (mounted in `modals-wrapper.tsx`, flag `popoverOpen.commandPalette`) render them through `src/lib/extensions/select-contributions.ts` (the right-click menu lists no contributions); `useContributions()` provides context + quota-guarded `runContribution`. `extensionNode` is the plugin host node type (not user/AI creatable). Recipes (`src/lib/extensions/recipe-schema.ts`, `starter-recipes.ts`, `recipe-contributions.ts`) register as `group: 'recipes'` contributions that call `runRecipe()` (the built-in "Generate counterpoints" action runs `COUNTERPOINTS_RECIPE` the same way); the route `/api/ai/recipes/run` uses `src/helpers/ai-recipe-*` and `buildBranchSuggestionGraph` for branch scope. Saved recipes (`ai_recipes` table, `src/helpers/recipes/saved-recipe-rows.ts`) load through `useSavedRecipes()` (SWR) and register via `RecipeContributionsRegistrar` (mounted in `mind-map-canvas.tsx`). The recipes panel (`src/components/recipes/`: `recipes-panel`, `recipe-list`, `recipe-editor`, `recipe-icon-picker`, `recipe-choice-chip`, `recipe-confirm-dialog`) is mounted in `modals-wrapper.tsx`; the dashboard page `src/app/dashboard/recipes/` reuses the list and editor without Try. The shared page `src/app/recipes/[id]/page.tsx` loads via `loadSharedRecipe` and renders `SharedRecipeContent` (dashboard shell) or `SharedRecipePublic` (signed out / guest) around `SharedRecipeCard`.
 
-<!-- Updated: 2026-10-05 - Documented contribution registry, command palette, extensionNode, AI recipes and the editing-only right-click menu -->
+24. **Plugins** - Contracts in `src/lib/plugins/` (`manifest-schema.ts`, `plugin-fields.ts` typed field syntax + data validation, `ui-tree.ts` declarative view schema, `catalog.ts`, `active-plugins.ts`, `plugin-icons.ts`); runtime in `src/lib/plugins/runtime/` (`sandbox.ts` QuickJS, `worker-protocol.ts`, `plugin-worker.ts`, `plugin-host.ts`, lazy `load-plugin-host.ts`). `plugins-slice` loads the map's enabled plugins (`map_plugins`) and developer plugins; `PluginRegistrar` (`src/components/plugins/`) registers `$kind` editor commands and palette entries; `extension-node.tsx` renders `PluginNodeContent` (`src/components/nodes/content/`) with `PluginUiTree` and `usePluginRender` (`src/components/plugins/`); actions save via `applyGraphOps`. The node editor handles plugin kinds through `plugin-kind-editor.ts`, `integrations/codemirror/plugin-fields.ts` and `components/preview/plugin-editor-preview.tsx`. Owners manage plugins in Map Settings (`PluginsSettingsSection`). First-party plugins live in `public/plugins/<id>/<version>/` (Metric: `shiko.metric`).
+
+<!-- Updated: 2026-10-05 - Documented contribution registry, command palette, extensionNode, AI recipes, the editing-only right-click menu and plugins -->
 
 ## Navigation Guide
 

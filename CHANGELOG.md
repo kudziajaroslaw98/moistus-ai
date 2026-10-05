@@ -9,11 +9,21 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Added
 
+- **plugins**: Plugin nodes (Phase 2, first milestone). Plugins are a manifest plus code that runs in a QuickJS sandbox in a Web Worker (memory and time limits, no DOM or network) and draws its node from safe primitives (text, badge, progress, buttons, checkboxes); every view and action result is validated
+  - Why: Custom node types without letting third-party code touch the map, the network or the page
+- **plugins/metric**: First-party Metric plugin: a number against a target with progress and −/+ buttons; each press is one History entry credited to Metric
+- **plugins/editor**: Plugin kinds in the node editor: `$metric` under "Plugins on this map", typed fields (`Weekly active users value:1240 target:2000`) with highlighting, autocomplete and generated Syntax Help, a live preview from the plugin, and double-click editing; Ctrl/Cmd+K "Add Metric"
+- **plugins/settings**: Plugins section in Map Settings (owner): turn first-party plugins on per map (`map_plugins`), with a confirm when nodes would fall back to their saved view; developer plugins load from localhost for the owner only
+- **plugins/canvas**: Plugin nodes keep a saved view (snapshot) shown while the plugin loads, when it's off on the map, when it fails, or when it isn't available
 - **ai/recipes**: Recipes page in the dashboard sidebar (`/dashboard/recipes`): your recipes and starters with search, create, edit, duplicate, share and delete outside a map; the in-map recipes panel links to it and keeps Try; the shared recipe page links to it after adding
   - Why: Recipes were only reachable from the bottom of the AI menu
 
 ### Changed
 
+- **history**: Plugin nodes are named by their kind ("Added metric", "Metric #7c1e…"), and their changes list only the plugin's data fields, not the derived summary and saved view
+- **graph-ops**: Plugin actors may only change their own extension nodes (content and plugin data), their `metadata.ext` namespace, and no connections
+- **node-editor**: `$` type triggers match exactly
+- **security/csp**: Report-only CSP allows `'wasm-unsafe-eval'` for the plugin sandbox
 - **ui/context-menu**: Right-click menus no longer list AI actions or recipes; they keep editing actions only (AI stays on the node AI button, the toolbar AI menu and Ctrl/Cmd+K)
   - Why: Every recipe (up to 50) and future plugin entry made the menu bloat quickly
 - **ai/models**: All OpenAI calls (suggestions, recipes, chat, connections, merges, node search, generate answer, URL processing) use `gpt-6-luna` (was `gpt-5.4-mini` / `gpt-5.4-nano`)

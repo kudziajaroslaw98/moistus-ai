@@ -2,6 +2,7 @@
 
 import { DeleteMapConfirmationDialog } from '@/components/mind-map/delete-map-confirmation-dialog';
 import { DiscardSettingsChangesDialog } from '@/components/mind-map/discard-settings-changes-dialog';
+import { PluginsSettingsSection } from '@/components/plugins/plugins-settings-section';
 import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { SidePanel } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
@@ -479,9 +480,12 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 						</div>
 					</motion.section>
 
+					{/* Plugins (owner only; saves immediately, not via Save Changes) */}
+					<PluginsSettingsSection motionProps={getSectionMotionProps(0.15)} />
+
 					{/* Editor Preferences Section */}
 					<motion.section
-						{...getSectionMotionProps(0.15)}
+						{...getSectionMotionProps(0.2)}
 						className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
 					>
 						<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
@@ -524,7 +528,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 					{/* Danger Zone */}
 					<motion.section
-						{...getSectionMotionProps(0.2)}
+						{...getSectionMotionProps(0.25)}
 						className='space-y-4 rounded-lg border border-error-800/30 bg-error-950/20 p-4'
 					>
 						<div className='flex items-start gap-3'>

@@ -377,3 +377,31 @@ describe('deriveHistorySubjectHints for plugin nodes', () => {
 		});
 	});
 });
+
+describe('plugin node field changes', () => {
+	it('lists the plugin data fields, not the derived summary and saved view', () => {
+		const delta: HistoryDelta = {
+			operation: 'update',
+			entityType: 'node',
+			changes: [
+				{
+					id: 'm1',
+					type: 'node',
+					op: 'patch',
+					patch: {
+						'data.content': 'Users: 6 / 10',
+						'data.metadata.extension.data.value': 6,
+						'data.metadata.extension.snapshot.children.1.value': '6',
+					},
+					reversePatch: {
+						'data.content': 'Users: 5 / 10',
+						'data.metadata.extension.data.value': 5,
+						'data.metadata.extension.snapshot.children.1.value': '5',
+					},
+				},
+			],
+		};
+
+		expect(collectHistoryFieldLabels(buildHistoryPresentation(delta, {}))).toEqual(['Value']);
+	});
+});
