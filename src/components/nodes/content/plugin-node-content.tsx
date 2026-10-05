@@ -11,7 +11,7 @@ import {
 	findActivePluginKind,
 	humanizeKind,
 } from '@/lib/plugins/active-plugins';
-import { findCatalogPlugin } from '@/lib/plugins/catalog';
+import { compareVersions, findCatalogPlugin } from '@/lib/plugins/catalog';
 import {
 	validatePluginData,
 	type PluginData,
@@ -87,10 +87,16 @@ export function PluginNodeContent({
 					? 'off'
 					: 'missing';
 
-	// A collaborator may have just turned this plugin on.
+	// Saved by a newer version than this browser runs: the owner may have updated it.
+	const savedByNewerVersion =
+		active?.source === 'catalog' &&
+		compareVersions(extension.version, active.manifest.version) > 0;
+
+	// A collaborator may have just turned this plugin on or updated it.
 	useEffect(() => {
-		if (state === 'off' && !preview) refreshMapPluginsSoon();
-	}, [state, preview, refreshMapPluginsSoon]);
+		if ((state === 'off' || savedByNewerVersion) && !preview)
+			refreshMapPluginsSoon();
+	}, [state, savedByNewerVersion, preview, refreshMapPluginsSoon]);
 
 	const data = useMemo<PluginData | null>(() => {
 		if (!active) return null;
@@ -117,7 +123,9 @@ export function PluginNodeContent({
 	const pluginName = active?.manifest.name ?? label;
 	const invalidData = Boolean(active) && data === null;
 	const renderError = invalidData
-		? `${label} data on this node isn't valid`
+		? savedByNewerVersion
+			? `Saved by ${pluginName} ${extension.version}. This map uses ${active?.manifest.version}, so it shows the last saved view.`
+			: `${label} data on this node isn't valid`
 		: (render.error ?? null);
 
 	const handleAction = async (action: string, payload: unknown) => {

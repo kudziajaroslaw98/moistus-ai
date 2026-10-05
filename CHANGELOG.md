@@ -19,6 +19,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Plugins were only a section at the bottom of Map Settings and nothing pointed to it
 - **plugins/dashboard**: Plugins page in the dashboard sidebar (`/dashboard/plugins`): Shiko plugins with what they add and can access, and an "On in N maps" picker to turn each one on for any map you own (`GET /api/plugins/maps`)
 - **plugins/guide**: "Build a plugin" guide (`/dashboard/plugins/build`): a four-step quick start with a downloadable Counter starter, then manifest, typed fields, plugin.js API, UI pieces, limits and the security model; the starter is tested in the real sandbox and the tables read the runtime's own limits
+- **plugins/versions**: Each map is pinned to one version of each plugin, and the owner approves every update. The Plugins panel shows "Update available" with the release notes, any new powers and how many nodes the new version won't accept, with Update, Later and "Roll back to <version>" (`PATCH /api/maps/[id]/plugins/[pluginId]`); the dashboard Plugins page offers "Update N maps"; Ctrl/Cmd+K "Plugins" and Map Settings mention waiting updates. Collaborators switch versions when they meet a node saved by a newer one
+  - Why: Plugins need fixes after release, but a map shouldn't change under its owner without their say
+- **plugins/metric**: Metric 0.2.0 adds a trend arrow (set by − and +, or `trend:up`) and fixes rounding for decimals; it reads 0.1.0 data unchanged
 - **ai/recipes**: Recipes page in the dashboard sidebar (`/dashboard/recipes`): your recipes and starters with search, create, edit, duplicate, share and delete outside a map; the in-map recipes panel links to it and keeps Try; the shared recipe page links to it after adding
   - Why: Recipes were only reachable from the bottom of the AI menu
 
@@ -37,6 +40,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 
+- **plugins/loader**: A plugin load that finishes after a newer one (another version or map) no longer unloads the newer code from the sandbox
 - **plugins/security**: Plugins can no longer run code built from text (`eval` and the Function constructors are removed inside the sandbox), and first-party plugin code must match its reviewed SHA-256 fingerprint before it loads
 - **plugins/dev**: Reloading a developer plugin now redraws its nodes with the new code (views were cached by plugin id and version)
 - **plugins/editor**: Typing `$metric` while editing an existing node now turns it into a Metric node (and `$note` turns a Metric node back into a note, clearing its plugin data); before, the editor highlighted the trigger but silently kept the old type

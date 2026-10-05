@@ -12,7 +12,12 @@ export interface PluginKindRef {
 /** A plugin the map owner turned on (a `map_plugins` row). */
 export interface MapPluginRecord {
 	pluginId: string;
+	/** The catalog version this map is pinned to. */
 	version: string;
+	/** The version the owner updated from, so they can roll back to it. */
+	previousVersion: string | null;
+	/** When the plugin was last turned on, updated or rolled back. */
+	updatedAt: string | null;
 }
 
 export type PluginSource = 'catalog' | 'dev';
@@ -52,6 +57,8 @@ export interface PluginsSlice {
 	/** Re-reads the map's plugins at most every few seconds (a collaborator may have changed them). */
 	refreshMapPluginsSoon: () => void;
 	setMapPluginEnabled: (pluginId: string, enabled: boolean) => Promise<boolean>;
+	/** Owner: move the map to another catalog version (Update or Roll back). */
+	setMapPluginVersion: (pluginId: string, version: string) => Promise<boolean>;
 	addDevPlugin: (
 		manifestUrl: string
 	) => Promise<{ ok: boolean; error?: string }>;

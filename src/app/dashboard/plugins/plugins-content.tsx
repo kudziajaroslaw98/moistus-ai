@@ -2,6 +2,7 @@
 
 import type { PluginMapSummary } from '@/app/api/plugins/maps/route';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
+import { PluginUpdateDetails } from '@/components/plugins/plugin-update-details';
 import { useCatalogManifests } from '@/components/plugins/use-catalog-manifests';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -12,7 +13,9 @@ import {
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+	compareVersions,
 	FIRST_PARTY_PLUGINS,
+	latestCatalogVersion,
 	type PluginCatalogEntry,
 } from '@/lib/plugins/catalog';
 import type { PluginManifest } from '@/lib/plugins/manifest-schema';
@@ -28,11 +31,15 @@ import {
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
 const MAPS_KEY = '/api/plugins/maps';
+
+/** The version a map has this plugin on at, or undefined when it's off. */
+const pinnedVersion = (map: PluginMapSummary, pluginId: string) =>
+	map.plugins.find((plugin) => plugin.pluginId === pluginId)?.version;
 
 const fetchMaps = async (url: string): Promise<PluginMapSummary[]> => {
 	const response = await fetch(url);
@@ -75,7 +82,8 @@ function MapPicker({
 	busyMapIds,
 	onToggle,
 }: MapPickerProps) {
-	const count = maps?.filter((map) => map.pluginIds.includes(pluginId)).length ?? 0;
+	const count =
+		maps?.filter((map) => pinnedVersion(map, pluginId) !== undefined).length ?? 0;
 	const label = isLoading
 		? 'Loading maps…'
 		: count === 0
@@ -111,7 +119,8 @@ function MapPicker({
 				{maps && maps.length > 0 ? (
 					<ul className='max-h-72 overflow-y-auto'>
 						{maps.map((map) => {
-							const isOn = map.pluginIds.includes(pluginId);
+							const version = pinnedVersion(map, pluginId);
+							const isOn = version !== undefined;
 							const isBusy = busyMapIds.includes(map.id);
 							return (
 								<li key={map.id}>
@@ -142,6 +151,12 @@ function MapPicker({
 										<span className='min-w-0 flex-1 truncate'>
 											{map.title || 'Untitled map'}
 										</span>
+
+										{version && (
+											<span className='shrink-0 text-xs tabular-nums text-zinc-500'>
+												v{version}
+											</span>
+										)}
 									</button>
 								</li>
 							);
@@ -163,14 +178,65 @@ function MapPicker({
 	);
 }
 
+interface UpdateBoxProps {
+	entry: PluginCatalogEntry;
+	/** The user's maps on an older version. */
+	outdated: PluginMapSummary[];
+	isUpdating: boolean;
+	onUpdate: () => void;
+}
+
+/** "0.2.0 ready for 2 of your maps": notes, power changes and one button for all of them. */
+function UpdateBox({ entry, outdated, isUpdating, onUpdate }: UpdateBoxProps) {
+	const latest = latestCatalogVersion(entry).version;
+	const oldest = outdated
+		.map((map) => pinnedVersion(map, entry.id) ?? latest)
+		.sort(compareVersions)[0];
+	const count = outdated.length;
+	const maps = `${count} ${count === 1 ? 'map' : 'maps'}`;
+
+	return (
+		<div
+			className='space-y-2 rounded-lg border border-primary-500/30 bg-primary-500/[0.07] p-3'
+			data-testid='plugin-update'
+		>
+			<p className='flex items-center gap-2 text-[13px] font-semibold text-text-primary'>
+				<span aria-hidden className='size-1.5 rounded-full bg-primary-500' />
+
+				{`${latest} ready for ${count} of your maps`}
+			</p>
+
+			<PluginUpdateDetails entry={entry} fromVersion={oldest} />
+
+			<p className='text-xs leading-[17px] text-text-secondary'>
+				Nodes with data the new version doesn&apos;t accept keep their last saved
+				view. You can roll back from each map&apos;s Plugins panel.
+			</p>
+
+			<div className='flex justify-end'>
+				<Button disabled={isUpdating} onClick={onUpdate}>
+					{isUpdating ? (
+						<Loader2 aria-label='Updating' className='size-4 animate-spin' />
+					) : (
+						`Update ${maps}`
+					)}
+				</Button>
+			</div>
+		</div>
+	);
+}
+
 interface PluginCardProps {
 	entry: PluginCatalogEntry;
 	manifest: PluginManifest | null | undefined;
 	index: number;
-	children: React.ReactNode;
+	/** Map picker, beside the name. */
+	children: ReactNode;
+	/** "Update available" box, under the description. */
+	update?: ReactNode;
 }
 
-function PluginCard({ entry, manifest, index, children }: PluginCardProps) {
+function PluginCard({ entry, manifest, index, children, update }: PluginCardProps) {
 	const shouldReduceMotion = useReducedMotion();
 	const Icon = manifest ? PLUGIN_ICONS[manifest.icon] : null;
 
@@ -198,7 +264,7 @@ function PluginCard({ entry, manifest, index, children }: PluginCardProps) {
 					<span className='text-xs text-text-secondary'>
 						{manifest
 							? `by ${manifest.author} · v${manifest.version}`
-							: `v${entry.version}`}
+							: `v${latestCatalogVersion(entry).version}`}
 					</span>
 
 					{manifest?.description && (
@@ -228,6 +294,8 @@ function PluginCard({ entry, manifest, index, children }: PluginCardProps) {
 				{children}
 			</div>
 
+			{update}
+
 			<p className='flex items-start gap-2 text-xs text-text-secondary'>
 				<ShieldCheck
 					aria-hidden
@@ -244,6 +312,7 @@ export function PluginsContent() {
 	const manifests = useCatalogManifests(FIRST_PARTY_PLUGINS, true);
 	const { data: maps, error, isLoading, mutate } = useSWR(MAPS_KEY, fetchMaps);
 	const [busy, setBusy] = useState<string[]>([]);
+	const [updating, setUpdating] = useState<string[]>([]);
 
 	const setPluginOnMap = async (
 		pluginId: string,
@@ -253,17 +322,20 @@ export function PluginsContent() {
 	) => {
 		const busyKey = `${pluginId}:${map.id}`;
 		setBusy((current) => [...current, busyKey]);
+		const latest = latestCatalogVersion(
+			FIRST_PARTY_PLUGINS.find((entry) => entry.id === pluginId)!
+		).version;
 		const withChange = (current: PluginMapSummary[] = []) =>
-			current.map((candidate) =>
-				candidate.id !== map.id
-					? candidate
-					: {
-							...candidate,
-							pluginIds: enabled
-								? [...new Set([...candidate.pluginIds, pluginId])]
-								: candidate.pluginIds.filter((id) => id !== pluginId),
-						}
-			);
+			current.map((candidate) => {
+				if (candidate.id !== map.id) return candidate;
+				const others = candidate.plugins.filter(
+					(plugin) => plugin.pluginId !== pluginId
+				);
+				return {
+					...candidate,
+					plugins: enabled ? [...others, { pluginId, version: latest }] : others,
+				};
+			});
 		try {
 			await mutate(
 				async (current) => {
@@ -286,6 +358,58 @@ export function PluginsContent() {
 			);
 		} finally {
 			setBusy((current) => current.filter((key) => key !== busyKey));
+		}
+	};
+
+	/** Moves every outdated map to the latest version, one request per map. */
+	const updatePluginOnMaps = async (
+		entry: PluginCatalogEntry,
+		name: string,
+		targets: PluginMapSummary[]
+	) => {
+		const version = latestCatalogVersion(entry).version;
+		setUpdating((current) => [...current, entry.id]);
+		const updatedIds: string[] = [];
+		for (const map of targets) {
+			try {
+				const response = await fetch(
+					`/api/maps/${map.id}/plugins/${encodeURIComponent(entry.id)}`,
+					{
+						method: 'PATCH',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ version }),
+					}
+				);
+				if (response.ok) updatedIds.push(map.id);
+			} catch {
+				// Counted as not updated below.
+			}
+		}
+		await mutate(
+			(current) =>
+				current?.map((map) =>
+					updatedIds.includes(map.id)
+						? {
+								...map,
+								plugins: map.plugins.map((plugin) =>
+									plugin.pluginId === entry.id ? { ...plugin, version } : plugin
+								),
+							}
+						: map
+				),
+			{ revalidate: false }
+		);
+		setUpdating((current) => current.filter((id) => id !== entry.id));
+
+		const failed = targets.length - updatedIds.length;
+		if (failed > 0) {
+			toast.error(
+				`Couldn’t update ${name} on ${failed} of your ${targets.length === 1 ? 'map' : 'maps'}`
+			);
+		} else {
+			toast.success(
+				`${name} is on ${version} in ${targets.length} ${targets.length === 1 ? 'map' : 'maps'}`
+			);
 		}
 	};
 
@@ -326,12 +450,29 @@ export function PluginsContent() {
 							{FIRST_PARTY_PLUGINS.map((entry, index) => {
 								const manifest = manifests[entry.id];
 								const name = manifest?.name ?? entry.id;
+								const latest = latestCatalogVersion(entry).version;
+								const outdated = (maps ?? []).filter((map) => {
+									const version = pinnedVersion(map, entry.id);
+									return version !== undefined && compareVersions(version, latest) < 0;
+								});
 								return (
 									<PluginCard
 										entry={entry}
 										index={index}
 										key={entry.id}
 										manifest={manifest}
+										update={
+											outdated.length > 0 ? (
+												<UpdateBox
+													entry={entry}
+													isUpdating={updating.includes(entry.id)}
+													outdated={outdated}
+													onUpdate={() =>
+														void updatePluginOnMaps(entry, name, outdated)
+													}
+												/>
+											) : null
+										}
 									>
 										{manifest === undefined ? (
 											<Skeleton className='h-9 w-36 rounded-md' />

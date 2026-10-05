@@ -1,6 +1,10 @@
 'use client';
 
-import type { PluginCatalogEntry } from '@/lib/plugins/catalog';
+import {
+	catalogManifestUrl,
+	latestCatalogVersion,
+	type PluginCatalogEntry,
+} from '@/lib/plugins/catalog';
 import {
 	pluginManifestSchema,
 	type PluginManifest,
@@ -25,7 +29,7 @@ function fetchManifest(url: string): Promise<PluginManifest | null> {
 }
 
 /**
- * Catalog plugin manifests keyed by plugin id, fetched once per session.
+ * Latest catalog manifests keyed by plugin id, fetched once per session.
  * `null` means the manifest couldn't be loaded; a missing key means it's still loading.
  */
 export function useCatalogManifests(
@@ -40,7 +44,8 @@ export function useCatalogManifests(
 		if (!enabled) return;
 		let cancelled = false;
 		for (const entry of entries) {
-			void fetchManifest(`${entry.baseUrl}manifest.json`).then((manifest) => {
+			const url = catalogManifestUrl(entry.id, latestCatalogVersion(entry).version);
+			void fetchManifest(url).then((manifest) => {
 				if (!cancelled)
 					setManifests((current) => ({ ...current, [entry.id]: manifest }));
 			});
@@ -51,4 +56,29 @@ export function useCatalogManifests(
 	}, [entries, enabled]);
 
 	return manifests;
+}
+
+/** One catalog version's manifest (for checking nodes before an update or roll back). */
+export function useCatalogVersionManifest(
+	pluginId: string,
+	version: string | null
+): PluginManifest | null | undefined {
+	const url = version ? catalogManifestUrl(pluginId, version) : null;
+	const [result, setResult] = useState<{
+		url: string;
+		manifest: PluginManifest | null;
+	} | null>(null);
+
+	useEffect(() => {
+		if (!url) return;
+		let cancelled = false;
+		void fetchManifest(url).then((manifest) => {
+			if (!cancelled) setResult({ url, manifest });
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [url]);
+
+	return url && result?.url === url ? result.manifest : undefined;
 }

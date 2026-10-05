@@ -22,6 +22,7 @@ export type PluginIconKey = (typeof PLUGIN_ICON_KEYS)[number];
 
 /** Capabilities a plugin can ask for. M1 only has `node:own` (its own nodes, no network). */
 export const PLUGIN_PERMISSIONS = ['node:own'] as const;
+export type PluginPermission = (typeof PLUGIN_PERMISSIONS)[number];
 
 /** Built-in `$` triggers and system types a plugin kind can't take over. */
 export const RESERVED_PLUGIN_KINDS = new Set([

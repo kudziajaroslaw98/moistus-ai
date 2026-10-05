@@ -10,7 +10,7 @@ jest.mock('next/server', () => ({
 jest.mock('@/helpers/supabase/server', () => ({ createClient: jest.fn() }));
 
 import { createClient } from '@/helpers/supabase/server';
-import { DELETE, PUT } from './route';
+import { DELETE, PATCH, PUT } from './route';
 
 type Result = { data?: unknown; error?: unknown };
 
@@ -53,8 +53,11 @@ function sessionClient(
 
 const USER = { id: 'owner-1', is_anonymous: false };
 const MAP_ID = '0a3001a9-8457-4b41-9710-f6167137dfb2';
-const request = (method: string) =>
-	new Request('http://localhost/api', { method });
+const request = (method: string, body?: unknown) =>
+	new Request('http://localhost/api', {
+		method,
+		...(body === undefined ? {} : { body: JSON.stringify(body) }),
+	});
 const params = (pluginId: string, id = MAP_ID) => ({
 	params: Promise.resolve({ id, pluginId }),
 });
@@ -62,7 +65,7 @@ const params = (pluginId: string, id = MAP_ID) => ({
 beforeEach(() => jest.clearAllMocks());
 
 describe('PUT /api/maps/[id]/plugins/[pluginId]', () => {
-	it('turns a catalog plugin on with the catalog version', async () => {
+	it('turns a catalog plugin on, pinned to its latest version', async () => {
 		const client = sessionClient({
 			mind_maps: [{ data: { id: MAP_ID } }],
 			map_plugins: [{}],
@@ -73,7 +76,9 @@ describe('PUT /api/maps/[id]/plugins/[pluginId]', () => {
 		expect(response.status).toBe(200);
 		expect((await response.json()).data).toEqual({
 			pluginId: 'shiko.metric',
-			version: '0.1.0',
+			version: '0.2.0',
+			previousVersion: null,
+			updatedAt: expect.any(String),
 		});
 		const upsert = client.calls.find((call) => call.table === 'map_plugins')
 			?.ops[0];
@@ -83,7 +88,9 @@ describe('PUT /api/maps/[id]/plugins/[pluginId]', () => {
 				{
 					map_id: MAP_ID,
 					plugin_id: 'shiko.metric',
-					version: '0.1.0',
+					version: '0.2.0',
+					previous_version: null,
+					updated_at: expect.any(String),
 					enabled_by: 'owner-1',
 				},
 				{ onConflict: 'map_id,plugin_id' },
@@ -114,6 +121,106 @@ describe('PUT /api/maps/[id]/plugins/[pluginId]', () => {
 		expect((await PUT(request('PUT'), params('shiko.metric'))).status).toBe(
 			403
 		);
+	});
+});
+
+describe('PATCH /api/maps/[id]/plugins/[pluginId]', () => {
+	const updateOf = (client: ReturnType<typeof sessionClient>) =>
+		client.calls
+			.filter((call) => call.table === 'map_plugins')
+			.flatMap((call) => call.ops)
+			.find(([op]) => op === 'update')?.[1][0];
+
+	it('updates to a newer version and remembers the old one for roll back', async () => {
+		const client = sessionClient({
+			mind_maps: [{ data: { id: MAP_ID } }],
+			map_plugins: [
+				{ data: { version: '0.1.0', previous_version: null, updated_at: null } },
+				{},
+			],
+		});
+
+		const response = await PATCH(
+			request('PATCH', { version: '0.2.0' }),
+			params('shiko.metric')
+		);
+
+		expect(response.status).toBe(200);
+		expect((await response.json()).data).toMatchObject({
+			version: '0.2.0',
+			previousVersion: '0.1.0',
+		});
+		expect(updateOf(client)).toMatchObject({
+			version: '0.2.0',
+			previous_version: '0.1.0',
+			enabled_by: 'owner-1',
+		});
+	});
+
+	it('rolls back to an older version and clears the roll back target', async () => {
+		const client = sessionClient({
+			mind_maps: [{ data: { id: MAP_ID } }],
+			map_plugins: [
+				{ data: { version: '0.2.0', previous_version: '0.1.0', updated_at: null } },
+				{},
+			],
+		});
+
+		const response = await PATCH(
+			request('PATCH', { version: '0.1.0' }),
+			params('shiko.metric')
+		);
+
+		expect(response.status).toBe(200);
+		expect(updateOf(client)).toMatchObject({
+			version: '0.1.0',
+			previous_version: null,
+		});
+	});
+
+	it('refuses versions that are not in the catalog', async () => {
+		const client = sessionClient({});
+
+		const response = await PATCH(
+			request('PATCH', { version: '9.9.9' }),
+			params('shiko.metric')
+		);
+
+		expect(response.status).toBe(404);
+		expect(client.from).not.toHaveBeenCalled();
+	});
+
+	it('needs the plugin to be on first', async () => {
+		sessionClient({
+			mind_maps: [{ data: { id: MAP_ID } }],
+			map_plugins: [{ data: null }],
+		});
+
+		const response = await PATCH(
+			request('PATCH', { version: '0.2.0' }),
+			params('shiko.metric')
+		);
+
+		expect(response.status).toBe(404);
+	});
+
+	it('only lets the owner change versions', async () => {
+		sessionClient({ mind_maps: [{ data: null }] });
+
+		const response = await PATCH(
+			request('PATCH', { version: '0.2.0' }),
+			params('shiko.metric')
+		);
+
+		expect(response.status).toBe(403);
+	});
+
+	it('rejects a body without a version', async () => {
+		sessionClient({});
+
+		expect(
+			(await PATCH(request('PATCH', {}), params('shiko.metric'))).status
+		).toBe(400);
 	});
 });
 

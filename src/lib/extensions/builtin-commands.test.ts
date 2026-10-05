@@ -56,8 +56,26 @@ describe('plugins command', () => {
 			ctx: ContributionContext
 		) => string;
 
-		expect(describe(context(owner))).toBe('Turn plugins on or off for this map');
-		expect(describe(context(editor))).toBe('See the plugins this map uses');
+		expect(describe(context({ ...owner, mapPlugins: [] }))).toBe(
+			'Turn plugins on or off for this map'
+		);
+		expect(describe(context({ ...editor, mapPlugins: [] }))).toBe(
+			'See the plugins this map uses'
+		);
+	});
+
+	it('tells the owner when updates are waiting', () => {
+		const describe = command('open-plugins').description as (
+			ctx: ContributionContext
+		) => string;
+		const mapPlugins = [{ pluginId: 'shiko.metric', version: '0.1.0' }];
+
+		expect(describe(context({ ...owner, mapPlugins }))).toBe(
+			'Turn plugins on or off · 1 update available'
+		);
+		expect(describe(context({ ...editor, mapPlugins }))).toBe(
+			'See the plugins this map uses'
+		);
 	});
 
 	it('opens the Plugins panel', () => {

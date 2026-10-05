@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { availableCatalogUpdate } from '@/lib/plugins/catalog';
 import useAppStore from '@/store/mind-map-store';
 import { Puzzle } from 'lucide-react';
 import { motion, type MotionProps } from 'motion/react';
@@ -45,6 +46,9 @@ export function PluginsSettingsLink({
 		pluginNames.length === 0
 			? 'No plugins on yet'
 			: `${listFormat.format(pluginNames)} ${pluginNames.length === 1 ? 'is' : 'are'} on`;
+	const updateCount = mapPlugins.filter((record) =>
+		availableCatalogUpdate(record.pluginId, record.version)
+	).length;
 
 	return (
 		<motion.section
@@ -65,8 +69,16 @@ export function PluginsSettingsLink({
 					<Puzzle aria-hidden className='size-4' />
 				</span>
 
-				<span className='min-w-0 flex-1 truncate text-sm text-zinc-300'>
-					{summary}
+				<span className='flex min-w-0 flex-1 flex-col gap-0.5'>
+					<span className='truncate text-sm text-zinc-300'>{summary}</span>
+
+					{updateCount > 0 && (
+						<span className='flex items-center gap-1.5 text-xs text-primary-300'>
+							<span aria-hidden className='size-1.5 rounded-full bg-primary-500' />
+
+							{updateCount === 1 ? '1 update available' : `${updateCount} updates available`}
+						</span>
+					)}
 				</span>
 
 				<Button onClick={onManage} variant='outline'>

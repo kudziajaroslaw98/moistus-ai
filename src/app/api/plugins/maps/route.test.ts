@@ -53,7 +53,11 @@ describe('GET /api/plugins/maps', () => {
 	it('lists the user’s own maps with the plugins each has on', async () => {
 		const client = sessionClient({
 			data: [
-				{ id: 'map-1', title: 'Roadmap', map_plugins: [{ plugin_id: 'shiko.metric' }] },
+				{
+					id: 'map-1',
+					title: 'Roadmap',
+					map_plugins: [{ plugin_id: 'shiko.metric', version: '0.1.0' }],
+				},
 				{ id: 'map-2', title: 'Notes', map_plugins: [] },
 			],
 			error: null,
@@ -64,8 +68,12 @@ describe('GET /api/plugins/maps', () => {
 		expect(response.status).toBe(200);
 		expect((await response.json()).data).toEqual({
 			maps: [
-				{ id: 'map-1', title: 'Roadmap', pluginIds: ['shiko.metric'] },
-				{ id: 'map-2', title: 'Notes', pluginIds: [] },
+				{
+					id: 'map-1',
+					title: 'Roadmap',
+					plugins: [{ pluginId: 'shiko.metric', version: '0.1.0' }],
+				},
+				{ id: 'map-2', title: 'Notes', plugins: [] },
 			],
 		});
 		expect(client.from).toHaveBeenCalledWith('mind_maps');

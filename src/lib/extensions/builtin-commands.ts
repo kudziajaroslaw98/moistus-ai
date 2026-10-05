@@ -1,3 +1,4 @@
+import { availableCatalogUpdate } from '@/lib/plugins/catalog';
 import type { Contribution, ContributionContext } from '@/types/extensions';
 import { ChefHat, History, Plus, Puzzle, Search, Settings } from 'lucide-react';
 
@@ -55,10 +56,15 @@ export const BUILTIN_COMMANDS: Contribution[] = [
 		id: 'open-plugins',
 		title: 'Plugins',
 		description: (ctx) => {
-			const { mindMap, currentUser } = ctx.getState();
-			return mindMap && currentUser && mindMap.user_id === currentUser.id
-				? 'Turn plugins on or off for this map'
-				: 'See the plugins this map uses';
+			const { mindMap, currentUser, mapPlugins } = ctx.getState();
+			if (!mindMap || !currentUser || mindMap.user_id !== currentUser.id)
+				return 'See the plugins this map uses';
+			const updates = mapPlugins.filter((record) =>
+				availableCatalogUpdate(record.pluginId, record.version)
+			).length;
+			return updates > 0
+				? `Turn plugins on or off · ${updates === 1 ? '1 update' : `${updates} updates`} available`
+				: 'Turn plugins on or off for this map';
 		},
 		icon: Puzzle,
 		keywords: ['plugin', 'extension', 'node types', 'metric', 'install'],

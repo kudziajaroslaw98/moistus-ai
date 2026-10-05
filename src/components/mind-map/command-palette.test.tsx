@@ -32,6 +32,7 @@ function createState(overrides: Record<string, unknown> = {}) {
 		mapId: 'map-1',
 		mindMap: { id: 'map-1', user_id: 'owner-1' },
 		currentUser: { id: 'owner-1' },
+		mapPlugins: [],
 		isStreaming: false,
 		setPopoverOpen: jest.fn(),
 		openCanvasSearch: jest.fn(),

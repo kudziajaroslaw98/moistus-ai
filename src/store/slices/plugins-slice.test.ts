@@ -20,6 +20,20 @@ const metricCode = readFileSync(
 	join(process.cwd(), 'public/plugins/shiko.metric/0.1.0/plugin.js'),
 	'utf8'
 );
+const manifestJson020 = readFileSync(
+	join(process.cwd(), 'public/plugins/shiko.metric/0.2.0/manifest.json'),
+	'utf8'
+);
+const metricCode020 = readFileSync(
+	join(process.cwd(), 'public/plugins/shiko.metric/0.2.0/plugin.js'),
+	'utf8'
+);
+const BOTH_VERSIONS = {
+	'/plugins/shiko.metric/0.1.0/manifest.json': manifestJson,
+	'/plugins/shiko.metric/0.1.0/plugin.js': metricCode,
+	'/plugins/shiko.metric/0.2.0/manifest.json': manifestJson020,
+	'/plugins/shiko.metric/0.2.0/plugin.js': metricCode020,
+};
 
 // jsdom has no Web Crypto digest or TextEncoder; the loader checks catalog code
 // fingerprints with them.
@@ -30,9 +44,12 @@ Object.defineProperty(globalThis.crypto, 'subtle', {
 Object.assign(globalThis, { TextEncoder: NodeTextEncoder });
 const OWNER = { id: 'owner-1', is_anonymous: false };
 
-function createStore(overrides: Record<string, unknown> = {}) {
+function createStore(
+	overrides: Record<string, unknown> = {},
+	pinnedVersion = '0.1.0'
+) {
 	const queryResult = {
-		data: [{ plugin_id: 'shiko.metric', version: '0.1.0' }],
+		data: [{ plugin_id: 'shiko.metric', version: pinnedVersion }],
 		error: null,
 	};
 	const supabase = {
@@ -98,7 +115,12 @@ describe('plugins slice', () => {
 		await waitUntil(settled(store));
 
 		expect(store.getState().mapPlugins).toEqual([
-			{ pluginId: 'shiko.metric', version: '0.1.0' },
+			{
+				pluginId: 'shiko.metric',
+				version: '0.1.0',
+				previousVersion: null,
+				updatedAt: null,
+			},
 		]);
 		expect(mockHost.load).toHaveBeenCalledWith('shiko.metric', metricCode);
 		expect(store.getState().loadedPlugins['shiko.metric']).toMatchObject({
@@ -239,6 +261,88 @@ describe('plugins slice', () => {
 			error: 'The plugin code doesn’t match the reviewed version',
 		});
 		expect(mockHost.load).not.toHaveBeenCalled();
+	});
+
+	it('updates a map to another version and runs that version’s code', async () => {
+		mockFetch(BOTH_VERSIONS);
+		const store = createStore();
+		await store.getState().fetchMapPlugins('map-1');
+		await waitUntil(settled(store));
+		const saved = {
+			pluginId: 'shiko.metric',
+			version: '0.2.0',
+			previousVersion: '0.1.0',
+			updatedAt: '2026-10-05T12:00:00.000Z',
+		};
+		mockFetch({
+			...BOTH_VERSIONS,
+			'/api/maps/map-1/plugins/shiko.metric': JSON.stringify({ data: saved }),
+		});
+
+		await expect(
+			store.getState().setMapPluginVersion('shiko.metric', '0.2.0')
+		).resolves.toBe(true);
+		await waitUntil(settled(store));
+
+		expect(global.fetch).toHaveBeenCalledWith(
+			'/api/maps/map-1/plugins/shiko.metric',
+			expect.objectContaining({ method: 'PATCH', body: '{"version":"0.2.0"}' })
+		);
+		expect(store.getState().mapPlugins).toEqual([saved]);
+		expect(mockHost.load).toHaveBeenLastCalledWith('shiko.metric', metricCode020);
+		expect(store.getState().loadedPlugins['shiko.metric']).toMatchObject({
+			status: 'ready',
+			manifest: expect.objectContaining({ version: '0.2.0' }),
+		});
+	});
+
+	it('never lets a slow load of the old version unload the new one', async () => {
+		let finishOld: (kinds: string[]) => void = () => undefined;
+		mockHost.load.mockImplementation((_id: string, code: string) =>
+			code === metricCode
+				? new Promise((resolve) => (finishOld = resolve))
+				: Promise.resolve(['metric'])
+		);
+		mockFetch({
+			...BOTH_VERSIONS,
+			'/api/maps/map-1/plugins/shiko.metric': JSON.stringify({
+				data: {
+					pluginId: 'shiko.metric',
+					version: '0.2.0',
+					previousVersion: '0.1.0',
+					updatedAt: null,
+				},
+			}),
+		});
+		const store = createStore();
+		await store.getState().fetchMapPlugins('map-1');
+		await waitUntil(() => mockHost.load.mock.calls.length > 0);
+
+		await store.getState().setMapPluginVersion('shiko.metric', '0.2.0');
+		await waitUntil(() => mockHost.load.mock.calls.length > 1);
+		finishOld(['metric']);
+		await waitUntil(settled(store));
+		await flush();
+
+		// 0.2.0's code replaced 0.1.0's in the host; the stale load must not remove it.
+		expect(mockHost.load).toHaveBeenLastCalledWith('shiko.metric', metricCode020);
+		expect(mockHost.unload).not.toHaveBeenCalled();
+		expect(store.getState().loadedPlugins['shiko.metric']).toMatchObject({
+			status: 'ready',
+			manifest: expect.objectContaining({ version: '0.2.0' }),
+		});
+	});
+
+	it('says so when the map is pinned to a version this app doesn’t have', async () => {
+		const store = createStore({}, '9.9.9');
+
+		await store.getState().fetchMapPlugins('map-1');
+
+		expect(store.getState().loadedPlugins['shiko.metric']).toMatchObject({
+			status: 'error',
+			error: 'This map uses a version of the plugin this app doesn’t have',
+		});
+		expect(global.fetch).not.toHaveBeenCalled();
 	});
 
 	it('opens the Plugins panel and closes the other right-hand panels', () => {

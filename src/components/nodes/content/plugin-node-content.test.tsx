@@ -82,6 +82,26 @@ describe('PluginNodeContent', () => {
 		expect(mockState.refreshMapPluginsSoon).toHaveBeenCalled();
 	});
 
+	it('re-reads the map’s plugins when a node was saved by a newer version', async () => {
+		mockState.loadedPlugins = readyMetric();
+		mockState.mapPlugins = [{ pluginId: 'shiko.metric', version: '0.1.0' }];
+		// Own data, so the render cache shared across tests can't answer for it.
+		const own = { ...extension, data: { ...extension.data, label: 'Versions' } };
+		mockHost.render.mockResolvedValueOnce({ tree: liveTree, summary: 'Versions' });
+
+		const { rerender } = render(
+			<PluginNodeContent canEdit extension={own} nodeId='n1' />
+		);
+		expect(await screen.findByText('Live: 5 of 10')).toBeInTheDocument();
+		expect(mockState.refreshMapPluginsSoon).not.toHaveBeenCalled();
+
+		rerender(
+			<PluginNodeContent canEdit extension={{ ...own, version: '0.2.0' }} nodeId='n1' />
+		);
+
+		expect(mockState.refreshMapPluginsSoon).toHaveBeenCalledTimes(1);
+	});
+
 	it('never draws a saved view with unknown primitives', () => {
 		render(
 			<PluginNodeContent

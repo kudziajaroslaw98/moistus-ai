@@ -1,5 +1,10 @@
 import { findActivePluginKind } from '@/lib/plugins/active-plugins';
-import { findCatalogPlugin, isLocalDevPluginUrl } from '@/lib/plugins/catalog';
+import {
+	catalogManifestUrl,
+	findCatalogVersion,
+	isLocalDevPluginUrl,
+	type PluginCatalogVersion,
+} from '@/lib/plugins/catalog';
 import {
 	describeManifestError,
 	pluginManifestSchema,
@@ -100,6 +105,32 @@ async function fetchCode(
 	return code;
 }
 
+function samePermissions(
+	a: readonly string[],
+	b: readonly string[]
+): boolean {
+	return a.length === b.length && a.every((permission) => b.includes(permission));
+}
+
+interface MapPluginsResponse {
+	data?: MapPluginRecord;
+	error?: string;
+}
+
+/** Calls the per-map plugin route; returns the saved record or throws its error. */
+async function requestMapPlugin(
+	mapId: string,
+	pluginId: string,
+	init: RequestInit
+): Promise<MapPluginRecord | null> {
+	const response = await fetch(
+		`/api/maps/${mapId}/plugins/${encodeURIComponent(pluginId)}`,
+		init
+	);
+	const body = (await response.json().catch(() => null)) as MapPluginsResponse | null;
+	if (!response.ok) throw new Error(body?.error ?? 'Could not change the plugin');
+	return body?.data ?? null;
+}
 
 export const createPluginsSlice: StateCreator<
 	AppState,
@@ -118,6 +149,10 @@ export const createPluginsSlice: StateCreator<
 	};
 
 	let loadGeneration = 0;
+	// The host keeps one copy of each plugin id. The last load to send code owns it, so
+	// a stale load (older version, other map) never unloads code a newer load sent.
+	const hostClaims = new Map<string, number>();
+	let claimCounter = 0;
 	const patchLoaded = (key: string, patch: Partial<LoadedPlugin>) =>
 		set((state) => {
 			const current = state.loadedPlugins[key];
@@ -142,11 +177,15 @@ export const createPluginsSlice: StateCreator<
 		}
 	};
 
-	/** Fetches, validates and starts one plugin. Stale results (map changed) are dropped. */
+	/**
+	 * Fetches, validates and starts one plugin. Catalog plugins must match the reviewed
+	 * `catalogVersion` exactly. Stale results (map or pinned version changed) are dropped.
+	 */
 	const loadPlugin = async (
 		key: string,
 		source: PluginSource,
-		manifestUrl: string
+		manifestUrl: string,
+		catalogVersion?: PluginCatalogVersion
 	) => {
 		const mapId = get().mapId;
 		set((state) => ({
@@ -170,8 +209,12 @@ export const createPluginsSlice: StateCreator<
 		try {
 			const manifest = await fetchManifest(manifestUrl, source);
 			if (source === 'catalog') {
-				const entry = findCatalogPlugin(key);
-				if (manifest.id !== key || manifest.version !== entry?.version) {
+				if (
+					!catalogVersion ||
+					manifest.id !== key ||
+					manifest.version !== catalogVersion.version ||
+					!samePermissions(manifest.permissions, catalogVersion.permissions)
+				) {
 					throw new Error('The manifest does not match the catalog');
 				}
 			} else {
@@ -185,9 +228,12 @@ export const createPluginsSlice: StateCreator<
 				manifestUrl,
 				manifest,
 				source,
-				source === 'catalog' ? findCatalogPlugin(key)?.sha256 : undefined
+				source === 'catalog' ? catalogVersion?.sha256 : undefined
 			);
 			const host = await loadPluginHost();
+			if (!isCurrent()) return;
+			const claim = ++claimCounter;
+			hostClaims.set(manifest.id, claim);
 			const kinds = await host.load(manifest.id, code);
 			const missing = manifest.nodeKinds.find(
 				(kind) => !kinds.includes(kind.kind)
@@ -196,7 +242,10 @@ export const createPluginsSlice: StateCreator<
 				throw new Error(`The plugin code doesn't define "${missing.kind}"`);
 
 			if (!isCurrent()) {
-				host.unload(manifest.id);
+				if (hostClaims.get(manifest.id) === claim) {
+					hostClaims.delete(manifest.id);
+					host.unload(manifest.id);
+				}
 				return;
 			}
 			patchLoaded(key, {
@@ -217,29 +266,61 @@ export const createPluginsSlice: StateCreator<
 		}
 	};
 
+	/** Loads each map plugin at its pinned version (reloading when that changes). */
 	const syncLoadedWithMap = (records: MapPluginRecord[], devUrls: string[]) => {
 		const wanted = new Map<
 			string,
-			{ source: PluginSource; manifestUrl: string }
+			{
+				source: PluginSource;
+				manifestUrl: string;
+				catalogVersion?: PluginCatalogVersion;
+			}
 		>();
 		for (const record of records) {
-			const entry = findCatalogPlugin(record.pluginId);
-			if (entry)
-				wanted.set(entry.id, {
-					source: 'catalog',
-					manifestUrl: `${entry.baseUrl}manifest.json`,
-				});
+			wanted.set(record.pluginId, {
+				source: 'catalog',
+				manifestUrl: catalogManifestUrl(record.pluginId, record.version),
+				catalogVersion: findCatalogVersion(record.pluginId, record.version),
+			});
 		}
 		for (const url of devUrls)
 			wanted.set(url, { source: 'dev', manifestUrl: url });
 
-		for (const key of Object.keys(get().loadedPlugins)) {
-			if (!wanted.has(key)) unloadKey(key);
+		for (const [key, loaded] of Object.entries(get().loadedPlugins)) {
+			if (wanted.get(key)?.manifestUrl !== loaded.manifestUrl) unloadKey(key);
 		}
 		for (const [key, target] of wanted) {
-			if (!get().loadedPlugins[key])
-				void loadPlugin(key, target.source, target.manifestUrl);
+			if (get().loadedPlugins[key]) continue;
+			if (target.source === 'catalog' && !target.catalogVersion) {
+				// Pinned to a version this app doesn't know (e.g. an older deploy).
+				set((state) => ({
+					loadedPlugins: {
+						...state.loadedPlugins,
+						[key]: {
+							key,
+							source: 'catalog',
+							manifestUrl: target.manifestUrl,
+							status: 'error',
+							manifest: null,
+							error: 'This map uses a version of the plugin this app doesn’t have',
+							generation: 0,
+						},
+					},
+				}));
+				continue;
+			}
+			void loadPlugin(key, target.source, target.manifestUrl, target.catalogVersion);
 		}
+	};
+
+	/** Saves a changed record locally and loads the version it pins. */
+	const applyRecord = (record: MapPluginRecord) => {
+		const records = [
+			...get().mapPlugins.filter((existing) => existing.pluginId !== record.pluginId),
+			record,
+		];
+		set({ mapPlugins: records });
+		syncLoadedWithMap(records, get().devPluginUrls);
 	};
 
 	return {
@@ -251,7 +332,7 @@ export const createPluginsSlice: StateCreator<
 		fetchMapPlugins: async (mapId) => {
 			const { data, error } = await get()
 				.supabase.from('map_plugins')
-				.select('plugin_id, version')
+				.select('plugin_id, version, previous_version, updated_at')
 				.eq('map_id', mapId);
 			if (get().mapId !== mapId) return;
 			if (error) {
@@ -263,6 +344,8 @@ export const createPluginsSlice: StateCreator<
 			const records: MapPluginRecord[] = (data ?? []).map((row) => ({
 				pluginId: row.plugin_id as string,
 				version: row.version as string,
+				previousVersion: (row.previous_version as string | null) ?? null,
+				updatedAt: (row.updated_at as string | null) ?? null,
 			}));
 			const userId = get().currentUser?.id;
 			const devPluginUrls =
@@ -281,17 +364,11 @@ export const createPluginsSlice: StateCreator<
 		setMapPluginEnabled: async (pluginId, enabled) => {
 			const mapId = get().mapId;
 			if (!mapId || !isOwner()) return false;
+			let saved: MapPluginRecord | null;
 			try {
-				const response = await fetch(
-					`/api/maps/${mapId}/plugins/${encodeURIComponent(pluginId)}`,
-					{ method: enabled ? 'PUT' : 'DELETE' }
-				);
-				if (!response.ok) {
-					const body = (await response.json().catch(() => null)) as {
-						error?: string;
-					} | null;
-					throw new Error(body?.error ?? 'Could not change the plugin');
-				}
+				saved = await requestMapPlugin(mapId, pluginId, {
+					method: enabled ? 'PUT' : 'DELETE',
+				});
 			} catch (error) {
 				toast.error(
 					error instanceof Error ? error.message : 'Could not change the plugin'
@@ -300,17 +377,35 @@ export const createPluginsSlice: StateCreator<
 			}
 			if (get().mapId !== mapId) return true;
 
-			const entry = findCatalogPlugin(pluginId);
-			const records = enabled
-				? [
-						...get().mapPlugins.filter(
-							(record) => record.pluginId !== pluginId
-						),
-						{ pluginId, version: entry?.version ?? '0.0.0' },
-					]
-				: get().mapPlugins.filter((record) => record.pluginId !== pluginId);
-			set({ mapPlugins: records });
-			syncLoadedWithMap(records, get().devPluginUrls);
+			if (enabled && saved) {
+				applyRecord(saved);
+			} else {
+				const records = get().mapPlugins.filter(
+					(record) => record.pluginId !== pluginId
+				);
+				set({ mapPlugins: records });
+				syncLoadedWithMap(records, get().devPluginUrls);
+			}
+			return true;
+		},
+
+		setMapPluginVersion: async (pluginId, version) => {
+			const mapId = get().mapId;
+			if (!mapId || !isOwner()) return false;
+			let saved: MapPluginRecord | null;
+			try {
+				saved = await requestMapPlugin(mapId, pluginId, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ version }),
+				});
+			} catch (error) {
+				toast.error(
+					error instanceof Error ? error.message : 'Could not change the plugin'
+				);
+				return false;
+			}
+			if (get().mapId === mapId && saved) applyRecord(saved);
 			return true;
 		},
 
