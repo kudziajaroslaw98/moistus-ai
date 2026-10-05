@@ -12,7 +12,12 @@ export function findActivePluginKind(
 			(candidate) => candidate.kind === kindName
 		);
 		return kind
-			? { manifest: plugin.manifest, kind, source: plugin.source }
+			? {
+					manifest: plugin.manifest,
+					kind,
+					source: plugin.source,
+					generation: plugin.generation,
+				}
 			: null;
 	}
 	return null;

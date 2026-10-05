@@ -5,6 +5,7 @@ import {
 	pluginManifestSchema,
 	type PluginManifest,
 } from '@/lib/plugins/manifest-schema';
+import { MAX_PLUGIN_CODE_BYTES } from '@/lib/plugins/limits';
 import { loadPluginHost } from '@/lib/plugins/runtime/load-plugin-host';
 import type {
 	LoadedPlugin,
@@ -17,7 +18,6 @@ import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
 
 const DEV_PLUGINS_STORAGE_KEY = 'shiko_dev_plugins_v1';
-const MAX_PLUGIN_CODE_BYTES = 256 * 1024;
 const REFRESH_INTERVAL_MS = 10_000;
 
 let lastRefreshAt = 0;
@@ -103,6 +103,7 @@ export const createPluginsSlice: StateCreator<
 		);
 	};
 
+	let loadGeneration = 0;
 	const patchLoaded = (key: string, patch: Partial<LoadedPlugin>) =>
 		set((state) => {
 			const current = state.loadedPlugins[key];
@@ -144,6 +145,7 @@ export const createPluginsSlice: StateCreator<
 					status: 'loading',
 					manifest: null,
 					error: null,
+					generation: 0,
 				},
 			},
 		}));
@@ -178,7 +180,12 @@ export const createPluginsSlice: StateCreator<
 				host.unload(manifest.id);
 				return;
 			}
-			patchLoaded(key, { status: 'ready', manifest, error: null });
+			patchLoaded(key, {
+				status: 'ready',
+				manifest,
+				error: null,
+				generation: ++loadGeneration,
+			});
 		} catch (error) {
 			if (!isCurrent()) return;
 			patchLoaded(key, {

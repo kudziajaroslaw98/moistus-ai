@@ -5,6 +5,7 @@ import {
 	type QuickJSRuntime,
 	type QuickJSWASMModule,
 } from 'quickjs-emscripten-core';
+import { SANDBOX_LIMITS } from '../limits';
 
 /**
  * Runs one plugin's code in its own QuickJS runtime. The plugin sees only the prelude
@@ -12,14 +13,6 @@ import {
  * objects. Values cross the boundary as JSON strings, and every call has a deadline and
  * a memory cap, so a broken or hostile plugin can't hang or exhaust the app.
  */
-
-export const SANDBOX_LIMITS = {
-	memoryBytes: 16 * 1024 * 1024,
-	stackBytes: 256 * 1024,
-	loadMs: 250,
-	renderMs: 50,
-	actionMs: 100,
-} as const;
 
 export type SandboxErrorCode = 'timeout' | 'memory' | 'error';
 

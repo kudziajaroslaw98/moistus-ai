@@ -186,6 +186,33 @@ describe('plugins slice', () => {
 		expect(store.getState().loadedPlugins['shiko.metric']).toBeUndefined();
 	});
 
+	it('gives a reloaded developer plugin a new generation, so its nodes redraw', async () => {
+		const url = 'http://localhost:5173/manifest.json';
+		mockFetch({
+			'/plugins/shiko.metric/0.1.0/manifest.json': manifestJson,
+			'/plugins/shiko.metric/0.1.0/plugin.js': 'definePlugin({ kinds: {} });',
+			'localhost:5173/manifest.json': JSON.stringify({
+				...JSON.parse(manifestJson),
+				id: 'dev.test.metric',
+			}),
+			'localhost:5173/plugin.js': 'definePlugin({ kinds: {} });',
+		});
+		const store = createStore();
+		await store.getState().fetchMapPlugins('map-1');
+		await store.getState().addDevPlugin(url);
+		await waitUntil(settled(store));
+		const first = store.getState().loadedPlugins[url];
+		expect(first.status).toBe('ready');
+
+		await store.getState().reloadDevPlugin(url);
+		await waitUntil(settled(store));
+
+		expect(store.getState().loadedPlugins[url].status).toBe('ready');
+		expect(store.getState().loadedPlugins[url].generation).toBeGreaterThan(
+			first.generation
+		);
+	});
+
 	it('opens the Plugins panel and closes the other right-hand panels', () => {
 		const setPopoverOpen = jest.fn();
 		const store = createStore({ setPopoverOpen });

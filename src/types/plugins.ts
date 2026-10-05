@@ -29,12 +29,16 @@ export interface LoadedPlugin {
 	/** Set once the manifest is valid. */
 	manifest: PluginManifest | null;
 	error: string | null;
+	/** New for every successful (re)load, so views drawn by older code aren't reused. */
+	generation: number;
 }
 
 export interface ActivePluginKind {
 	manifest: PluginManifest;
 	kind: PluginNodeKind;
 	source: PluginSource;
+	/** The loaded plugin's generation (see `LoadedPlugin.generation`). */
+	generation: number;
 }
 
 export interface PluginsSlice {

@@ -16,8 +16,9 @@ export function pluginRenderKey(
 	data: PluginData,
 	canEdit: boolean
 ): string {
-	const { manifest, kind } = active;
-	return `${manifest.id}@${manifest.version}:${kind.kind}:${canEdit ? 1 : 0}:${JSON.stringify(data)}`;
+	const { manifest, kind, generation } = active;
+	// The generation changes when a developer reloads the plugin with new code.
+	return `${manifest.id}@${manifest.version}#${generation}:${kind.kind}:${canEdit ? 1 : 0}:${JSON.stringify(data)}`;
 }
 
 export function rememberPluginRender(key: string, result: PluginRenderResult) {

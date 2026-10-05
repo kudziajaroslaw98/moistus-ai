@@ -47,6 +47,7 @@ const readyMetric = (): Record<string, LoadedPlugin> => ({
 		status: 'ready',
 		manifest,
 		error: null,
+		generation: 1,
 	},
 });
 

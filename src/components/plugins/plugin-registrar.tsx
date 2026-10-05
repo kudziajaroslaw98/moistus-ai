@@ -56,6 +56,7 @@ export function PluginRegistrar() {
 							manifest: plugin.manifest!,
 							kind,
 							source: plugin.source,
+							generation: plugin.generation,
 						}))
 					: []
 			),
