@@ -110,7 +110,11 @@ describe('CommandPalette', () => {
 		createState({ currentUser: { id: 'viewer-1' } });
 		render(<CommandPalette />);
 
-		expect(optionNames()).toEqual([expect.stringContaining('Search canvas')]);
+		// Viewers can still see which plugins the map uses.
+		expect(optionNames()).toEqual([
+			expect.stringContaining('Search canvas'),
+			'PluginsSee the plugins this map uses',
+		]);
 	});
 
 	it('shows an empty state when nothing matches', async () => {

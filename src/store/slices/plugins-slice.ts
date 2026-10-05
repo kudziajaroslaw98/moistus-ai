@@ -343,6 +343,10 @@ export const createPluginsSlice: StateCreator<
 			});
 		},
 
+		openPluginsPanel: () => {
+			get().setPopoverOpen({ plugins: true, recipes: false, mapSettings: false });
+		},
+
 		getActivePluginKind: (pluginId, kindName) =>
 			findActivePluginKind(get().loadedPlugins, pluginId, kindName),
 	};

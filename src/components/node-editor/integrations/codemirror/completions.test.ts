@@ -230,3 +230,45 @@ describe('plugin node type completions', () => {
 		expect(source(pluginContext('Users wei'))).toBeNull()
 	})
 })
+
+describe('"More node types…" in the $ list', () => {
+	type Option = { label: string; displayLabel?: string; apply?: unknown }
+
+	it('is listed last when the editor can open the Plugins panel', () => {
+		const { source } = createCompletions([], { onBrowsePlugins: jest.fn() })
+		const result = source(buildContext('$')) as unknown as { options: Option[] }
+
+		expect(result.options.map((option) => option.label)).toEqual(['$note', '$task', '$plugins'])
+		expect(result.options.at(-1)?.displayLabel).toBe('More node types…')
+	})
+
+	it('is left out otherwise, and when the typed trigger does not match', () => {
+		const withoutCallback = createCompletions().source(buildContext('$')) as unknown as {
+			options: Option[]
+		}
+		const notMatching = createCompletions([], { onBrowsePlugins: jest.fn() }).source(
+			buildContext('$no')
+		) as unknown as { options: Option[] }
+
+		expect(withoutCallback.options.map((option) => option.label)).not.toContain('$plugins')
+		expect(notMatching.options.map((option) => option.label)).toEqual(['$note'])
+	})
+
+	it('clears the typed trigger and opens the panel', () => {
+		const onBrowsePlugins = jest.fn()
+		const dispatch = jest.fn()
+		const { source } = createCompletions([], { onBrowsePlugins })
+		const result = source(buildContext('$')) as unknown as { options: Option[] }
+		const apply = result.options.at(-1)?.apply as (
+			view: EditorView,
+			completion: unknown,
+			from: number,
+			to: number
+		) => void
+
+		apply({ dispatch } as unknown as EditorView, null, 0, 1)
+
+		expect(dispatch).toHaveBeenCalledWith({ changes: { from: 0, to: 1, insert: '' } })
+		expect(onBrowsePlugins).toHaveBeenCalledTimes(1)
+	})
+})

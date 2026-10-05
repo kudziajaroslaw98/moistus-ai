@@ -185,4 +185,17 @@ describe('plugins slice', () => {
 		expect(store.getState().mapPlugins).toEqual([]);
 		expect(store.getState().loadedPlugins['shiko.metric']).toBeUndefined();
 	});
+
+	it('opens the Plugins panel and closes the other right-hand panels', () => {
+		const setPopoverOpen = jest.fn();
+		const store = createStore({ setPopoverOpen });
+
+		store.getState().openPluginsPanel();
+
+		expect(setPopoverOpen).toHaveBeenCalledWith({
+			plugins: true,
+			recipes: false,
+			mapSettings: false,
+		});
+	});
 });

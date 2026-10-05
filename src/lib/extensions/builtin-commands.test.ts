@@ -40,3 +40,31 @@ describe('recipe commands', () => {
 		expect(openRecipesPanel).toHaveBeenNthCalledWith(2);
 	});
 });
+
+describe('plugins command', () => {
+	const owner = { mindMap: { user_id: 'u1' }, currentUser: { id: 'u1' } };
+	const editor = { mindMap: { user_id: 'u1' }, currentUser: { id: 'u2' } };
+
+	it('is offered on every ready map, owner or not', () => {
+		expect(command('open-plugins').when?.(context(owner))).toBe(true);
+		expect(command('open-plugins').when?.(context(editor))).toBe(true);
+		expect(command('open-plugins').when?.(context(owner, false))).toBe(false);
+	});
+
+	it('describes what each person can do there', () => {
+		const describe = command('open-plugins').description as (
+			ctx: ContributionContext
+		) => string;
+
+		expect(describe(context(owner))).toBe('Turn plugins on or off for this map');
+		expect(describe(context(editor))).toBe('See the plugins this map uses');
+	});
+
+	it('opens the Plugins panel', () => {
+		const openPluginsPanel = jest.fn();
+
+		command('open-plugins').run(context({ ...owner, openPluginsPanel }));
+
+		expect(openPluginsPanel).toHaveBeenCalledTimes(1);
+	});
+});

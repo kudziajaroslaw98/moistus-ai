@@ -92,7 +92,8 @@ describe('recipes panel view', () => {
 		store.getState().openRecipesPanel();
 
 		expect(store.getState().recipesPanelView).toEqual({ mode: 'list' });
-		expect(setPopoverOpen).toHaveBeenCalledWith({ recipes: true });
+		// Opening recipes closes the Plugins panel, so the two never overlap.
+		expect(setPopoverOpen).toHaveBeenCalledWith({ recipes: true, plugins: false });
 	});
 
 	it('gives each new editor view its own instance but keeps one passed explicitly', () => {

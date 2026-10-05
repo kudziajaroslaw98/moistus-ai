@@ -321,7 +321,7 @@ export function MobileCompletionTray({
 										) : (
 											<>
 												<span className='block truncate text-[13px] font-medium'>
-													{option.label}
+													{option.displayLabel ?? option.label}
 												</span>
 
 												{option.detail && (

@@ -1,5 +1,5 @@
 import type { Contribution, ContributionContext } from '@/types/extensions';
-import { ChefHat, History, Plus, Search, Settings } from 'lucide-react';
+import { ChefHat, History, Plus, Puzzle, Search, Settings } from 'lucide-react';
 
 /** Recipes are saved per account, so guests (anonymous sessions) can't manage them. */
 const canSaveRecipes = (ctx: ContributionContext) =>
@@ -50,6 +50,23 @@ export const BUILTIN_COMMANDS: Contribution[] = [
 			);
 		},
 		run: (ctx) => ctx.getState().setPopoverOpen({ mapSettings: true }),
+	},
+	{
+		id: 'open-plugins',
+		title: 'Plugins',
+		description: (ctx) => {
+			const { mindMap, currentUser } = ctx.getState();
+			return mindMap && currentUser && mindMap.user_id === currentUser.id
+				? 'Turn plugins on or off for this map'
+				: 'See the plugins this map uses';
+		},
+		icon: Puzzle,
+		keywords: ['plugin', 'extension', 'node types', 'metric', 'install'],
+		owner: 'builtin',
+		scopes: ['map'],
+		placements: ['commandPalette'],
+		when: (ctx) => ctx.isMapReady,
+		run: (ctx) => ctx.getState().openPluginsPanel(),
 	},
 	{
 		id: 'create-recipe',

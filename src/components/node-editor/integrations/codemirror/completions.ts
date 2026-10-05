@@ -9,6 +9,7 @@
  */
 
 import {
+	Completion,
 	CompletionContext,
 	CompletionResult,
 	CompletionSource,
@@ -329,6 +330,11 @@ function createChainedApply(insertText: string) {
 
 const PLUGIN_KINDS_SECTION = { name: 'Plugins on this map', rank: 1 };
 
+export interface CreateCompletionsOptions {
+	/** Adds "More node types…" to the `$` list; it clears the trigger and calls this. */
+	onBrowsePlugins?: () => void;
+}
+
 /** Field names (`target:`) and enum/boolean values for a plugin node type. */
 function completePluginFields(
 	word: { from: number; text: string },
@@ -371,7 +377,8 @@ function completePluginFields(
  * @returns mentionMap - Map of label → CollaboratorMention for avatar rendering
  */
 export function createCompletions(
-	collaborators: CollaboratorMention[] = []
+	collaborators: CollaboratorMention[] = [],
+	{ onBrowsePlugins }: CreateCompletionsOptions = {}
 ): { source: CompletionSource; mentionMap: Map<string, CollaboratorMention> } {
 	const allMentions = [...BUILT_IN_MENTIONS, ...collaborators];
 
@@ -760,7 +767,7 @@ export function createCompletions(
 		if (prefix.startsWith('$')) {
 			const search = prefix.slice(1).toLowerCase();
 			const nodeTypes = commandRegistry.getCommandsByTriggerType('node-type');
-			const options = nodeTypes
+			const typeOptions: Completion[] = nodeTypes
 				.filter((cmd) => cmd.trigger.toLowerCase().includes(search))
 				.map((cmd) => ({
 					label: cmd.trigger,
@@ -772,11 +779,28 @@ export function createCompletions(
 						: {}),
 				}));
 
-			if (options.length === 0) return null;
+			// The label keeps the `$` so CodeMirror's own filtering shows it for `$` and `$plu…`.
+			if (onBrowsePlugins && '$plugins'.startsWith(prefix.toLowerCase())) {
+				typeOptions.push({
+					label: '$plugins',
+					displayLabel: 'More node types…',
+					detail: 'Opens Plugins',
+					info: 'Turn on plugins to add new kinds of nodes to this map',
+					type: 'browse-plugins',
+					section: PLUGIN_KINDS_SECTION,
+					boost: -99,
+					apply: (view, _completion, from, to) => {
+						view.dispatch({ changes: { from, to, insert: '' } });
+						onBrowsePlugins();
+					},
+				});
+			}
+
+			if (typeOptions.length === 0) return null;
 
 			return {
 				from: word.from,
-				options,
+				options: typeOptions,
 				validFor: /^\$\w*/,
 			};
 		}

@@ -5,8 +5,8 @@ import type { TextareaHTMLAttributes } from 'react';
 import { MapSettingsPanel } from './map-settings-panel';
 
 // Tested on its own (plugins-settings-section.test.tsx).
-jest.mock('@/components/plugins/plugins-settings-section', () => ({
-	PluginsSettingsSection: () => null,
+jest.mock('@/components/plugins/plugins-settings-link', () => ({
+	PluginsSettingsLink: () => null,
 }));
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,

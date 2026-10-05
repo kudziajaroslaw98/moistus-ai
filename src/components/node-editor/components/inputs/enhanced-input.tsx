@@ -62,6 +62,8 @@ interface EnhancedInputProps {
 	collaborators?: CollaboratorMention[];
 	/** Set for plugin node types: highlighting and autocomplete use these fields. */
 	pluginFields?: PluginFieldSpecLite[] | null;
+	/** Adds "More node types…" to the `$` list. Read when the editor is created. */
+	onBrowsePlugins?: () => void;
 }
 
 export const EnhancedInput = ({
@@ -84,6 +86,7 @@ export const EnhancedInput = ({
 	enableCommands = true, // Default enabled
 	collaborators,
 	pluginFields = null,
+	onBrowsePlugins,
 	...rest
 }: EnhancedInputProps) => {
 	const editorRef = useRef<HTMLDivElement>(null);
@@ -93,6 +96,7 @@ export const EnhancedInput = ({
 	const initializedRef = useRef(false);
 	const lastKnownValueRef = useRef(value);
 	const pluginFieldsRef = useRef(pluginFields);
+	const onBrowsePluginsRef = useRef(onBrowsePlugins);
 
 	// Store the latest callbacks in refs to avoid stale closures
 	const onKeyDownRef = useRef(onKeyDown);
@@ -105,12 +109,14 @@ export const EnhancedInput = ({
 
 	// Update refs when callbacks change
 	useEffect(() => {
+		onBrowsePluginsRef.current = onBrowsePlugins;
 		onKeyDownRef.current = onKeyDown;
 		onSelectionChangeRef.current = onSelectionChange;
 		onAutocompleteControllerReadyRef.current = onAutocompleteControllerReady;
 		onAutocompleteStateChangeRef.current = onAutocompleteStateChange;
 		onFocusChangeRef.current = onFocusChange;
 	}, [
+		onBrowsePlugins,
 		onAutocompleteControllerReady,
 		onAutocompleteStateChange,
 		onFocusChange,
@@ -287,6 +293,9 @@ export const EnhancedInput = ({
 				enablePatternHighlighting: true,
 				enableValidation: true,
 				collaborators: collaborators ?? [],
+				onBrowsePlugins: onBrowsePluginsRef.current
+					? () => onBrowsePluginsRef.current?.()
+					: undefined,
 				showNativeAutocompleteTooltip: showNativeAutocomplete,
 				onAutocompleteChange: (nextAutocompleteState) => {
 					onAutocompleteStateChangeRef.current?.(nextAutocompleteState);

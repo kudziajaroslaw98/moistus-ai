@@ -54,6 +54,8 @@ export interface PluginsSlice {
 	removeDevPlugin: (manifestUrl: string) => void;
 	reloadDevPlugin: (manifestUrl: string) => Promise<void>;
 	resetPlugins: () => void;
+	/** Opens the Plugins side panel (closes the other right-hand panels). */
+	openPluginsPanel: () => void;
 	/** A ready plugin's kind, or null when it isn't loaded on this map. */
 	getActivePluginKind: (
 		pluginId: string,

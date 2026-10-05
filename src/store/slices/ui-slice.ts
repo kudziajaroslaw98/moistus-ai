@@ -14,6 +14,7 @@ export const createUiStateSlice: StateCreator<
 		contextMenu: false,
 		commandPalette: false,
 		recipes: false,
+		plugins: false,
 		edgeEdit: false,
 		history: false,
 		mergeSuggestions: false,

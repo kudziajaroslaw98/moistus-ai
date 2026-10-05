@@ -148,6 +148,7 @@ export const createCoreDataSlice: StateCreator<
 				upgradeUser: false,
 				commandPalette: false,
 				recipes: false,
+				plugins: false,
 			},
 			edgeInfo: null,
 			contextMenuState: {

@@ -267,6 +267,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 		clearQueuedLocalLayoutOnResize,
 		handleOnboardingNodeCreated,
 		onboardingPatternStep,
+		openPluginsPanel,
 	} = useAppStore(
 		useShallow((state) => ({
 			closeNodeEditor: state.closeNodeEditor,
@@ -277,8 +278,23 @@ export const QuickInput: FC<QuickInputProps> = ({
 			clearQueuedLocalLayoutOnResize: state.clearQueuedLocalLayoutOnResize,
 			handleOnboardingNodeCreated: state.handleOnboardingNodeCreated,
 			onboardingPatternStep: state.onboardingPatternStep,
+			openPluginsPanel: state.openPluginsPanel,
 		}))
 	);
+	const isMapOwner = useAppStore((state) =>
+		Boolean(
+			state.mindMap &&
+			state.currentUser &&
+			!state.currentUser.is_anonymous &&
+			state.mindMap.user_id === state.currentUser.id
+		)
+	);
+	// "More node types…" in the `$` list: only the owner can turn plugins on, and
+	// leaving the editor while editing would drop the changes.
+	const handleBrowsePlugins = useCallback(() => {
+		closeNodeEditor();
+		openPluginsPanel();
+	}, [closeNodeEditor, openPluginsPanel]);
 
 	const effectiveNodeType = currentNodeType || initialNodeType || 'defaultNode';
 	// Plugin node kinds (`$metric`): fields, Syntax Help and preview come from the plugin.
@@ -1097,6 +1113,9 @@ export const QuickInput: FC<QuickInputProps> = ({
 							onNodeTypeChange={handleNodeTypeChange}
 							onSelectionChange={handleSelectionChange}
 							pluginFields={pluginFieldSpecs}
+							onBrowsePlugins={
+								mode === 'create' && isMapOwner ? handleBrowsePlugins : undefined
+							}
 							placeholder={`Type naturally... ${config.examples?.[0] || ''}`}
 							showNativeAutocomplete={!usesTouchAutocompleteSurface}
 							value={value}

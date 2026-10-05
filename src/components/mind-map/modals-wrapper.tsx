@@ -5,6 +5,7 @@ import useAppStore from '@/store/mind-map-store';
 import { HistorySidebar } from '../history/history-sidebar';
 import { CommandPalette } from '../mind-map/command-palette';
 import { MapSettingsPanel } from '../mind-map/map-settings-panel';
+import { PluginsPanel } from '../plugins/plugins-panel';
 import EdgeEditModal from '../modals/edge-edit-modal';
 import { ReferenceSearchModal } from '../modals/reference-search-modal';
 import { RecipesPanel } from '../recipes/recipes-panel';
@@ -49,6 +50,8 @@ export function ModalsWrapper() {
 			/>
 
 			<RecipesPanel />
+
+			<PluginsPanel />
 
 			{popoverOpen.referenceSearch && <ReferenceSearchModal />}
 		</>

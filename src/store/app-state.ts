@@ -482,6 +482,8 @@ export interface Popovers {
 	commandPalette: boolean;
 	/** AI recipes side panel (list + editor) */
 	recipes: boolean;
+	/** Plugins side panel (turn plugins on/off, developer plugins) */
+	plugins: boolean;
 }
 
 // InlineNodeCreator types

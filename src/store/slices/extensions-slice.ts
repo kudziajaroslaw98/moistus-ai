@@ -29,7 +29,7 @@ export const createExtensionsSlice: StateCreator<
 
 	openRecipesPanel: (view = { mode: 'list' }) => {
 		set({ recipesPanelView: withEditorInstance(view) });
-		get().setPopoverOpen({ recipes: true });
+		get().setPopoverOpen({ recipes: true, plugins: false });
 	},
 
 	setRecipesPanelView: (view) => {

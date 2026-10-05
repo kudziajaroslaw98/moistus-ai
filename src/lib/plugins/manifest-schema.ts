@@ -40,6 +40,8 @@ export const RESERVED_PLUGIN_KINDS = new Set([
 	'ghost',
 	'extension',
 	'default',
+	// "$plugins" is the "More node types…" entry in the `$` list.
+	'plugins',
 ]);
 
 export const PLUGIN_LIMITS = {
