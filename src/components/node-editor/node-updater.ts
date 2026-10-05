@@ -129,6 +129,15 @@ export const updateNodeDirect = async ({
 		// Transform parsed data into node-specific data structure
 		const nodeData = transformDataForNodeType(nodeType, data);
 
+		// updateNode merges metadata, so a plugin node switched to a built-in type
+		// would keep its plugin data unless the key is cleared explicitly.
+		if (
+			existingNode.data.node_type === 'extensionNode' &&
+			nodeType !== 'extensionNode'
+		) {
+			nodeData.metadata = { ...nodeData.metadata, extension: undefined };
+		}
+
 		// Update the existing node with new data
 		await updateNode({
 			nodeId: existingNode.id,

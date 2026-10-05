@@ -590,15 +590,10 @@ export const QuickInput: FC<QuickInputProps> = ({
 			const kindChanged =
 				nextKind?.pluginId !== currentExtensionKind?.pluginId ||
 				nextKind?.kind !== currentExtensionKind?.kind;
-			// M1: plugin nodes keep their type in edit mode, and existing nodes can't
-			// become plugin nodes there.
-			const blockedInEdit =
-				mode === 'edit' && (currentNodeType === 'extensionNode' || Boolean(nextKind));
 
 			if (
 				processed.hasSwitch &&
 				processed.nodeType &&
-				!blockedInEdit &&
 				(processed.nodeType !== currentNodeType || kindChanged)
 			) {
 				// Update node type and clean text
@@ -624,7 +619,6 @@ export const QuickInput: FC<QuickInputProps> = ({
 		cursorPosition,
 		currentNodeType,
 		currentExtensionKind,
-		mode,
 		setCurrentNodeType,
 		setValue,
 		setCursorPosition,

@@ -30,6 +30,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **ai/recipes**: "Generate counterpoints" now runs the Counterpoints starter recipe through `POST /api/ai/recipes/run`: its suggestions show the recipe name and accepting one records a single history entry attributed to "Counterpoints"
   - Why: Counterpoints was already recipe-shaped; one engine means one set of guardrails (fixed system prompt, output sanitisation, type/label/count checks)
 
+### Fixed
+
+- **plugins/editor**: Typing `$metric` while editing an existing node now turns it into a Metric node (and `$note` turns a Metric node back into a note, clearing its plugin data); before, the editor highlighted the trigger but silently kept the old type
+
 ### Removed
 
 - **ai/counterpoints**: `POST /api/ai/counterpoints`, `src/helpers/ai-counterpoint-{request,context,prompts,postprocess}.ts` and `generateCounterpointsForNode` (replaced by the starter recipe)
