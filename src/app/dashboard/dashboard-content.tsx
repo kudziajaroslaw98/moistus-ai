@@ -3,83 +3,143 @@
 import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import { CreateMapCard } from '@/components/dashboard/create-map-card';
 import { CreateMapDialog } from '@/components/dashboard/create-map-dialog';
+import { DashboardFirstRun } from '@/components/dashboard/dashboard-first-run';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { DashboardMapsLoadingSkeleton } from '@/components/dashboard/dashboard-loading-skeleton';
 import { MindMapCard } from '@/components/dashboard/mind-map-card';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { SearchInput } from '@/components/ui/search-input';
+import { QuickCreateBar } from '@/components/dashboard/quick-create-bar';
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select';
+	DASHBOARD_MAPS_KEY,
+	useDashboardMaps,
+	useDashboardTemplates,
+	useMapPreviews,
+	type DashboardTemplate,
+} from '@/components/dashboard/use-dashboard-data';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuRadioGroup,
+	DropdownMenuRadioItem,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { formatUpdatedAt } from '@/helpers/dashboard/format-updated-at';
 import { waitForSubscriptionActivation } from '@/helpers/subscription/wait-for-subscription-activation';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
+import { useTouchFirst } from '@/hooks/use-touch-first';
 import useAppStore from '@/store/mind-map-store';
+import type { DashboardMap, DashboardViewMode } from '@/types/dashboard-map';
 import { cn } from '@/utils/cn';
-import {
-	Filter,
-	Grid3x3,
-	List,
-	Plus,
-	Search,
-	SortAsc,
-	Trash2,
-} from 'lucide-react';
+import { ChevronDown, LayoutGrid, List, Search, Trash2, X } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+	forwardRef,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 import { toast } from 'sonner';
-import useSWR, { mutate } from 'swr';
+import { mutate } from 'swr';
 import { useShallow } from 'zustand/react/shallow';
+
+const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
 // Helper to refresh usage data from store
 const refreshUsageData = () => {
 	useAppStore.getState().fetchUsageData?.();
 };
 
-interface MindMapData {
-	id: string;
-	user_id: string;
-	title: string;
-	description: string | null;
-	created_at: string;
-	updated_at: string;
-	is_template?: boolean;
-	template_category?: string;
-	is_shared?: boolean;
-	_count?: {
-		nodes: number;
-		edges: number;
-	};
-}
-
 type FilterType = 'all' | 'owned' | 'shared';
 type SortByType = 'updated' | 'created' | 'name';
 
-// SWR fetcher function
-const fetcher = async (url: string) => {
-	const response = await fetch(url, {
-		method: 'GET',
-		headers: { 'Content-Type': 'application/json' },
-	});
-
-	if (!response.ok) {
-		throw new Error('Failed to fetch data');
-	}
-
-	const { data } = await response.json();
-	return data;
+const SORT_LABELS: Record<SortByType, string> = {
+	updated: 'Last updated',
+	created: 'Created',
+	name: 'Name',
 };
+
+const SHORTCUTS = [
+	{ keys: 'Ctrl N', label: 'New map' },
+	{ keys: 'Ctrl F', label: 'Search' },
+	{ keys: 'Ctrl A', label: 'Select all' },
+	{ keys: 'Ctrl 1 / 2', label: 'Grid / list' },
+];
+
+const MAP_LIMIT_MESSAGE = (max: number) =>
+	`Mind map limit reached (${max} maps). Upgrade to Pro for unlimited maps.`;
+
+/** "last edit 2 hours ago" but keep month names capitalized ("last edit Sep 28"). */
+function lastEditLabel(iso: string) {
+	const label = formatUpdatedAt(iso);
+	return /^[A-Z][a-z]{2} \d/.test(label)
+		? label
+		: label.charAt(0).toLowerCase() + label.slice(1);
+}
+
+interface DashboardSearchFieldProps {
+	value: string;
+	onChange: (value: string) => void;
+	showShortcut: boolean;
+}
+
+const DashboardSearchField = forwardRef<
+	HTMLInputElement,
+	DashboardSearchFieldProps
+>(function DashboardSearchField({ value, onChange, showShortcut }, ref) {
+	return (
+		<div className='relative'>
+			<label className='sr-only' htmlFor='dashboard-map-search'>
+				Search maps
+			</label>
+
+			<Search
+				aria-hidden='true'
+				className='pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500'
+			/>
+
+			<input
+				autoComplete='off'
+				className='h-10 w-full rounded-[10px] border border-[#1d1f24] bg-[#0e0f12] pl-[38px] pr-16 text-sm text-white placeholder:text-zinc-500 transition-colors duration-200 ease focus:border-[#2f3139] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 [&::-webkit-search-cancel-button]:hidden'
+				id='dashboard-map-search'
+				onChange={(e) => onChange(e.target.value)}
+				placeholder='Search maps'
+				ref={ref}
+				type='search'
+				value={value}
+			/>
+
+			{value ? (
+				<button
+					aria-label='Clear search'
+					className='absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-zinc-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+					onClick={() => onChange('')}
+					type='button'
+				>
+					<X aria-hidden='true' className='size-3.5' />
+				</button>
+			) : (
+				showShortcut && (
+					<kbd className='pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-[5px] border border-[#2a2c33] px-1.5 py-px font-mono text-[11px] text-zinc-400'>
+						Ctrl F
+					</kbd>
+				)
+			)}
+		</div>
+	);
+});
 
 export function DashboardContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const checkoutActivationStarted = useRef(false);
+	const createParamHandled = useRef(false);
+	const searchInputRef = useRef<HTMLInputElement>(null);
+	const isTouchFirst = useTouchFirst();
+	const prefersReducedMotion = useReducedMotion() ?? false;
 
 	// Handle checkout success redirect
 	useEffect(() => {
@@ -122,7 +182,6 @@ export function DashboardContent() {
 		};
 	}, [searchParams]);
 
-	// Trial state and user
 	const { isTrialing, getTrialDaysRemaining, userProfile } = useAppStore(
 		useShallow((state) => ({
 			isTrialing: state.isTrialing,
@@ -142,30 +201,36 @@ export function DashboardContent() {
 			: undefined;
 
 	// State
-	const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+	const [viewMode, setViewMode] = useState<DashboardViewMode>('grid');
 	const [searchQuery, setSearchQuery] = useState('');
 	const [sortBy, setSortBy] = useState<SortByType>('updated');
 	const [filterBy, setFilterBy] = useState<FilterType>('all');
 	const [selectedMaps, setSelectedMaps] = useState<Set<string>>(new Set());
 	const [isCreatingMap, setIsCreatingMap] = useState(false);
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
+	const [dialogTemplate, setDialogTemplate] = useState<DashboardTemplate | null>(
+		null
+	);
 	const [showAnonymousUpgrade, setShowAnonymousUpgrade] = useState(false);
 
-	// Accessibility: respect reduced motion preference
-	const prefersReducedMotion = useReducedMotion();
+	const { maps, isLoading: mapsLoading } = useDashboardMaps();
+	const templates = useDashboardTemplates();
+	const showMapsSkeleton = mapsLoading && maps.length === 0;
+	const isFirstRun = !showMapsSkeleton && maps.length === 0;
 
-	// Fetch mind maps
-	const { data: mapsData = { maps: [] }, isLoading: mapsLoading } = useSWR<{
-		maps: MindMapData[];
-	}>('/api/maps', fetcher, {
-		revalidateOnFocus: false,
-		revalidateOnReconnect: true,
-		dedupingInterval: 5000,
-	});
-	const showMapsSkeleton = mapsLoading && !mapsData.maps.length;
+	// Previews for every map (not just the filtered ones) keep the cache key stable.
+	const allMapIds = useMemo(() => maps.map((map) => map.id), [maps]);
+	const { previews, isLoading: previewsLoading } = useMapPreviews(allMapIds);
+
+	const sharedCount = maps.filter((map) => map.is_shared).length;
+	const filterCounts: Record<FilterType, number> = {
+		all: maps.length,
+		owned: maps.length - sharedCount,
+		shared: sharedCount,
+	};
 
 	// Filter and sort maps
-	const filteredMaps = mapsData.maps
+	const filteredMaps = maps
 		.filter((map) => {
 			if (filterBy === 'shared' && !map.is_shared) {
 				return false;
@@ -199,29 +264,59 @@ export function DashboardContent() {
 			}
 		});
 
-	// Handlers
-	const handleRequestCreateMap = useCallback(() => {
+	const showLimitToast = useCallback(
+		(max: number) => {
+			toast.error(MAP_LIMIT_MESSAGE(max), {
+				action: {
+					label: 'Upgrade',
+					onClick: () => router.push('/dashboard?settings=billing'),
+				},
+				duration: 8000,
+			});
+		},
+		[router]
+	);
+
+	/** Anonymous and at-limit users get the matching upsell instead. */
+	const canCreateMap = useCallback(() => {
 		if (userProfile?.is_anonymous) {
 			setShowAnonymousUpgrade(true);
-			return;
+			return false;
 		}
 
 		if (isAtMapLimit) {
-			toast.error(
-				`Mind map limit reached (${mapLimitInfo?.max || 3} maps). Upgrade to Pro for unlimited maps.`,
-				{
-					action: {
-						label: 'Upgrade',
-						onClick: () => router.push('/dashboard?settings=billing'),
-					},
-					duration: 8000,
-				}
-			);
+			showLimitToast(mapLimitInfo?.max || 3);
+			return false;
+		}
+
+		return true;
+	}, [userProfile?.is_anonymous, isAtMapLimit, mapLimitInfo?.max, showLimitToast]);
+
+	const handleRequestCreateMap = useCallback(() => {
+		if (!canCreateMap()) return;
+		setDialogTemplate(null);
+		setShowCreateDialog(true);
+	}, [canCreateMap]);
+
+	const handlePickTemplate = useCallback(
+		(template: DashboardTemplate) => {
+			if (!canCreateMap()) return;
+			setDialogTemplate(template);
+			setShowCreateDialog(true);
+		},
+		[canCreateMap]
+	);
+
+	// Sidebar "New map" on other dashboard pages links here with ?create=1.
+	useEffect(() => {
+		if (searchParams.get('create') !== '1' || createParamHandled.current) {
 			return;
 		}
 
-		setShowCreateDialog(true);
-	}, [userProfile?.is_anonymous, isAtMapLimit, mapLimitInfo?.max, router]);
+		createParamHandled.current = true;
+		window.history.replaceState({}, '', '/dashboard');
+		handleRequestCreateMap();
+	}, [searchParams, handleRequestCreateMap]);
 
 	const handleCreateMap = async (data: {
 		title: string;
@@ -246,16 +341,7 @@ export function DashboardContent() {
 			if (!response.ok) {
 				if (response.status === 402) {
 					const errorData = await response.json();
-					toast.error(
-						`Mind map limit reached (${errorData.data?.limit || 3} maps). Upgrade to Pro for unlimited maps.`,
-						{
-							action: {
-								label: 'Upgrade',
-								onClick: () => router.push('/dashboard?settings=billing'),
-							},
-							duration: 8000,
-						}
-					);
+					showLimitToast(errorData.data?.limit || 3);
 					setShowCreateDialog(false);
 					return;
 				}
@@ -265,10 +351,8 @@ export function DashboardContent() {
 			const { data: responseData } = await response.json();
 
 			mutate(
-				'/api/maps',
-				{
-					maps: [responseData.map, ...mapsData.maps],
-				},
+				DASHBOARD_MAPS_KEY,
+				{ maps: [responseData.map, ...maps] },
 				false
 			);
 
@@ -286,36 +370,58 @@ export function DashboardContent() {
 		}
 	};
 
-	const handleDeleteMap = async (mapId: string) => {
-		if (!confirm('Delete this mind map? This action cannot be undone.')) {
-			return;
-		}
+	/** Quick create from a typed thought: same API path, no dialog. */
+	const handleQuickCreate = async (title: string) => {
+		if (!canCreateMap()) return;
 
 		try {
-			const response = await fetch(`/api/maps/${mapId}`, {
-				method: 'DELETE',
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to delete mind map.');
-			}
-
-			mutate(
-				'/api/maps',
-				{ maps: mapsData.maps.filter((map) => map.id !== mapId) },
-				false
-			);
-
-			refreshUsageData();
-			toast.success('Map deleted successfully');
-		} catch (err: unknown) {
-			console.error('Error deleting map:', err);
-			toast.error('Failed to delete map');
-			mutate('/api/maps');
+			await handleCreateMap({ title });
+		} catch {
+			// handleCreateMap already showed the error toast.
 		}
 	};
 
-	const handleDuplicateMap = async (mapId: string) => {
+	const handleDeleteMap = useCallback(
+		async (mapId: string) => {
+			if (!confirm('Delete this mind map? This action cannot be undone.')) {
+				return;
+			}
+
+			try {
+				const response = await fetch(`/api/maps/${mapId}`, {
+					method: 'DELETE',
+				});
+
+				if (!response.ok) {
+					throw new Error('Failed to delete mind map.');
+				}
+
+				mutate(
+					DASHBOARD_MAPS_KEY,
+					(current?: { maps: DashboardMap[] }) => ({
+						maps: (current?.maps ?? []).filter((map) => map.id !== mapId),
+					}),
+					false
+				);
+
+				setSelectedMaps((prev) => {
+					if (!prev.has(mapId)) return prev;
+					const next = new Set(prev);
+					next.delete(mapId);
+					return next;
+				});
+				refreshUsageData();
+				toast.success('Map deleted successfully');
+			} catch (err: unknown) {
+				console.error('Error deleting map:', err);
+				toast.error('Failed to delete map');
+				mutate(DASHBOARD_MAPS_KEY);
+			}
+		},
+		[]
+	);
+
+	const handleDuplicateMap = useCallback(async (mapId: string) => {
 		try {
 			const response = await fetch(`/api/maps/${mapId}/duplicate`, {
 				method: 'POST',
@@ -325,14 +431,14 @@ export function DashboardContent() {
 				throw new Error('Failed to duplicate mind map.');
 			}
 
-			mutate('/api/maps');
+			mutate(DASHBOARD_MAPS_KEY);
 			refreshUsageData();
 			toast.success('Map duplicated successfully');
 		} catch (err: unknown) {
 			console.error('Error duplicating map:', err);
 			toast.error('Failed to duplicate map');
 		}
-	};
+	}, []);
 
 	const handleBulkDelete = useCallback(async () => {
 		if (selectedMaps.size === 0) return;
@@ -357,8 +463,8 @@ export function DashboardContent() {
 			}
 
 			mutate(
-				'/api/maps',
-				{ maps: mapsData.maps.filter((map) => !selectedMaps.has(map.id)) },
+				DASHBOARD_MAPS_KEY,
+				{ maps: maps.filter((map) => !selectedMaps.has(map.id)) },
 				false
 			);
 
@@ -368,9 +474,9 @@ export function DashboardContent() {
 		} catch (err: unknown) {
 			console.error('Error deleting maps:', err);
 			toast.error('Failed to delete maps');
-			mutate('/api/maps');
+			mutate(DASHBOARD_MAPS_KEY);
 		}
-	}, [selectedMaps, mapsData.maps]);
+	}, [selectedMaps, maps]);
 
 	const handleSelectMap = useCallback((mapId: string, isSelected: boolean) => {
 		setSelectedMaps((prev) => {
@@ -384,52 +490,29 @@ export function DashboardContent() {
 		});
 	}, []);
 
-	const handleSelectAll = useCallback(
-		(checked?: boolean) => {
-			const filteredIds = new Set(filteredMaps.map((map) => map.id));
-			const allFilteredSelected = filteredMaps.every((map) =>
-				selectedMaps.has(map.id)
-			);
+	/** Toggles every visible map; selections hidden by other filters are kept. */
+	const handleSelectAll = useCallback(() => {
+		const filteredIds = filteredMaps.map((map) => map.id);
+		const allSelected = filteredIds.every((id) => selectedMaps.has(id));
 
-			if (typeof checked === 'boolean') {
-				if (checked) {
-					// Add all filtered map IDs to selection (keep existing selections from other filters)
-					setSelectedMaps((prev) => {
-						const newSet = new Set(prev);
-						filteredIds.forEach((id) => newSet.add(id));
-						return newSet;
-					});
-				} else {
-					// Remove only filtered map IDs (keep selections from other filters)
-					setSelectedMaps((prev) => {
-						const newSet = new Set(prev);
-						filteredIds.forEach((id) => newSet.delete(id));
-						return newSet;
-					});
-				}
-			} else {
-				// Toggle: if all filtered are selected, remove them; otherwise add them
-				if (allFilteredSelected) {
-					setSelectedMaps((prev) => {
-						const newSet = new Set(prev);
-						filteredIds.forEach((id) => newSet.delete(id));
-						return newSet;
-					});
-				} else {
-					setSelectedMaps((prev) => {
-						const newSet = new Set(prev);
-						filteredIds.forEach((id) => newSet.add(id));
-						return newSet;
-					});
-				}
-			}
-		},
-		[selectedMaps, filteredMaps]
-	);
+		setSelectedMaps((prev) => {
+			const next = new Set(prev);
+			filteredIds.forEach((id) =>
+				allSelected ? next.delete(id) : next.add(id)
+			);
+			return next;
+		});
+	}, [selectedMaps, filteredMaps]);
 
 	// Keyboard navigation and shortcuts
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
+			const target = e.target as HTMLElement | null;
+			const isTyping =
+				target?.tagName === 'INPUT' ||
+				target?.tagName === 'TEXTAREA' ||
+				target?.isContentEditable;
+
 			if (e.ctrlKey || e.metaKey) {
 				switch (e.key.toLowerCase()) {
 					case 'n':
@@ -437,15 +520,12 @@ export function DashboardContent() {
 						handleRequestCreateMap();
 						break;
 					case 'f':
+						if (isFirstRun) break;
 						e.preventDefault();
-						document
-							.querySelector<HTMLInputElement>(
-								'input[placeholder="Search maps..."]'
-							)
-							?.focus();
+						searchInputRef.current?.focus();
 						break;
 					case 'a':
-						if (filteredMaps.length > 0) {
+						if (!isTyping && filteredMaps.length > 0) {
 							e.preventDefault();
 							handleSelectAll();
 						}
@@ -472,10 +552,7 @@ export function DashboardContent() {
 						break;
 					case 'Delete':
 					case 'Backspace':
-						if (
-							selectedMaps.size > 0 &&
-							document.activeElement?.tagName !== 'INPUT'
-						) {
+						if (selectedMaps.size > 0 && !isTyping) {
 							e.preventDefault();
 							handleBulkDelete();
 						}
@@ -491,414 +568,332 @@ export function DashboardContent() {
 		searchQuery,
 		filterBy,
 		filteredMaps.length,
+		isFirstRun,
 		handleSelectAll,
 		handleBulkDelete,
 		handleRequestCreateMap,
 	]);
 
+	const firstName =
+		(userProfile?.display_name || userProfile?.full_name)?.split(/\s+/)[0] ||
+		null;
+	const latestUpdate = maps.reduce<string | null>(
+		(latest, map) =>
+			!latest || map.updated_at > latest ? map.updated_at : latest,
+		null
+	);
+	const statsLine = [
+		`${maps.length} ${maps.length === 1 ? 'map' : 'maps'}`,
+		sharedCount > 0 && `${sharedCount} shared with you`,
+		latestUpdate && `last edit ${lastEditLabel(latestUpdate)}`,
+	]
+		.filter(Boolean)
+		.join(' · ');
+	const allVisibleSelected =
+		filteredMaps.length > 0 &&
+		filteredMaps.every((map) => selectedMaps.has(map.id));
+
+	const headerSearch = isFirstRun ? undefined : (
+		<DashboardSearchField
+			onChange={setSearchQuery}
+			ref={searchInputRef}
+			showShortcut={!isTouchFirst}
+			value={searchQuery}
+		/>
+	);
+
 	return (
 		<SidebarProvider>
-			<DashboardLayout>
-				<div className='flex h-full'>
-					<div className='grow w-full overflow-auto'>
-						<div className='p-6 md:p-8'>
-							<div className='mx-auto max-w-7xl'>
-								{/* Trial Badge */}
-								{isTrialing?.() && trialDays !== null && (
-									<div className='mb-4 rounded-lg bg-purple-500/10 border border-purple-500/20 p-4'>
-										<p className='text-sm font-medium text-purple-600'>
-											✨ Trial Active: {trialDays} days remaining
-										</p>
-										<p className='text-xs text-muted-foreground mt-1'>
-											Enjoying Pro features? Your trial ends soon.
-										</p>
-									</div>
-								)}
+			<DashboardLayout headerSearch={headerSearch} onNewMap={handleRequestCreateMap}>
+				<div className='w-full max-w-[1240px] px-4 pb-12 pt-10 sm:px-8'>
+					{isTrialing?.() && trialDays !== null && (
+						<div className='mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-500/20 bg-violet-500/[0.06] px-4 py-3 text-sm'>
+							<span className='font-medium text-violet-200'>
+								{`Pro trial: ${trialDays} ${trialDays === 1 ? 'day' : 'days'} left`}
+							</span>
 
-								{/* Header */}
-								<div className='mb-10'>
-									<div className='flex items-center justify-between mb-8'>
-										<h1 className='text-3xl font-bold text-white tracking-tight'>
-											Mind Maps
-										</h1>
-									</div>
+							<span className='text-xs text-zinc-400'>
+								Your trial ends soon.
+							</span>
+						</div>
+					)}
 
-									{/* Keyboard Shortcuts Help */}
-									<div className='text-xs text-zinc-400 space-y-1 hidden lg:block mb-6'>
-										<div className='flex gap-6'>
-											<span>
-												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
-													Ctrl+N
-												</kbd>
-												<span className='text-zinc-500'>New map</span>
-											</span>
-											<span>
-												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
-													Ctrl+F
-												</kbd>
-												<span className='text-zinc-500'>Search</span>
-											</span>
-											<span>
-												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
-													Ctrl+A
-												</kbd>
-												<span className='text-zinc-500'>Select all</span>
-											</span>
-											<span>
-												<kbd className='px-2 py-1 mr-1 bg-zinc-800/50 border border-zinc-700/50 rounded-md text-xs shadow-sm'>
-													Ctrl+1/2
-												</kbd>
-												<span className='text-zinc-500'>View mode</span>
-											</span>
-										</div>
-									</div>
+					{isFirstRun ? (
+						<DashboardFirstRun
+							firstName={firstName}
+							isCreating={isCreatingMap}
+							onCreate={handleQuickCreate}
+							onOpenDialog={handleRequestCreateMap}
+							onPickTemplate={handlePickTemplate}
+							templates={templates}
+						/>
+					) : (
+						<>
+							<h1 className='text-3xl font-bold leading-tight tracking-[-0.02em]'>
+								Your maps
+							</h1>
 
-									{/* Enhanced Toolbar */}
-									<div className='flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6 p-2 rounded-xl bg-zinc-950 border border-zinc-800/50 shadow-lg'>
-										{/* Search */}
-										<div className='grow max-w-full sm:max-w-md'>
-											<SearchInput
-												className='touch-manipulation'
-												onChange={(e) => setSearchQuery(e.target.value)}
-												placeholder='Search maps...'
-												value={searchQuery}
-											/>
-										</div>
+							<p className='mt-2 h-5 text-sm text-zinc-400'>
+								{showMapsSkeleton ? ' ' : statsLine}
+							</p>
 
-										{/* Actions */}
-										<div className='flex items-center gap-2 flex-wrap sm:flex-nowrap'>
-											{/* Filter */}
-											<Select
-												value={filterBy}
-												onValueChange={(value) =>
-													setFilterBy(value as FilterType)
-												}
+							<QuickCreateBar
+								isCreating={isCreatingMap}
+								onCreate={handleQuickCreate}
+								onOpenDialog={handleRequestCreateMap}
+								onPickTemplate={handlePickTemplate}
+								templates={templates}
+							/>
+
+							<Tabs
+								className='mt-9 gap-0'
+								onValueChange={(value) => setFilterBy(value as FilterType)}
+								value={filterBy}
+							>
+								<div className='flex flex-wrap items-center justify-between gap-3 border-b border-[#1d1f24]'>
+									<TabsList
+										aria-label='Filter maps'
+										className='h-11 gap-1 overflow-x-auto p-0'
+									>
+										{(
+											[
+												['all', 'All maps'],
+												['owned', 'My maps'],
+												['shared', 'Shared with me'],
+											] as const
+										).map(([value, label]) => (
+											<TabsTrigger
+												className='h-11 flex-none rounded-none border-0 px-3 font-normal text-zinc-400 data-[active]:border-0 data-[active]:bg-transparent data-[active]:font-medium data-[active]:text-white data-[active]:shadow-[inset_0_-2px_0_#fafafa] [@media(hover:hover)]:hover:bg-transparent'
+												key={value}
+												value={value}
 											>
-												<SelectTrigger className='w-36 bg-zinc-800/30 backdrop-blur-sm border-zinc-700/50 hover:border-zinc-600/50 transition-colors duration-200'>
-													<Filter className='h-4 w-4 mr-2' />
-													<SelectValue />
-												</SelectTrigger>
-												<SelectContent className='bg-zinc-900/95 backdrop-blur-sm border-zinc-800/50 shadow-xl'>
-													<SelectItem value='all'>All Maps</SelectItem>
-													<SelectItem value='owned'>My Maps</SelectItem>
-													<SelectItem value='shared'>Shared with me</SelectItem>
-												</SelectContent>
-											</Select>
+												{label}
 
-											{/* Sort */}
-											<Select
-												onValueChange={(value) =>
-													setSortBy(value as SortByType)
-												}
-												value={sortBy}
-											>
-												<SelectTrigger className='w-44 bg-zinc-800/30 backdrop-blur-sm border-zinc-700/50 hover:border-zinc-600/50 transition-colors duration-200'>
-													<SortAsc className='h-4 w-4 mr-2' />
-													<SelectValue />
-												</SelectTrigger>
-												<SelectContent className='bg-zinc-900/95 backdrop-blur-sm border-zinc-800/50 shadow-xl'>
-													<SelectItem value='updated'>Last Updated</SelectItem>
-													<SelectItem value='created'>Created</SelectItem>
-													<SelectItem value='name'>Name</SelectItem>
-												</SelectContent>
-											</Select>
+												<span className='font-mono text-xs text-zinc-500'>
+													{filterCounts[value]}
+												</span>
+											</TabsTrigger>
+										))}
+									</TabsList>
 
-											{/* View Mode */}
-											<div className='flex items-center rounded-lg bg-zinc-800/30 backdrop-blur-sm border border-zinc-700/50 p-1 shadow-sm'>
-												<Button
-													onClick={() => setViewMode('grid')}
-													size='sm'
-													variant='ghost'
+									<div className='flex items-center gap-2 pb-1.5'>
+										<DropdownMenu>
+											<DropdownMenuTrigger className='flex h-9 items-center gap-2 rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] px-3 text-[13px] text-zinc-300 transition-colors duration-200 ease hover:border-[#2a2c33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'>
+												<span className='text-zinc-500'>Sort</span>
+
+												{SORT_LABELS[sortBy]}
+
+												<ChevronDown aria-hidden='true' className='size-3 text-zinc-500' />
+											</DropdownMenuTrigger>
+
+											<DropdownMenuContent align='end' className='w-44'>
+												<DropdownMenuRadioGroup
+													onValueChange={(value) => setSortBy(value as SortByType)}
+													value={sortBy}
+												>
+													{(Object.keys(SORT_LABELS) as SortByType[]).map((key) => (
+														<DropdownMenuRadioItem key={key} value={key}>
+															{SORT_LABELS[key]}
+														</DropdownMenuRadioItem>
+													))}
+												</DropdownMenuRadioGroup>
+											</DropdownMenuContent>
+										</DropdownMenu>
+
+										<div
+											aria-label='View mode'
+											className='flex rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] p-0.5'
+											role='group'
+										>
+											{(
+												[
+													['grid', 'Grid view', LayoutGrid],
+													['list', 'List view', List],
+												] as const
+											).map(([mode, label, Icon]) => (
+												<button
+													aria-label={label}
+													aria-pressed={viewMode === mode}
+													key={mode}
+													onClick={() => setViewMode(mode)}
+													type='button'
 													className={cn(
-														'h-10 px-3 sm:h-7 sm:px-2 min-w-11 sm:min-w-0 touch-manipulation',
-														viewMode === 'grid' && 'bg-zinc-700'
+														'flex h-[30px] w-8 items-center justify-center rounded-[7px] transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
+														viewMode === mode
+															? 'bg-[#1c1d22] text-white'
+															: 'text-zinc-500 hover:text-white'
 													)}
 												>
-													<Grid3x3 className='h-4 w-4' />
-												</Button>
-												<Button
-													onClick={() => setViewMode('list')}
-													size='sm'
-													variant='ghost'
-													className={cn(
-														'h-10 px-3 sm:h-7 sm:px-2 min-w-11 sm:min-w-0 touch-manipulation',
-														viewMode === 'list' && 'bg-zinc-700'
-													)}
-												>
-													<List className='h-4 w-4' />
-												</Button>
-											</div>
+													<Icon aria-hidden='true' className='size-3.5' />
+												</button>
+											))}
 										</div>
 									</div>
 								</div>
 
-								{/* Select All */}
-								{(filteredMaps.length > 0 || showMapsSkeleton) && (
-									<div className='mb-4 flex gap-2 h-9'>
-										{showMapsSkeleton ? (
-											<div className='flex items-center gap-3'>
-												<div className='h-4 w-4 rounded-sm bg-zinc-800 animate-pulse' />
-												<div className='h-4 w-36 rounded bg-zinc-800 animate-pulse' />
-											</div>
-										) : (
-											<label className='flex items-center gap-3 text-sm text-zinc-400 cursor-pointer'>
-												<Checkbox
-													checked={
-														filteredMaps.length > 0 &&
-														filteredMaps.every((map) =>
-															selectedMaps.has(map.id)
-														)
-													}
-													onChange={handleSelectAll}
-													size='sm'
-													variant='default'
-												/>
-												<span>Select all ({filteredMaps.length} maps)</span>
-											</label>
-										)}
-
-										{selectedMaps.size > 0 && (
-											<motion.div
-												animate={{
-													opacity: 1,
-													scale: prefersReducedMotion ? 1 : 1,
-												}}
-												className='h-9 flex items-center gap-2 px-3 rounded-lg'
-												exit={{
-													opacity: 0,
-													scale: prefersReducedMotion ? 1 : 0.9,
-												}}
-												initial={{
-													opacity: 0,
-													scale: prefersReducedMotion ? 1 : 0.9,
-												}}
-												transition={
-													prefersReducedMotion ? { duration: 0 } : undefined
-												}
-											>
-												<span className='text-sm text-zinc-300'>
+								{/* Selection toolbar */}
+								<AnimatePresence initial={false}>
+									{selectedMaps.size > 0 && (
+										<motion.div
+											animate={{ opacity: 1, height: 'auto' }}
+											className='overflow-hidden'
+											exit={{ opacity: 0, height: 0 }}
+											initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
+											transition={{ duration: 0.2, ease: EASE_OUT_QUART }}
+										>
+											<div className='mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#1d1f24] bg-[#0e0f12] px-3 py-2 text-sm'>
+												<span className='text-zinc-300'>
 													{selectedMaps.size} selected
 												</span>
-												<Button
-													className='text-red-400 hover:text-red-300'
-													onClick={handleBulkDelete}
-													size='icon'
-													variant='outline'
+
+												<button
+													className='rounded-md px-2 py-1 text-zinc-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+													onClick={handleSelectAll}
+													type='button'
 												>
-													<Trash2 className='size-4' />
-												</Button>
-												<Button
+													{allVisibleSelected ? 'Deselect all' : 'Select all'}
+												</button>
+
+												<span className='flex-1' />
+
+												<button
+													className='flex items-center gap-1.5 rounded-md px-2 py-1 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500'
+													onClick={handleBulkDelete}
+													type='button'
+												>
+													<Trash2 aria-hidden='true' className='size-3.5' />
+													Delete
+												</button>
+
+												<button
+													className='rounded-md px-2 py-1 text-zinc-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
 													onClick={() => setSelectedMaps(new Set())}
-													size='sm'
-													variant='outline'
+													type='button'
 												>
 													Clear
-												</Button>
-											</motion.div>
-										)}
-									</div>
-								)}
-
-								{/* Mind Maps Grid/List */}
-								<div
-									className={cn(
-										viewMode === 'grid'
-											? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6'
-											: 'space-y-2'
+												</button>
+											</div>
+										</motion.div>
 									)}
-								>
-									{showMapsSkeleton ? (
-										<DashboardMapsLoadingSkeleton viewMode={viewMode} />
-									) : (
-										<>
-											{/* Create New Map Card */}
-											{mapsData.maps.length > 0 && (
-												<CreateMapCard
-													onClick={handleRequestCreateMap}
-													viewMode={viewMode}
-													disabled={isAtMapLimit}
-													limitInfo={mapLimitInfo}
-												/>
-											)}
+								</AnimatePresence>
 
-											{/* Existing Mind Maps */}
-											<AnimatePresence mode='popLayout'>
-												{filteredMaps.map((map) => (
-													<MindMapCard
-														key={map.id}
-														map={map}
-														onDelete={handleDeleteMap}
-														onDuplicate={handleDuplicateMap}
-														onSelect={handleSelectMap}
-														selected={selectedMaps.has(map.id)}
+								<TabsContent value={filterBy}>
+									{!showMapsSkeleton && filteredMaps.length === 0 ? (
+										<motion.div
+											animate={{ opacity: 1, y: 0 }}
+											className='flex flex-col items-center py-20 text-center'
+											initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+											transition={{ duration: 0.3, ease: EASE_OUT_QUART }}
+										>
+											<span className='flex size-11 items-center justify-center rounded-full border border-[#2a2c33] bg-[#0e0f12]'>
+												<Search aria-hidden='true' className='size-4 text-zinc-400' />
+											</span>
+
+											<h2 className='mt-4 text-base font-semibold'>No maps found</h2>
+
+											<p className='mt-1 text-sm text-zinc-400'>
+												{searchQuery
+													? `Nothing matches "${searchQuery}".`
+													: filterBy === 'shared'
+														? 'No one has shared a map with you yet.'
+														: 'Try a different filter.'}
+											</p>
+
+											<button
+												className='mt-5 h-9 rounded-[9px] border border-[#2a2c33] bg-[#131418] px-4 text-sm text-white transition-colors duration-200 ease hover:bg-[#1a1b20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+												type='button'
+												onClick={() => {
+													setSearchQuery('');
+													setFilterBy('all');
+												}}
+											>
+												Clear filters
+											</button>
+										</motion.div>
+									) : (
+										<div
+											// Remount on view switch so cards re-enter instead of
+											// layout-animating from their grid positions.
+											key={viewMode}
+											className={cn(
+												'mt-6',
+												viewMode === 'grid'
+													? 'grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5'
+													: 'flex flex-col gap-2'
+											)}
+										>
+											{showMapsSkeleton ? (
+												<DashboardMapsLoadingSkeleton viewMode={viewMode} />
+											) : (
+												<>
+													<AnimatePresence mode='popLayout'>
+														{filteredMaps.map((map, index) => (
+															<MindMapCard
+																index={index}
+																isPreviewLoading={previewsLoading}
+																key={map.id}
+																map={map}
+																onDelete={handleDeleteMap}
+																onDuplicate={handleDuplicateMap}
+																onSelect={handleSelectMap}
+																preview={previews[map.id]}
+																selected={selectedMaps.has(map.id)}
+																viewMode={viewMode}
+															/>
+														))}
+													</AnimatePresence>
+
+													<CreateMapCard
+														disabled={isAtMapLimit}
+														limitInfo={mapLimitInfo}
+														onClick={handleRequestCreateMap}
 														viewMode={viewMode}
 													/>
-												))}
-											</AnimatePresence>
-										</>
-									)}
-								</div>
-
-								{/* Empty State */}
-								{!showMapsSkeleton && filteredMaps.length === 0 && (
-									<div className='py-16 sm:py-24'>
-										<div className='text-center max-w-sm mx-auto'>
-											{searchQuery || filterBy !== 'all' ? (
-												<motion.div
-													animate={{ opacity: 1, y: 0 }}
-													className='space-y-6'
-													initial={{
-														opacity: 0,
-														y: prefersReducedMotion ? 0 : 12,
-													}}
-													transition={
-														prefersReducedMotion
-															? { duration: 0 }
-															: {
-																	duration: 0.3,
-																	ease: [0.165, 0.84, 0.44, 1],
-																}
-													}
-												>
-													<div className='w-14 h-14 mx-auto rounded-full bg-zinc-800/80 flex items-center justify-center'>
-														<Search className='w-6 h-6 text-zinc-500' />
-													</div>
-													<div className='space-y-2'>
-														<h2 className='text-xl font-medium text-white'>
-															No maps found
-														</h2>
-														<p className='text-zinc-500 text-sm'>
-															Try adjusting your search or filters.
-														</p>
-													</div>
-													<Button
-														className='text-zinc-400 hover:text-white'
-														variant='ghost'
-														onClick={() => {
-															setSearchQuery('');
-															setFilterBy('all');
-														}}
-													>
-														Clear filters
-													</Button>
-												</motion.div>
-											) : (
-												<motion.div
-													animate={{ opacity: 1, y: 0 }}
-													className='space-y-6'
-													initial={{
-														opacity: 0,
-														y: prefersReducedMotion ? 0 : 16,
-													}}
-													transition={
-														prefersReducedMotion
-															? { duration: 0 }
-															: {
-																	duration: 0.4,
-																	ease: [0.165, 0.84, 0.44, 1],
-																}
-													}
-												>
-													<motion.div
-														animate={{
-															opacity: 1,
-															scale: prefersReducedMotion ? 1 : 1,
-														}}
-														className='w-16 h-16 mx-auto rounded-full bg-linear-to-br from-sky-500 to-sky-600 flex items-center justify-center shadow-lg shadow-sky-600/25'
-														initial={{
-															opacity: 0,
-															scale: prefersReducedMotion ? 1 : 0.9,
-														}}
-														transition={
-															prefersReducedMotion
-																? { duration: 0 }
-																: {
-																		delay: 0.1,
-																		duration: 0.3,
-																		ease: [0.165, 0.84, 0.44, 1],
-																	}
-														}
-													>
-														<Plus className='w-7 h-7 text-white' />
-													</motion.div>
-													<motion.div
-														animate={{ opacity: 1, y: 0 }}
-														className='space-y-2'
-														initial={{
-															opacity: 0,
-															y: prefersReducedMotion ? 0 : 8,
-														}}
-														transition={
-															prefersReducedMotion
-																? { duration: 0 }
-																: {
-																		delay: 0.15,
-																		duration: 0.3,
-																		ease: [0.165, 0.84, 0.44, 1],
-																	}
-														}
-													>
-														<h2 className='text-2xl font-semibold text-white tracking-tight'>
-															Create your first map
-														</h2>
-														<p className='text-zinc-400 text-sm'>
-															Start organizing ideas, notes, and projects
-															visually.
-														</p>
-													</motion.div>
-													<motion.div
-														animate={{ opacity: 1, y: 0 }}
-														initial={{
-															opacity: 0,
-															y: prefersReducedMotion ? 0 : 8,
-														}}
-														transition={
-															prefersReducedMotion
-																? { duration: 0 }
-																: {
-																		delay: 0.2,
-																		duration: 0.3,
-																		ease: [0.165, 0.84, 0.44, 1],
-																	}
-														}
-													>
-														<Button
-															className='bg-sky-600 hover:bg-sky-500 shadow-lg shadow-sky-600/25 hover:shadow-xl hover:shadow-sky-600/30 transition-all duration-200'
-															disabled={isCreatingMap}
-															onClick={handleRequestCreateMap}
-														>
-															<Plus className='w-4 h-4 mr-2' />
-															New mind map
-														</Button>
-													</motion.div>
-												</motion.div>
+												</>
 											)}
 										</div>
-									</div>
-								)}
-							</div>
-						</div>
-					</div>
+									)}
+								</TabsContent>
+							</Tabs>
+
+							{!isTouchFirst && (
+								<ul className='mt-8 hidden flex-wrap gap-x-6 gap-y-2.5 text-xs text-zinc-500 lg:flex'>
+									{SHORTCUTS.map((shortcut) => (
+										<li className='flex items-center gap-2' key={shortcut.keys}>
+											<kbd className='rounded-[5px] border border-b-2 border-[#2a2c33] px-1.5 py-px font-mono text-[11px] text-zinc-300'>
+												{shortcut.keys}
+											</kbd>
+
+											{shortcut.label}
+										</li>
+									))}
+								</ul>
+							)}
+						</>
+					)}
 				</div>
 
-				{/* Create Map Dialog */}
 				<CreateMapDialog
 					disabled={isCreatingMap}
-					onOpenChange={setShowCreateDialog}
+					initialTemplate={dialogTemplate}
 					onSubmit={handleCreateMap}
 					open={showCreateDialog}
+					onOpenChange={(open) => {
+						setShowCreateDialog(open);
+						if (!open) setDialogTemplate(null);
+					}}
 				/>
 
 				{/* Upgrade prompt for anonymous users */}
 				{showAnonymousUpgrade && (
 					<UpgradeAnonymousPrompt
+						autoShowDelay={0}
 						isAnonymous={true}
+						onDismiss={() => setShowAnonymousUpgrade(false)}
+						onUpgradeSuccess={() => router.refresh()}
 						userDisplayName={
 							userProfile?.display_name || userProfile?.full_name
 						}
-						onDismiss={() => setShowAnonymousUpgrade(false)}
-						onUpgradeSuccess={() => router.refresh()}
-						autoShowDelay={0}
 					/>
 				)}
 			</DashboardLayout>
