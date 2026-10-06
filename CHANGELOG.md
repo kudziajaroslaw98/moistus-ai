@@ -11,6 +11,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **nodes/note**: Note nodes show each line you type on its own line instead of running lines together; Markdown formatting is unchanged
   - Why: Markdown treats a single line break inside a paragraph as a space
+- **node-editor**: Saving a node from the node editor keeps its line breaks and blank lines (the parser turned every line break into a space, so new notes were saved as one line)
 
 ## [2026-10-05]
 

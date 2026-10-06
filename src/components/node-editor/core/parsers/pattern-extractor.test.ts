@@ -40,3 +40,22 @@ describe('pattern-extractor parser cleanup', () => {
 		expect(result.content).toContain('src:"https://legacy.example.com/image.png"')
 	})
 })
+
+describe('pattern-extractor line breaks', () => {
+	it('keeps the lines and blank lines people type', () => {
+		const parsed = parseInput(
+			'Keyboard shortcuts:\n\nTab to create a child\nEnter to create a sibling'
+		)
+
+		expect(parsed.content).toBe(
+			'Keyboard shortcuts:\n\nTab to create a child\nEnter to create a sibling'
+		)
+	})
+
+	it('still tidies the spaces left where patterns were removed', () => {
+		const parsed = parseInput('Buy milk #shopping   today  \nThen #home cook')
+
+		expect(parsed.content).toBe('Buy milk today\nThen cook')
+		expect(parsed.metadata.tags).toEqual(['shopping', 'home'])
+	})
+})
