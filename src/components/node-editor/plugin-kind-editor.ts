@@ -150,6 +150,7 @@ export function buildPluginNodeSaveData(
 		pluginId: manifest.id,
 		kind: active.kind.kind,
 		kindLabel: active.kind.label,
+		width: active.kind.width,
 		version: manifest.version,
 		data: parsed.data,
 		...(rendered ? { snapshot: rendered.tree } : {}),

@@ -262,6 +262,8 @@ export interface BaseNodeWrapperProps<
 	disableConnections?: boolean;
 	accentColor?: string;
 	elevation?: number;
+	/** Card width in px (default 320); wide plugin kinds pass PLUGIN_KIND_WIDTHS.wide. */
+	nodeWidth?: number;
 	metadataColorOverrides?: {
 		accentColor?: string;
 		bgOpacity?: number;

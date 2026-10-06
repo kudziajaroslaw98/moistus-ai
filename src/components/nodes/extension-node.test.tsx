@@ -33,11 +33,17 @@ jest.mock('./base-node-wrapper', () => ({
 	BaseNodeWrapper: ({
 		children,
 		nodeType,
+		nodeWidth,
 	}: {
 		children: ReactNode;
 		nodeType?: string;
+		nodeWidth?: number;
 	}) => (
-		<div data-node-type={nodeType} data-testid='base-node-wrapper'>
+		<div
+			data-node-type={nodeType}
+			data-node-width={nodeWidth}
+			data-testid='base-node-wrapper'
+		>
 			{children}
 		</div>
 	),
@@ -101,6 +107,20 @@ describe('ExtensionNode', () => {
 		expect(screen.getByTestId('plugin-node-status')).toHaveTextContent(
 			'Needs the Kanban board plugin (com.example.kanban)'
 		);
+	});
+
+	it('keeps the width saved with a wide node while its plugin is off', () => {
+		const extension: NodeExtensionData = {
+			pluginId: 'shiko.kanban',
+			kind: 'kanban',
+			version: '0.1.0',
+			data: {},
+		};
+		const { rerender } = render(<ExtensionNode {...createProps(extension)} />);
+		expect(screen.getByTestId('base-node-wrapper')).toHaveAttribute('data-node-width', '320');
+
+		rerender(<ExtensionNode {...createProps({ ...extension, width: 'wide' })} />);
+		expect(screen.getByTestId('base-node-wrapper')).toHaveAttribute('data-node-width', '700');
 	});
 
 	it('shows a placeholder when extension data is missing', () => {

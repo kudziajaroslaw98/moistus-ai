@@ -14,43 +14,55 @@ function cards(data, field) {
 }
 
 function cardRow(card, index, canEdit) {
-	const children = [ui.text(card.text, { tone: index === 2 ? 'muted' : 'default' })];
+	const done = index === COLUMNS.length - 1;
+	const children = [ui.text(card.text, { tone: done ? 'muted' : 'default' })];
 	if (canEdit) {
 		const buttons = [];
 		if (index > 0) {
 			const to = COLUMNS[index - 1];
-			buttons.push(ui.button(to.title, 'move', { icon: 'arrow-left', payload: { id: card.id, to: to.field } }));
+			buttons.push(
+				ui.button('Move to ' + to.title, 'move', {
+					icon: 'arrow-left',
+					iconOnly: true,
+					payload: { id: card.id, to: to.field },
+				})
+			);
 		}
 		if (index < COLUMNS.length - 1) {
 			const to = COLUMNS[index + 1];
-			buttons.push(ui.button(to.title, 'move', { icon: 'arrow-right', payload: { id: card.id, to: to.field } }));
+			buttons.push(
+				ui.button('Move to ' + to.title, 'move', {
+					icon: 'arrow-right',
+					iconOnly: true,
+					payload: { id: card.id, to: to.field },
+				})
+			);
 		}
 		children.push(ui.row({ gap: 1 }, buttons));
 	}
-	return ui.row({ key: card.id, justify: 'between', align: 'center', gap: 2, wrap: true }, children);
+	return ui.row({ key: card.id, justify: 'between', align: 'center', gap: 2 }, children);
 }
 
 definePlugin({
 	kinds: {
 		kanban: {
+			// The manifest makes this kind a wide node, so the columns sit side by side.
 			render(data, ctx) {
+				const columns = COLUMNS.map((column, index) => {
+					const list = cards(data, column.field);
+					return ui.stack({ key: column.field, gap: 2 }, [
+						ui.row({ justify: 'between', align: 'center' }, [
+							ui.text(column.title, { size: 'sm', tone: 'muted' }),
+							ui.badge(String(list.length), { tone: column.tone }),
+						]),
+						...(list.length
+							? list.map((card) => cardRow(card, index, ctx.canEdit))
+							: [ui.text('Nothing here', { size: 'sm', tone: 'muted' })]),
+					]);
+				});
 				const sections = [];
 				if (data.label) sections.push(ui.text(data.label, { tone: 'strong' }));
-				COLUMNS.forEach((column, index) => {
-					const list = cards(data, column.field);
-					if (index > 0) sections.push(ui.divider({ key: 'divider-' + column.field }));
-					sections.push(
-						ui.stack({ key: column.field, gap: 2 }, [
-							ui.row({ justify: 'between', align: 'center' }, [
-								ui.text(column.title, { size: 'sm', tone: 'muted' }),
-								ui.badge(String(list.length), { tone: column.tone }),
-							]),
-							...(list.length
-								? list.map((card) => cardRow(card, index, ctx.canEdit))
-								: [ui.text('Nothing here', { size: 'sm', tone: 'muted' })]),
-						])
-					);
-				});
+				sections.push(ui.row({ equal: true, gap: 4, align: 'start' }, columns));
 				return ui.stack({ gap: 3 }, sections);
 			},
 

@@ -15,6 +15,7 @@
 			"description": "Cards in To do, Doing and Done",
 			"icon": "columns",
 			"labelField": "label",
+			"width": "wide",
 			"fields": {
 				"label": {
 					"type": "string",

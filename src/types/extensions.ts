@@ -1,4 +1,5 @@
 import type { RecipeDefinition } from '@/lib/extensions/recipe-schema';
+import type { PluginKindWidth } from '@/lib/plugins/manifest-schema';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AppState } from '@/store/app-state';
 import type { LucideIcon } from 'lucide-react';
@@ -21,6 +22,8 @@ export interface NodeExtensionData {
 	kind: string;
 	/** The kind's display label when saved ("Metric"), for when the plugin isn't loaded. */
 	kindLabel?: string;
+	/** The kind's node width when saved, so the card keeps its size when the plugin isn't loaded. */
+	width?: PluginKindWidth;
 	version: string;
 	data: Record<string, unknown>;
 	snapshot?: unknown;

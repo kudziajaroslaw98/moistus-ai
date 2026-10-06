@@ -111,11 +111,12 @@ export function PluginUiTree({
 					<div
 						key={key}
 						className={cn(
-							'flex min-w-0',
+							'min-w-0',
 							GAP[node.gap ?? 2],
 							ALIGN[node.align ?? 'center'],
-							JUSTIFY[node.justify ?? 'start'],
-							node.wrap && 'flex-wrap'
+							node.equal
+								? 'grid grid-flow-col auto-cols-[minmax(0,1fr)]'
+								: cn('flex', JUSTIFY[node.justify ?? 'start'], node.wrap && 'flex-wrap')
 						)}
 					>
 						{renderChildren(node.children)}
@@ -181,17 +182,22 @@ export function PluginUiTree({
 			}
 			case 'button': {
 				const Icon = node.icon ? PLUGIN_UI_ICONS[node.icon] : null;
+				// Icon-only needs an icon; without one the label still shows.
+				const iconOnly = Boolean(node.iconOnly && Icon);
 				return (
 					<button
+						aria-label={iconOnly ? node.label : undefined}
 						disabled={!interactive}
 						key={key}
+						title={iconOnly ? node.label : undefined}
 						type='button'
 						onClick={(event) => {
 							event.stopPropagation();
 							onAction?.(node.action, node.payload);
 						}}
 						className={cn(
-							'nodrag nopan inline-flex h-8 items-center gap-1.5 rounded-md border border-zinc-700 px-3 text-[13px] font-medium text-zinc-50',
+							'nodrag nopan inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-zinc-700 text-[13px] font-medium text-zinc-50',
+							iconOnly ? 'w-8 shrink-0' : 'px-3',
 							'transition-colors duration-200 ease [@media(hover:hover)]:hover:bg-white/5',
 							'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60',
 							'disabled:cursor-default disabled:opacity-50'
@@ -199,7 +205,7 @@ export function PluginUiTree({
 					>
 						{Icon && <Icon aria-hidden className='size-3.5' />}
 
-						{node.label}
+						{!iconOnly && node.label}
 					</button>
 				);
 			}

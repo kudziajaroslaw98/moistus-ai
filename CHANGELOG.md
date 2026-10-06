@@ -13,6 +13,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Kanban, budgets and OKRs need lists, and arrays are easy to read and to check
 - **plugins/dates**: A `date` field type (`date:2026-11-12`), and plugins get the viewer's date as `ctx.today`
 - **plugins**: Five Shiko plugins: Countdown (days to a date), Kanban (move cards between To do, Doing and Done), Decision matrix (score options on your criteria; the best one is marked), OKR (key results with progress) and Budget (items against a limit; tick what you've paid)
+- **plugins/layout**: Plugin node kinds can be wide (`"width": "wide"`, 700px), rows can split their width equally (`equal: true`) and buttons can show only their icon (`iconOnly`, the label stays as the accessible name and tooltip). Kanban uses all three: a wide node with To do, Doing and Done side by side and arrow buttons on each card
+  - Why: A board with its columns stacked on top of each other doesn't read as a board
 
 ### Fixed
 

@@ -163,6 +163,7 @@ export function PluginNodeContent({
 								extension: {
 									...extension,
 									kindLabel: active.kind.label,
+									width: active.kind.width,
 									version: active.manifest.version,
 									data: nextData,
 									snapshot: rendered.tree,

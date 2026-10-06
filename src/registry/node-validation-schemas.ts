@@ -42,6 +42,7 @@ const baseMetadataSchema = z.object({
 			pluginId: z.string(),
 			kind: z.string(),
 			kindLabel: z.string().max(30).optional(),
+			width: z.enum(['normal', 'wide']).optional(),
 			version: z.string(),
 			data: z.record(z.string(), z.unknown()),
 			snapshot: z.unknown().optional(),

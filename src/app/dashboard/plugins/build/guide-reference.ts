@@ -2,6 +2,7 @@ import { MAX_PLUGIN_CODE_BYTES, SANDBOX_LIMITS } from '@/lib/plugins/limits';
 import {
 	PLUGIN_API_VERSION,
 	PLUGIN_ICON_KEYS,
+	PLUGIN_KIND_WIDTHS,
 	PLUGIN_LIMITS,
 	PLUGIN_PERMISSIONS,
 } from '@/lib/plugins/manifest-schema';
@@ -39,6 +40,7 @@ export const NODE_KIND_ROWS: GuideRow[] = [
 	{ name: 'labelField', description: 'The string field that plain text goes into' },
 	{ name: 'fields', description: `Up to ${PLUGIN_LIMITS.fields}, keyed by name (a lowercase letter, then letters or digits)` },
 	{ name: 'examples', description: `Up to ${PLUGIN_LIMITS.examples} lines shown in Syntax Help` },
+	{ name: 'width', description: `normal (${PLUGIN_KIND_WIDTHS.normal} px, the default) or wide (${PLUGIN_KIND_WIDTHS.wide} px) for columns side by side, like a board` },
 ];
 
 export const FIELD_TYPE_ROWS: GuideRow[] = [
@@ -56,11 +58,11 @@ export const FIELD_TYPE_ROWS: GuideRow[] = [
 /** Every view piece a plugin can return. `type` must match ui-tree.ts (checked by a test). */
 export const UI_CALLS: Array<GuideRow & { type: string }> = [
 	{ type: 'stack', name: 'ui.stack(options, children)', description: 'Pieces on top of each other. gap 0–4, align. Any piece also takes key: give each list row its row.id' },
-	{ type: 'row', name: 'ui.row(options, children)', description: 'Pieces side by side. gap, align, justify, wrap' },
+	{ type: 'row', name: 'ui.row(options, children)', description: 'Pieces side by side. gap, align, justify, wrap, or equal: true to give each piece the same width (columns)' },
 	{ type: 'text', name: 'ui.text(value, options)', description: `Up to ${PLUGIN_UI_LIMITS.text} characters. size sm–xl, tone default / muted / strong, weight` },
 	{ type: 'badge', name: 'ui.badge(label, options)', description: 'tone neutral / success / warning / danger / info' },
 	{ type: 'progress', name: 'ui.progress(value, options)', description: 'value from 0 to 1. label, showValue' },
-	{ type: 'button', name: 'ui.button(label, action, options)', description: `Runs actions[action]. icon, payload (up to ${formatBytes(PLUGIN_UI_LIMITS.payloadBytes)})` },
+	{ type: 'button', name: 'ui.button(label, action, options)', description: `Runs actions[action]. icon, iconOnly (the label is read out and shown on hover), payload (up to ${formatBytes(PLUGIN_UI_LIMITS.payloadBytes)})` },
 	{ type: 'checkbox', name: 'ui.checkbox(label, checked, action, options)', description: 'Runs actions[action]. payload' },
 	{ type: 'divider', name: 'ui.divider(options)', description: 'A line between pieces' },
 	{ type: 'icon', name: 'ui.icon(name, options)', description: `tone. name is one of ${PLUGIN_UI_ICON_NAMES.join(', ')}` },

@@ -53,6 +53,8 @@ export type PluginUiNode = (
 			align?: 'start' | 'center' | 'end' | 'baseline';
 			justify?: 'start' | 'center' | 'end' | 'between';
 			wrap?: boolean;
+			/** Children share the row's width equally (board columns); justify and wrap don't apply. */
+			equal?: boolean;
 			children: PluginUiNode[];
 	  }
 	| {
@@ -69,6 +71,8 @@ export type PluginUiNode = (
 			label: string;
 			action: string;
 			icon?: PluginUiIconName;
+			/** Shows only the icon; `label` becomes the button's accessible name and tooltip. */
+			iconOnly?: boolean;
 			payload?: unknown;
 	  }
 	| {
@@ -117,6 +121,7 @@ export const pluginUiNodeSchema: z.ZodType<PluginUiNode> = z.lazy(() =>
 			align: z.enum(['start', 'center', 'end', 'baseline']).optional(),
 			justify: z.enum(['start', 'center', 'end', 'between']).optional(),
 			wrap: z.boolean().optional(),
+			equal: z.boolean().optional(),
 			children: z.array(pluginUiNodeSchema).max(PLUGIN_UI_LIMITS.children),
 		}),
 		z.strictObject({
@@ -146,6 +151,7 @@ export const pluginUiNodeSchema: z.ZodType<PluginUiNode> = z.lazy(() =>
 			label: z.string().min(1).max(30),
 			action: actionSchema,
 			icon: z.enum(PLUGIN_UI_ICON_NAMES).optional(),
+			iconOnly: z.boolean().optional(),
 			payload: payloadSchema.optional(),
 		}),
 		z.strictObject({

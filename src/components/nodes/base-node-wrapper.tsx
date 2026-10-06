@@ -58,6 +58,7 @@ const BaseNodeWrapperComponent = ({
 	disableConnections = false,
 	accentColor,
 	elevation = 1,
+	nodeWidth = 320,
 	metadataColorOverrides,
 }: BaseNodeWrapperProps) => {
 	const {
@@ -197,7 +198,7 @@ const BaseNodeWrapperComponent = ({
 	const nodeStyles: CSSProperties = {
 		backgroundColor: getElevationColor(elevation),
 		border: `1px solid ${isSelected ? theme.borders.selected : theme.borders.default}`,
-		width: 320,
+		width: nodeWidth,
 	};
 
 	// Accent color system - subtle and sophisticated

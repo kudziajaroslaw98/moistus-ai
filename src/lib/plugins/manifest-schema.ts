@@ -47,6 +47,10 @@ export const RESERVED_PLUGIN_KINDS = new Set([
 	'plugins',
 ]);
 
+/** Node card widths in px. `wide` fits side-by-side columns (a Kanban board). */
+export const PLUGIN_KIND_WIDTHS = { normal: 320, wide: 700 } as const;
+export type PluginKindWidth = keyof typeof PLUGIN_KIND_WIDTHS;
+
 export const PLUGIN_LIMITS = {
 	nodeKinds: 8,
 	fields: 12,
@@ -204,6 +208,8 @@ export const pluginNodeKindSchema = z
 			.array(z.string().max(200))
 			.max(PLUGIN_LIMITS.examples)
 			.default([]),
+		/** How wide this kind's nodes are; most kinds stay `normal`. */
+		width: z.enum(['normal', 'wide']).optional(),
 	})
 	.superRefine((kind, ctx) => {
 		const labelSpec = kind.fields[kind.labelField];

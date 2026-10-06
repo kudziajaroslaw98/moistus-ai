@@ -56,6 +56,23 @@ describe('Countdown', () => {
 describe('Kanban', () => {
 	const text = 'Launch todo:["Build it", "Test"] doing:["Design"] done:["Spec"]';
 
+	it('is a wide node with the three columns side by side', () => {
+		const { kind, sandbox, data } = load('shiko.kanban', text);
+		try {
+			expect(kind.width).toBe('wide');
+			const view = sandbox.render('kanban', data, ctx()).tree as {
+				children: Array<{ type: string; equal?: boolean; children?: Array<{ key?: string }> }>;
+			};
+			const board = view.children.find((child) => child.type === 'row');
+			expect(board?.equal).toBe(true);
+			expect(board?.children?.map((column) => column.key)).toEqual(['todo', 'doing', 'done']);
+			expect(json(sandbox, 'kanban', data)).toContain('"label":"Move to Doing","action":"move"');
+			expect(json(sandbox, 'kanban', data)).toContain('"iconOnly":true');
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
 	it('moves the card a button names, keyed by its id', () => {
 		const { sandbox, data } = load('shiko.kanban', text);
 		try {

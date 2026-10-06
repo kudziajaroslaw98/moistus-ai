@@ -42,6 +42,23 @@ describe('validatePluginTree', () => {
 		});
 	});
 
+	it('accepts equal-width rows and icon-only buttons', () => {
+		const board: PluginUiNode = {
+			type: 'row',
+			equal: true,
+			children: [
+				{
+					type: 'button',
+					label: 'Move to Doing',
+					icon: 'arrow-right',
+					iconOnly: true,
+					action: 'move',
+				},
+			],
+		};
+		expect(validatePluginTree(board)).toEqual({ ok: true, tree: board });
+	});
+
 	it('rejects anything that could load a URL or inject markup', () => {
 		expect(
 			validatePluginTree({ type: 'image', src: 'https://evil.test/?d=secret' })

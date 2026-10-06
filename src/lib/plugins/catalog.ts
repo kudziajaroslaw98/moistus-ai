@@ -61,7 +61,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 			{
 				version: '0.1.0',
 				sha256:
-					'50b950793ddce74b31d15b9d80811b985e5861a9411cd384f63eb1964dcac893',
+					'c532588ad944959784602d56082c69cbdf0f76d907aacd61afd4c73231a45b83',
 				permissions: ['node:own'],
 				notes: 'Cards you move from To do to Done.',
 			},
