@@ -29,11 +29,22 @@ export interface PluginCheck {
 	detail?: string;
 }
 
+/** A view the plugin drew for one of its examples (the reviewer's preview). */
+export interface PluginPreview {
+	kind: string;
+	example: string;
+	tree: PluginUiNode;
+}
+
 export interface PluginCheckResult {
 	checks: PluginCheck[];
 	ok: boolean;
 	manifest: PluginManifest | null;
+	/** Up to three example views, drawn by the sandbox. */
+	previews: PluginPreview[];
 }
+
+const MAX_PREVIEWS = 3;
 
 const CTX = { canEdit: true, today: '2026-01-15', branch: [] };
 
@@ -62,10 +73,12 @@ export function runPluginChecks(
 	input: { manifest: unknown; code: string; previousManifest?: unknown }
 ): PluginCheckResult {
 	const checks: PluginCheck[] = [];
+	const previews: PluginPreview[] = [];
 	const done = (manifest: PluginManifest | null): PluginCheckResult => ({
 		checks,
 		ok: checks.every((check) => check.ok),
 		manifest,
+		previews,
 	});
 
 	const parsed = pluginManifestSchema.safeParse(input.manifest);
@@ -139,6 +152,9 @@ export function runPluginChecks(
 				if (!view.ok) {
 					viewProblems.push(`"${example}": ${view.error}`);
 					continue;
+				}
+				if (previews.length < MAX_PREVIEWS) {
+					previews.push({ kind: kind.kind, example, tree: view.tree });
 				}
 				for (const { action, payload } of actionsIn(view.tree)) {
 					actionCount += 1;

@@ -29,3 +29,34 @@ export interface PluginSubmissionResult {
 	version: string;
 	status: 'in_review';
 }
+
+/** A version waiting for review (`GET /api/admin/plugins/submissions`). */
+export interface PluginSubmission {
+	pluginId: string;
+	version: string;
+	name: string;
+	author: string;
+	submittedAt: string;
+	/** What the author told the reviewer. */
+	submitterNote: string;
+	/** What's new, shown to owners before they update. */
+	notes: string;
+	sha256: string;
+	manifest: Record<string, unknown>;
+	permissions: string[];
+	/** The newest published version, when this is an update. */
+	previous: { version: string; permissions: string[] } | null;
+	/** Maps with the plugin on (any version). */
+	mapCount: number;
+}
+
+/** A reviewer's answer (`POST /api/admin/plugins/review`). */
+export interface PluginReviewDecision {
+	pluginId: string;
+	version: string;
+	decision: 'approve' | 'changes';
+	/** Required when asking for changes; shown to the author. */
+	message?: string;
+	/** Network hosts the reviewer confirmed the author runs. */
+	authorHosts?: string[];
+}

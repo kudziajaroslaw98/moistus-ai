@@ -24,17 +24,26 @@ export const GET = withApiValidation<unknown, { plugins: MyPlugin[] }>(
 			.select('id, author_id, name, created_at, disabled_reason, disabled_at')
 			.eq('author_id', user.id)
 			.order('created_at', { ascending: false });
-		if (error) return respondError('Could not load your plugins.', 500, error.message);
+		if (error)
+			return respondError('Could not load your plugins.', 500, error.message);
 
 		const rows = (plugins ?? []) as PluginRow[];
 		const ids = rows.map((row) => row.id);
 		if (ids.length === 0) return respondSuccess({ plugins: [] });
 
-		const [{ data: versions }, { data: maps }, { data: reports }] = await Promise.all([
-			admin.from('plugin_versions').select(PLUGIN_VERSION_COLUMNS).in('plugin_id', ids),
-			admin.from('map_plugins').select('plugin_id').in('plugin_id', ids),
-			admin.from('plugin_reports').select('plugin_id').in('plugin_id', ids).eq('status', 'open'),
-		]);
+		const [{ data: versions }, { data: maps }, { data: reports }] =
+			await Promise.all([
+				admin
+					.from('plugin_versions')
+					.select(PLUGIN_VERSION_COLUMNS)
+					.in('plugin_id', ids),
+				admin.from('map_plugins').select('plugin_id').in('plugin_id', ids),
+				admin
+					.from('plugin_reports')
+					.select('plugin_id')
+					.in('plugin_id', ids)
+					.eq('status', 'open'),
+			]);
 		const count = (list: Array<{ plugin_id: string }> | null, id: string) =>
 			(list ?? []).filter((row) => row.plugin_id === id).length;
 
@@ -42,8 +51,13 @@ export const GET = withApiValidation<unknown, { plugins: MyPlugin[] }>(
 			id: row.id,
 			name: row.name,
 			mapCount: count(maps as Array<{ plugin_id: string }> | null, row.id),
-			openReports: count(reports as Array<{ plugin_id: string }> | null, row.id),
-			disabledReason: row.disabled_at ? (row.disabled_reason ?? 'Turned off by Shiko') : null,
+			openReports: count(
+				reports as Array<{ plugin_id: string }> | null,
+				row.id
+			),
+			disabledReason: row.disabled_at
+				? (row.disabled_reason ?? 'Turned off by Shiko')
+				: null,
 			versions: ((versions ?? []) as PluginVersionRow[])
 				.filter((version) => version.plugin_id === row.id)
 				.sort((a, b) => compareVersions(b.version, a.version))

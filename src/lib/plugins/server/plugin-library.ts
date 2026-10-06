@@ -187,3 +187,17 @@ export async function publishedCommunityVersions(
 		.sort((a, b) => compareVersions(a.version, b.version))
 		.map(toCatalogVersion);
 }
+
+/** Maps with a plugin on, per plugin id. */
+export async function mapCounts(
+	admin: SupabaseClient,
+	pluginIds: string[]
+): Promise<Map<string, number>> {
+	const counts = new Map<string, number>();
+	if (pluginIds.length === 0) return counts;
+	const { data } = await admin.from('map_plugins').select('plugin_id').in('plugin_id', pluginIds);
+	for (const row of (data ?? []) as Array<{ plugin_id: string }>) {
+		counts.set(row.plugin_id, (counts.get(row.plugin_id) ?? 0) + 1);
+	}
+	return counts;
+}

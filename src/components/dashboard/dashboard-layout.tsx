@@ -4,12 +4,13 @@ import { AnonymousUserBanner } from '@/components/auth/anonymous-user-banner';
 import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import { Archive, ChefHat, Home, Puzzle, Star, Users } from 'lucide-react';
+import { Archive, ChefHat, Home, Puzzle, ShieldCheck, Star, Users } from 'lucide-react';
 import { motion } from 'motion/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ReactNode, useEffect, useState } from 'react';
+import useSWR from 'swr';
 import { UpgradeModal } from '../modals/upgrade-modal';
 import {
 	Sidebar,
@@ -86,6 +87,18 @@ const mainNavItems: NavItem[] = [
 
 const bottomNavItems: NavItem[] = [];
 
+/** What's waiting for Shiko's plugin reviewers, or null for everyone else (the route 404s). */
+async function fetchReviewSummary(
+	url: string
+): Promise<{ submissions: number; reports: number } | null> {
+	const response = await fetch(url);
+	if (!response.ok) return null;
+	const body = (await response.json().catch(() => null)) as {
+		data?: { submissions: number; reports: number };
+	} | null;
+	return body?.data ?? null;
+}
+
 export function DashboardLayout({ children }: DashboardLayoutProps) {
 	const pathname = usePathname();
 	const router = useRouter();
@@ -100,6 +113,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 	const userProfile = useAppStore((state) => state.userProfile);
 	const setPopoverOpen = useAppStore((state) => state.setPopoverOpen);
 	const popoverOpen = useAppStore((state) => state.popoverOpen);
+	const { data: review } = useSWR('/api/admin/plugins/summary', fetchReviewSummary, {
+		shouldRetryOnError: false,
+		revalidateOnFocus: false,
+	});
+	const navItems: NavItem[] = review
+		? [
+				...mainNavItems,
+				{
+					id: 'plugin-review',
+					label: 'Plugin review',
+					icon: <ShieldCheck className='h-4 w-4' />,
+					href: '/admin/plugins',
+					badge: review.submissions + review.reports || undefined,
+				},
+			]
+		: mainNavItems;
 
 	const handleOpenSettings = (tab: 'account' | 'billing' = 'account') => {
 		setSettingsTab(tab);
@@ -286,7 +315,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 						className={cn(['w-full', !sidebarCollapsed ? 'p-2' : 'p-2'])}
 					>
 						<SidebarSection showDivider={false}>
-							{mainNavItems.map((item) => (
+							{navItems.map((item) => (
 								<NavItemComponent item={item} key={item.id} />
 							))}
 						</SidebarSection>
