@@ -36,6 +36,8 @@ export interface LoadedPlugin {
 	error: string | null;
 	/** New for every successful (re)load, so views drawn by older code aren't reused. */
 	generation: number;
+	/** Kinds whose code defines `actions.refresh` (set once loaded). */
+	refreshKinds?: string[];
 }
 
 export interface ActivePluginKind {
@@ -44,7 +46,16 @@ export interface ActivePluginKind {
 	source: PluginSource;
 	/** The loaded plugin's generation (see `LoadedPlugin.generation`). */
 	generation: number;
+	/** The plugin reaches a site and this kind defines `refresh`: editors can refresh it. */
+	canRefresh?: boolean;
+	/** The plugin has `branch:read`: render and actions get `ctx.branch`. */
+	readsBranch?: boolean;
 }
+
+/** A refresh running on a node, or why the last one failed (this browser only). */
+export type PluginRefreshState =
+	| { status: 'running' }
+	| { status: 'error'; message: string };
 
 export interface PluginsSlice {
 	mapPlugins: MapPluginRecord[];
@@ -69,6 +80,14 @@ export interface PluginsSlice {
 	resetPlugins: () => void;
 	/** Opens the Plugins side panel (closes the other right-hand panels). */
 	openPluginsPanel: () => void;
+	/** Refreshes running or failed in this browser, by node id. */
+	pluginRefreshes: Record<string, PluginRefreshState>;
+	/**
+	 * Editors: runs a network plugin node's `refresh` (two passes, Shiko fetches the URLs
+	 * it asks for) and saves the result as one History entry credited to the plugin.
+	 * Resolves false when nothing was saved or a request failed (see `pluginRefreshes`).
+	 */
+	refreshPluginNode: (nodeId: string) => Promise<boolean>;
 	/** A ready plugin's kind, or null when it isn't loaded on this map. */
 	getActivePluginKind: (
 		pluginId: string,

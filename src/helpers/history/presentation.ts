@@ -788,9 +788,11 @@ function routeChange(change: HistoryPatchOp): HistoryReadableChange | null {
 
 /** A plugin node's data field (`metadata.extension.data.value` → `value`). */
 const EXTENSION_DATA_PATH = /(?:^|\.)metadata\.extension\.data\.([^.]+)/;
-/** Parts of a plugin node that follow from its data: saved view, version, label. */
+/** Parts of a plugin node that follow from its data: saved view, version, label, width. */
 const EXTENSION_DERIVED_PATH =
-	/(?:^|\.)metadata\.extension\.(?:snapshot|version|kindLabel)(?:\.|$)/;
+	/(?:^|\.)metadata\.extension\.(?:snapshot|version|kindLabel|width)(?:\.|$)/;
+/** When a refresh last fetched; only worth a row when the fetched data didn't change. */
+const EXTENSION_FETCHED_PATH = /(?:^|\.)metadata\.extension\.fetchedAt$/;
 
 function humanizeFieldName(name: string): string {
 	const spaced = name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ');
@@ -807,6 +809,7 @@ function fieldChanges(change: HistoryPatchOp): HistoryReadableChange[] {
 		.filter(
 			(path) =>
 				!EXTENSION_DERIVED_PATH.test(path) &&
+				!(isPluginDataChange && EXTENSION_FETCHED_PATH.test(path)) &&
 				!(isPluginDataChange && fieldNameFromPath(path) === 'content')
 		)
 		.map((path) => {
@@ -814,7 +817,11 @@ function fieldChanges(change: HistoryPatchOp): HistoryReadableChange[] {
 			const newValue = patch[path];
 			const pluginField = path.match(EXTENSION_DATA_PATH)?.[1];
 			const fieldKey = pluginField ? `plugin:${pluginField}` : fieldNameFromPath(path);
-			const label = pluginField ? humanizeFieldName(pluginField) : fieldLabel(path);
+			const label = pluginField
+				? humanizeFieldName(pluginField)
+				: EXTENSION_FETCHED_PATH.test(path)
+					? 'Last refresh'
+					: fieldLabel(path);
 			const isStyle = STYLE_FIELDS.has(fieldKey);
 			const cleared = isEmptyValue(newValue) && !isEmptyValue(oldValue);
 			const verb: HistoryReadableChange['verb'] = cleared

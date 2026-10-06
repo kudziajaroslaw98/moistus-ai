@@ -173,6 +173,51 @@ export function permissionChanges(
 	};
 }
 
+/**
+ * Whether a request to turn on (or move to) a version confirms the powers that version has.
+ * Own-node plugins need nothing; a plugin that reads the branch or reaches a site must be
+ * sent with exactly its powers, which the owner saw before saying yes.
+ */
+export function powersConfirmed(
+	expected: readonly string[],
+	confirmed: readonly string[] | undefined
+): boolean {
+	if (expected.every((permission) => permission === 'node:own')) return true;
+	return (
+		confirmed !== undefined &&
+		confirmed.length === expected.length &&
+		expected.every((permission) => confirmed.includes(permission))
+	);
+}
+
+/** The request that turns a catalog plugin on, off or to another version for a map. */
+export function mapPluginRequest(
+	mapId: string,
+	pluginId: string,
+	change: { enabled: boolean } | { version: string }
+): [string, RequestInit] {
+	const url = `/api/maps/${mapId}/plugins/${encodeURIComponent(pluginId)}`;
+	if ('enabled' in change && !change.enabled) return [url, { method: 'DELETE' }];
+	const entry = findCatalogPlugin(pluginId);
+	const target =
+		'version' in change
+			? findCatalogVersion(pluginId, change.version)
+			: entry
+				? latestCatalogVersion(entry)
+				: undefined;
+	return [
+		url,
+		{
+			method: 'version' in change ? 'PATCH' : 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				...('version' in change ? { version: change.version } : {}),
+				permissions: target?.permissions ?? [],
+			}),
+		},
+	];
+}
+
 /** Developer plugins load only from the developer's own machine. */
 export function isLocalDevPluginUrl(value: string): boolean {
 	try {

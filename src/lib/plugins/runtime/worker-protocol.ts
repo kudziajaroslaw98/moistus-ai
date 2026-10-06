@@ -1,6 +1,7 @@
 import {
 	createPluginSandbox,
 	PluginSandboxError,
+	type PluginRefreshOutput,
 	type PluginRenderOutput,
 	type PluginSandbox,
 	type SandboxErrorCode,
@@ -28,11 +29,22 @@ export type PluginWorkerRequest =
 			payload: unknown;
 			ctx: unknown;
 	  }
+	| {
+			id: number;
+			type: 'refresh';
+			pluginId: string;
+			kind: string;
+			data: unknown;
+			ctx: unknown;
+			/** Null on the first pass; what each requested URL answered on the second. */
+			responses: Record<string, unknown> | null;
+	  }
 	| { id: number; type: 'unload'; pluginId: string };
 
 export type PluginWorkerResult =
-	| { kinds: string[] }
+	| { kinds: string[]; refreshKinds: string[] }
 	| PluginRenderOutput
+	| PluginRefreshOutput
 	| { data: unknown }
 	| { unloaded: true };
 
@@ -77,7 +89,11 @@ export function createPluginWorkerHandler(
 				plugins.delete(request.pluginId);
 				const sandbox = createPluginSandbox(await getModule(), request.code);
 				plugins.set(request.pluginId, { code: request.code, sandbox });
-				return { id, ok: true, result: { kinds: sandbox.kinds } };
+				return {
+					id,
+					ok: true,
+					result: { kinds: sandbox.kinds, refreshKinds: sandbox.refreshKinds },
+				};
 			}
 			if (request.type === 'unload') {
 				plugins.get(request.pluginId)?.sandbox.dispose();
@@ -99,6 +115,18 @@ export function createPluginWorkerHandler(
 					id,
 					ok: true,
 					result: sandbox.render(request.kind, request.data, request.ctx),
+				};
+			}
+			if (request.type === 'refresh') {
+				return {
+					id,
+					ok: true,
+					result: sandbox.refresh(
+						request.kind,
+						request.data,
+						request.ctx,
+						request.responses
+					),
 				};
 			}
 			return {

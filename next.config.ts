@@ -1,5 +1,6 @@
 import { withSerwist } from '@serwist/turbopack';
 import type { NextConfig } from 'next';
+import { FIRST_PARTY_PLUGINS } from './src/lib/plugins/catalog';
 
 /** HTTP(S) origin plus matching WS(S) origin for a configured service URL. */
 const toConnectOrigins = (value: string | undefined): string[] => {
@@ -12,6 +13,21 @@ const toConnectOrigins = (value: string | undefined): string[] => {
 		return [];
 	}
 };
+
+/** Sites reviewed catalog plugins may fetch from when an editor refreshes them. */
+const pluginConnectOrigins = [
+	...new Set(
+		FIRST_PARTY_PLUGINS.flatMap((entry) =>
+			entry.versions.flatMap((version) =>
+				version.permissions.flatMap((permission) =>
+					permission.startsWith('network:')
+						? [`https://${permission.slice('network:'.length)}`]
+						: []
+				)
+			)
+		)
+	),
+];
 
 // Report-only until violations from real traffic are reviewed; then enforce.
 const contentSecurityPolicyReportOnly = [
@@ -26,6 +42,7 @@ const contentSecurityPolicyReportOnly = [
 		"'self'",
 		...toConnectOrigins(process.env.NEXT_PUBLIC_SUPABASE_URL),
 		...toConnectOrigins(process.env.NEXT_PUBLIC_PARTYKIT_URL),
+		...pluginConnectOrigins,
 	].join(' '),
 	"worker-src 'self' blob:",
 	"manifest-src 'self'",

@@ -1,6 +1,8 @@
 'use client';
 
+import { PluginRefreshBar } from '@/components/plugins/plugin-refresh-bar';
 import { PluginUiTree } from '@/components/plugins/plugin-ui-tree';
+import { usePluginBranch } from '@/components/plugins/use-plugin-branch';
 import {
 	pluginRenderKey,
 	rememberPluginRender,
@@ -40,6 +42,8 @@ export interface PluginNodeContentProps {
 	canEdit: boolean;
 	/** Renders draft data live, without actions (node editor preview). */
 	preview?: boolean;
+	/** Whose branch `ctx.branch` describes when `nodeId` is null (editing an existing node). */
+	branchRootId?: string | null;
 }
 
 /**
@@ -52,6 +56,7 @@ export function PluginNodeContent({
 	fallbackText,
 	canEdit,
 	preview = false,
+	branchRootId = null,
 }: PluginNodeContentProps) {
 	const { loadedPlugins, mapPlugins, mapPluginsLoaded, refreshMapPluginsSoon } =
 		useAppStore(
@@ -105,10 +110,15 @@ export function PluginNodeContent({
 		return checked.ok ? checked.data : null;
 	}, [active, extension.data]);
 
+	const branch = usePluginBranch(
+		nodeId ?? branchRootId,
+		Boolean(active?.readsBranch)
+	);
 	const render = usePluginRender({
 		active,
 		data,
 		canEdit: canEdit && !preview,
+		branch,
 		debounceMs: preview ? 150 : 0,
 	});
 
@@ -134,7 +144,7 @@ export function PluginNodeContent({
 		setBusy(true);
 		try {
 			const host = await loadPluginHost();
-			const ctx = pluginCallContext(true);
+			const ctx = pluginCallContext(true, branch);
 			const nextData = await host.action(
 				active.manifest.id,
 				active.kind,
@@ -149,7 +159,10 @@ export function PluginNodeContent({
 				nextData,
 				ctx
 			);
-			rememberPluginRender(pluginRenderKey(active, nextData, true), rendered);
+			rememberPluginRender(
+				pluginRenderKey(active, nextData, true, branch),
+				rendered
+			);
 
 			const result = await applyGraphOps(
 				useAppStore.getState,
@@ -253,6 +266,22 @@ export function PluginNodeContent({
 						</button>
 					)}
 				</div>
+			)}
+
+			{!preview &&
+				nodeId &&
+				(active?.canRefresh || extension.fetchedAt) && (
+					<PluginRefreshBar
+						active={active}
+						canEdit={canEdit}
+						fetchedAt={extension.fetchedAt}
+						nodeId={nodeId}
+						pluginId={extension.pluginId}
+					/>
+				)}
+
+			{state === 'live' && active?.readsBranch && !preview && (
+				<span className='text-xs text-white/50'>Updates as the branch changes</span>
 			)}
 
 			{(state === 'off' || state === 'missing' || state === 'failed') && (

@@ -5,7 +5,11 @@ import {
 	validatePluginData,
 	type PluginData,
 } from '@/lib/plugins/plugin-fields';
-import type { PluginRenderOutput } from '@/lib/plugins/runtime/sandbox';
+import type { PluginResponse } from '@/lib/plugins/network';
+import type {
+	PluginRefreshOutput,
+	PluginRenderOutput,
+} from '@/lib/plugins/runtime/sandbox';
 import type {
 	PluginWorkerRequest,
 	PluginWorkerResponse,
@@ -84,6 +88,9 @@ export class PluginHost {
 
 	private readonly loaded = new Map<string, Promise<string[]>>();
 
+	/** Kinds with a `refresh` action, per plugin (from its last load). */
+	private readonly refreshKinds = new Map<string, string[]>();
+
 	constructor(
 		private readonly createWorker: () => PluginWorkerLike,
 		private readonly timeoutMs = PLUGIN_HOST_TIMEOUT_MS
@@ -154,7 +161,12 @@ export class PluginHost {
 		const promise = this.request(
 			{ type: 'load', pluginId, code },
 			PLUGIN_LOAD_TIMEOUT_MS
-		).then((result) => (result as { kinds: string[] }).kinds);
+		).then((result) => {
+			const loaded = result as { kinds: string[]; refreshKinds?: string[] };
+			if (this.codes.get(pluginId) === code)
+				this.refreshKinds.set(pluginId, loaded.refreshKinds ?? []);
+			return loaded.kinds;
+		});
 		this.loaded.set(pluginId, promise);
 		promise.catch(() => {
 			if (this.loaded.get(pluginId) === promise) this.loaded.delete(pluginId);
@@ -223,7 +235,56 @@ export class PluginHost {
 		return assignListRowIds(kind, checked.data, data);
 	}
 
+	/** Whether the loaded code defines `actions.refresh` for this kind. */
+	canRefresh(pluginId: string, kind: string): boolean {
+		return this.refreshKinds.get(pluginId)?.includes(kind) ?? false;
+	}
+
+	/**
+	 * Runs a kind's `refresh` in two passes. The first records the URLs the plugin asks for
+	 * with `ctx.request`; `fetchAll` fetches them (only the host can); the second pass gets
+	 * the answers. Only the second pass's data counts, checked like any action result. A
+	 * refresh that asks for nothing ends after the first pass.
+	 */
+	async refresh(
+		pluginId: string,
+		kind: PluginNodeKind,
+		data: PluginData,
+		ctx: PluginCallContext,
+		fetchAll: (urls: string[]) => Promise<Record<string, PluginResponse>>
+	): Promise<{ data: PluginData; responses: Record<string, PluginResponse> }> {
+		await this.ensureLoaded(pluginId);
+		const pass = (responses: Record<string, PluginResponse> | null) =>
+			this.request({
+				type: 'refresh',
+				pluginId,
+				kind: kind.kind,
+				data,
+				ctx,
+				responses,
+			}) as Promise<PluginRefreshOutput>;
+
+		const first = await pass(null);
+		let output = first;
+		let responses: Record<string, PluginResponse> = {};
+		if (first.requests.length > 0) {
+			responses = await fetchAll(first.requests);
+			await this.ensureLoaded(pluginId);
+			output = await pass(responses);
+		}
+
+		const checked = validatePluginData(kind, output.data);
+		if (!checked.ok) {
+			throw new PluginHostError(
+				`${kind.label} returned invalid data: ${checked.errors[0]?.message ?? 'unknown'}`,
+				'invalid-output'
+			);
+		}
+		return { data: assignListRowIds(kind, checked.data, data), responses };
+	}
+
 	unload(pluginId: string) {
+		this.refreshKinds.delete(pluginId);
 		this.codes.delete(pluginId);
 		this.loaded.delete(pluginId);
 		if (this.worker)

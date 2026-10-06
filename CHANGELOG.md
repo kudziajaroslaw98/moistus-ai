@@ -15,12 +15,19 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **plugins**: Five Shiko plugins: Countdown (days to a date), Kanban (move cards between To do, Doing and Done), Decision matrix (score options on your criteria; the best one is marked), OKR (key results with progress) and Budget (items against a limit; tick what you've paid)
 - **plugins/layout**: Plugin node kinds can be wide (`"width": "wide"`, 700px), rows can split their width equally (`equal: true`) and buttons can show only their icon (`iconOnly`, the label stays as the accessible name and tooltip). Kanban uses all three: a wide node with To do, Doing and Done side by side and arrow buttons on each card
   - Why: A board with its columns stacked on top of each other doesn't read as a board
+- **plugins/powers**: Plugins can ask for one power beyond their own nodes: read the branch under their node (`branch:read`, `ctx.branch`), or reach up to three named sites (`network:<host>`), never both. A network plugin's `refresh` asks for addresses with `ctx.request` and Shiko fetches them from the editor's browser, locked down (approved host only, no cookies or referrer, redirects not followed, JSON only, size and time limits). Refresh runs after an editor creates or edits the node and from the node's Refresh button; viewers never send anything and see "Updated …"
+  - Why: Plugins that show live data or summarize a branch, without letting a plugin send other people's text anywhere
+- **plugins/approval**: Turning on a plugin with a power asks the owner first ("Turn on …?", in the Plugins panel and the dashboard map picker) and says what it reads or sends, to whom and when; every plugin card says what it can reach; the editor and the first Refresh say where the data goes. The API refuses a turn-on or update that doesn't confirm the version's powers
 
 ### Fixed
 
 - **nodes/note**: Note nodes show each line you type on its own line instead of running lines together; Markdown formatting is unchanged
   - Why: Markdown treats a single line break inside a paragraph as a space
 - **node-editor**: Saving a node from the node editor keeps its line breaks and blank lines (the parser turned every line break into a space, so new notes were saved as one line)
+- **node-editor**: Task examples now use the syntax that works (`[ ] Review PR` lines); the old ones (`Review PR; Fix bugs`, comma lists, `- [ ]`) made task nodes with no tasks
+- **node-editor**: A `^date` or `#tag` typed on a task line no longer stays in that task's text
+- **node-editor**: Typing a `$` command no longer logs a "NOT AvailableNodeTypes" warning
+- **history**: A refresh that fetched the same data shows as "Last refresh changed" instead of "Extension.fetched At changed"
 - **node-editor**: Create/Update looks dimmed while it can't be used (for example while a plugin field has an error); the entrance animation's inline opacity was hiding the disabled style
 
 ## [2026-10-05]

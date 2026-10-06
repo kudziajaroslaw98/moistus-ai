@@ -404,4 +404,37 @@ describe('plugin node field changes', () => {
 
 		expect(collectHistoryFieldLabels(buildHistoryPresentation(delta, {}))).toEqual(['Value']);
 	});
+
+	const refresh = (patch: Record<string, unknown>, reversePatch: Record<string, unknown>) =>
+		collectHistoryFieldLabels(
+			buildHistoryPresentation(
+				{
+					operation: 'update',
+					entityType: 'node',
+					changes: [{ id: 'i1', type: 'node', op: 'patch', patch, reversePatch }],
+				},
+				{}
+			)
+		);
+
+	it('names a refresh by what it fetched, or as "Last refresh" when nothing changed', () => {
+		expect(
+			refresh(
+				{
+					'data.metadata.extension.data.state': 'closed',
+					'data.metadata.extension.fetchedAt': '2026-10-06T12:00:00.000Z',
+				},
+				{
+					'data.metadata.extension.data.state': 'open',
+					'data.metadata.extension.fetchedAt': '2026-10-06T11:00:00.000Z',
+				}
+			)
+		).toEqual(['State']);
+		expect(
+			refresh(
+				{ 'data.metadata.extension.fetchedAt': '2026-10-06T12:00:00.000Z' },
+				{ 'data.metadata.extension.fetchedAt': '2026-10-06T11:00:00.000Z' }
+			)
+		).toEqual(['Last refresh']);
+	});
 });

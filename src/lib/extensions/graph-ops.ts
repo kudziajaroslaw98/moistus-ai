@@ -23,7 +23,8 @@ function utf8ByteLength(value: string): number {
 	return bytes;
 }
 
-function canEditMap(state: AppState): boolean {
+/** Owner or editor: who may change the graph (and refresh plugin nodes). */
+export function canEditMap(state: AppState): boolean {
 	const isOwner = Boolean(
 		state.currentUser &&
 		state.mindMap &&

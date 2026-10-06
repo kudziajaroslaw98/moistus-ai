@@ -1,7 +1,10 @@
 import metricManifest from '../../../public/plugins/shiko.metric/0.1.0/manifest.json';
 import { pluginManifestSchema, pluginNodeKindSchema } from './manifest-schema';
+import { issueManifest } from './runtime/test-network-plugin';
 import {
 	assignListRowIds,
+	editorKind,
+	keepRefreshFields,
 	parsePluginFieldInput,
 	scanPluginFieldTokens,
 	serializePluginFieldInput,
@@ -341,5 +344,35 @@ describe('assignListRowIds', () => {
 
 		expect(fixed[0].id).toBe('same');
 		expect(fixed[1].id).not.toBe('same');
+	});
+});
+
+describe('fields set by refresh', () => {
+	const issue = pluginManifestSchema.parse(issueManifest).nodeKinds[0];
+
+	it('are not typed in the editor', () => {
+		expect(Object.keys(editorKind(issue).fields)).toEqual(['label', 'repo', 'number']);
+		const parsed = parsePluginFieldInput('Login bug repo:shiko/app number:482 title:Hacked', issue);
+		expect(parsed.errors).toEqual([]);
+		expect(parsed.data).toEqual({
+			label: 'Login bug title:Hacked',
+			repo: 'shiko/app',
+			number: 482,
+		});
+	});
+
+	it('stay out of the text the editor opens with, and are kept on save', () => {
+		const saved = { label: 'Login bug', repo: 'shiko/app', number: 482, title: 'Fix login', state: 'open' };
+		expect(serializePluginFieldInput(issue, saved)).toBe('Login bug repo:shiko/app number:482');
+
+		const typed = parsePluginFieldInput('Login bug repo:shiko/app number:483', issue).data;
+		expect(keepRefreshFields(issue, typed, saved)).toEqual({
+			label: 'Login bug',
+			repo: 'shiko/app',
+			number: 483,
+			title: 'Fix login',
+			state: 'open',
+		});
+		expect(validatePluginData(issue, keepRefreshFields(issue, typed, saved)).ok).toBe(true);
 	});
 });

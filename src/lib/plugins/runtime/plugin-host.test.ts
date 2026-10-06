@@ -15,6 +15,7 @@ import {
 	type PluginWorkerLike,
 } from './plugin-host';
 import { nodeTestVariant } from './test-quickjs-variant';
+import { issueCode, issueManifest } from './test-network-plugin';
 import {
 	createPluginWorkerHandler,
 	type PluginWorkerRequest,
@@ -141,5 +142,49 @@ describe('PluginHost', () => {
 		await expect(
 			host.render('shiko.metric', metric, data, { canEdit: true, today: '2026-10-06' })
 		).rejects.toMatchObject({ code: 'not-loaded' });
+	});
+});
+
+describe('PluginHost.refresh', () => {
+	const issue = pluginManifestSchema.parse(issueManifest).nodeKinds[0];
+	const ctx = { canEdit: true, today: '2026-10-06' };
+	const data = { repo: 'shiko/app', number: 482 };
+
+	it('fetches what the first pass asks for and keeps only the second pass', async () => {
+		const host = new PluginHost(inProcessWorker);
+		await host.load('dev.issue', issueCode);
+		expect(host.canRefresh('dev.issue', 'issue')).toBe(true);
+
+		const fetchAll = jest.fn(async (urls: string[]) =>
+			Object.fromEntries(
+				urls.map((url) => [
+					url,
+					{ status: 'ok' as const, code: 200, json: { title: 'Fix login loop', state: 'closed' } },
+				])
+			)
+		);
+		const result = await host.refresh('dev.issue', issue, data, ctx, fetchAll);
+
+		expect(fetchAll).toHaveBeenCalledWith(['https://api.github.com/repos/shiko/app/issues/482']);
+		expect(result.data).toEqual({ ...data, title: 'Fix login loop', state: 'closed', error: '' });
+	});
+
+	it('rejects fetched data that breaks the kind’s fields', async () => {
+		const host = new PluginHost(inProcessWorker);
+		await host.load('dev.issue', issueCode);
+
+		await expect(
+			host.refresh('dev.issue', issue, data, ctx, async (urls) =>
+				Object.fromEntries(
+					urls.map((url) => [url, { status: 'ok' as const, code: 200, json: { title: 'x', state: 'merged' } }])
+				)
+			)
+		).rejects.toMatchObject({ code: 'invalid-output' });
+	});
+
+	it('knows which kinds have no refresh', async () => {
+		const host = new PluginHost(inProcessWorker);
+		await host.load('shiko.metric', metricCode);
+		expect(host.canRefresh('shiko.metric', 'metric')).toBe(false);
 	});
 });

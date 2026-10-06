@@ -1,4 +1,5 @@
 import type { PluginNodeKind } from '@/lib/plugins/manifest-schema';
+import { editorKind } from '@/lib/plugins/plugin-fields';
 import { StateEffect, StateField, type EditorState } from '@codemirror/state';
 
 /**
@@ -39,7 +40,7 @@ export function readPluginFields(
 export function toPluginFieldSpecs(
 	kind: PluginNodeKind
 ): PluginFieldSpecLite[] {
-	return Object.entries(kind.fields)
+	return Object.entries(editorKind(kind).fields)
 		.filter(([name]) => name !== kind.labelField)
 		.map(([name, spec]) => ({
 			name,

@@ -27,6 +27,8 @@ export interface NodeExtensionData {
 	version: string;
 	data: Record<string, unknown>;
 	snapshot?: unknown;
+	/** When an editor's refresh last fetched every request successfully (ISO time). */
+	fetchedAt?: string;
 }
 
 export type GraphOp =

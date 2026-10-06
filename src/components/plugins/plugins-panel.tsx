@@ -15,20 +15,19 @@ import {
 import type { PluginManifest } from '@/lib/plugins/manifest-schema';
 import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
 import useAppStore from '@/store/mind-map-store';
+import { cn } from '@/utils/cn';
 import type { NodeExtensionData } from '@/types/extensions';
 import type { LoadedPlugin, MapPluginRecord } from '@/types/plugins';
-import {
-	ArrowUpRight,
-	Loader2,
-	Lock,
-	RefreshCw,
-	ShieldCheck,
-	X,
-} from 'lucide-react';
+import { ArrowUpRight, Loader2, Lock, RefreshCw, X } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
 import { Fragment, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+import {
+	needsPowerApproval,
+	PluginPowersConfirm,
+	PluginPowersLine,
+} from './plugin-powers';
 import { PluginVersionControls } from './plugin-version-controls';
 import { useCatalogManifests } from './use-catalog-manifests';
 
@@ -147,9 +146,13 @@ interface PluginCardProps {
 	isBusy: boolean;
 	nodeCount: number;
 	isConfirmingOff: boolean;
+	/** Waiting for the owner's yes to a plugin with powers. */
+	isConfirmingOn: boolean;
 	onToggle: (enabled: boolean) => void;
 	onConfirmOff: () => void;
 	onKeepOn: () => void;
+	onConfirmOn: () => void;
+	onCancelOn: () => void;
 	onChangeVersion: (version: string) => Promise<boolean>;
 	onUpdateLater: (version: string) => void;
 	onUpdateReview: () => void;
@@ -168,9 +171,12 @@ function PluginCard({
 	isBusy,
 	nodeCount,
 	isConfirmingOff,
+	isConfirmingOn,
 	onToggle,
 	onConfirmOff,
 	onKeepOn,
+	onConfirmOn,
+	onCancelOn,
 	onChangeVersion,
 	onUpdateLater,
 	onUpdateReview,
@@ -184,8 +190,11 @@ function PluginCard({
 	return (
 		// relative: version boxes that are leaving are positioned against the card.
 		<div
-			className='relative space-y-3 rounded-lg border border-zinc-800 bg-base p-3'
 			data-testid={`plugin-card-${entry.id}`}
+			className={cn(
+				'relative space-y-3 rounded-lg border bg-base p-3 transition-colors duration-200 ease',
+				isConfirmingOn ? 'border-sky-300/35' : 'border-zinc-800'
+			)}
 		>
 			<div className='flex items-start gap-3'>
 				<span className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-500/15 text-primary-400'>
@@ -228,7 +237,7 @@ function PluginCard({
 					// The Switch is a hidden checkbox; the label makes its track clickable.
 					<label className='mt-0.5 shrink-0 cursor-pointer' htmlFor={switchId}>
 						<Switch
-							checked={isEnabled}
+							checked={isEnabled || isConfirmingOn}
 							disabled={!manifest}
 							id={switchId}
 							onCheckedChange={onToggle}
@@ -237,13 +246,7 @@ function PluginCard({
 				)}
 			</div>
 
-			<p className='flex items-start gap-2 text-xs text-text-secondary'>
-				<ShieldCheck
-					aria-hidden
-					className='size-3.5 shrink-0 text-emerald-400/90'
-				/>
-				Sees and changes only its own nodes. No internet access.
-			</p>
+			{manifest && <PluginPowersLine manifest={manifest} />}
 
 			{isEnabled && loaded?.status === 'error' && (
 				<p className='text-xs text-error-500' role='alert'>
@@ -267,6 +270,18 @@ function PluginCard({
 			{isRunning && canEdit && !isConfirmingOff && (
 				<AddHint manifest={loaded.manifest!} />
 			)}
+
+			<AnimatePresence initial={false}>
+				{isConfirmingOn && manifest && (
+					<PluginPowersConfirm
+						fromCatalog
+						key='confirm-on'
+						manifest={manifest}
+						onCancel={onCancelOn}
+						onConfirm={onConfirmOn}
+					/>
+				)}
+			</AnimatePresence>
 
 			<AnimatePresence initial={false}>
 				{isConfirmingOff && (
@@ -384,58 +399,64 @@ function DeveloperSection() {
 				}
 				return (
 					<div
-						className='flex items-center gap-3 rounded-lg border border-zinc-800 bg-base p-2.5'
+						className='flex flex-col gap-2 rounded-lg border border-zinc-800 bg-base p-2.5'
 						key={url}
 					>
-						<span className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/6 text-zinc-300'>
-							{loaded?.status === 'loading' ? (
-								<Loader2 aria-hidden className='size-4 animate-spin' />
-							) : Icon ? (
-								<Icon aria-hidden className='size-[18px]' />
-							) : null}
-						</span>
-
-						<div className='flex min-w-0 flex-1 flex-col gap-0.5'>
-							<span className='flex items-center gap-1.5'>
-								<span className='truncate text-sm font-medium text-text-primary'>
-									{manifest?.name ?? 'Developer plugin'}
-								</span>
-
-								<span className='rounded bg-blue-500/20 px-1.5 text-[10px] font-semibold leading-4 tracking-[0.08em] text-blue-200'>
-									DEV
-								</span>
+						<div className='flex items-center gap-3'>
+							<span className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/6 text-zinc-300'>
+								{loaded?.status === 'loading' ? (
+									<Loader2 aria-hidden className='size-4 animate-spin' />
+								) : Icon ? (
+									<Icon aria-hidden className='size-[18px]' />
+								) : null}
 							</span>
 
-							<span
-								className={
-									loaded?.status === 'error'
-										? 'truncate text-xs text-error-500'
-										: 'truncate text-xs text-text-secondary'
-								}
+							<div className='flex min-w-0 flex-1 flex-col gap-0.5'>
+								<span className='flex items-center gap-1.5'>
+									<span className='truncate text-sm font-medium text-text-primary'>
+										{manifest?.name ?? 'Developer plugin'}
+									</span>
+
+									<span className='rounded bg-blue-500/20 px-1.5 text-[10px] font-semibold leading-4 tracking-[0.08em] text-blue-200'>
+										DEV
+									</span>
+								</span>
+
+								<span
+									className={
+										loaded?.status === 'error'
+											? 'truncate text-xs text-error-500'
+											: 'truncate text-xs text-text-secondary'
+									}
+								>
+									{loaded?.status === 'error'
+										? (loaded.error ?? 'Could not load')
+										: `${manifest?.id ?? 'loading…'} · ${host}`}
+								</span>
+							</div>
+
+							<Button
+								aria-label={`Reload ${manifest?.name ?? 'developer plugin'}`}
+								onClick={() => void reloadDevPlugin(url)}
+								size='icon'
+								variant='ghost'
 							>
-								{loaded?.status === 'error'
-									? (loaded.error ?? 'Could not load')
-									: `${manifest?.id ?? 'loading…'} · ${host}`}
-							</span>
+								<RefreshCw className='size-4' />
+							</Button>
+
+							<Button
+								aria-label={`Remove ${manifest?.name ?? 'developer plugin'}`}
+								onClick={() => removeDevPlugin(url)}
+								size='icon'
+								variant='ghost'
+							>
+								<X className='size-4' />
+							</Button>
 						</div>
 
-						<Button
-							aria-label={`Reload ${manifest?.name ?? 'developer plugin'}`}
-							onClick={() => void reloadDevPlugin(url)}
-							size='icon'
-							variant='ghost'
-						>
-							<RefreshCw className='size-4' />
-						</Button>
-
-						<Button
-							aria-label={`Remove ${manifest?.name ?? 'developer plugin'}`}
-							onClick={() => removeDevPlugin(url)}
-							size='icon'
-							variant='ghost'
-						>
-							<X className='size-4' />
-						</Button>
+						{manifest && needsPowerApproval(manifest) && (
+							<PluginPowersLine manifest={manifest} />
+						)}
 					</div>
 				);
 			})}
@@ -489,6 +510,7 @@ export function PluginsPanel() {
 	const manifests = useCatalogManifests(FIRST_PARTY_PLUGINS, isOpen);
 	const [busyPluginId, setBusyPluginId] = useState<string | null>(null);
 	const [confirmingOff, setConfirmingOff] = useState<string | null>(null);
+	const [confirmingOn, setConfirmingOn] = useState<string | null>(null);
 	const storedLater = useMemo(
 		() => (isOpen && userId && mapId ? readLaterVersions(userId, mapId) : {}),
 		[isOpen, userId, mapId]
@@ -537,14 +559,25 @@ export function PluginsPanel() {
 
 	const setEnabled = async (pluginId: string, enabled: boolean) => {
 		setConfirmingOff(null);
+		setConfirmingOn(null);
 		setBusyPluginId(pluginId);
 		await setMapPluginEnabled(pluginId, enabled);
 		setBusyPluginId(null);
 	};
 
 	const requestToggle = (pluginId: string, enabled: boolean) => {
+		if (!enabled && confirmingOn === pluginId) {
+			setConfirmingOn(null);
+			return;
+		}
 		if (!enabled && nodeCountFor(pluginId) > 0) {
 			setConfirmingOff(pluginId);
+			return;
+		}
+		// Reading the branch or reaching a site needs the owner's yes first.
+		const manifest = manifests[pluginId];
+		if (enabled && manifest && needsPowerApproval(manifest)) {
+			setConfirmingOn(pluginId);
 			return;
 		}
 		void setEnabled(pluginId, enabled);
@@ -564,6 +597,7 @@ export function PluginsPanel() {
 			title='Plugins'
 			onClose={() => {
 				setConfirmingOff(null);
+				setConfirmingOn(null);
 				setPopoverOpen({ plugins: false });
 			}}
 			subtitle={
@@ -604,6 +638,7 @@ export function PluginsPanel() {
 								extensions={extensionsFor(entry.id)}
 								isBusy={busyPluginId === entry.id}
 								isConfirmingOff={confirmingOff === entry.id}
+								isConfirmingOn={confirmingOn === entry.id}
 								isEnabled={isEnabled(entry.id)}
 								isOwner={isOwner}
 								isUpdateDismissed={isUpdateDismissed(entry.id)}
@@ -614,6 +649,8 @@ export function PluginsPanel() {
 								record={recordFor(entry.id)}
 								onConfirmOff={() => void setEnabled(entry.id, false)}
 								onKeepOn={() => setConfirmingOff(null)}
+								onCancelOn={() => setConfirmingOn(null)}
+								onConfirmOn={() => void setEnabled(entry.id, true)}
 								onToggle={(checked) => requestToggle(entry.id, checked)}
 								onUpdateLater={(version) => setLater(entry.id, version)}
 								onUpdateReview={() => setLater(entry.id, null)}

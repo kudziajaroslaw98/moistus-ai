@@ -5,13 +5,14 @@ import {
 	type QuickJSRuntime,
 	type QuickJSWASMModule,
 } from 'quickjs-emscripten-core';
-import { SANDBOX_LIMITS } from '../limits';
+import { PLUGIN_REQUEST_LIMITS, SANDBOX_LIMITS } from '../limits';
 
 /**
  * Runs one plugin's code in its own QuickJS runtime. The plugin sees only the prelude
  * below (`definePlugin`, `ui`, a log-only `console`): no DOM, network, timers or host
- * objects. Values cross the boundary as JSON strings, and every call has a deadline and
- * a memory cap, so a broken or hostile plugin can't hang or exhaust the app.
+ * objects (inside `refresh`, `ctx.request(url)` only records the URL; the host fetches).
+ * Values cross the boundary as JSON strings, and every call has a deadline and a memory
+ * cap, so a broken or hostile plugin can't hang or exhaust the app.
  */
 
 export type SandboxErrorCode = 'timeout' | 'memory' | 'error';
@@ -32,8 +33,18 @@ export interface PluginRenderOutput {
 	summary: unknown;
 }
 
+/** One pass of a kind's `refresh` action (see `refresh` below). */
+export interface PluginRefreshOutput {
+	/** Unvalidated, like an action's result. */
+	data: unknown;
+	/** URLs the plugin asked for with `ctx.request` (first pass only). */
+	requests: string[];
+}
+
 export interface PluginSandbox {
 	readonly kinds: string[];
+	/** Kinds that define `actions.refresh`. */
+	readonly refreshKinds: string[];
 	render(kind: string, data: unknown, ctx: unknown): PluginRenderOutput;
 	/** Returns the plugin's new data for the node, unvalidated. */
 	action(
@@ -43,6 +54,17 @@ export interface PluginSandbox {
 		payload: unknown,
 		ctx: unknown
 	): unknown;
+	/**
+	 * Runs the reserved `refresh` action with `ctx.request(url)`. With `responses` null
+	 * (first pass) every request returns `{ status: 'loading' }` and is recorded; on the
+	 * second pass the host passes what each URL answered.
+	 */
+	refresh(
+		kind: string,
+		data: unknown,
+		ctx: unknown,
+		responses: Record<string, unknown> | null
+	): PluginRefreshOutput;
 	/** False after a timeout or out-of-memory error; recreate the sandbox to continue. */
 	readonly isUsable: boolean;
 	dispose(): void;
@@ -113,6 +135,11 @@ const PRELUDE = `"use strict";
 		defined = true;
 	};
 	globalThis.__shikoKinds = () => JSON.stringify(Object.keys(kinds));
+	globalThis.__shikoRefreshKinds = () =>
+		JSON.stringify(
+			Object.keys(kinds).filter((name) => kinds[name].actions && typeof kinds[name].actions.refresh === 'function')
+		);
+	const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
 	globalThis.__shikoCall = (op, kindName, argsJson) => {
 		const kind = kinds[kindName];
 		if (!kind) throw new Error('Unknown kind "' + kindName + '"');
@@ -123,10 +150,35 @@ const PRELUDE = `"use strict";
 			return JSON.stringify({ tree, summary: summary === undefined ? null : summary });
 		}
 		if (op === 'action') {
+			// Only Shiko runs refresh (with ctx.request), never a button in the view.
+			if (args.action === 'refresh') throw new Error('refresh runs only from Shiko’s Refresh');
 			const handler = kind.actions && kind.actions[args.action];
 			if (typeof handler !== 'function') throw new Error('Unknown action "' + args.action + '"');
 			const next = handler(args.data, args.payload, args.ctx);
 			return JSON.stringify(next === undefined ? null : next);
+		}
+		if (op === 'refresh') {
+			const handler = kind.actions && kind.actions.refresh;
+			if (typeof handler !== 'function') throw new Error('Kind "' + kindName + '" has no refresh action');
+			const responses = args.responses;
+			const requests = [];
+			const request = (target) => {
+				const url = String(target);
+				if (responses) {
+					return hasOwn(responses, url)
+						? responses[url]
+						: { status: 'error', code: null, message: 'This address wasn’t requested on the first pass' };
+				}
+				if (requests.indexOf(url) === -1) {
+					if (requests.length >= args.maxRequests) {
+						return { status: 'error', code: null, message: 'Too many requests in one refresh' };
+					}
+					requests.push(url);
+				}
+				return { status: 'loading' };
+			};
+			const next = handler(args.data, null, Object.assign({}, args.ctx, { request }));
+			return JSON.stringify({ data: next === undefined ? null : next, requests: responses ? [] : requests });
 		}
 		throw new Error('Unknown operation');
 	};
@@ -235,6 +287,9 @@ export function createPluginSandbox(
 	const kinds = JSON.parse(
 		callGlobal('__shikoKinds', [], limits.loadMs)
 	) as string[];
+	const refreshKinds = JSON.parse(
+		callGlobal('__shikoRefreshKinds', [], limits.loadMs)
+	) as string[];
 	if (kinds.length === 0) {
 		context.dispose();
 		runtime.dispose();
@@ -246,6 +301,7 @@ export function createPluginSandbox(
 
 	return {
 		kinds,
+		refreshKinds,
 		get isUsable() {
 			return usable && !disposed;
 		},
@@ -264,6 +320,29 @@ export function createPluginSandbox(
 				limits.actionMs
 			);
 			return JSON.parse(json) as unknown;
+		},
+		refresh(kind, data, ctx, responses) {
+			const json = callGlobal(
+				'__shikoCall',
+				[
+					'refresh',
+					kind,
+					JSON.stringify({
+						data,
+						ctx,
+						responses,
+						maxRequests: PLUGIN_REQUEST_LIMITS.perRefresh,
+					}),
+				],
+				limits.actionMs
+			);
+			const output = JSON.parse(json) as { data: unknown; requests: unknown };
+			return {
+				data: output.data,
+				requests: Array.isArray(output.requests)
+					? output.requests.filter((url): url is string => typeof url === 'string')
+					: [],
+			};
 		},
 		dispose() {
 			if (disposed) return;

@@ -2,6 +2,11 @@
 
 import type { PluginMapSummary } from '@/app/api/plugins/maps/route';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
+import {
+	needsPowerApproval,
+	PluginPowersConfirm,
+	PluginPowersLine,
+} from '@/components/plugins/plugin-powers';
 import { PluginUpdateDetails } from '@/components/plugins/plugin-update-details';
 import { useCatalogManifests } from '@/components/plugins/use-catalog-manifests';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -16,6 +21,7 @@ import {
 	compareVersions,
 	FIRST_PARTY_PLUGINS,
 	latestCatalogVersion,
+	mapPluginRequest,
 	type PluginCatalogEntry,
 } from '@/lib/plugins/catalog';
 import type { PluginManifest } from '@/lib/plugins/manifest-schema';
@@ -27,7 +33,6 @@ import {
 	ChevronDown,
 	Code2,
 	Loader2,
-	ShieldCheck,
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
@@ -67,6 +72,8 @@ function GroupHeader({ label, count }: { label: string; count: number }) {
 interface MapPickerProps {
 	name: string;
 	pluginId: string;
+	/** Plugins with powers ask before they're turned on for a map. */
+	manifest: PluginManifest | null | undefined;
 	maps: PluginMapSummary[] | undefined;
 	isLoading: boolean;
 	busyMapIds: string[];
@@ -77,11 +84,13 @@ interface MapPickerProps {
 function MapPicker({
 	name,
 	pluginId,
+	manifest,
 	maps,
 	isLoading,
 	busyMapIds,
 	onToggle,
 }: MapPickerProps) {
+	const [pendingMap, setPendingMap] = useState<PluginMapSummary | null>(null);
 	const count =
 		maps?.filter((map) => pinnedVersion(map, pluginId) !== undefined).length ?? 0;
 	const label = isLoading
@@ -91,7 +100,7 @@ function MapPicker({
 			: `On in ${count} ${count === 1 ? 'map' : 'maps'}`;
 
 	return (
-		<Popover>
+		<Popover onOpenChange={(open) => !open && setPendingMap(null)}>
 			<PopoverTrigger
 				render={
 					<Button
@@ -128,9 +137,13 @@ function MapPicker({
 										aria-checked={isOn}
 										className='flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-sm text-text-primary transition-colors duration-200 ease hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 disabled:cursor-wait'
 										disabled={isBusy}
-										onClick={() => onToggle(map, !isOn)}
 										role='checkbox'
 										type='button'
+										onClick={() =>
+											!isOn && manifest && needsPowerApproval(manifest)
+												? setPendingMap(map)
+												: onToggle(map, !isOn)
+										}
 									>
 										<span
 											aria-hidden
@@ -166,6 +179,20 @@ function MapPicker({
 					<p className='px-2.5 py-2 text-sm text-text-secondary'>
 						You don&apos;t own any maps yet.
 					</p>
+				)}
+
+				{pendingMap && manifest && (
+					<div className='px-1 pt-1.5'>
+						<PluginPowersConfirm
+							fromCatalog
+							manifest={manifest}
+							onCancel={() => setPendingMap(null)}
+							onConfirm={() => {
+								onToggle(pendingMap, true);
+								setPendingMap(null);
+							}}
+						/>
+					</div>
 				)}
 
 				<div aria-hidden className='mx-1 my-1.5 h-px bg-zinc-800' />
@@ -296,13 +323,7 @@ function PluginCard({ entry, manifest, index, children, update }: PluginCardProp
 
 			{update}
 
-			<p className='flex items-start gap-2 text-xs text-text-secondary'>
-				<ShieldCheck
-					aria-hidden
-					className='size-3.5 shrink-0 text-emerald-400/90'
-				/>
-				Sees and changes only its own nodes. No internet access.
-			</p>
+			{manifest && <PluginPowersLine manifest={manifest} />}
 		</motion.article>
 	);
 }
@@ -340,8 +361,7 @@ export function PluginsContent() {
 			await mutate(
 				async (current) => {
 					const response = await fetch(
-						`/api/maps/${map.id}/plugins/${encodeURIComponent(pluginId)}`,
-						{ method: enabled ? 'PUT' : 'DELETE' }
+						...mapPluginRequest(map.id, pluginId, { enabled })
 					);
 					if (!response.ok) throw new Error('Request failed');
 					return withChange(current);
@@ -373,12 +393,7 @@ export function PluginsContent() {
 		for (const map of targets) {
 			try {
 				const response = await fetch(
-					`/api/maps/${map.id}/plugins/${encodeURIComponent(entry.id)}`,
-					{
-						method: 'PATCH',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ version }),
-					}
+					...mapPluginRequest(map.id, entry.id, { version })
 				);
 				if (response.ok) updatedIds.push(map.id);
 			} catch {
@@ -479,6 +494,7 @@ export function PluginsContent() {
 										) : (
 											<MapPicker
 												isLoading={isLoading}
+												manifest={manifests[entry.id]}
 												maps={maps}
 												name={name}
 												pluginId={entry.id}

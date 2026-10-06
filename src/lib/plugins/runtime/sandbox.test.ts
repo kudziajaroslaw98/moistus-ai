@@ -10,6 +10,7 @@ import {
 import { validatePluginTree } from '../ui-tree';
 import { createPluginSandbox, PluginSandboxError } from './sandbox';
 import { nodeTestVariant } from './test-quickjs-variant';
+import { issueCode } from './test-network-plugin';
 
 const metricCode = readFileSync(
 	join(process.cwd(), 'public/plugins/shiko.metric/0.1.0/plugin.js'),
@@ -204,5 +205,85 @@ describe('plugin sandbox', () => {
 		});
 		first.dispose();
 		second.dispose();
+	});
+});
+
+describe('refresh', () => {
+	const ctx = { canEdit: true, today: '2026-10-06' };
+	const data = { repo: 'shiko/app', number: 482 };
+
+	it('records the requests on the first pass and reads the answers on the second', () => {
+		const sandbox = createPluginSandbox(QuickJS, issueCode);
+		try {
+			expect(sandbox.refreshKinds).toEqual(['issue']);
+			const first = sandbox.refresh('issue', data, ctx, null);
+			expect(first).toEqual({
+				data,
+				requests: ['https://api.github.com/repos/shiko/app/issues/482'],
+			});
+
+			const second = sandbox.refresh('issue', data, ctx, {
+				'https://api.github.com/repos/shiko/app/issues/482': {
+					status: 'ok',
+					code: 200,
+					json: { title: 'Fix login loop', state: 'open' },
+				},
+			});
+			expect(second).toEqual({
+				data: { ...data, title: 'Fix login loop', state: 'open', error: '' },
+				requests: [],
+			});
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
+	it('answers addresses the first pass did not ask for with an error', () => {
+		const sandbox = createPluginSandbox(QuickJS, issueCode);
+		try {
+			const second = sandbox.refresh('issue', data, ctx, {});
+			expect(second.data).toMatchObject({
+				error: 'This address wasn’t requested on the first pass',
+			});
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
+	it('caps the requests one refresh can make', () => {
+		const sandbox = createPluginSandbox(
+			QuickJS,
+			`definePlugin({ kinds: { probe: {
+				render: () => ui.text('x'),
+				actions: { refresh(data, payload, ctx) {
+					const answers = [];
+					for (let i = 0; i < 6; i++) answers.push(ctx.request('https://api.github.com/' + i).status);
+					return { label: answers.join(',') };
+				} },
+			} } });`
+		);
+		try {
+			const first = sandbox.refresh('probe', {}, ctx, null);
+			expect(first.requests).toHaveLength(4);
+			expect(first.data).toEqual({ label: 'loading,loading,loading,loading,error,error' });
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
+	it('gives render no way to make requests, and keeps buttons from running refresh', () => {
+		const sandbox = createPluginSandbox(
+			QuickJS,
+			`definePlugin({ kinds: { issue: {
+				render: (data, ctx) => ui.text(typeof ctx.request),
+				actions: { refresh: (data) => data },
+			} } });`
+		);
+		try {
+			expect(sandbox.render('issue', {}, ctx).tree).toEqual({ type: 'text', value: 'undefined' });
+			expectSandboxError(() => sandbox.action('issue', 'refresh', {}, null, ctx), 'error');
+		} finally {
+			sandbox.dispose();
+		}
 	});
 });

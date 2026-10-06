@@ -4,7 +4,7 @@ import type {
 	PluginManifest,
 	PluginNodeKind,
 } from '@/lib/plugins/manifest-schema';
-import type { ParsedPluginFields } from '@/lib/plugins/plugin-fields';
+import { editorKind, type ParsedPluginFields } from '@/lib/plugins/plugin-fields';
 import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
 import {
 	fallbackSummary,
@@ -93,7 +93,7 @@ function columnPatterns(spec: Extract<PluginFieldSpec, { type: 'list' }>): Parsi
 export function buildPluginKindPatterns(
 	kind: PluginNodeKind
 ): ParsingPattern[] {
-	const fieldPatterns = Object.entries(kind.fields)
+	const fieldPatterns = Object.entries(editorKind(kind).fields)
 		.filter(([name]) => name !== kind.labelField)
 		.flatMap(([name, spec]): ParsingPattern[] => [
 			{

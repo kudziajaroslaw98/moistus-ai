@@ -12,8 +12,10 @@ import {
 	catalogManifestUrl,
 	compareVersions,
 	FIRST_PARTY_PLUGINS,
+	mapPluginRequest,
 	newerCatalogVersions,
 	permissionChanges,
+	powersConfirmed,
 	type PluginCatalogEntry,
 } from './catalog';
 import { pluginManifestSchema, type PluginManifest } from './manifest-schema';
@@ -185,6 +187,36 @@ describe('catalog version helpers', () => {
 		expect(permissionChanges(['node:own'], ['node:own'])).toEqual({
 			added: [],
 			removed: [],
+		});
+	});
+});
+
+describe('approving powers', () => {
+	it('needs the exact powers for plugins beyond their own nodes', () => {
+		expect(powersConfirmed(['node:own'], undefined)).toBe(true);
+		expect(powersConfirmed(['node:own', 'branch:read'], undefined)).toBe(false);
+		expect(powersConfirmed(['node:own', 'branch:read'], ['node:own'])).toBe(false);
+		expect(
+			powersConfirmed(['node:own', 'network:api.github.com'], [
+				'network:api.github.com',
+				'node:own',
+			])
+		).toBe(true);
+	});
+
+	it('sends the powers of the version being turned on', () => {
+		const [url, init] = mapPluginRequest('map-1', 'shiko.metric', { enabled: true });
+		expect(url).toBe('/api/maps/map-1/plugins/shiko.metric');
+		expect(init.method).toBe('PUT');
+		expect(JSON.parse(String(init.body))).toEqual({ permissions: ['node:own'] });
+
+		const [, patch] = mapPluginRequest('map-1', 'shiko.metric', { version: '0.1.0' });
+		expect(JSON.parse(String(patch.body))).toEqual({
+			version: '0.1.0',
+			permissions: ['node:own'],
+		});
+		expect(mapPluginRequest('map-1', 'shiko.metric', { enabled: false })[1]).toEqual({
+			method: 'DELETE',
 		});
 	});
 });

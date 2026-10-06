@@ -4,7 +4,7 @@ import {
 	PLUGIN_ICON_KEYS,
 	PLUGIN_KIND_WIDTHS,
 	PLUGIN_LIMITS,
-	PLUGIN_PERMISSIONS,
+	PLUGIN_POWER_LIMITS,
 } from '@/lib/plugins/manifest-schema';
 import { PLUGIN_UI_ICON_NAMES, PLUGIN_UI_LIMITS } from '@/lib/plugins/ui-tree';
 
@@ -21,15 +21,14 @@ export interface GuideRow {
 const formatBytes = (bytes: number) =>
 	bytes >= 1024 * 1024 ? `${bytes / (1024 * 1024)} MB` : `${bytes / 1024} KB`;
 
-const permissions = PLUGIN_PERMISSIONS.map((permission) => `"${permission}"`).join(', ');
-
 export const MANIFEST_ROWS: GuideRow[] = [
 	{ name: 'id', description: 'Reverse-DNS and lowercase, like dev.yourname.counter' },
 	{ name: 'name, description', description: 'Shown in the Plugins panel (up to 40 and 140 characters)' },
 	{ name: 'version', description: 'Three numbers, like 1.0.0' },
 	{ name: 'apiVersion', description: `Always ${PLUGIN_API_VERSION}` },
 	{ name: 'icon', description: PLUGIN_ICON_KEYS.join(', ') },
-	{ name: 'permissions', description: `Always [${permissions}] for now: the plugin sees and changes only its own nodes` },
+	{ name: 'permissions', description: `"node:own" (its own nodes), plus either "branch:read" (read the nodes under it) or up to ${PLUGIN_POWER_LIMITS.networkHosts} "network:<host>" (fetch from that site when an editor refreshes), never both` },
+	{ name: 'networkHosts', description: 'For each network host: operator (who runs it), privacyPolicy (an https link) and sends (what goes there, like "issue addresses"). Shown before anything is sent' },
 	{ name: 'main', description: 'The code file, relative to manifest.json' },
 	{ name: 'nodeKinds', description: `Up to ${PLUGIN_LIMITS.nodeKinds} kinds of node` },
 ];
@@ -38,7 +37,7 @@ export const NODE_KIND_ROWS: GuideRow[] = [
 	{ name: 'kind', description: '2–20 lowercase letters. It becomes the $ trigger, so built-in names like note or task are taken.' },
 	{ name: 'label, description, icon', description: 'How the kind shows up in the $ list and on its nodes' },
 	{ name: 'labelField', description: 'The string field that plain text goes into' },
-	{ name: 'fields', description: `Up to ${PLUGIN_LIMITS.fields}, keyed by name (a lowercase letter, then letters or digits)` },
+	{ name: 'fields', description: `Up to ${PLUGIN_LIMITS.fields}, keyed by name (a lowercase letter, then letters or digits). A field with setBy: "refresh" is filled only by your refresh action and isn't typed in the editor` },
 	{ name: 'examples', description: `Up to ${PLUGIN_LIMITS.examples} lines shown in Syntax Help` },
 	{ name: 'width', description: `normal (${PLUGIN_KIND_WIDTHS.normal} px, the default) or wide (${PLUGIN_KIND_WIDTHS.wide} px) for columns side by side, like a board` },
 ];

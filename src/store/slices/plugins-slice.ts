@@ -1,21 +1,28 @@
+import { applyGraphOps, canEditMap } from '@/lib/extensions/graph-ops';
 import { findActivePluginKind } from '@/lib/plugins/active-plugins';
+import { pluginCallContext } from '@/lib/plugins/call-context';
 import {
 	catalogManifestUrl,
 	findCatalogVersion,
 	isLocalDevPluginUrl,
+	mapPluginRequest,
 	type PluginCatalogVersion,
 } from '@/lib/plugins/catalog';
 import {
 	describeManifestError,
+	networkHostsOf,
 	pluginManifestSchema,
 	type PluginManifest,
 } from '@/lib/plugins/manifest-schema';
+import { blockedPluginHosts, fetchPluginJson } from '@/lib/plugins/network';
+import { validatePluginData } from '@/lib/plugins/plugin-fields';
 import { sha256Hex } from '@/lib/plugins/code-fingerprint';
 import { MAX_PLUGIN_CODE_BYTES } from '@/lib/plugins/limits';
 import { loadPluginHost } from '@/lib/plugins/runtime/load-plugin-host';
 import type {
 	LoadedPlugin,
 	MapPluginRecord,
+	PluginRefreshState,
 	PluginSource,
 	PluginsSlice,
 } from '@/types/plugins';
@@ -119,14 +126,9 @@ interface MapPluginsResponse {
 
 /** Calls the per-map plugin route; returns the saved record or throws its error. */
 async function requestMapPlugin(
-	mapId: string,
-	pluginId: string,
-	init: RequestInit
+	request: [string, RequestInit]
 ): Promise<MapPluginRecord | null> {
-	const response = await fetch(
-		`/api/maps/${mapId}/plugins/${encodeURIComponent(pluginId)}`,
-		init
-	);
+	const response = await fetch(...request);
 	const body = (await response.json().catch(() => null)) as MapPluginsResponse | null;
 	if (!response.ok) throw new Error(body?.error ?? 'Could not change the plugin');
 	return body?.data ?? null;
@@ -234,6 +236,11 @@ export const createPluginsSlice: StateCreator<
 				if (takenByOther)
 					throw new Error(`${manifest.id} is already loaded on this map`);
 			}
+			const blocked = blockedPluginHosts();
+			const blockedHost = networkHostsOf(manifest.permissions).find((host) =>
+				blocked.includes(host)
+			);
+			if (blockedHost) throw new Error(`Plugins can’t reach ${blockedHost}`);
 			const code = await fetchCode(
 				manifestUrl,
 				manifest,
@@ -263,6 +270,9 @@ export const createPluginsSlice: StateCreator<
 				manifest,
 				error: null,
 				generation: ++loadGeneration,
+				refreshKinds: manifest.nodeKinds
+					.map((kind) => kind.kind)
+					.filter((kind) => host.canRefresh(manifest.id, kind)),
 			});
 		} catch (error) {
 			if (!isCurrent()) return;
@@ -323,6 +333,12 @@ export const createPluginsSlice: StateCreator<
 		}
 	};
 
+	const setRefresh = (nodeId: string, next: PluginRefreshState | null) =>
+		set((state) => {
+			const { [nodeId]: _previous, ...rest } = state.pluginRefreshes;
+			return { pluginRefreshes: next ? { ...rest, [nodeId]: next } : rest };
+		});
+
 	/** Saves a changed record locally and loads the version it pins. */
 	const applyRecord = (record: MapPluginRecord) => {
 		const records = [
@@ -338,6 +354,7 @@ export const createPluginsSlice: StateCreator<
 		mapPluginsLoaded: false,
 		loadedPlugins: {},
 		devPluginUrls: [],
+		pluginRefreshes: {},
 
 		fetchMapPlugins: async (mapId) => {
 			const { data, error } = await get()
@@ -374,9 +391,9 @@ export const createPluginsSlice: StateCreator<
 			if (!mapId || !isOwner()) return false;
 			let saved: MapPluginRecord | null;
 			try {
-				saved = await requestMapPlugin(mapId, pluginId, {
-					method: enabled ? 'PUT' : 'DELETE',
-				});
+				saved = await requestMapPlugin(
+					mapPluginRequest(mapId, pluginId, { enabled })
+				);
 			} catch (error) {
 				toast.error(
 					error instanceof Error ? error.message : 'Could not change the plugin'
@@ -402,11 +419,9 @@ export const createPluginsSlice: StateCreator<
 			if (!mapId || !isOwner()) return false;
 			let saved: MapPluginRecord | null;
 			try {
-				saved = await requestMapPlugin(mapId, pluginId, {
-					method: 'PATCH',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ version }),
-				});
+				saved = await requestMapPlugin(
+					mapPluginRequest(mapId, pluginId, { version })
+				);
 			} catch (error) {
 				toast.error(
 					error instanceof Error ? error.message : 'Could not change the plugin'
@@ -489,11 +504,128 @@ export const createPluginsSlice: StateCreator<
 				mapPluginsLoaded: false,
 				loadedPlugins: {},
 				devPluginUrls: [],
+				pluginRefreshes: {},
 			});
 		},
 
 		openPluginsPanel: () => {
 			get().setPopoverOpen({ plugins: true, recipes: false, mapSettings: false });
+		},
+
+		refreshPluginNode: async (nodeId) => {
+			const state = get();
+			const mapId = state.mapId;
+			const extension = state.nodes.find((node) => node.id === nodeId)?.data
+				.metadata?.extension;
+			// Viewers never refresh: only someone who can edit the map sends requests.
+			if (!mapId || !extension || !canEditMap(state)) return false;
+			const active = findActivePluginKind(
+				state.loadedPlugins,
+				extension.pluginId,
+				extension.kind
+			);
+			if (!active?.canRefresh) return false;
+			if (state.pluginRefreshes[nodeId]?.status === 'running') return false;
+
+			const checked = validatePluginData(active.kind, extension.data);
+			if (!checked.ok) {
+				setRefresh(nodeId, {
+					status: 'error',
+					message: `${active.kind.label} data on this node isn't valid`,
+				});
+				return false;
+			}
+			setRefresh(nodeId, { status: 'running' });
+			const allowedHosts = networkHostsOf(active.manifest.permissions);
+			try {
+				const host = await loadPluginHost();
+				const ctx = pluginCallContext(true);
+				const { data, responses } = await host.refresh(
+					active.manifest.id,
+					active.kind,
+					checked.data,
+					ctx,
+					async (urls) =>
+						Object.fromEntries(
+							await Promise.all(
+								urls.map(
+									async (url) =>
+										[url, await fetchPluginJson(url, { allowedHosts })] as const
+								)
+							)
+						)
+				);
+				const rendered = await host.render(
+					active.manifest.id,
+					active.kind,
+					data,
+					ctx
+				);
+
+				// Someone may have edited the node while the requests ran: keep their change.
+				const latest = get().nodes.find((node) => node.id === nodeId)?.data
+					.metadata?.extension;
+				if (get().mapId !== mapId || !latest) {
+					setRefresh(nodeId, null);
+					return false;
+				}
+				if (JSON.stringify(latest.data) !== JSON.stringify(extension.data)) {
+					setRefresh(nodeId, {
+						status: 'error',
+						message: 'The node changed while refreshing. Try again.',
+					});
+					return false;
+				}
+
+				const failed = Object.values(responses).find(
+					(response) => response.status === 'error'
+				);
+				const result = await applyGraphOps(
+					get,
+					[
+						{
+							type: 'updateNode',
+							nodeId,
+							data: {
+								content: rendered.summary,
+								metadata: {
+									extension: {
+										...latest,
+										kindLabel: active.kind.label,
+										width: active.kind.width,
+										version: active.manifest.version,
+										data,
+										snapshot: rendered.tree,
+										// "Updated …" means every request came back.
+										fetchedAt: failed
+											? latest.fetchedAt
+											: new Date().toISOString(),
+									},
+								},
+							},
+						},
+					],
+					{ kind: 'plugin', id: active.manifest.id, label: active.manifest.name },
+					{ label: 'updateNode' }
+				);
+				if (!result.ok) throw new Error(result.error);
+				setRefresh(
+					nodeId,
+					failed?.status === 'error'
+						? { status: 'error', message: failed.message }
+						: null
+				);
+				return !failed;
+			} catch (error) {
+				setRefresh(nodeId, {
+					status: 'error',
+					message:
+						error instanceof Error
+							? error.message
+							: `${active.manifest.name} couldn't refresh`,
+				});
+				return false;
+			}
 		},
 
 		getActivePluginKind: (pluginId, kindName) =>

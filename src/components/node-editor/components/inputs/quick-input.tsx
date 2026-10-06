@@ -7,6 +7,7 @@ import { useTouchFirst } from '@/hooks/use-touch-first';
 import { findActivePluginKind } from '@/lib/plugins/active-plugins';
 import {
 	assignListRowIds,
+	keepRefreshFields,
 	parsePluginFieldInput,
 	serializePluginFieldInput,
 	validatePluginData,
@@ -61,6 +62,8 @@ import { PreviewSection } from '../preview-section';
 import { PluginEditorPreview } from '../preview/plugin-editor-preview';
 import { toPluginFieldSpecs } from '../../integrations/codemirror/plugin-fields';
 import { pluginCallContext } from '@/lib/plugins/call-context';
+import { buildPluginBranch } from '@/lib/plugins/branch-context';
+import { markRefreshNoteSeen } from '@/components/plugins/refresh-note';
 import { buildPluginKindConfig, buildPluginNodeSaveData } from '../../plugin-kind-editor';
 import { EnhancedInput } from './enhanced-input';
 import { MobileCompletionTray } from './mobile-completion-tray';
@@ -717,18 +720,26 @@ export const QuickInput: FC<QuickInputProps> = ({
 				if (!activePluginKind || !pluginDraft) {
 					throw new Error('This plugin isn’t running on this map');
 				}
-				// List rows keep the ids they had, so plugins can tell rows apart after an edit.
+				// List rows keep the ids they had, so plugins can tell rows apart after an edit,
+				// and fields only refresh fills (fetched data) stay until the next refresh.
 				const existingExtension = existingNode?.data.metadata?.extension;
+				const previousData =
+					existingExtension?.pluginId === activePluginKind.manifest.id
+						? existingExtension.data
+						: null;
 				const draft = {
 					...pluginDraft,
-					data: assignListRowIds(
+					data: keepRefreshFields(
 						activePluginKind.kind,
-						pluginDraft.data,
-						existingExtension?.pluginId === activePluginKind.manifest.id
-							? existingExtension.data
-							: null
+						assignListRowIds(activePluginKind.kind, pluginDraft.data, previousData),
+						previousData
 					),
 				};
+				const { nodes: storeNodes, edges: storeEdges } = useAppStore.getState();
+				const branch =
+					activePluginKind.readsBranch && existingNode
+						? buildPluginBranch(existingNode.id, storeNodes, storeEdges)
+						: null;
 				// Save the plugin's view too, so people without the plugin see it.
 				const rendered = await loadPluginHost()
 					.then((host) =>
@@ -736,7 +747,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 							activePluginKind.manifest.id,
 							activePluginKind.kind,
 							draft.data,
-							pluginCallContext(true)
+							pluginCallContext(true, branch)
 						)
 					)
 					.catch(() => null);
@@ -865,6 +876,15 @@ export const QuickInput: FC<QuickInputProps> = ({
 						);
 					}
 				);
+			}
+
+			// A plugin that reaches a site fetches after every save; the editor showed where
+			// the data goes, so that counts as having seen the Refresh note.
+			const savedNodeId = result.nodeId ?? existingNode?.id;
+			if (isPluginNode && activePluginKind?.canRefresh && savedNodeId) {
+				const store = useAppStore.getState();
+				markRefreshNoteSeen(store.currentUser?.id ?? null, activePluginKind.manifest.id);
+				void store.refreshPluginNode(savedNodeId);
 			}
 
 			// Close the editor after successful creation/update
@@ -1159,8 +1179,16 @@ export const QuickInput: FC<QuickInputProps> = ({
 							{isPluginNode ? (
 								<PluginEditorPreview
 									active={activePluginKind}
+									existingNodeId={existingNode?.id ?? null}
 									hasInput={value.trim().length > 0}
+									mode={mode}
 									parsed={pluginDraft}
+									savedData={
+										existingNode?.data.metadata?.extension?.pluginId ===
+										activePluginKind?.manifest.id
+											? existingNode?.data.metadata?.extension?.data
+											: null
+									}
 								/>
 							) : (
 								<PreviewSection

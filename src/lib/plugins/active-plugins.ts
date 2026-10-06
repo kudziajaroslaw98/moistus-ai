@@ -1,3 +1,4 @@
+import { networkHostsOf } from '@/lib/plugins/manifest-schema';
 import type { ActivePluginKind, LoadedPlugin } from '@/types/plugins';
 
 /** A ready plugin's node kind, or null when that plugin isn't running on this map. */
@@ -17,6 +18,10 @@ export function findActivePluginKind(
 					kind,
 					source: plugin.source,
 					generation: plugin.generation,
+					canRefresh:
+						networkHostsOf(plugin.manifest.permissions).length > 0 &&
+						(plugin.refreshKinds ?? []).includes(kind.kind),
+					readsBranch: plugin.manifest.permissions.includes('branch:read'),
 				}
 			: null;
 	}

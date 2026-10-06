@@ -6,12 +6,8 @@ import {
 	permissionChanges,
 	type PluginCatalogEntry,
 } from '@/lib/plugins/catalog';
-import type { PluginPermission } from '@/lib/plugins/manifest-schema';
+import { describePermission } from '@/lib/plugins/powers';
 import { Check, TriangleAlert } from 'lucide-react';
-
-const PERMISSION_LABELS: Record<PluginPermission, string> = {
-	'node:own': 'its own nodes',
-};
 
 const relativeTime = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
@@ -83,7 +79,7 @@ export function PluginUpdateDetails({
 				<p className='flex items-start gap-1.5 text-xs leading-[17px] text-amber-200'>
 					<TriangleAlert aria-hidden className='mt-0.5 size-3 shrink-0' />
 
-					{`New powers: ${added.map((permission) => PERMISSION_LABELS[permission]).join(', ')}`}
+					{`New powers: ${added.map(describePermission).join(', ')}`}
 				</p>
 			)}
 		</>

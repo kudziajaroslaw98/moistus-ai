@@ -81,6 +81,8 @@ describe('PluginsContent', () => {
 		await waitFor(() =>
 			expect(mockFetch).toHaveBeenCalledWith('/api/maps/map-2/plugins/shiko.metric', {
 				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: '{"permissions":["node:own"]}',
 			})
 		);
 		expect(await screen.findByRole('button', { name: /On in 2 maps/ })).toBeInTheDocument();
@@ -103,7 +105,7 @@ describe('PluginsContent', () => {
 			expect(mockFetch).toHaveBeenCalledWith(`/api/maps/${id}/plugins/shiko.metric`, {
 				method: 'PATCH',
 				headers: { 'Content-Type': 'application/json' },
-				body: '{"version":"0.2.0"}',
+				body: '{"version":"0.2.0","permissions":["node:own"]}',
 			});
 		}
 		await waitFor(() => expect(screen.queryByTestId('plugin-update')).not.toBeInTheDocument());

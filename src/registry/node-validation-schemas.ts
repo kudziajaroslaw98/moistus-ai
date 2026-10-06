@@ -46,6 +46,7 @@ const baseMetadataSchema = z.object({
 			version: z.string(),
 			data: z.record(z.string(), z.unknown()),
 			snapshot: z.unknown().optional(),
+			fetchedAt: z.string().max(40).optional(),
 		})
 		.nullable()
 		.optional(),

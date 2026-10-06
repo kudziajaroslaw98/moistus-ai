@@ -511,9 +511,21 @@ export function BuildGuideContent() {
 							<Section id='cant' title='What plugins can’t do, and why'>
 								<ul className='flex list-disc flex-col gap-2.5 pl-5 text-sm leading-[22px] text-zinc-400'>
 									<li>
-										<span className='text-zinc-200'>No internet, page access or timers.</span>{' '}
-										Plugin code runs in a sandbox in a background worker, away
-										from the page and your account.
+										<span className='text-zinc-200'>No fetch, page access or timers.</span>
+
+										{' Plugin code runs in a sandbox in a background worker, away from the page and your account. A plugin with a '}
+
+										<code className={codeChipClass}>{'network:<host>'}</code>
+
+										{' power names addresses with '}
+
+										<code className={codeChipClass}>ctx.request</code>
+
+										{' in its '}
+
+										<code className={codeChipClass}>refresh</code>
+
+										{' action, and Shiko fetches them from that site only, without cookies, when someone editing the map saves or refreshes the node.'}
 									</li>
 
 									<li>
@@ -523,9 +535,13 @@ export function BuildGuideContent() {
 									</li>
 
 									<li>
-										<span className='text-zinc-200'>Only its own nodes.</span> A
-										plugin changes the data of the nodes it made and nothing else
-										on the map.
+										<span className='text-zinc-200'>Only its own nodes.</span>
+
+										{' A plugin changes the data of the nodes it made and nothing else on the map. With '}
+
+										<code className={codeChipClass}>branch:read</code>
+
+										{' it can also read the nodes under its own, but then it can’t reach any site.'}
 									</li>
 								</ul>
 							</Section>

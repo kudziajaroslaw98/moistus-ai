@@ -1,16 +1,34 @@
+import { applyGraphOps } from '@/lib/extensions/graph-ops';
+import { pluginManifestSchema } from '@/lib/plugins/manifest-schema';
+import { fetchPluginJson } from '@/lib/plugins/network';
+import { issueManifest } from '@/lib/plugins/runtime/test-network-plugin';
 import { webcrypto } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { TextEncoder as NodeTextEncoder } from 'node:util';
 import { join } from 'node:path';
+import { TextEncoder as NodeTextEncoder } from 'node:util';
 import { create } from 'zustand';
 import type { AppState } from '../app-state';
 import { createPluginsSlice } from './plugins-slice';
 
-const mockHost = { load: jest.fn(), unload: jest.fn() };
+const mockHost = {
+	load: jest.fn(),
+	unload: jest.fn(),
+	canRefresh: jest.fn((_pluginId: string, _kind: string) => false),
+	refresh: jest.fn(),
+	render: jest.fn(),
+};
 jest.mock('@/lib/plugins/runtime/load-plugin-host', () => ({
 	loadPluginHost: async () => mockHost,
 }));
 jest.mock('sonner', () => ({ toast: { error: jest.fn() } }));
+jest.mock('@/lib/extensions/graph-ops', () => ({
+	...jest.requireActual('@/lib/extensions/graph-ops'),
+	applyGraphOps: jest.fn(async () => ({ ok: true, applied: 1 })),
+}));
+jest.mock('@/lib/plugins/network', () => ({
+	...jest.requireActual('@/lib/plugins/network'),
+	fetchPluginJson: jest.fn(),
+}));
 
 const manifestJson = readFileSync(
 	join(process.cwd(), 'public/plugins/shiko.metric/0.1.0/manifest.json'),
@@ -227,9 +245,9 @@ describe('plugins slice', () => {
 		expect(store.getState().devPluginUrls).toEqual([]);
 		expect(store.getState().loadedPlugins[url]).toBeUndefined();
 		// The list stays in this browser for when Developer mode is back on.
-		expect(window.localStorage.getItem('shiko_dev_plugins_v1:owner-1:map-1')).toBe(
-			JSON.stringify([url])
-		);
+		expect(
+			window.localStorage.getItem('shiko_dev_plugins_v1:owner-1:map-1')
+		).toBe(JSON.stringify([url]));
 	});
 
 	it('refuses developer plugin URLs that are not on this machine', async () => {
@@ -331,10 +349,16 @@ describe('plugins slice', () => {
 
 		expect(global.fetch).toHaveBeenCalledWith(
 			'/api/maps/map-1/plugins/shiko.metric',
-			expect.objectContaining({ method: 'PATCH', body: '{"version":"0.2.0"}' })
+			expect.objectContaining({
+				method: 'PATCH',
+				body: '{"version":"0.2.0","permissions":["node:own"]}',
+			})
 		);
 		expect(store.getState().mapPlugins).toEqual([saved]);
-		expect(mockHost.load).toHaveBeenLastCalledWith('shiko.metric', metricCode020);
+		expect(mockHost.load).toHaveBeenLastCalledWith(
+			'shiko.metric',
+			metricCode020
+		);
 		expect(store.getState().loadedPlugins['shiko.metric']).toMatchObject({
 			status: 'ready',
 			manifest: expect.objectContaining({ version: '0.2.0' }),
@@ -370,7 +394,10 @@ describe('plugins slice', () => {
 		await flush();
 
 		// 0.2.0's code replaced 0.1.0's in the host; the stale load must not remove it.
-		expect(mockHost.load).toHaveBeenLastCalledWith('shiko.metric', metricCode020);
+		expect(mockHost.load).toHaveBeenLastCalledWith(
+			'shiko.metric',
+			metricCode020
+		);
 		expect(mockHost.unload).not.toHaveBeenCalled();
 		expect(store.getState().loadedPlugins['shiko.metric']).toMatchObject({
 			status: 'ready',
@@ -400,6 +427,140 @@ describe('plugins slice', () => {
 			plugins: true,
 			recipes: false,
 			mapSettings: false,
+		});
+	});
+});
+
+describe('refreshPluginNode', () => {
+	const manifest = pluginManifestSchema.parse(issueManifest);
+	const url = 'https://api.github.com/repos/shiko/app/issues/482';
+	const saved = { repo: 'shiko/app', number: 482 };
+	const issueNode = {
+		id: 'node-1',
+		data: {
+			node_type: 'extensionNode',
+			metadata: {
+				extension: {
+					pluginId: 'dev.issue',
+					kind: 'issue',
+					version: '0.1.0',
+					data: saved,
+					fetchedAt: '2026-10-01T10:00:00.000Z',
+				},
+			},
+		},
+	};
+	const loadedIssue = {
+		'http://localhost:5173/manifest.json': {
+			key: 'http://localhost:5173/manifest.json',
+			source: 'dev',
+			manifestUrl: 'http://localhost:5173/manifest.json',
+			status: 'ready',
+			manifest,
+			error: null,
+			generation: 1,
+			refreshKinds: ['issue'],
+		},
+	};
+	const refreshStore = (overrides: Record<string, unknown> = {}) => {
+		const store = createStore({
+			nodes: [issueNode],
+			permissions: {},
+			...overrides,
+		});
+		store.setState({ loadedPlugins: loadedIssue } as never);
+		return store;
+	};
+
+	beforeEach(() => {
+		mockHost.refresh.mockImplementation(
+			async (_id, _kind, data, _ctx, fetchAll) => {
+				const responses = await fetchAll([url]);
+				const answer = responses[url];
+				return {
+					data:
+						answer.status === 'ok'
+							? { ...data, title: 'Fix login', state: 'open' }
+							: data,
+					responses,
+				};
+			}
+		);
+		mockHost.render.mockResolvedValue({
+			tree: { type: 'text', value: 'Fix login' },
+			summary: 'Fix login',
+		});
+	});
+
+	it('fetches from the approved site and saves one change credited to the plugin', async () => {
+		jest
+			.mocked(fetchPluginJson)
+			.mockResolvedValue({ status: 'ok', code: 200, json: {} });
+		const store = refreshStore();
+
+		await expect(store.getState().refreshPluginNode('node-1')).resolves.toBe(
+			true
+		);
+
+		expect(fetchPluginJson).toHaveBeenCalledWith(url, {
+			allowedHosts: ['api.github.com'],
+		});
+		const [, ops, actor] = jest.mocked(applyGraphOps).mock.calls[0];
+		expect(actor).toEqual({ kind: 'plugin', id: 'dev.issue', label: 'Issue' });
+		expect(ops[0]).toMatchObject({
+			type: 'updateNode',
+			nodeId: 'node-1',
+			data: {
+				content: 'Fix login',
+				metadata: {
+					extension: {
+						data: { ...saved, title: 'Fix login', state: 'open' },
+						snapshot: { type: 'text', value: 'Fix login' },
+					},
+				},
+			},
+		});
+		const extension = (
+			ops[0] as { data: { metadata: { extension: { fetchedAt: string } } } }
+		).data.metadata.extension;
+		expect(extension.fetchedAt).not.toBe('2026-10-01T10:00:00.000Z');
+		expect(store.getState().pluginRefreshes).toEqual({});
+	});
+
+	it('never runs for people who can only view the map', async () => {
+		const store = refreshStore({
+			mindMap: { id: 'map-1', user_id: 'someone-else' },
+			permissions: { can_edit: false },
+		});
+
+		await expect(store.getState().refreshPluginNode('node-1')).resolves.toBe(
+			false
+		);
+		expect(mockHost.refresh).not.toHaveBeenCalled();
+		expect(fetchPluginJson).not.toHaveBeenCalled();
+	});
+
+	it('keeps the old “Updated” time and says why when a request fails', async () => {
+		jest.mocked(fetchPluginJson).mockResolvedValue({
+			status: 'error',
+			code: 404,
+			message: 'api.github.com answered 404',
+		});
+		const store = refreshStore();
+
+		await expect(store.getState().refreshPluginNode('node-1')).resolves.toBe(
+			false
+		);
+
+		const [, ops] = jest.mocked(applyGraphOps).mock.calls[0];
+		expect(ops[0]).toMatchObject({
+			data: {
+				metadata: { extension: { fetchedAt: '2026-10-01T10:00:00.000Z' } },
+			},
+		});
+		expect(store.getState().pluginRefreshes['node-1']).toEqual({
+			status: 'error',
+			message: 'api.github.com answered 404',
 		});
 	});
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import type { PluginBranchNode } from '@/lib/plugins/branch-context';
 import { localDateString, pluginCallContext } from '@/lib/plugins/call-context';
 import type { PluginData } from '@/lib/plugins/plugin-fields';
 import { loadPluginHost } from '@/lib/plugins/runtime/load-plugin-host';
@@ -16,12 +17,15 @@ export function pluginRenderKey(
 	active: ActivePluginKind,
 	data: PluginData,
 	canEdit: boolean,
+	branch: PluginBranchNode[] | null = null,
 	today: string = localDateString()
 ): string {
 	const { manifest, kind, generation } = active;
 	// The generation changes when a developer reloads the plugin with new code; the date
 	// is in the key because plugins can show it (days left), so views redraw each day.
-	return `${manifest.id}@${manifest.version}#${generation}:${kind.kind}:${canEdit ? 1 : 0}:${today}:${JSON.stringify(data)}`;
+	// A branch:read plugin's view also depends on the nodes under it.
+	const branchPart = branch ? `:${JSON.stringify(branch)}` : '';
+	return `${manifest.id}@${manifest.version}#${generation}:${kind.kind}:${canEdit ? 1 : 0}:${today}:${JSON.stringify(data)}${branchPart}`;
 }
 
 export function rememberPluginRender(key: string, result: PluginRenderResult) {
@@ -37,6 +41,8 @@ interface UsePluginRenderOptions {
 	active: ActivePluginKind | null;
 	data: PluginData | null;
 	canEdit: boolean;
+	/** `ctx.branch` for branch:read plugins (see usePluginBranch). */
+	branch?: PluginBranchNode[] | null;
 	/** Debounce for fast-changing input (the node editor preview). */
 	debounceMs?: number;
 }
@@ -49,9 +55,11 @@ export function usePluginRender({
 	active,
 	data,
 	canEdit,
+	branch = null,
 	debounceMs = 0,
 }: UsePluginRenderOptions) {
-	const key = active && data ? pluginRenderKey(active, data, canEdit) : null;
+	const key =
+		active && data ? pluginRenderKey(active, data, canEdit, branch) : null;
 	const [, rerender] = useReducer((count: number) => count + 1, 0);
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const cached = key ? renderCache.get(key) : undefined;
@@ -68,7 +76,7 @@ export function usePluginRender({
 					active.manifest.id,
 					active.kind,
 					data,
-					pluginCallContext(canEdit)
+					pluginCallContext(canEdit, branch)
 				);
 				rememberPluginRender(key, result);
 				if (!cancelled) rerender();
@@ -87,7 +95,7 @@ export function usePluginRender({
 			cancelled = true;
 			clearTimeout(timer);
 		};
-		// `key` covers active, data and canEdit.
+		// `key` covers active, data, canEdit and branch.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [key, hasError, debounceMs]);
 

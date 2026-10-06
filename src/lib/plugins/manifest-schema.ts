@@ -22,9 +22,98 @@ export const PLUGIN_ICON_KEYS = [
 ] as const;
 export type PluginIconKey = (typeof PLUGIN_ICON_KEYS)[number];
 
-/** Capabilities a plugin can ask for. M1 only has `node:own` (its own nodes, no network). */
-export const PLUGIN_PERMISSIONS = ['node:own'] as const;
-export type PluginPermission = (typeof PLUGIN_PERMISSIONS)[number];
+/**
+ * Powers a plugin can ask for. Every plugin has `node:own` (its own nodes). On top of it a
+ * plugin may read the branch under its node (`branch:read`) or reach up to three sites
+ * (`network:<host>`), never both: a plugin that can read other people's text can't send
+ * anything out, and one that reaches a site only ever sends what's typed into its node.
+ */
+export type PluginPermission = 'node:own' | 'branch:read' | `network:${string}`;
+
+export const PLUGIN_POWER_LIMITS = { networkHosts: 3 } as const;
+
+const NETWORK_PREFIX = 'network:';
+
+// Names that never resolve to a public site (or name the visitor's own network).
+const PRIVATE_HOST_SUFFIXES = [
+	'localhost',
+	'local',
+	'localdomain',
+	'internal',
+	'intranet',
+	'lan',
+	'home',
+	'corp',
+	'private',
+	'test',
+	'example',
+	'invalid',
+	'arpa',
+	'onion',
+];
+// Lowercase DNS labels with a letter-led top-level label, so IP addresses don't match.
+const HOST_PATTERN =
+	/^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]$/;
+
+/** Why `host` can't be a plugin's network host, or null when it can. */
+export function networkHostProblem(host: string): string | null {
+	if (!HOST_PATTERN.test(host)) {
+		return `"${host}" isn't a public host name (lowercase, like api.github.com; no IP addresses or ports)`;
+	}
+	const last = host.slice(host.lastIndexOf('.') + 1);
+	if (PRIVATE_HOST_SUFFIXES.includes(last)) {
+		return `"${host}" is a private or reserved name`;
+	}
+	return null;
+}
+
+/** The host of a `network:<host>` power, or null for other powers. */
+export function networkHostOf(permission: string): string | null {
+	return permission.startsWith(NETWORK_PREFIX)
+		? permission.slice(NETWORK_PREFIX.length)
+		: null;
+}
+
+/** Every site a plugin may reach, from its powers. */
+export function networkHostsOf(permissions: readonly string[]): string[] {
+	return permissions.flatMap((permission) => {
+		const host = networkHostOf(permission);
+		return host ? [host] : [];
+	});
+}
+
+const permissionSchema = z
+	.string()
+	.max(270)
+	.superRefine((value, ctx) => {
+		if (value === 'node:own' || value === 'branch:read') return;
+		const host = networkHostOf(value);
+		const problem = host
+			? networkHostProblem(host)
+			: `Unknown power "${value}" (use node:own, branch:read or network:<host>)`;
+		if (problem) ctx.addIssue({ code: 'custom', message: problem });
+	})
+	.transform((value) => value as PluginPermission);
+
+/** Who runs a site a plugin reaches; shown to owners and editors before anything is sent. */
+const networkHostInfoSchema = z.strictObject({
+	/** "GitHub". */
+	operator: z.string().trim().min(1).max(60),
+	/** The operator's privacy policy, an https link. */
+	privacyPolicy: z
+		.string()
+		.max(300)
+		.refine((link) => {
+			try {
+				return new URL(link).protocol === 'https:';
+			} catch {
+				return false;
+			}
+		}, 'privacyPolicy must be an https link'),
+	/** What the plugin sends there, as a plural noun: "issue addresses". */
+	sends: z.string().trim().min(1).max(80),
+});
+export type PluginNetworkHostInfo = z.infer<typeof networkHostInfoSchema>;
 
 /** Built-in `$` triggers and system types a plugin kind can't take over. */
 export const RESERVED_PLUGIN_KINDS = new Set([
@@ -87,6 +176,11 @@ const enumOptionSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,29}$/);
 const fieldBase = {
 	title: z.string().trim().min(1).max(40),
 	description: z.string().trim().max(140).optional(),
+	/**
+	 * `refresh`: only the plugin's refresh fills it (data fetched from a site). It's checked
+	 * like any field but isn't typed in the node editor, and can't be required.
+	 */
+	setBy: z.literal('refresh').optional(),
 };
 
 const columnBase = {
@@ -221,6 +315,20 @@ export const pluginNodeKindSchema = z
 			});
 		}
 		for (const [name, spec] of Object.entries(kind.fields)) {
+			if (spec.setBy === 'refresh' && 'required' in spec && spec.required) {
+				ctx.addIssue({
+					code: 'custom',
+					path: ['fields', name],
+					message: 'A field set by refresh can’t be required',
+				});
+			}
+			if (spec.setBy === 'refresh' && name === kind.labelField) {
+				ctx.addIssue({
+					code: 'custom',
+					path: ['fields', name],
+					message: 'The labelField is typed, so refresh can’t set it',
+				});
+			}
 			if (
 				(spec.type === 'number' || spec.type === 'integer') &&
 				spec.min !== undefined
@@ -290,9 +398,11 @@ export const pluginManifestSchema = z
 		description: z.string().trim().max(140),
 		icon: z.enum(PLUGIN_ICON_KEYS),
 		permissions: z
-			.array(z.enum(PLUGIN_PERMISSIONS))
+			.array(permissionSchema)
 			.min(1)
-			.max(PLUGIN_PERMISSIONS.length),
+			.max(PLUGIN_POWER_LIMITS.networkHosts + 1),
+		/** One entry per `network:<host>` power. */
+		networkHosts: z.record(z.string(), networkHostInfoSchema).optional(),
 		/** Plugin code, relative to the manifest. */
 		main: z
 			.string()
@@ -304,6 +414,36 @@ export const pluginManifestSchema = z
 			.max(PLUGIN_LIMITS.nodeKinds),
 	})
 	.superRefine((manifest, ctx) => {
+		const { permissions } = manifest;
+		const hosts = networkHostsOf(permissions);
+		const issue = (path: Array<string | number>, message: string) =>
+			ctx.addIssue({ code: 'custom', path, message });
+
+		if (new Set(permissions).size !== permissions.length)
+			issue(['permissions'], 'Each power can be listed once');
+		if (!permissions.includes('node:own'))
+			issue(['permissions'], 'Every plugin needs "node:own"');
+		if (hosts.length > PLUGIN_POWER_LIMITS.networkHosts)
+			issue(['permissions'], `Up to ${PLUGIN_POWER_LIMITS.networkHosts} sites`);
+		if (hosts.length > 0 && permissions.includes('branch:read'))
+			issue(
+				['permissions'],
+				'A plugin can reach sites or read the branch, not both'
+			);
+		for (const host of hosts) {
+			if (!manifest.networkHosts?.[host])
+				issue(['networkHosts'], `Say who runs ${host}: networkHosts["${host}"]`);
+		}
+		for (const host of Object.keys(manifest.networkHosts ?? {})) {
+			if (!hosts.includes(host))
+				issue(['networkHosts', host], `${host} isn't in permissions as network:${host}`);
+		}
+		const setByRefresh = manifest.nodeKinds.some((kind) =>
+			Object.values(kind.fields).some((spec) => spec.setBy === 'refresh')
+		);
+		if (setByRefresh && hosts.length === 0)
+			issue(['nodeKinds'], 'Fields set by refresh need a network:<host> power');
+
 		const kinds = manifest.nodeKinds.map((kind) => kind.kind);
 		if (new Set(kinds).size !== kinds.length) {
 			ctx.addIssue({

@@ -353,6 +353,46 @@ function parseListValue(spec: PluginListFieldSpec, span: ListSpan): Coerced<Plug
 }
 
 // ---------------------------------------------------------------------------
+// Fields only refresh fills
+
+const editorKinds = new WeakMap<PluginNodeKind, PluginNodeKind>();
+
+/**
+ * The kind as the node editor sees it: fields with `setBy: "refresh"` (data fetched from
+ * a site) are left out, so they're never typed, suggested or listed in Syntax Help.
+ */
+export function editorKind(kind: PluginNodeKind): PluginNodeKind {
+	if (!Object.values(kind.fields).some((spec) => spec.setBy === 'refresh')) return kind;
+	let typed = editorKinds.get(kind);
+	if (!typed) {
+		typed = {
+			...kind,
+			fields: Object.fromEntries(
+				Object.entries(kind.fields).filter(([, spec]) => spec.setBy !== 'refresh')
+			),
+		};
+		editorKinds.set(kind, typed);
+	}
+	return typed;
+}
+
+/** Typed editor data plus the refresh-only fields the node already had. */
+export function keepRefreshFields(
+	kind: PluginNodeKind,
+	typed: PluginData,
+	existing: Record<string, unknown> | null | undefined
+): PluginData {
+	if (!existing) return typed;
+	const kept: PluginData = { ...typed };
+	for (const [name, spec] of Object.entries(kind.fields)) {
+		if (spec.setBy === 'refresh' && existing[name] !== undefined) {
+			kept[name] = existing[name] as PluginFieldValue;
+		}
+	}
+	return kept;
+}
+
+// ---------------------------------------------------------------------------
 // Parsing editor text
 
 /** Field errors keyed by field, so a repeated field reports only its last value. */
@@ -419,8 +459,9 @@ export function scanPluginFieldTokens(
 
 export function parsePluginFieldInput(
 	text: string,
-	kind: PluginNodeKind
+	fullKind: PluginNodeKind
 ): ParsedPluginFields {
+	const kind = editorKind(fullKind);
 	const data: PluginData = {};
 	const errors: FieldErrors = new Map();
 	const tokens: PluginFieldToken[] = [];
@@ -562,9 +603,10 @@ function looksLikeField(text: string, kind: PluginNodeKind): boolean {
 
 /** Node data back to editor text, so editing a plugin node round-trips. */
 export function serializePluginFieldInput(
-	kind: PluginNodeKind,
+	fullKind: PluginNodeKind,
 	data: PluginData
 ): string {
+	const kind = editorKind(fullKind);
 	const parts: string[] = [];
 	const lists: string[] = [];
 	const label = data[kind.labelField];

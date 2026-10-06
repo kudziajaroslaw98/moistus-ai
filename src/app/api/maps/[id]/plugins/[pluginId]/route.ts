@@ -5,6 +5,7 @@ import {
 	findCatalogPlugin,
 	findCatalogVersion,
 	latestCatalogVersion,
+	powersConfirmed,
 } from '@/lib/plugins/catalog';
 import type { MapPluginRecord } from '@/types/plugins';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
@@ -13,9 +14,19 @@ import { z } from 'zod';
 type MapPluginParams = { id: string; pluginId: string };
 
 const mapIdSchema = z.string().uuid();
+/** The powers the owner saw and approved; required for plugins beyond their own nodes. */
+const permissionsSchema = z.array(z.string().max(270)).max(8).optional();
+const enableBodySchema = z.object({ permissions: permissionsSchema });
 const versionBodySchema = z.object({
 	version: z.string().regex(/^\d+\.\d+\.\d+$/),
+	permissions: permissionsSchema,
 });
+
+const powersNotConfirmed = () =>
+	respondError(
+		'This plugin’s powers changed. Reload the page and review them again.',
+		409
+	);
 
 async function isMapOwner(
 	supabase: SupabaseClient,
@@ -38,10 +49,10 @@ const guestError = (user: User) =>
 
 /** Turn a first-party plugin on for a map, pinned to its latest version. Owner only. */
 export const PUT = withApiValidation<
-	Record<string, never>,
+	z.infer<typeof enableBodySchema>,
 	MapPluginRecord,
 	MapPluginParams
->(z.object({}), async (_req, _body, supabase, user, params) => {
+>(enableBodySchema, async (_req, body, supabase, user, params) => {
 	const guest = guestError(user);
 	if (guest) return guest;
 	const mapId = mapIdSchema.safeParse(params?.id);
@@ -52,7 +63,8 @@ export const PUT = withApiValidation<
 		return respondError('Only the map owner can change plugins.', 403);
 	}
 
-	const { version } = latestCatalogVersion(plugin);
+	const { version, permissions } = latestCatalogVersion(plugin);
+	if (!powersConfirmed(permissions, body.permissions)) return powersNotConfirmed();
 	const updatedAt = new Date().toISOString();
 	const { error } = await supabase.from('map_plugins').upsert(
 		{
@@ -89,9 +101,9 @@ export const PATCH = withApiValidation<
 	const mapId = mapIdSchema.safeParse(params?.id);
 	const pluginId = params?.pluginId ?? '';
 	if (!mapId.success) return respondError('Map not found.', 404);
-	if (!findCatalogVersion(pluginId, body.version)) {
-		return respondError('Unknown plugin version.', 404);
-	}
+	const target = findCatalogVersion(pluginId, body.version);
+	if (!target) return respondError('Unknown plugin version.', 404);
+	if (!powersConfirmed(target.permissions, body.permissions)) return powersNotConfirmed();
 	if (!(await isMapOwner(supabase, mapId.data, user.id))) {
 		return respondError('Only the map owner can change plugins.', 403);
 	}
