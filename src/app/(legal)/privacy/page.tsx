@@ -352,6 +352,12 @@ export default function PrivacyPolicyPage() {
 						it without contacting the site. Viewing a map never makes your
 						browser contact a plugin&apos;s site.
 					</li>
+					<li>
+						If you report a plugin, Shiko&apos;s reviewers see your report and,
+						only if you choose to attach it, the plugin data of the one node you
+						selected. The plugin&apos;s author never sees who reported it or
+						what was attached.
+					</li>
 				</ul>
 				<p>
 					Sites that plugins connect to are not Shiko subprocessors: Shiko
