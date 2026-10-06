@@ -33,7 +33,7 @@ describe('buildPluginBranch', () => {
 					title: 'Launch',
 					tasks: [{ isComplete: true }, { isComplete: false }],
 					assignee: ['ana'],
-					dueDate: '2026-11-12T00:00:00.000Z',
+					dueDate: new Date(2026, 10, 12).toISOString(),
 					tags: ['beta'],
 					priority: 'high',
 				},

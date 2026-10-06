@@ -6,12 +6,14 @@ import {
 	ArrowRight,
 	ArrowUp,
 	BarChart3,
+	BookOpen,
 	Calendar,
 	Check,
 	Columns3,
 	FileText,
 	Flag,
 	Gauge,
+	GitPullRequest,
 	Lightbulb,
 	ListChecks,
 	Minus,
@@ -24,6 +26,7 @@ import {
 	Star,
 	Target,
 	Timer,
+	Users,
 	Wallet,
 	X,
 	type LucideIcon,
@@ -45,6 +48,9 @@ export const PLUGIN_ICONS: Record<PluginIconKey, LucideIcon> = {
 	'file-text': FileText,
 	wallet: Wallet,
 	scale: Scale,
+	git: GitPullRequest,
+	book: BookOpen,
+	users: Users,
 };
 
 /** Icons a plugin can draw inside its node (buttons and `icon` primitives). */

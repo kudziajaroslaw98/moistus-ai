@@ -15,7 +15,7 @@ const faqs = [
 	{
 		question: 'Is my data private?',
 		answer:
-			"Yes. Your maps are private by default. Only you and people you explicitly invite can see them. We don't train AI on your data.",
+			"Yes. Your maps are private by default. Only you and people you explicitly invite can see them. A plugin that connects to another site only does so when someone editing the map adds or refreshes it, and it sends only what's typed into it to the site it names. We don't train AI on your data.",
 	},
 	{
 		question: 'What happens when I hit the free limit?',

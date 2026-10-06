@@ -2,6 +2,7 @@ import {
 	getBranchIndex,
 	getNodeOutlineText,
 } from '@/helpers/collapse/branch-index';
+import { localDateString } from '@/lib/plugins/call-context';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 
@@ -44,11 +45,15 @@ function stringList(value: unknown): string[] {
 		: [];
 }
 
+/**
+ * ^date is stored as the viewer's local midnight in UTC ("^friday" here is
+ * 2026-10-08T22:00:00Z), so the calendar day is read in local time, as typed.
+ */
 function dueDate(value: unknown): string | null {
-	const text = value instanceof Date ? value.toISOString() : value;
-	return typeof text === 'string' && /^\d{4}-\d{2}-\d{2}/.test(text)
-		? text.slice(0, 10)
-		: null;
+	if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+	const date =
+		value instanceof Date ? value : typeof value === 'string' ? new Date(value) : null;
+	return date && !Number.isNaN(date.getTime()) ? localDateString(date) : null;
 }
 
 function fullText(node: AppNode): string {

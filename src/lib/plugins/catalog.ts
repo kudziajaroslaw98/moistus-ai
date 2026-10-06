@@ -103,6 +103,66 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 			},
 		],
 	},
+	{
+		id: 'shiko.branch-progress',
+		versions: [
+			{
+				version: '0.1.0',
+				sha256:
+					'cf50dab9988c70ee342b52501715e64262fe652659204f1fbfd58baef24bb68a',
+				permissions: ['node:own', 'branch:read'],
+				notes: 'Tasks done in the branch under it.',
+			},
+		],
+	},
+	{
+		id: 'shiko.upcoming',
+		versions: [
+			{
+				version: '0.1.0',
+				sha256:
+					'69ae20a678e8ca15c44b55b0cfb663b227ef17df4e62e9df495f6a313bb87b82',
+				permissions: ['node:own', 'branch:read'],
+				notes: "What's due next in the branch under it.",
+			},
+		],
+	},
+	{
+		id: 'shiko.workload',
+		versions: [
+			{
+				version: '0.1.0',
+				sha256:
+					'60237b9b5b22222c0a037e87f9005618be293b02b2e8b9594fe5df0915fa06bb',
+				permissions: ['node:own', 'branch:read'],
+				notes: 'Open tasks per person in the branch under it.',
+			},
+		],
+	},
+	{
+		id: 'shiko.github-issue',
+		versions: [
+			{
+				version: '0.1.0',
+				sha256:
+					'eed8908c9116783af715cc502f805496ca38cb358fe1d25dfd8e85fc2b682109',
+				permissions: ['node:own', 'network:api.github.com'],
+				notes: 'A public issue or pull request: title, state and labels.',
+			},
+		],
+	},
+	{
+		id: 'shiko.wikipedia',
+		versions: [
+			{
+				version: '0.1.0',
+				sha256:
+					'62574bb69ecddcc87f70ca01520ce415a93109dda1f9e04288ef90b22df79319',
+				permissions: ['node:own', 'network:en.wikipedia.org'],
+				notes: "A topic's first paragraph from English Wikipedia.",
+			},
+		],
+	},
 ];
 
 export function findCatalogPlugin(

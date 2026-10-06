@@ -1,0 +1,41 @@
+{
+	"id": "shiko.wikipedia",
+	"name": "Wikipedia summary",
+	"version": "0.1.0",
+	"apiVersion": 1,
+	"author": "Shiko",
+	"description": "The first paragraph about a topic from English Wikipedia, as text.",
+	"icon": "book",
+	"permissions": ["node:own", "network:en.wikipedia.org"],
+	"networkHosts": {
+		"en.wikipedia.org": {
+			"operator": "the Wikimedia Foundation",
+			"privacyPolicy": "https://foundation.wikimedia.org/wiki/Policy:Privacy_policy",
+			"sends": "topics"
+		}
+	},
+	"main": "plugin.js",
+	"nodeKinds": [
+		{
+			"kind": "wiki",
+			"label": "Wikipedia summary",
+			"description": "A topic's first paragraph from Wikipedia",
+			"icon": "book",
+			"labelField": "topic",
+			"fields": {
+				"topic": {
+					"type": "string",
+					"title": "Topic",
+					"description": "A Wikipedia article's name, like Photosynthesis",
+					"required": true,
+					"maxLength": 200
+				},
+				"title": { "type": "string", "title": "Article", "setBy": "refresh", "maxLength": 200 },
+				"summary": { "type": "string", "title": "Summary", "setBy": "refresh", "maxLength": 500 },
+				"ambiguous": { "type": "boolean", "title": "Several meanings", "setBy": "refresh" },
+				"error": { "type": "string", "title": "Problem", "setBy": "refresh", "maxLength": 200 }
+			},
+			"examples": ["Photosynthesis", "Ada Lovelace"]
+		}
+	]
+}

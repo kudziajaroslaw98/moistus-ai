@@ -19,6 +19,9 @@ export const PLUGIN_ICON_KEYS = [
 	'file-text',
 	'wallet',
 	'scale',
+	'git',
+	'book',
+	'users',
 ] as const;
 export type PluginIconKey = (typeof PLUGIN_ICON_KEYS)[number];
 

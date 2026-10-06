@@ -1,0 +1,53 @@
+{
+	"id": "shiko.github-issue",
+	"name": "GitHub issue",
+	"version": "0.1.0",
+	"apiVersion": 1,
+	"author": "Shiko",
+	"description": "Shows a public issue or pull request: title, state and labels.",
+	"icon": "git",
+	"permissions": ["node:own", "network:api.github.com"],
+	"networkHosts": {
+		"api.github.com": {
+			"operator": "GitHub",
+			"privacyPolicy": "https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement",
+			"sends": "issue addresses"
+		}
+	},
+	"main": "plugin.js",
+	"nodeKinds": [
+		{
+			"kind": "github",
+			"label": "GitHub issue",
+			"description": "A public issue or pull request",
+			"icon": "git",
+			"labelField": "issue",
+			"fields": {
+				"issue": {
+					"type": "string",
+					"title": "Issue",
+					"description": "owner/repo#123, or the issue's github.com link",
+					"required": true,
+					"maxLength": 200
+				},
+				"title": { "type": "string", "title": "Title", "setBy": "refresh", "maxLength": 200 },
+				"state": {
+					"type": "enum",
+					"title": "State",
+					"options": ["open", "closed", "merged"],
+					"setBy": "refresh"
+				},
+				"pull": { "type": "boolean", "title": "Pull request", "setBy": "refresh" },
+				"labels": {
+					"type": "list",
+					"title": "Labels",
+					"setBy": "refresh",
+					"maxItems": 8,
+					"columns": [{ "name": "name", "type": "string", "title": "Label", "required": true, "maxLength": 50 }]
+				},
+				"error": { "type": "string", "title": "Problem", "setBy": "refresh", "maxLength": 200 }
+			},
+			"examples": ["vercel/next.js#1", "https://github.com/nodejs/node/issues/1"]
+		}
+	]
+}
