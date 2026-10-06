@@ -1,12 +1,16 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import {
 	compareVersions,
 	findCatalogPlugin,
-	findCatalogVersion,
-	latestCatalogVersion,
 	powersConfirmed,
+	type PluginCatalogVersion,
 } from '@/lib/plugins/catalog';
+import {
+	pluginDisabledReason,
+	publishedCommunityVersions,
+} from '@/lib/plugins/server/plugin-library';
 import type { MapPluginRecord } from '@/types/plugins';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { z } from 'zod';
@@ -42,12 +46,25 @@ async function isMapOwner(
 	return Boolean(data);
 }
 
+/** A plugin's reviewed versions, oldest first: Shiko's from the app, others from the library. */
+async function reviewedVersions(
+	admin: SupabaseClient,
+	pluginId: string
+): Promise<PluginCatalogVersion[]> {
+	const firstParty = findCatalogPlugin(pluginId);
+	if (firstParty) return [...firstParty.versions];
+	return publishedCommunityVersions(admin, pluginId);
+}
+
+const turnedOff = (reason: string) =>
+	respondError(`Shiko turned this plugin off: ${reason}`, 409);
+
 const guestError = (user: User) =>
 	user.is_anonymous
 		? respondError('Create an account to use plugins.', 403, 'Anonymous user')
 		: null;
 
-/** Turn a first-party plugin on for a map, pinned to its latest version. Owner only. */
+/** Turn a reviewed plugin on for a map, pinned to its latest version. Owner only. */
 export const PUT = withApiValidation<
 	z.infer<typeof enableBodySchema>,
 	MapPluginRecord,
@@ -56,20 +73,24 @@ export const PUT = withApiValidation<
 	const guest = guestError(user);
 	if (guest) return guest;
 	const mapId = mapIdSchema.safeParse(params?.id);
-	const plugin = findCatalogPlugin(params?.pluginId ?? '');
+	const pluginId = params?.pluginId ?? '';
 	if (!mapId.success) return respondError('Map not found.', 404);
-	if (!plugin) return respondError('Unknown plugin.', 404);
+	const admin = createServiceRoleClient();
+	const versions = await reviewedVersions(admin, pluginId);
+	if (versions.length === 0) return respondError('Unknown plugin.', 404);
 	if (!(await isMapOwner(supabase, mapId.data, user.id))) {
 		return respondError('Only the map owner can change plugins.', 403);
 	}
 
-	const { version, permissions } = latestCatalogVersion(plugin);
+	const { version, permissions } = versions[versions.length - 1];
 	if (!powersConfirmed(permissions, body.permissions)) return powersNotConfirmed();
+	const offReason = await pluginDisabledReason(admin, pluginId, version);
+	if (offReason) return turnedOff(offReason);
 	const updatedAt = new Date().toISOString();
 	const { error } = await supabase.from('map_plugins').upsert(
 		{
 			map_id: mapId.data,
-			plugin_id: plugin.id,
+			plugin_id: pluginId,
 			version,
 			previous_version: null,
 			updated_at: updatedAt,
@@ -80,7 +101,7 @@ export const PUT = withApiValidation<
 	if (error)
 		return respondError('Failed to turn the plugin on.', 500, error.message);
 	return respondSuccess({
-		pluginId: plugin.id,
+		pluginId,
 		version,
 		previousVersion: null,
 		updatedAt,
@@ -101,9 +122,14 @@ export const PATCH = withApiValidation<
 	const mapId = mapIdSchema.safeParse(params?.id);
 	const pluginId = params?.pluginId ?? '';
 	if (!mapId.success) return respondError('Map not found.', 404);
-	const target = findCatalogVersion(pluginId, body.version);
+	const admin = createServiceRoleClient();
+	const target = (await reviewedVersions(admin, pluginId)).find(
+		(candidate) => candidate.version === body.version
+	);
 	if (!target) return respondError('Unknown plugin version.', 404);
 	if (!powersConfirmed(target.permissions, body.permissions)) return powersNotConfirmed();
+	const offReason = await pluginDisabledReason(admin, pluginId, target.version);
+	if (offReason) return turnedOff(offReason);
 	if (!(await isMapOwner(supabase, mapId.data, user.id))) {
 		return respondError('Only the map owner can change plugins.', 403);
 	}

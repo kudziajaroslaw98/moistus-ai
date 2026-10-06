@@ -34,6 +34,24 @@ export function describePermission(permission: PluginPermission): string {
 	return `reaches ${networkHostOf(permission)}`;
 }
 
+/**
+ * Whether the plugin's author receives what's sent: " The plugin's author doesn't receive
+ * it." for reviewed plugins, or who runs which site when the reviewer marked the author's
+ * own hosts. Empty for developer plugins (the author is the person loading it).
+ */
+export function authorReceivesNote(
+	sites: readonly PluginSite[],
+	reviewed: boolean,
+	authorHosts: readonly string[] = [],
+	pronoun: 'it' | 'them' = 'it'
+): string {
+	if (!reviewed) return '';
+	const own = sites.filter((site) => authorHosts.includes(site.host));
+	return own.length === 0
+		? ` The plugin’s author doesn’t receive ${pronoun}.`
+		: ` The plugin’s author runs ${listHosts(own)}, so they receive what goes there.`;
+}
+
 /** "api.github.com" or "api.github.com and en.wikipedia.org". */
 export function listHosts(sites: readonly PluginSite[]): string {
 	const hosts = sites.map((site) => site.host);

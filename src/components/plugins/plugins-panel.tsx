@@ -8,7 +8,7 @@ import { useIsMac } from '@/hooks/use-platform';
 import { useTouchFirst } from '@/hooks/use-touch-first';
 import {
 	availableCatalogUpdate,
-	FIRST_PARTY_PLUGINS,
+	disabledReason,
 	latestCatalogVersion,
 	type PluginCatalogEntry,
 } from '@/lib/plugins/catalog';
@@ -18,7 +18,7 @@ import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import type { NodeExtensionData } from '@/types/extensions';
 import type { LoadedPlugin, MapPluginRecord } from '@/types/plugins';
-import { ArrowUpRight, Loader2, Lock, RefreshCw, X } from 'lucide-react';
+import { ArrowUpRight, Ban, Loader2, Lock, RefreshCw, X } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
 import { Fragment, useMemo, useState } from 'react';
@@ -30,6 +30,7 @@ import {
 } from './plugin-powers';
 import { PluginVersionControls } from './plugin-version-controls';
 import { useCatalogManifests } from './use-catalog-manifests';
+import { usePluginLibrary } from './use-plugin-library';
 
 const UPDATE_LATER_KEY = 'shiko_plugin_update_later_v1';
 
@@ -148,6 +149,8 @@ interface PluginCardProps {
 	isConfirmingOff: boolean;
 	/** Waiting for the owner's yes to a plugin with powers. */
 	isConfirmingOn: boolean;
+	/** Why Shiko turned it off everywhere (the owner can turn it off, not on). */
+	offReason: string | null;
 	onToggle: (enabled: boolean) => void;
 	onConfirmOff: () => void;
 	onKeepOn: () => void;
@@ -172,6 +175,7 @@ function PluginCard({
 	nodeCount,
 	isConfirmingOff,
 	isConfirmingOn,
+	offReason,
 	onToggle,
 	onConfirmOff,
 	onKeepOn,
@@ -238,7 +242,7 @@ function PluginCard({
 					<label className='mt-0.5 shrink-0 cursor-pointer' htmlFor={switchId}>
 						<Switch
 							checked={isEnabled || isConfirmingOn}
-							disabled={!manifest}
+							disabled={!manifest || (Boolean(offReason) && !isEnabled)}
 							id={switchId}
 							onCheckedChange={onToggle}
 						/>
@@ -247,6 +251,17 @@ function PluginCard({
 			</div>
 
 			{manifest && <PluginPowersLine manifest={manifest} />}
+
+			{offReason && (
+				<p
+					className='flex items-start gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1.5 text-xs leading-4 text-red-300'
+					role='status'
+				>
+					<Ban aria-hidden className='mt-px size-3.5 shrink-0' />
+
+					{`Turned off by Shiko: ${offReason}`}
+				</p>
+			)}
 
 			{isEnabled && loaded?.status === 'error' && (
 				<p className='text-xs text-error-500' role='alert'>
@@ -275,6 +290,7 @@ function PluginCard({
 				{isConfirmingOn && manifest && (
 					<PluginPowersConfirm
 						fromCatalog
+						authorHosts={latestCatalogVersion(entry).authorHosts}
 						key='confirm-on'
 						manifest={manifest}
 						onCancel={onCancelOn}
@@ -507,7 +523,8 @@ export function PluginsPanel() {
 			};
 		})
 	);
-	const manifests = useCatalogManifests(FIRST_PARTY_PLUGINS, isOpen);
+	const library = usePluginLibrary(isOpen);
+	const manifests = useCatalogManifests(library.plugins, isOpen);
 	const [busyPluginId, setBusyPluginId] = useState<string | null>(null);
 	const [confirmingOff, setConfirmingOff] = useState<string | null>(null);
 	const [confirmingOn, setConfirmingOn] = useState<string | null>(null);
@@ -584,9 +601,45 @@ export function PluginsPanel() {
 	};
 
 	// Only the owner can change plugins, so others only see the ones that are on.
-	const entries = isOwner
-		? FIRST_PARTY_PLUGINS
-		: FIRST_PARTY_PLUGINS.filter((entry) => isEnabled(entry.id));
+	const visible = isOwner
+		? library.plugins
+		: library.plugins.filter((entry) => isEnabled(entry.id));
+	const entries = visible.filter((entry) => entry.source !== 'community');
+	const libraryEntries = visible.filter((entry) => entry.source === 'community');
+
+	const offReasonFor = (entry: PluginCatalogEntry) =>
+		disabledReason(
+			entry.id,
+			recordFor(entry.id)?.version ?? latestCatalogVersion(entry).version
+		);
+
+	const renderCard = (entry: PluginCatalogEntry) => (
+		<PluginCard
+			canEdit={canEdit}
+			entry={entry}
+			extensions={extensionsFor(entry.id)}
+			isBusy={busyPluginId === entry.id}
+			isConfirmingOff={confirmingOff === entry.id}
+			isConfirmingOn={confirmingOn === entry.id}
+			isEnabled={isEnabled(entry.id)}
+			isOwner={isOwner}
+			isUpdateDismissed={isUpdateDismissed(entry.id)}
+			key={entry.id}
+			loaded={loadedPlugins[entry.id]}
+			manifest={manifests[entry.id]}
+			nodeCount={nodeCountFor(entry.id)}
+			offReason={offReasonFor(entry)}
+			record={recordFor(entry.id)}
+			onCancelOn={() => setConfirmingOn(null)}
+			onConfirmOff={() => void setEnabled(entry.id, false)}
+			onConfirmOn={() => void setEnabled(entry.id, true)}
+			onKeepOn={() => setConfirmingOff(null)}
+			onToggle={(checked) => requestToggle(entry.id, checked)}
+			onUpdateLater={(version) => setLater(entry.id, version)}
+			onUpdateReview={() => setLater(entry.id, null)}
+			onChangeVersion={(version) => setMapPluginVersion(entry.id, version)}
+		/>
+	);
 
 	return (
 		<SidePanel
@@ -626,41 +679,26 @@ export function PluginsPanel() {
 						}
 					/>
 
-					{entries.length === 0 ? (
+					{entries.length === 0 && libraryEntries.length === 0 ? (
 						<p className='text-sm text-text-secondary'>
 							No plugins on this map.
 						</p>
 					) : (
-						entries.map((entry) => (
-							<PluginCard
-								canEdit={canEdit}
-								entry={entry}
-								extensions={extensionsFor(entry.id)}
-								isBusy={busyPluginId === entry.id}
-								isConfirmingOff={confirmingOff === entry.id}
-								isConfirmingOn={confirmingOn === entry.id}
-								isEnabled={isEnabled(entry.id)}
-								isOwner={isOwner}
-								isUpdateDismissed={isUpdateDismissed(entry.id)}
-								key={entry.id}
-								loaded={loadedPlugins[entry.id]}
-								manifest={manifests[entry.id]}
-								nodeCount={nodeCountFor(entry.id)}
-								record={recordFor(entry.id)}
-								onConfirmOff={() => void setEnabled(entry.id, false)}
-								onKeepOn={() => setConfirmingOff(null)}
-								onCancelOn={() => setConfirmingOn(null)}
-								onConfirmOn={() => void setEnabled(entry.id, true)}
-								onToggle={(checked) => requestToggle(entry.id, checked)}
-								onUpdateLater={(version) => setLater(entry.id, version)}
-								onUpdateReview={() => setLater(entry.id, null)}
-								onChangeVersion={(version) =>
-									setMapPluginVersion(entry.id, version)
-								}
-							/>
-						))
+						entries.map(renderCard)
 					)}
 				</section>
+
+				{libraryEntries.length > 0 && (
+					<section aria-label='Library' className='flex flex-col gap-3'>
+						<GroupHeader count={libraryEntries.length} label='Library' />
+
+						<p className='text-xs leading-[17px] text-text-secondary'>
+							Made by other people and reviewed by Shiko before they&apos;re listed.
+						</p>
+
+						{libraryEntries.map(renderCard)}
+					</section>
+				)}
 
 				{!isOwner && (
 					<p className='flex items-center gap-2 text-xs text-text-secondary'>

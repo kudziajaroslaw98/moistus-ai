@@ -1,6 +1,7 @@
 'use client';
 
-import { pluginPowers } from '@/lib/plugins/powers';
+import { findCatalogVersion } from '@/lib/plugins/catalog';
+import { authorReceivesNote, pluginPowers } from '@/lib/plugins/powers';
 import useAppStore from '@/store/mind-map-store';
 import type { ActivePluginKind } from '@/types/plugins';
 import { cn } from '@/utils/cn';
@@ -98,9 +99,14 @@ export function PluginRefreshBar({
 									sites={sites}
 								/>
 
-								{active?.source === 'catalog'
-									? ' The plugin’s author doesn’t receive it.'
-									: ''}
+								{authorReceivesNote(
+									sites,
+									active?.source === 'catalog',
+									active
+										? findCatalogVersion(active.manifest.id, active.manifest.version)
+												?.authorHosts
+										: undefined
+								)}
 
 								{' Everyone else sees the result.'}
 							</span>

@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto';
 import { applyGraphOps } from '@/lib/extensions/graph-ops';
+import { setPluginLibrary } from '@/lib/plugins/catalog';
 import { pluginManifestSchema } from '@/lib/plugins/manifest-schema';
 import { fetchPluginJson } from '@/lib/plugins/network';
 import { issueManifest } from '@/lib/plugins/runtime/test-network-plugin';
@@ -116,8 +118,21 @@ const settled = (store: ReturnType<typeof createStore>) => () =>
 		(plugin) => plugin.status !== 'loading'
 	);
 
+/** `map_plugins` rows for one plugin, as the slice reads them. */
+function libraryMapPlugins(pluginId: string) {
+	return {
+		from: jest.fn(() => ({
+			select: () => ({
+				eq: () => Promise.resolve({ data: [{ plugin_id: pluginId, version: '0.1.0' }], error: null }),
+			}),
+		})),
+	};
+}
+
 beforeEach(() => {
 	jest.clearAllMocks();
+	// The library is shared module state: start every test with only Shiko's plugins.
+	setPluginLibrary({ plugins: [], disabled: [] });
 	mockHost.load.mockResolvedValue(['metric']);
 	window.localStorage.clear();
 	mockFetch({
@@ -414,7 +429,56 @@ describe('plugins slice', () => {
 			status: 'error',
 			error: 'This map uses a version of the plugin this app doesn’t have',
 		});
-		expect(global.fetch).not.toHaveBeenCalled();
+		const urls = jest.mocked(global.fetch).mock.calls.map(([url]) => String(url));
+		expect(urls.filter((url) => url.includes('shiko.metric'))).toEqual([]);
+	});
+
+	it('stops a plugin Shiko turned off everywhere and says why', async () => {
+		setPluginLibrary({
+			plugins: [],
+			disabled: [{ pluginId: 'shiko.metric', version: null, reason: 'Reported for ads' }],
+		});
+		const store = createStore();
+
+		await store.getState().fetchMapPlugins('map-1');
+
+		expect(store.getState().loadedPlugins['shiko.metric']).toMatchObject({
+			status: 'error',
+			disabledReason: 'Reported for ads',
+			error: 'Turned off by Shiko: Reported for ads',
+		});
+		expect(mockHost.load).not.toHaveBeenCalled();
+	});
+
+	it('loads a published library plugin from its served files and checks its fingerprint', async () => {
+		const sha256 = createHash('sha256').update(metricCode).digest('hex');
+		const libraryManifest = JSON.stringify({
+			...JSON.parse(manifestJson),
+			id: 'dev.ana.metric',
+			version: '0.1.0',
+		});
+		setPluginLibrary({
+			plugins: [
+				{
+					id: 'dev.ana.metric',
+					author: 'Ana',
+					versions: [{ version: '0.1.0', sha256, permissions: ['node:own'], notes: 'Counts' }],
+				},
+			],
+			disabled: [],
+		});
+		mockFetch({
+			'/api/plugins/files/dev.ana.metric/0.1.0/manifest.json': libraryManifest,
+			'/api/plugins/files/dev.ana.metric/0.1.0/plugin.js': metricCode,
+		});
+		const store = createStore();
+		store.setState({ supabase: libraryMapPlugins('dev.ana.metric') } as never);
+
+		await store.getState().fetchMapPlugins('map-1');
+		await waitUntil(settled(store));
+
+		expect(store.getState().loadedPlugins['dev.ana.metric']).toMatchObject({ status: 'ready' });
+		expect(mockHost.load).toHaveBeenCalledWith('dev.ana.metric', metricCode);
 	});
 
 	it('opens the Plugins panel and closes the other right-hand panels', () => {

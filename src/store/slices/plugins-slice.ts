@@ -3,6 +3,7 @@ import { findActivePluginKind } from '@/lib/plugins/active-plugins';
 import { pluginCallContext } from '@/lib/plugins/call-context';
 import {
 	catalogManifestUrl,
+	disabledReason,
 	findCatalogVersion,
 	isLocalDevPluginUrl,
 	mapPluginRequest,
@@ -15,6 +16,7 @@ import {
 	type PluginManifest,
 } from '@/lib/plugins/manifest-schema';
 import { blockedPluginHosts, fetchPluginJson } from '@/lib/plugins/network';
+import { refreshPluginLibrary } from '@/lib/plugins/plugin-library-client';
 import { validatePluginData } from '@/lib/plugins/plugin-fields';
 import { sha256Hex } from '@/lib/plugins/code-fingerprint';
 import { MAX_PLUGIN_CODE_BYTES } from '@/lib/plugins/limits';
@@ -296,7 +298,10 @@ export const createPluginsSlice: StateCreator<
 				catalogVersion?: PluginCatalogVersion;
 			}
 		>();
+		const turnedOff = new Map<string, string>();
 		for (const record of records) {
+			const reason = disabledReason(record.pluginId, record.version);
+			if (reason) turnedOff.set(record.pluginId, reason);
 			wanted.set(record.pluginId, {
 				source: 'catalog',
 				manifestUrl: catalogManifestUrl(record.pluginId, record.version),
@@ -307,9 +312,33 @@ export const createPluginsSlice: StateCreator<
 			wanted.set(url, { source: 'dev', manifestUrl: url });
 
 		for (const [key, loaded] of Object.entries(get().loadedPlugins)) {
-			if (wanted.get(key)?.manifestUrl !== loaded.manifestUrl) unloadKey(key);
+			const stillWanted = wanted.get(key)?.manifestUrl === loaded.manifestUrl;
+			// Code Shiko turned off stops running at once; its nodes show their saved view.
+			const nowOff = turnedOff.has(key) && loaded.disabledReason === undefined;
+			if (!stillWanted || nowOff) unloadKey(key);
 		}
 		for (const [key, target] of wanted) {
+			const reason = turnedOff.get(key);
+			if (reason) {
+				if (get().loadedPlugins[key]?.disabledReason === reason) continue;
+				set((state) => ({
+					loadedPlugins: {
+						...state.loadedPlugins,
+						[key]: {
+							key,
+							source: 'catalog',
+							manifestUrl: target.manifestUrl,
+							status: 'error',
+							manifest: null,
+							error: `Turned off by Shiko: ${reason}`,
+							generation: 0,
+							disabledReason: reason,
+						},
+					},
+				}));
+				continue;
+			}
+			if (get().loadedPlugins[key]?.disabledReason !== undefined) unloadKey(key);
 			if (get().loadedPlugins[key]) continue;
 			if (target.source === 'catalog' && !target.catalogVersion) {
 				// Pinned to a version this app doesn't know (e.g. an older deploy).
@@ -356,11 +385,15 @@ export const createPluginsSlice: StateCreator<
 		devPluginUrls: [],
 		pluginRefreshes: {},
 
-		fetchMapPlugins: async (mapId) => {
-			const { data, error } = await get()
-				.supabase.from('map_plugins')
-				.select('plugin_id, version, previous_version, updated_at')
-				.eq('map_id', mapId);
+		fetchMapPlugins: async (mapId, options) => {
+			// Library plugins and turn-offs come from the server; Shiko's ship with the app.
+			const [{ data, error }] = await Promise.all([
+				get()
+					.supabase.from('map_plugins')
+					.select('plugin_id, version, previous_version, updated_at')
+					.eq('map_id', mapId),
+				refreshPluginLibrary({ force: options?.forceLibrary }),
+			]);
 			if (get().mapId !== mapId) return;
 			if (error) {
 				// Offline or a transient failure: nodes keep showing their saved view.
@@ -383,7 +416,7 @@ export const createPluginsSlice: StateCreator<
 			const mapId = get().mapId;
 			if (!mapId || Date.now() - lastRefreshAt < REFRESH_INTERVAL_MS) return;
 			lastRefreshAt = Date.now();
-			void get().fetchMapPlugins(mapId);
+			void get().fetchMapPlugins(mapId, { forceLibrary: true });
 		},
 
 		setMapPluginEnabled: async (pluginId, enabled) => {

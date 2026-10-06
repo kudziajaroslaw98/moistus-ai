@@ -38,6 +38,8 @@ export interface LoadedPlugin {
 	generation: number;
 	/** Kinds whose code defines `actions.refresh` (set once loaded). */
 	refreshKinds?: string[];
+	/** Set (with status 'error') when Shiko turned this plugin off everywhere. */
+	disabledReason?: string;
 }
 
 export interface ActivePluginKind {
@@ -64,7 +66,10 @@ export interface PluginsSlice {
 	loadedPlugins: Record<string, LoadedPlugin>;
 	/** Developer plugin manifest URLs for this map, stored in this browser only. */
 	devPluginUrls: string[];
-	fetchMapPlugins: (mapId: string) => Promise<void>;
+	fetchMapPlugins: (
+		mapId: string,
+		options?: { forceLibrary?: boolean }
+	) => Promise<void>;
 	/** Re-reads the map's plugins at most every few seconds (a collaborator may have changed them). */
 	refreshMapPluginsSoon: () => void;
 	setMapPluginEnabled: (pluginId: string, enabled: boolean) => Promise<boolean>;

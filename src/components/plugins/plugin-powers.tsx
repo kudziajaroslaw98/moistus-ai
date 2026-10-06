@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import type { PluginManifest } from '@/lib/plugins/manifest-schema';
-import { listHosts, pluginPowers } from '@/lib/plugins/powers';
+import { authorReceivesNote, listHosts, pluginPowers } from '@/lib/plugins/powers';
 import { Globe, ListTree, ShieldCheck } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import { PluginSiteName, PluginSitesSentence } from './plugin-site-note';
@@ -80,6 +80,8 @@ interface PluginPowersConfirmProps {
 	manifest: PluginManifest;
 	/** The plugin's own author isn't Shiko's reviewer: say they don't receive the data. */
 	fromCatalog: boolean;
+	/** Hosts the reviewer confirmed the author runs (they do receive what's sent). */
+	authorHosts?: readonly string[];
 	onCancel: () => void;
 	onConfirm: () => void;
 }
@@ -91,6 +93,7 @@ interface PluginPowersConfirmProps {
 export function PluginPowersConfirm({
 	manifest,
 	fromCatalog,
+	authorHosts,
 	onCancel,
 	onConfirm,
 }: PluginPowersConfirmProps) {
@@ -125,11 +128,9 @@ export function PluginPowersConfirm({
 							sites={powers.sites}
 						/>
 
-						{fromCatalog ? ' The plugin’s author doesn’t receive them,' : ''}
+						{authorReceivesNote(powers.sites, fromCatalog, authorHosts, 'them')}
 
-						{fromCatalog ? ' and it' : ' It'}
-
-						{' can’t read the rest of the map.'}
+						{' It can’t read the rest of the map.'}
 					</p>
 
 					<p className='text-xs leading-[17px] text-text-secondary'>

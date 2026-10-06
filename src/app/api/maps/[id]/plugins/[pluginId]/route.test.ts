@@ -7,14 +7,51 @@ jest.mock('next/server', () => ({
 	},
 }));
 
-jest.mock('@/helpers/supabase/server', () => ({ createClient: jest.fn() }));
+jest.mock('@/helpers/supabase/server', () => ({
+	createClient: jest.fn(),
+	createServiceRoleClient: jest.fn(),
+}));
 
-import { createClient } from '@/helpers/supabase/server';
+import { createClient, createServiceRoleClient } from '@/helpers/supabase/server';
 import { DELETE, PATCH, PUT } from './route';
 
 type Result = { data?: unknown; error?: unknown };
 
 /** Chainable stand-in for the Supabase query builder; results are queued per table. */
+function fakeClient(responses: Record<string, Result[]>) {
+	const calls: Array<{ table: string; ops: Array<[string, unknown[]]> }> = [];
+	const from = jest.fn((table: string) => {
+		const call = { table, ops: [] as Array<[string, unknown[]]> };
+		calls.push(call);
+		const next = () => responses[table]?.shift() ?? { data: null, error: null };
+		const builder: Record<string, unknown> = new Proxy(
+			{},
+			{
+				get(_target, prop) {
+					if (prop === 'then') {
+						const result = next();
+						return (resolve: (value: Result) => void) => resolve(result);
+					}
+					if (prop === 'maybeSingle') return () => Promise.resolve(next());
+					return (...args: unknown[]) => {
+						call.ops.push([String(prop), args]);
+						return builder;
+					};
+				},
+			}
+		);
+		return builder;
+	});
+	return { from, calls };
+}
+
+/** The library tables, read with the service role (nothing is turned off by default). */
+function libraryClient(responses: Record<string, Result[]> = {}) {
+	const client = fakeClient(responses);
+	jest.mocked(createServiceRoleClient).mockReturnValue({ from: client.from } as never);
+	return client;
+}
+
 function sessionClient(
 	responses: Record<string, Result[]>,
 	user: object = USER
@@ -62,7 +99,10 @@ const params = (pluginId: string, id = MAP_ID) => ({
 	params: Promise.resolve({ id, pluginId }),
 });
 
-beforeEach(() => jest.clearAllMocks());
+beforeEach(() => {
+	jest.clearAllMocks();
+	libraryClient();
+});
 
 describe('PUT /api/maps/[id]/plugins/[pluginId]', () => {
 	it('turns a catalog plugin on, pinned to its latest version', async () => {
@@ -105,6 +145,38 @@ describe('PUT /api/maps/[id]/plugins/[pluginId]', () => {
 
 		expect(response.status).toBe(404);
 		expect(client.from).not.toHaveBeenCalled();
+	});
+
+	it('refuses a plugin Shiko turned off everywhere', async () => {
+		sessionClient({ mind_maps: [{ data: { id: MAP_ID } }] });
+		libraryClient({
+			plugins: [{ data: { disabled_at: '2026-10-06T00:00:00Z', disabled_reason: 'Reported for ads' } }],
+		});
+
+		const response = await PUT(request('PUT'), params('shiko.metric'));
+
+		expect(response.status).toBe(409);
+		expect((await response.json()).error).toBe('Shiko turned this plugin off: Reported for ads');
+	});
+
+	it('turns on a published library plugin at its latest version', async () => {
+		const client = sessionClient({ mind_maps: [{ data: { id: MAP_ID } }], map_plugins: [{}] });
+		const version = (v: string) => ({
+			plugin_id: 'dev.ana.counter',
+			version: v,
+			status: 'published',
+			code_sha256: 'a'.repeat(64),
+			permissions: ['node:own'],
+			author_hosts: [],
+			notes: 'Counts',
+		});
+		libraryClient({ plugin_versions: [{ data: [version('0.2.0'), version('0.1.0')] }] });
+
+		const response = await PUT(request('PUT', {}), params('dev.ana.counter'));
+
+		expect(response.status).toBe(200);
+		expect((await response.json()).data).toMatchObject({ pluginId: 'dev.ana.counter', version: '0.2.0' });
+		expect(client.calls.some((call) => call.table === 'map_plugins')).toBe(true);
 	});
 
 	it('only lets the owner change plugins', async () => {

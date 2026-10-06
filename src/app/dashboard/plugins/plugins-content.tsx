@@ -9,6 +9,7 @@ import {
 } from '@/components/plugins/plugin-powers';
 import { PluginUpdateDetails } from '@/components/plugins/plugin-update-details';
 import { useCatalogManifests } from '@/components/plugins/use-catalog-manifests';
+import { usePluginLibrary } from '@/components/plugins/use-plugin-library';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
 	Popover,
@@ -19,7 +20,9 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
 	compareVersions,
-	FIRST_PARTY_PLUGINS,
+	disabledReason,
+	findCatalogPlugin,
+	findCatalogVersion,
 	latestCatalogVersion,
 	mapPluginRequest,
 	type PluginCatalogEntry,
@@ -29,6 +32,7 @@ import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
 import { cn } from '@/utils/cn';
 import {
 	ArrowRight,
+	Ban,
 	Check,
 	ChevronDown,
 	Code2,
@@ -74,6 +78,8 @@ interface MapPickerProps {
 	pluginId: string;
 	/** Plugins with powers ask before they're turned on for a map. */
 	manifest: PluginManifest | null | undefined;
+	/** Turned off by Shiko: maps can turn it off but not on. */
+	offReason: string | null;
 	maps: PluginMapSummary[] | undefined;
 	isLoading: boolean;
 	busyMapIds: string[];
@@ -85,6 +91,7 @@ function MapPicker({
 	name,
 	pluginId,
 	manifest,
+	offReason,
 	maps,
 	isLoading,
 	busyMapIds,
@@ -136,7 +143,7 @@ function MapPicker({
 									<button
 										aria-checked={isOn}
 										className='flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-sm text-text-primary transition-colors duration-200 ease hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 disabled:cursor-wait'
-										disabled={isBusy}
+										disabled={isBusy || (Boolean(offReason) && !isOn)}
 										role='checkbox'
 										type='button'
 										onClick={() =>
@@ -187,6 +194,9 @@ function MapPicker({
 							fromCatalog
 							manifest={manifest}
 							onCancel={() => setPendingMap(null)}
+							authorHosts={
+								findCatalogVersion(pluginId, manifest.version)?.authorHosts
+							}
 							onConfirm={() => {
 								onToggle(pendingMap, true);
 								setPendingMap(null);
@@ -261,9 +271,10 @@ interface PluginCardProps {
 	children: ReactNode;
 	/** "Update available" box, under the description. */
 	update?: ReactNode;
+	offReason?: string | null;
 }
 
-function PluginCard({ entry, manifest, index, children, update }: PluginCardProps) {
+function PluginCard({ entry, manifest, index, children, update, offReason }: PluginCardProps) {
 	const shouldReduceMotion = useReducedMotion();
 	const Icon = manifest ? PLUGIN_ICONS[manifest.icon] : null;
 
@@ -324,13 +335,27 @@ function PluginCard({ entry, manifest, index, children, update }: PluginCardProp
 			{update}
 
 			{manifest && <PluginPowersLine manifest={manifest} />}
+
+			{offReason && (
+				<p
+					className='flex items-start gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1.5 text-xs leading-4 text-red-300'
+					role='status'
+				>
+					<Ban aria-hidden className='mt-px size-3.5 shrink-0' />
+
+					{`Turned off by Shiko: ${offReason}`}
+				</p>
+			)}
 		</motion.article>
 	);
 }
 
 /** Dashboard Plugins page: Shiko plugins, which of your maps use them, and how to build one. */
 export function PluginsContent() {
-	const manifests = useCatalogManifests(FIRST_PARTY_PLUGINS, true);
+	const library = usePluginLibrary();
+	const manifests = useCatalogManifests(library.plugins, true);
+	const shikoEntries = library.plugins.filter((entry) => entry.source !== 'community');
+	const libraryEntries = library.plugins.filter((entry) => entry.source === 'community');
 	const { data: maps, error, isLoading, mutate } = useSWR(MAPS_KEY, fetchMaps);
 	const [busy, setBusy] = useState<string[]>([]);
 	const [updating, setUpdating] = useState<string[]>([]);
@@ -343,9 +368,7 @@ export function PluginsContent() {
 	) => {
 		const busyKey = `${pluginId}:${map.id}`;
 		setBusy((current) => [...current, busyKey]);
-		const latest = latestCatalogVersion(
-			FIRST_PARTY_PLUGINS.find((entry) => entry.id === pluginId)!
-		).version;
+		const latest = latestCatalogVersion(findCatalogPlugin(pluginId)!).version;
 		const withChange = (current: PluginMapSummary[] = []) =>
 			current.map((candidate) => {
 				if (candidate.id !== map.id) return candidate;
@@ -428,6 +451,57 @@ export function PluginsContent() {
 		}
 	};
 
+	const renderEntry = (entry: PluginCatalogEntry, index: number) => {
+		const manifest = manifests[entry.id];
+		const name = manifest?.name ?? entry.id;
+		const latest = latestCatalogVersion(entry).version;
+		const offReason = disabledReason(entry.id, latest);
+		const outdated = (maps ?? []).filter((map) => {
+			const version = pinnedVersion(map, entry.id);
+			return version !== undefined && compareVersions(version, latest) < 0;
+		});
+		return (
+			<PluginCard
+				entry={entry}
+				index={index}
+				key={entry.id}
+				manifest={manifest}
+				offReason={offReason}
+				update={
+					outdated.length > 0 ? (
+						<UpdateBox
+							entry={entry}
+							isUpdating={updating.includes(entry.id)}
+							outdated={outdated}
+							onUpdate={() =>
+								void updatePluginOnMaps(entry, name, outdated)
+							}
+						/>
+					) : null
+				}
+			>
+				{manifest === undefined ? (
+					<Skeleton className='h-9 w-36 rounded-md' />
+				) : (
+					<MapPicker
+						isLoading={isLoading}
+						manifest={manifests[entry.id]}
+						offReason={offReason}
+						maps={maps}
+						name={name}
+						pluginId={entry.id}
+						busyMapIds={busy
+							.filter((key) => key.startsWith(`${entry.id}:`))
+							.map((key) => key.slice(entry.id.length + 1))}
+						onToggle={(map, enabled) =>
+							void setPluginOnMap(entry.id, name, map, enabled)
+						}
+					/>
+				)}
+			</PluginCard>
+		);
+	};
+
 	return (
 		<SidebarProvider>
 			<DashboardLayout>
@@ -448,7 +522,7 @@ export function PluginsContent() {
 							aria-label='Shiko plugins'
 							className='flex flex-col gap-3 rounded-xl border border-zinc-800 bg-base p-4'
 						>
-							<GroupHeader count={FIRST_PARTY_PLUGINS.length} label='Shiko plugins' />
+							<GroupHeader count={shikoEntries.length} label='Shiko plugins' />
 
 							{error && (
 								<div
@@ -462,54 +536,24 @@ export function PluginsContent() {
 								</div>
 							)}
 
-							{FIRST_PARTY_PLUGINS.map((entry, index) => {
-								const manifest = manifests[entry.id];
-								const name = manifest?.name ?? entry.id;
-								const latest = latestCatalogVersion(entry).version;
-								const outdated = (maps ?? []).filter((map) => {
-									const version = pinnedVersion(map, entry.id);
-									return version !== undefined && compareVersions(version, latest) < 0;
-								});
-								return (
-									<PluginCard
-										entry={entry}
-										index={index}
-										key={entry.id}
-										manifest={manifest}
-										update={
-											outdated.length > 0 ? (
-												<UpdateBox
-													entry={entry}
-													isUpdating={updating.includes(entry.id)}
-													outdated={outdated}
-													onUpdate={() =>
-														void updatePluginOnMaps(entry, name, outdated)
-													}
-												/>
-											) : null
-										}
-									>
-										{manifest === undefined ? (
-											<Skeleton className='h-9 w-36 rounded-md' />
-										) : (
-											<MapPicker
-												isLoading={isLoading}
-												manifest={manifests[entry.id]}
-												maps={maps}
-												name={name}
-												pluginId={entry.id}
-												busyMapIds={busy
-													.filter((key) => key.startsWith(`${entry.id}:`))
-													.map((key) => key.slice(entry.id.length + 1))}
-												onToggle={(map, enabled) =>
-													void setPluginOnMap(entry.id, name, map, enabled)
-												}
-											/>
-										)}
-									</PluginCard>
-								);
-							})}
+							{shikoEntries.map(renderEntry)}
 						</section>
+
+						{libraryEntries.length > 0 && (
+							<section
+								aria-label='Library'
+								className='flex flex-col gap-3 rounded-xl border border-zinc-800 bg-base p-4'
+							>
+								<GroupHeader count={libraryEntries.length} label='Library' />
+
+								<p className='text-sm text-zinc-400'>
+									Made by other people and reviewed by Shiko before they&apos;re
+									listed.
+								</p>
+
+								{libraryEntries.map(renderEntry)}
+							</section>
+						)}
 
 						<section className='flex flex-wrap items-center gap-4 rounded-xl border border-zinc-800 bg-base p-5'>
 							<span className='flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-white/6 text-zinc-300'>

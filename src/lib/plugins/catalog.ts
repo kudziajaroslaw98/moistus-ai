@@ -9,6 +9,8 @@ export interface PluginCatalogVersion {
 	permissions: readonly PluginPermission[];
 	/** What changed, shown to owners before they update. */
 	notes: string;
+	/** Network hosts the reviewer confirmed the plugin's author runs (they receive requests). */
+	authorHosts?: readonly string[];
 }
 
 /**
@@ -21,6 +23,27 @@ export interface PluginCatalogEntry {
 	id: string;
 	/** Oldest first; the last one is what owners turn on and update to. */
 	versions: readonly PluginCatalogVersion[];
+	/**
+	 * `community`: published to the library by someone else after Shiko's review; its
+	 * files are served by `/api/plugins/files/<id>/<version>/`. Shiko's own when absent.
+	 */
+	source?: 'community';
+	/** A community plugin author's display name. */
+	author?: string;
+}
+
+/** What `/api/plugins/catalog` returns. */
+export interface PluginLibraryResponse {
+	plugins: PluginCatalogEntry[];
+	disabled: DisabledPlugin[];
+}
+
+/** A plugin, or one version of it, that Shiko turned off everywhere. */
+export interface DisabledPlugin {
+	pluginId: string;
+	/** Null when every version is off. */
+	version: string | null;
+	reason: string;
 }
 
 export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
@@ -165,10 +188,74 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 	},
 ];
 
+// ---------------------------------------------------------------------------
+// The library: community plugins and turned-off plugins, loaded from
+// `/api/plugins/catalog` in the browser (`plugin-library-client.ts`). Empty on the
+// server, where routes read the database instead (`server/plugin-library.ts`).
+
+export interface PluginLibrarySnapshot {
+	/** Shiko's plugins, then published community plugins. */
+	plugins: readonly PluginCatalogEntry[];
+	disabled: readonly DisabledPlugin[];
+	/** False until the library has been fetched once. */
+	loaded: boolean;
+}
+
+const FIRST_PARTY_IDS = new Set(FIRST_PARTY_PLUGINS.map((entry) => entry.id));
+let library: PluginLibrarySnapshot = {
+	plugins: FIRST_PARTY_PLUGINS,
+	disabled: [],
+	loaded: false,
+};
+const libraryListeners = new Set<() => void>();
+
+export function setPluginLibrary(next: {
+	plugins: readonly PluginCatalogEntry[];
+	disabled: readonly DisabledPlugin[];
+}) {
+	library = {
+		plugins: [
+			...FIRST_PARTY_PLUGINS,
+			...next.plugins
+				// Shiko's ids can't be taken by a community plugin.
+				.filter((entry) => !FIRST_PARTY_IDS.has(entry.id) && entry.versions.length > 0)
+				.map((entry) => ({ ...entry, source: 'community' as const })),
+		],
+		disabled: next.disabled,
+		loaded: true,
+	};
+	libraryListeners.forEach((listener) => listener());
+}
+
+/** Stable until the library changes (for `useSyncExternalStore`). */
+export function getPluginLibrary(): PluginLibrarySnapshot {
+	return library;
+}
+
+export function subscribePluginLibrary(listener: () => void): () => void {
+	libraryListeners.add(listener);
+	return () => libraryListeners.delete(listener);
+}
+
+/** Every plugin an owner can turn on: Shiko's, then the library's. */
+export function allCatalogPlugins(): readonly PluginCatalogEntry[] {
+	return library.plugins;
+}
+
+/** Why Shiko turned this plugin (or this version) off everywhere, or null. */
+export function disabledReason(pluginId: string, version?: string): string | null {
+	const match = library.disabled.find(
+		(entry) =>
+			entry.pluginId === pluginId &&
+			(entry.version === null || entry.version === version)
+	);
+	return match?.reason ?? null;
+}
+
 export function findCatalogPlugin(
 	pluginId: string
 ): PluginCatalogEntry | undefined {
-	return FIRST_PARTY_PLUGINS.find((entry) => entry.id === pluginId);
+	return library.plugins.find((entry) => entry.id === pluginId);
 }
 
 export function findCatalogVersion(
@@ -187,7 +274,14 @@ export function latestCatalogVersion(
 }
 
 export function catalogManifestUrl(pluginId: string, version: string): string {
-	return `/plugins/${pluginId}/${version}/manifest.json`;
+	return findCatalogPlugin(pluginId)?.source === 'community'
+		? communityFileUrl(pluginId, version, 'manifest.json')
+		: `/plugins/${pluginId}/${version}/manifest.json`;
+}
+
+/** Where a published community plugin's files are served. */
+export function communityFileUrl(pluginId: string, version: string, file: string): string {
+	return `/api/plugins/files/${encodeURIComponent(pluginId)}/${version}/${file}`;
 }
 
 /** Compares `x.y.z` versions: negative when `a` is older than `b`. */

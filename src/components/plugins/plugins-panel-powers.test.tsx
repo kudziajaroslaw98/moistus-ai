@@ -1,30 +1,10 @@
+import { setPluginLibrary } from '@/lib/plugins/catalog';
 import { pluginManifestSchema } from '@/lib/plugins/manifest-schema';
 import { issueManifest } from '@/lib/plugins/runtime/test-network-plugin';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-
-// A catalog plugin that reaches a site (Shiko ships none until the privacy wording does).
-jest.mock('@/lib/plugins/catalog', () => {
-	const actual = jest.requireActual('@/lib/plugins/catalog');
-	return {
-		...actual,
-		FIRST_PARTY_PLUGINS: [
-			{
-				id: 'dev.issue',
-				versions: [
-					{
-						version: '0.1.0',
-						sha256: '',
-						permissions: ['node:own', 'network:api.github.com'],
-						notes: 'Shows a GitHub issue.',
-					},
-				],
-			},
-		],
-	};
-});
 
 const mockActions = {
 	setPopoverOpen: jest.fn(),
@@ -64,6 +44,24 @@ function setup(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
 	jest.clearAllMocks();
+	// A published library plugin that reaches a site.
+	setPluginLibrary({
+		plugins: [
+			{
+				id: 'dev.issue',
+				author: 'Test',
+				versions: [
+					{
+						version: '0.1.0',
+						sha256: '',
+						permissions: ['node:own', 'network:api.github.com'],
+						notes: 'Shows a GitHub issue.',
+					},
+				],
+			},
+		],
+		disabled: [],
+	});
 	global.fetch = jest.fn(async (url: string) => ({
 		ok: true,
 		json: async () =>
@@ -97,7 +95,7 @@ describe('PluginsPanel: plugins that reach a site', () => {
 		const confirm = within(card.getByTestId('plugin-powers-confirm'));
 		expect(confirm.getByText('Turn on Issue?')).toBeInTheDocument();
 		expect(card.getByTestId('plugin-powers-confirm')).toHaveTextContent(
-			'It sends the issue addresses typed into its nodes to api.github.com, run by GitHub (privacy policy). The plugin’s author doesn’t receive them, and it can’t read the rest of the map.'
+			'It sends the issue addresses typed into its nodes to api.github.com, run by GitHub (privacy policy). The plugin’s author doesn’t receive them. It can’t read the rest of the map.'
 		);
 		expect(mockActions.setMapPluginEnabled).not.toHaveBeenCalled();
 
@@ -116,5 +114,28 @@ describe('PluginsPanel: plugins that reach a site', () => {
 		expect(mockActions.setMapPluginEnabled).not.toHaveBeenCalled();
 		expect(card.getByLabelText('Issue')).not.toBeChecked();
 		expect(card.queryByTestId('plugin-powers-confirm')).not.toBeInTheDocument();
+	});
+});
+
+describe('PluginsPanel: plugins Shiko turned off', () => {
+	it('says why and won’t turn it on', async () => {
+		setPluginLibrary({
+			plugins: [
+				{
+					id: 'dev.issue',
+					author: 'Test',
+					versions: [
+						{ version: '0.1.0', sha256: '', permissions: ['node:own', 'network:api.github.com'], notes: 'x' },
+					],
+				},
+			],
+			disabled: [{ pluginId: 'dev.issue', version: null, reason: 'Reported for ads' }],
+		});
+		setup();
+		const card = within(await screen.findByTestId('plugin-card-dev.issue'));
+		await card.findByTestId('plugin-powers');
+
+		expect(card.getByRole('status')).toHaveTextContent('Turned off by Shiko: Reported for ads');
+		expect(card.getByLabelText('Issue')).toBeDisabled();
 	});
 });

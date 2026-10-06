@@ -82,6 +82,30 @@ describe('PluginNodeContent', () => {
 		expect(mockState.refreshMapPluginsSoon).toHaveBeenCalled();
 	});
 
+	it('shows the saved view and why when Shiko turned the plugin off', () => {
+		mockState.mapPlugins = [{ pluginId: 'shiko.metric', version: '0.1.0' }];
+		mockState.loadedPlugins = {
+			'shiko.metric': {
+				key: 'shiko.metric',
+				source: 'catalog',
+				manifestUrl: '/plugins/shiko.metric/0.1.0/manifest.json',
+				status: 'error',
+				manifest: null,
+				error: 'Turned off by Shiko: Reported for ads',
+				generation: 0,
+				disabledReason: 'Reported for ads',
+			},
+		};
+
+		render(<PluginNodeContent canEdit extension={extension} nodeId='n1' />);
+
+		expect(screen.getByText('Saved: 5 of 10')).toBeInTheDocument();
+		expect(screen.getByTestId('plugin-node-status')).toHaveTextContent(
+			'Turned off by Shiko: Reported for ads. This is its last saved view.'
+		);
+		expect(screen.queryByRole('button')).not.toBeInTheDocument();
+	});
+
 	it('re-reads the map’s plugins when a node was saved by a newer version', async () => {
 		mockState.loadedPlugins = readyMetric();
 		mockState.mapPlugins = [{ pluginId: 'shiko.metric', version: '0.1.0' }];

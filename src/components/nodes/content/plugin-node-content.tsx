@@ -25,13 +25,19 @@ import { validatePluginTree } from '@/lib/plugins/ui-tree';
 import useAppStore from '@/store/mind-map-store';
 import type { NodeExtensionData } from '@/types/extensions';
 import { cn } from '@/utils/cn';
-import { Info, Loader2, Puzzle, TriangleAlert } from 'lucide-react';
+import { Ban, Info, Loader2, Puzzle, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 
+/** "Reported for ads" → "Reported for ads." so it reads as a sentence. */
+function asSentence(text: string): string {
+	const trimmed = text.trim();
+	return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
 /** How a plugin node can be shown right now. */
-type PluginNodeState = 'live' | 'loading' | 'off' | 'failed' | 'missing';
+type PluginNodeState = 'live' | 'loading' | 'off' | 'failed' | 'missing' | 'disabled';
 
 export interface PluginNodeContentProps {
 	/** Null in the node editor preview, where nothing is saved. */
@@ -84,7 +90,9 @@ export function PluginNodeContent({
 
 	const state: PluginNodeState = active
 		? 'live'
-		: loaded?.status === 'error'
+		: loaded?.disabledReason
+			? 'disabled'
+			: loaded?.status === 'error'
 			? 'failed'
 			: loaded?.status === 'loading' ||
 				  (isCatalogPlugin && (!mapPluginsLoaded || isEnabled))
@@ -200,7 +208,8 @@ export function PluginNodeContent({
 		}
 	};
 
-	const dimmed = state === 'off' || state === 'missing' || state === 'failed';
+	const dimmed =
+		state === 'off' || state === 'missing' || state === 'failed' || state === 'disabled';
 
 	return (
 		<div className='flex flex-col gap-3' data-plugin-state={state}>
@@ -282,6 +291,18 @@ export function PluginNodeContent({
 
 			{state === 'live' && active?.readsBranch && !preview && (
 				<span className='text-xs text-white/50'>Updates as the branch changes</span>
+			)}
+
+			{state === 'disabled' && (
+				<p
+					className='flex items-start gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1.5 text-xs leading-4 text-red-300'
+					data-testid='plugin-node-status'
+					role='status'
+				>
+					<Ban aria-hidden className='mt-px size-3.5 shrink-0' />
+
+					{`Turned off by Shiko: ${asSentence(loaded?.disabledReason ?? '')} This is its last saved view.`}
+				</p>
 			)}
 
 			{(state === 'off' || state === 'missing' || state === 'failed') && (
