@@ -20,6 +20,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **dashboard/plan-card**: Reset date is hidden when the usage billing period has already ended
   - Why: Stale usage rows would otherwise promise a reset in the past
 
+### Removed
+
+- **ui/unused**: Deleted `sidebar-item.tsx`, `sidebar-section.tsx` and `search-input.tsx`
+  - Why: The dashboard redesign was their last user
+
 ### Fixed
 
 - **dashboard/templates-cache**: Dashboard template chips cache `/api/templates` in the same raw shape as the Templates page and template picker
