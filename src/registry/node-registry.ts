@@ -194,7 +194,7 @@ export const NODE_REGISTRY = {
 		category: 'structure',
 		commandTrigger: '$task',
 		keywords: ['task', 'todo', 'checklist', 'checkbox', 'action'],
-		examples: ['$task Review PR', '$task Buy milk; Send email'],
+		examples: ['$task [ ] Review PR', '$task [ ] Buy milk\n[ ] Send email'],
 		defaultMetadata: {
 			tasks: [],
 			status: 'pending',

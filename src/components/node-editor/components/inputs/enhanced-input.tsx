@@ -1,7 +1,7 @@
 'use client';
 
 import type { AvailableNodeTypes } from '@/registry/node-registry';
-import { assertAvailableNodeTypeWithLog } from '@/registry/type-guards';
+import { isAvailableNodeType } from '@/registry/type-guards';
 import { cn } from '@/utils/cn';
 import {
 	acceptCompletion,
@@ -308,8 +308,10 @@ export const EnhancedInput = ({
 					}
 				},
 				onNodeTypeChange: (nodeType) => {
-					// Validate node type with logging guard
-					if (assertAvailableNodeTypeWithLog(nodeType, 'onNodeTypeChange')) {
+					// CodeMirror reports the word after `$` ("task", "countdown"), which isn't a
+					// node type, so this rarely passes; quick-input's processNodeTypeSwitch does
+					// the actual switch. No warning: every `$` command would log one.
+					if (isAvailableNodeType(nodeType)) {
 						if (onNodeTypeChange) {
 							onNodeTypeChange(nodeType);
 						}

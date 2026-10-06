@@ -59,3 +59,21 @@ describe('pattern-extractor line breaks', () => {
 		expect(parsed.metadata.tags).toEqual(['shopping', 'home'])
 	})
 })
+
+describe('pattern-extractor task lists', () => {
+	it('keeps dates and tags typed on a task line out of the task text', () => {
+		const parsed = parseInput('[ ] Review PR\n[x] Deploy ^friday #high')
+
+		expect(
+			parsed.metadata.tasks.map((task: { text: string; isComplete: boolean }) => [
+				task.text,
+				task.isComplete,
+			])
+		).toEqual([
+			['Review PR', false],
+			['Deploy', true],
+		])
+		expect(parsed.metadata.tags).toEqual(['high'])
+		expect(parsed.metadata.dueDate).toBeDefined()
+	})
+})

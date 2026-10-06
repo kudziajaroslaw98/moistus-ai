@@ -148,12 +148,10 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 		icon: CheckSquare,
 		label: 'Task List',
 		examples: [
-			'Review PR ^tomorrow #high',
-			'Deploy to production ^friday',
-			'Review PR; Fix bugs; Deploy ^monday #high',
-			'Sprint tasks: Backend API, Frontend UI, Testing',
-			'- [ ] Review PR\n- [ ] Fix bugs\n- [ ] Deploy',
-			'Buy milk, Send email, Call client ^today',
+			// Each task is its own line starting with [ ] (or [x] when done).
+			'[ ] Review PR\n[ ] Fix bugs\n[ ] Deploy',
+			'[x] Write the spec\n[ ] Build it\n[ ] Test on iPad',
+			'title:"Release" ^friday #high\n[ ] Review PR\n[ ] Deploy',
 		],
 		parsingPatterns: [
 			{
@@ -161,8 +159,8 @@ export const nodeTypeConfigs: Record<AvailableNodeTypes, NodeTypeConfig> = {
 				description: 'Switch to task list node type',
 				category: 'metadata',
 				examples: [
-					'$task Review PR; Fix bugs ^friday #high',
-					'$task Buy milk, Send email',
+					'$task [ ] Review PR\n[ ] Fix bugs',
+					'$task [ ] Buy milk',
 				],
 			},
 			{

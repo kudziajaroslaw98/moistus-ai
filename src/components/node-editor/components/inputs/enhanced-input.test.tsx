@@ -11,7 +11,7 @@ jest.mock('../../integrations/codemirror/setup', () => ({
 }))
 
 jest.mock('@/registry/type-guards', () => ({
-	assertAvailableNodeTypeWithLog: jest.fn(() => true),
+	isAvailableNodeType: jest.fn(() => true),
 }))
 
 jest.mock('../../core/validators/input-validator', () => ({
