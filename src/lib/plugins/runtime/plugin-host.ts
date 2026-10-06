@@ -6,6 +6,7 @@ import {
 	type PluginData,
 } from '@/lib/plugins/plugin-fields';
 import type { PluginResponse } from '@/lib/plugins/network';
+import type { PluginCheckResult } from '@/lib/plugins/plugin-checks';
 import type {
 	PluginRefreshOutput,
 	PluginRenderOutput,
@@ -233,6 +234,21 @@ export class PluginHost {
 		}
 		// Rows the plugin added get ids from Shiko; existing rows keep theirs.
 		return assignListRowIds(kind, checked.data, data);
+	}
+
+	/**
+	 * Runs the submission checks (manifest, sandbox load, examples, buttons, requests,
+	 * previous version's data) on code that isn't loaded, in a throwaway sandbox.
+	 */
+	check(input: {
+		manifest: unknown;
+		code: string;
+		previousManifest?: unknown;
+	}): Promise<PluginCheckResult> {
+		return this.request(
+			{ type: 'check', ...input },
+			PLUGIN_LOAD_TIMEOUT_MS * 2
+		) as Promise<PluginCheckResult>;
 	}
 
 	/** Whether the loaded code defines `actions.refresh` for this kind. */

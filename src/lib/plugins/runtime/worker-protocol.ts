@@ -6,6 +6,7 @@ import {
 	type PluginSandbox,
 	type SandboxErrorCode,
 } from '@/lib/plugins/runtime/sandbox';
+import { runPluginChecks, type PluginCheckResult } from '@/lib/plugins/plugin-checks';
 import type { QuickJSWASMModule } from 'quickjs-emscripten-core';
 
 /** Messages between the main thread (plugin-host) and the plugin worker. */
@@ -39,9 +40,18 @@ export type PluginWorkerRequest =
 			/** Null on the first pass; what each requested URL answered on the second. */
 			responses: Record<string, unknown> | null;
 	  }
-	| { id: number; type: 'unload'; pluginId: string };
+	| { id: number; type: 'unload'; pluginId: string }
+	/** Runs the submission checks on code that isn't loaded (its own throwaway sandbox). */
+	| {
+			id: number;
+			type: 'check';
+			manifest: unknown;
+			code: string;
+			previousManifest?: unknown;
+	  };
 
 export type PluginWorkerResult =
+	| PluginCheckResult
 	| { kinds: string[]; refreshKinds: string[] }
 	| PluginRenderOutput
 	| PluginRefreshOutput
@@ -93,6 +103,17 @@ export function createPluginWorkerHandler(
 					id,
 					ok: true,
 					result: { kinds: sandbox.kinds, refreshKinds: sandbox.refreshKinds },
+				};
+			}
+			if (request.type === 'check') {
+				return {
+					id,
+					ok: true,
+					result: runPluginChecks(await getModule(), {
+						manifest: request.manifest,
+						code: request.code,
+						previousManifest: request.previousManifest,
+					}),
 				};
 			}
 			if (request.type === 'unload') {

@@ -28,6 +28,7 @@ import {
 	PluginPowersConfirm,
 	PluginPowersLine,
 } from './plugin-powers';
+import { PluginSubmitSheet } from './plugin-submit-sheet';
 import { PluginVersionControls } from './plugin-version-controls';
 import { useCatalogManifests } from './use-catalog-manifests';
 import { usePluginLibrary } from './use-plugin-library';
@@ -327,7 +328,7 @@ function PluginCard({
 }
 
 /** Owner-only: load a plugin you're building from localhost (this browser only). */
-function DeveloperSection() {
+function DeveloperSection({ onSubmit }: { onSubmit: (manifestUrl: string) => void }) {
 	const { devPluginUrls, loadedPlugins, addDevPlugin, removeDevPlugin, reloadDevPlugin } =
 		useAppStore(
 			useShallow((state) => ({
@@ -473,6 +474,17 @@ function DeveloperSection() {
 						{manifest && needsPowerApproval(manifest) && (
 							<PluginPowersLine manifest={manifest} />
 						)}
+
+						{loaded?.status === 'ready' && (
+							<Button
+								className='self-start'
+								onClick={() => onSubmit(url)}
+								size='sm'
+								variant='outline'
+							>
+								Submit to the library…
+							</Button>
+						)}
 					</div>
 				);
 			})}
@@ -528,6 +540,8 @@ export function PluginsPanel() {
 	const [busyPluginId, setBusyPluginId] = useState<string | null>(null);
 	const [confirmingOff, setConfirmingOff] = useState<string | null>(null);
 	const [confirmingOn, setConfirmingOn] = useState<string | null>(null);
+	// A developer plugin being submitted to the library (its manifest URL).
+	const [submitUrl, setSubmitUrl] = useState<string | null>(null);
 	const storedLater = useMemo(
 		() => (isOpen && userId && mapId ? readLaterVersions(userId, mapId) : {}),
 		[isOpen, userId, mapId]
@@ -647,10 +661,11 @@ export function PluginsPanel() {
 			data-testid='plugins-panel'
 			isOpen={isOpen}
 			modal={false}
-			title='Plugins'
+			title={submitUrl ? 'Submit to the library' : 'Plugins'}
 			onClose={() => {
 				setConfirmingOff(null);
 				setConfirmingOn(null);
+				setSubmitUrl(null);
 				setPopoverOpen({ plugins: false });
 			}}
 			subtitle={
@@ -663,67 +678,84 @@ export function PluginsPanel() {
 				</Link>
 			}
 		>
-			<div className='flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4'>
-				<p className='text-[13px] leading-[18px] text-text-secondary'>
-					New kinds of nodes for this map. Everyone on the map sees them, and
-					each plugin only touches its own nodes.
-				</p>
+			{submitUrl ? (
+				<div className='flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4'>
+					<button
+						className={`${subtleLinkClass} self-start text-sm text-text-secondary hover:text-text-primary`}
+						onClick={() => setSubmitUrl(null)}
+						type='button'
+					>
+						‹ Plugins
+					</button>
 
-				<section aria-label='Shiko plugins' className='flex flex-col gap-3'>
-					<GroupHeader
-						label='Shiko plugins'
-						count={
-							updateCount > 0
-								? `${updateCount} ${updateCount === 1 ? 'update' : 'updates'}`
-								: entries.length
-						}
+					<PluginSubmitSheet
+						manifestUrl={submitUrl}
+						onClose={() => setSubmitUrl(null)}
 					/>
+				</div>
+			) : (
+				<div className='flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4'>
+					<p className='text-[13px] leading-[18px] text-text-secondary'>
+						New kinds of nodes for this map. Everyone on the map sees them, and
+						each plugin only touches its own nodes.
+					</p>
 
-					{entries.length === 0 && libraryEntries.length === 0 ? (
-						<p className='text-sm text-text-secondary'>
-							No plugins on this map.
-						</p>
-					) : (
-						entries.map(renderCard)
-					)}
-				</section>
+					<section aria-label='Shiko plugins' className='flex flex-col gap-3'>
+						<GroupHeader
+							label='Shiko plugins'
+							count={
+								updateCount > 0
+									? `${updateCount} ${updateCount === 1 ? 'update' : 'updates'}`
+									: entries.length
+							}
+						/>
 
-				{libraryEntries.length > 0 && (
-					<section aria-label='Library' className='flex flex-col gap-3'>
-						<GroupHeader count={libraryEntries.length} label='Library' />
-
-						<p className='text-xs leading-[17px] text-text-secondary'>
-							Made by other people and reviewed by Shiko before they&apos;re listed.
-						</p>
-
-						{libraryEntries.map(renderCard)}
+						{entries.length === 0 && libraryEntries.length === 0 ? (
+							<p className='text-sm text-text-secondary'>
+								No plugins on this map.
+							</p>
+						) : (
+							entries.map(renderCard)
+						)}
 					</section>
-				)}
 
-				{!isOwner && (
-					<p className='flex items-center gap-2 text-xs text-text-secondary'>
-						<Lock aria-hidden className='size-3.5 shrink-0' />
-						Only the map owner can turn plugins on or off.
-					</p>
-				)}
+					{libraryEntries.length > 0 && (
+						<section aria-label='Library' className='flex flex-col gap-3'>
+							<GroupHeader count={libraryEntries.length} label='Library' />
 
-				{isOwner && developerMode && <DeveloperSection />}
+							<p className='text-xs leading-[17px] text-text-secondary'>
+								Made by other people and reviewed by Shiko before they&apos;re listed.
+							</p>
 
-				{isOwner && !developerMode && (
-					<p className='text-xs leading-[17px] text-text-secondary'>
-						Building a plugin? Turn on Developer mode in Map Settings › Editor
-						Preferences to load it from localhost.{' '}
+							{libraryEntries.map(renderCard)}
+						</section>
+					)}
 
-						<Link
-							className={`${subtleLinkClass} font-medium text-primary-400 hover:text-primary-300`}
-							href='/dashboard/plugins/build'
-						>
-							How to build a plugin
-							<ArrowUpRight aria-hidden className='size-3.5' />
-						</Link>
-					</p>
-				)}
-			</div>
+					{!isOwner && (
+						<p className='flex items-center gap-2 text-xs text-text-secondary'>
+							<Lock aria-hidden className='size-3.5 shrink-0' />
+							Only the map owner can turn plugins on or off.
+						</p>
+					)}
+
+					{isOwner && developerMode && <DeveloperSection onSubmit={setSubmitUrl} />}
+
+					{isOwner && !developerMode && (
+						<p className='text-xs leading-[17px] text-text-secondary'>
+							Building a plugin? Turn on Developer mode in Map Settings › Editor
+							Preferences to load it from localhost.{' '}
+
+							<Link
+								className={`${subtleLinkClass} font-medium text-primary-400 hover:text-primary-300`}
+								href='/dashboard/plugins/build'
+							>
+								How to build a plugin
+								<ArrowUpRight aria-hidden className='size-3.5' />
+							</Link>
+						</p>
+					)}
+				</div>
+			)}
 		</SidePanel>
 	);
 }

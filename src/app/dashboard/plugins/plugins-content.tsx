@@ -9,6 +9,7 @@ import {
 } from '@/components/plugins/plugin-powers';
 import { PluginUpdateDetails } from '@/components/plugins/plugin-update-details';
 import { useCatalogManifests } from '@/components/plugins/use-catalog-manifests';
+import { PluginsPageTabs } from '@/components/plugins/plugins-page-tabs';
 import { usePluginLibrary } from '@/components/plugins/use-plugin-library';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -507,10 +508,12 @@ export function PluginsContent() {
 			<DashboardLayout>
 				<div className='p-6 md:p-8'>
 					<div className='mx-auto flex max-w-3xl flex-col gap-6'>
-						<div className='space-y-2'>
+						<div className='flex flex-col gap-4'>
 							<h1 className='text-3xl font-bold tracking-tight text-white'>
 								Plugins
 							</h1>
+
+							<PluginsPageTabs current='library' />
 
 							<p className='text-zinc-400'>
 								New kinds of nodes for your maps. Turn a plugin on for a map and
@@ -565,7 +568,8 @@ export function PluginsContent() {
 
 								<p className='text-sm text-zinc-400'>
 									Write one in plain JavaScript and load it from localhost while
-									you work on it. Only you see it until it ships with Shiko.
+									you work on it. Only you see it until you submit it and Shiko
+									publishes it in the library.
 								</p>
 							</div>
 

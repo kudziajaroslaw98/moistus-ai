@@ -163,6 +163,17 @@ export const mapAccessRateLimiter = new InMemoryRateLimiter({
 	windowMs: 60 * 1000,
 });
 
+// Plugin library: submissions and reports (each needs a person to look at it)
+export const pluginSubmissionRateLimiter = new InMemoryRateLimiter({
+	maxAttempts: 10,
+	windowMs: 60 * 60 * 1000, // per hour
+});
+
+export const pluginReportRateLimiter = new InMemoryRateLimiter({
+	maxAttempts: 10,
+	windowMs: 60 * 60 * 1000, // per hour
+});
+
 // Data export rate limiter (GDPR export is expensive, limit to 1 per hour)
 export const dataExportRateLimiter = new InMemoryRateLimiter({
 	maxAttempts: 1,
