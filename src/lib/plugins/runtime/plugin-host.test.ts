@@ -65,12 +65,14 @@ describe('PluginHost', () => {
 		]);
 		const rendered = await host.render('shiko.metric', metric, data, {
 			canEdit: true,
+			today: '2026-10-06',
 		});
 		expect(rendered.summary).toBe('Weekly active users: 1,240 / 2,000 users');
 		expect(rendered.tree.type).toBe('stack');
 		await expect(
 			host.action('shiko.metric', metric, 'decrement', data, undefined, {
 				canEdit: true,
+				today: '2026-10-06',
 			})
 		).resolves.toEqual({ ...data, value: 1140 });
 	});
@@ -86,12 +88,12 @@ describe('PluginHost', () => {
 		);
 
 		await expect(
-			host.render('dev.bad', metric, data, { canEdit: true })
+			host.render('dev.bad', metric, data, { canEdit: true, today: '2026-10-06' })
 		).rejects.toMatchObject({
 			code: 'invalid-output',
 		});
 		await expect(
-			host.action('dev.bad', metric, 'grab', data, undefined, { canEdit: true })
+			host.action('dev.bad', metric, 'grab', data, undefined, { canEdit: true, today: '2026-10-06' })
 		).rejects.toMatchObject({ code: 'invalid-output' });
 	});
 
@@ -104,6 +106,7 @@ describe('PluginHost', () => {
 
 		const rendered = await host.render('dev.plain', metric, data, {
 			canEdit: false,
+			today: '2026-10-06',
 		});
 		expect(rendered.summary).toBe('Weekly active users');
 	});
@@ -126,6 +129,7 @@ describe('PluginHost', () => {
 
 		const rendered = await host.render('shiko.metric', metric, data, {
 			canEdit: true,
+			today: '2026-10-06',
 		});
 		expect(rendered.summary).toContain('1,240');
 		expect(createWorker).toHaveBeenCalledTimes(2);
@@ -135,7 +139,7 @@ describe('PluginHost', () => {
 		const host = new PluginHost(inProcessWorker);
 
 		await expect(
-			host.render('shiko.metric', metric, data, { canEdit: true })
+			host.render('shiko.metric', metric, data, { canEdit: true, today: '2026-10-06' })
 		).rejects.toMatchObject({ code: 'not-loaded' });
 	});
 });

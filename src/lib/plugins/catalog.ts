@@ -43,6 +43,66 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 			},
 		],
 	},
+	{
+		id: 'shiko.countdown',
+		versions: [
+			{
+				version: '0.1.0',
+				sha256:
+					'787c76c1784c7a8213b5684a837db002477da7ce37fcaac44ae0380e5e0127b7',
+				permissions: ['node:own'],
+				notes: 'Days left until a date.',
+			},
+		],
+	},
+	{
+		id: 'shiko.kanban',
+		versions: [
+			{
+				version: '0.1.0',
+				sha256:
+					'50b950793ddce74b31d15b9d80811b985e5861a9411cd384f63eb1964dcac893',
+				permissions: ['node:own'],
+				notes: 'Cards you move from To do to Done.',
+			},
+		],
+	},
+	{
+		id: 'shiko.decision-matrix',
+		versions: [
+			{
+				version: '0.1.0',
+				sha256:
+					'eec656fce36b9a675af050bfcb31b4cb4f53117d37c95d5c4786c4172825d753',
+				permissions: ['node:own'],
+				notes: 'Score options against your criteria.',
+			},
+		],
+	},
+	{
+		id: 'shiko.okr',
+		versions: [
+			{
+				version: '0.1.0',
+				sha256:
+					'f3429fb0b8d11de3cf0b5515fd35cc867c54c4b6dfb70a75ac87b9f008e8a8b5',
+				permissions: ['node:own'],
+				notes: 'An objective and its key results.',
+			},
+		],
+	},
+	{
+		id: 'shiko.budget',
+		versions: [
+			{
+				version: '0.1.0',
+				sha256:
+					'1f46e49902d34d82e59b3412f969ef4491d5c1ef914540c8c4ae07fc042a3c62',
+				permissions: ['node:own'],
+				notes: 'Items against a limit, with what you paid.',
+			},
+		],
+	},
 ];
 
 export function findCatalogPlugin(

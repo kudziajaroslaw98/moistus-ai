@@ -7,6 +7,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ## [2026-10-06]
 
+### Added
+
+- **plugins/lists**: Plugin fields can be lists of typed columns, typed like JSON across any number of lines (`items:[["Flights", 640, paid], ["Hotel", 520]]`, or `todo:["Build it"]` for one column); the editor highlights them, checks every row ("Items, row 3: Amount is required") and lists the columns in Syntax Help. Each row gets a stable id from Shiko, so buttons act on the row you pressed even when someone else changed the list
+  - Why: Kanban, budgets and OKRs need lists, and arrays are easy to read and to check
+- **plugins/dates**: A `date` field type (`date:2026-11-12`), and plugins get the viewer's date as `ctx.today`
+- **plugins**: Five Shiko plugins: Countdown (days to a date), Kanban (move cards between To do, Doing and Done), Decision matrix (score options on your criteria; the best one is marked), OKR (key results with progress) and Budget (items against a limit; tick what you've paid)
+
 ### Fixed
 
 - **nodes/note**: Note nodes show each line you type on its own line instead of running lines together; Markdown formatting is unchanged

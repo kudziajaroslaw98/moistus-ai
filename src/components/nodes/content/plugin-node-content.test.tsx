@@ -141,7 +141,7 @@ describe('PluginNodeContent', () => {
 			'increment',
 			extension.data,
 			undefined,
-			{ canEdit: true }
+			{ canEdit: true, today: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) }
 		);
 		expect(applyGraphOps).toHaveBeenCalledWith(
 			expect.any(Function),

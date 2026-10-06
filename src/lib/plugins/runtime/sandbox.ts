@@ -95,7 +95,7 @@ const PRELUDE = `"use strict";
 			Object.assign({}, props || {}, { type: 'button', label: String(label), action }),
 		checkbox: (label, checked, action, props) =>
 			Object.assign({}, props || {}, { type: 'checkbox', label: String(label), checked: !!checked, action }),
-		divider: () => ({ type: 'divider' }),
+		divider: (props) => Object.assign({}, props || {}, { type: 'divider' }),
 		icon: (name, props) => Object.assign({}, props || {}, { type: 'icon', name }),
 	});
 	globalThis.definePlugin = (definition) => {

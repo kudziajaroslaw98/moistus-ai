@@ -80,6 +80,17 @@ export function PluginUiTree({
 }: PluginUiTreeProps) {
 	const interactive = Boolean(onAction) && !disabled;
 
+	// A plugin's `key` (e.g. a list row id) keeps focus on the right row when rows move.
+	// Missing or repeated keys fall back to the position.
+	const renderChildren = (children: PluginUiNode[]): ReactNode[] => {
+		const seen = new Set<string>();
+		return children.map((child, index) => {
+			const key = child.key && !seen.has(child.key) ? `k:${child.key}` : `i:${index}`;
+			if (child.key) seen.add(child.key);
+			return renderNode(child, key);
+		});
+	};
+
 	const renderNode = (node: PluginUiNode, key: number | string): ReactNode => {
 		switch (node.type) {
 			case 'stack':
@@ -92,7 +103,7 @@ export function PluginUiTree({
 							ALIGN[node.align ?? 'stretch']
 						)}
 					>
-						{node.children.map(renderNode)}
+						{renderChildren(node.children)}
 					</div>
 				);
 			case 'row':
@@ -107,7 +118,7 @@ export function PluginUiTree({
 							node.wrap && 'flex-wrap'
 						)}
 					>
-						{node.children.map(renderNode)}
+						{renderChildren(node.children)}
 					</div>
 				);
 			case 'text':

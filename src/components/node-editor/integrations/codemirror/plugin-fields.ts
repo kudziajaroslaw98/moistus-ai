@@ -9,7 +9,7 @@ import { StateEffect, StateField, type EditorState } from '@codemirror/state';
 export interface PluginFieldSpecLite {
 	name: string;
 	title: string;
-	type: 'string' | 'number' | 'integer' | 'boolean' | 'enum';
+	type: 'string' | 'number' | 'integer' | 'boolean' | 'enum' | 'date' | 'list';
 	options?: string[];
 }
 

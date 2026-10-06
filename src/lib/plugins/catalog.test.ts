@@ -17,7 +17,11 @@ import {
 	type PluginCatalogEntry,
 } from './catalog';
 import { pluginManifestSchema, type PluginManifest } from './manifest-schema';
-import { parsePluginFieldInput, validatePluginData } from './plugin-fields';
+import {
+	assignListRowIds,
+	parsePluginFieldInput,
+	validatePluginData,
+} from './plugin-fields';
 import { createPluginSandbox } from './runtime/sandbox';
 import { nodeTestVariant } from './runtime/test-quickjs-variant';
 import { validatePluginTree, type PluginUiNode } from './ui-tree';
@@ -51,12 +55,15 @@ const allVersions = FIRST_PARTY_PLUGINS.flatMap((entry) =>
 	}))
 );
 
-function actionsIn(node: PluginUiNode): string[] {
-	if (node.type === 'button' || node.type === 'checkbox') return [node.action];
+function actionsIn(node: PluginUiNode): Array<{ action: string; payload: unknown }> {
+	if (node.type === 'button' || node.type === 'checkbox')
+		return [{ action: node.action, payload: node.payload ?? null }];
 	if (node.type === 'stack' || node.type === 'row')
 		return node.children.flatMap(actionsIn);
 	return [];
 }
+
+const TODAY = { canEdit: true, today: '2026-10-06' };
 
 describe('first-party plugin catalog', () => {
 	it.each(FIRST_PARTY_PLUGINS.map((entry): [string, PluginCatalogEntry] => [entry.id, entry]))(
@@ -92,7 +99,7 @@ describe('first-party plugin catalog', () => {
 	);
 
 	it.each(allVersions.map((item) => [item.label, item]))(
-		'%s: every example parses, renders a valid view, and its buttons return valid data',
+		'%s: every example parses, renders a valid view, and every button returns valid data',
 		(_label, { entry, version }) => {
 			const manifest = readManifest(entry.id, version.version);
 			const sandbox = createPluginSandbox(
@@ -105,18 +112,24 @@ describe('first-party plugin catalog', () => {
 					for (const example of kind.examples) {
 						const parsed = parsePluginFieldInput(example, kind);
 						expect(parsed.errors).toEqual([]);
+						// As when the node editor saves: list rows get ids.
+						const data = assignListRowIds(kind, parsed.data);
 
-						const output = sandbox.render(kind.kind, parsed.data, { canEdit: true });
+						const output = sandbox.render(kind.kind, data, TODAY);
 						const tree = validatePluginTree(output.tree);
 						expect(tree.ok).toBe(true);
+						expect(String(output.summary).trim()).not.toBe('');
 						if (!tree.ok) continue;
 
-						for (const action of actionsIn(tree.tree)) {
-							const next = sandbox.action(kind.kind, action, parsed.data, null, {
-								canEdit: true,
-							});
+						for (const { action, payload } of actionsIn(tree.tree)) {
+							const next = sandbox.action(kind.kind, action, data, payload, TODAY);
 							expect(validatePluginData(kind, next).ok).toBe(true);
 						}
+
+						const viewOnly = validatePluginTree(
+							sandbox.render(kind.kind, data, { ...TODAY, canEdit: false }).tree
+						);
+						expect(viewOnly.ok).toBe(true);
 					}
 				}
 			} finally {

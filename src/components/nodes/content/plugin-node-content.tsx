@@ -7,6 +7,7 @@ import {
 	usePluginRender,
 } from '@/components/plugins/use-plugin-render';
 import { applyGraphOps } from '@/lib/extensions/graph-ops';
+import { pluginCallContext } from '@/lib/plugins/call-context';
 import {
 	findActivePluginKind,
 	humanizeKind,
@@ -133,7 +134,7 @@ export function PluginNodeContent({
 		setBusy(true);
 		try {
 			const host = await loadPluginHost();
-			const ctx = { canEdit: true };
+			const ctx = pluginCallContext(true);
 			const nextData = await host.action(
 				active.manifest.id,
 				active.kind,

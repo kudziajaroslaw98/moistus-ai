@@ -462,8 +462,10 @@ export function BuildGuideContent() {
 
 										<dd className={bodyClass}>
 											Returns the node&apos;s view, built with ui. data holds the
-											node&apos;s fields. ctx.canEdit is false for people who can
-											only view the map. Runs again whenever the data changes.
+											node&apos;s fields; list rows carry an id. ctx.canEdit is
+											false for people who can only view the map, and ctx.today is
+											their date (2026-12-31). Runs again whenever the data or the
+											day changes.
 										</dd>
 									</div>
 
@@ -485,7 +487,9 @@ export function BuildGuideContent() {
 											Runs when someone presses a button or checkbox that names
 											it. Return the node&apos;s new data: Shiko checks it against
 											your fields and saves it as one History step credited to
-											your plugin.
+											your plugin. To change one list row, send its id in the
+											payload and find it by id, not by position: someone else may
+											have changed the list a moment ago.
 										</dd>
 									</div>
 								</dl>

@@ -6,6 +6,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useTouchFirst } from '@/hooks/use-touch-first';
 import { findActivePluginKind } from '@/lib/plugins/active-plugins';
 import {
+	assignListRowIds,
 	parsePluginFieldInput,
 	serializePluginFieldInput,
 	validatePluginData,
@@ -59,6 +60,7 @@ import { ParsingLegend } from '../parsing-legend';
 import { PreviewSection } from '../preview-section';
 import { PluginEditorPreview } from '../preview/plugin-editor-preview';
 import { toPluginFieldSpecs } from '../../integrations/codemirror/plugin-fields';
+import { pluginCallContext } from '@/lib/plugins/call-context';
 import { buildPluginKindConfig, buildPluginNodeSaveData } from '../../plugin-kind-editor';
 import { EnhancedInput } from './enhanced-input';
 import { MobileCompletionTray } from './mobile-completion-tray';
@@ -715,19 +717,34 @@ export const QuickInput: FC<QuickInputProps> = ({
 				if (!activePluginKind || !pluginDraft) {
 					throw new Error('This plugin isn’t running on this map');
 				}
+				// List rows keep the ids they had, so plugins can tell rows apart after an edit.
+				const existingExtension = existingNode?.data.metadata?.extension;
+				const draft = {
+					...pluginDraft,
+					data: assignListRowIds(
+						activePluginKind.kind,
+						pluginDraft.data,
+						existingExtension?.pluginId === activePluginKind.manifest.id
+							? existingExtension.data
+							: null
+					),
+				};
 				// Save the plugin's view too, so people without the plugin see it.
 				const rendered = await loadPluginHost()
 					.then((host) =>
-						host.render(activePluginKind.manifest.id, activePluginKind.kind, pluginDraft.data, {
-							canEdit: true,
-						})
+						host.render(
+							activePluginKind.manifest.id,
+							activePluginKind.kind,
+							draft.data,
+							pluginCallContext(true)
+						)
 					)
 					.catch(() => null);
 				nodeData = buildPluginNodeSaveData(
 					activePluginKind,
-					pluginDraft,
+					draft,
 					rendered,
-					existingNode?.data.metadata?.extension
+					existingExtension
 				) as ReturnType<typeof parseInput>;
 			} else {
 				nodeData = parseInput(cleanValue);

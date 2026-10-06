@@ -1,5 +1,6 @@
 'use client';
 
+import { localDateString, pluginCallContext } from '@/lib/plugins/call-context';
 import type { PluginData } from '@/lib/plugins/plugin-fields';
 import { loadPluginHost } from '@/lib/plugins/runtime/load-plugin-host';
 import type { PluginRenderResult } from '@/lib/plugins/runtime/plugin-host';
@@ -14,11 +15,13 @@ const renderCache = new Map<string, PluginRenderResult>();
 export function pluginRenderKey(
 	active: ActivePluginKind,
 	data: PluginData,
-	canEdit: boolean
+	canEdit: boolean,
+	today: string = localDateString()
 ): string {
 	const { manifest, kind, generation } = active;
-	// The generation changes when a developer reloads the plugin with new code.
-	return `${manifest.id}@${manifest.version}#${generation}:${kind.kind}:${canEdit ? 1 : 0}:${JSON.stringify(data)}`;
+	// The generation changes when a developer reloads the plugin with new code; the date
+	// is in the key because plugins can show it (days left), so views redraw each day.
+	return `${manifest.id}@${manifest.version}#${generation}:${kind.kind}:${canEdit ? 1 : 0}:${today}:${JSON.stringify(data)}`;
 }
 
 export function rememberPluginRender(key: string, result: PluginRenderResult) {
@@ -65,9 +68,7 @@ export function usePluginRender({
 					active.manifest.id,
 					active.kind,
 					data,
-					{
-						canEdit,
-					}
+					pluginCallContext(canEdit)
 				);
 				rememberPluginRender(key, result);
 				if (!cancelled) rerender();

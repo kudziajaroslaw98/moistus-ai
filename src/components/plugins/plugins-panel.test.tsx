@@ -1,5 +1,6 @@
 import { pluginManifestSchema } from '@/lib/plugins/manifest-schema';
-import { render, screen } from '@testing-library/react';
+import { FIRST_PARTY_PLUGINS } from '@/lib/plugins/catalog';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -83,6 +84,7 @@ function setup(overrides: Record<string, unknown> = {}) {
 }
 
 const asEditor = { currentUser: { id: 'editor-1', is_anonymous: false } };
+const metricCard = async () => within(await screen.findByTestId('plugin-card-shiko.metric'));
 
 beforeEach(() => {
 	jest.clearAllMocks();
@@ -108,11 +110,13 @@ describe('PluginsPanel for the owner', () => {
 	it('lists Shiko plugins with what they can access', async () => {
 		setup();
 
-		expect(await screen.findByText('by Shiko · v0.2.0')).toBeInTheDocument();
-		expect(screen.getByText('Track a number against a target.')).toBeInTheDocument();
+		const card = await metricCard();
+		expect(await card.findByText('by Shiko · v0.2.0')).toBeInTheDocument();
+		expect(card.getByText('Track a number against a target.')).toBeInTheDocument();
 		expect(
-			screen.getByText('Sees and changes only its own nodes. No internet access.')
+			card.getByText('Sees and changes only its own nodes. No internet access.')
 		).toBeInTheDocument();
+		expect(screen.getAllByTestId(/^plugin-card-/)).toHaveLength(FIRST_PARTY_PLUGINS.length);
 		expect(screen.getByRole('link', { name: /Open Plugins page/ })).toHaveAttribute(
 			'href',
 			'/dashboard/plugins'
@@ -162,7 +166,7 @@ describe('PluginsPanel for the owner', () => {
 
 		const update = await screen.findByTestId('plugin-update');
 		expect(screen.getByText('1 update')).toBeInTheDocument();
-		expect(await screen.findByText('by Shiko · v0.1.0')).toBeInTheDocument();
+		expect(await (await metricCard()).findByText('by Shiko · v0.1.0')).toBeInTheDocument();
 		expect(update).toHaveTextContent('Update available · 0.2.0');
 		expect(update).toHaveTextContent(
 			'Adds a trend arrow next to the value and fixes rounding for decimals.'

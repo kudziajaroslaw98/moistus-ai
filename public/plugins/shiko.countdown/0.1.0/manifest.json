@@ -1,0 +1,39 @@
+{
+	"id": "shiko.countdown",
+	"name": "Countdown",
+	"version": "0.1.0",
+	"apiVersion": 1,
+	"author": "Shiko",
+	"description": "Days left until a date.",
+	"icon": "timer",
+	"permissions": ["node:own"],
+	"main": "plugin.js",
+	"nodeKinds": [
+		{
+			"kind": "countdown",
+			"label": "Countdown",
+			"description": "Days left until a date",
+			"icon": "timer",
+			"labelField": "label",
+			"fields": {
+				"label": {
+					"type": "string",
+					"title": "What",
+					"description": "What you're counting down to",
+					"required": true,
+					"maxLength": 80
+				},
+				"date": {
+					"type": "date",
+					"title": "Date",
+					"description": "The day it happens",
+					"required": true
+				}
+			},
+			"examples": [
+				"Beta launch date:2026-11-12",
+				"Team offsite date:2027-03-02"
+			]
+		}
+	]
+}

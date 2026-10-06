@@ -329,7 +329,8 @@ function createPluginFieldDecorations(text: string, fields: PluginFieldSpecLite[
 		marks.push({ from, to: from + match[0].length, className: PATTERN_STYLES.nodeType });
 	}
 	const names = new Set(fields.map((field) => field.name));
-	for (const token of scanPluginFieldTokens(text, names)) {
+	const listNames = new Set(fields.filter((field) => field.type === 'list').map((field) => field.name));
+	for (const token of scanPluginFieldTokens(text, names, listNames)) {
 		marks.push({ from: token.from, to: token.to, className: 'cm-pattern-plugin-field' });
 	}
 	marks.sort((a, b) => a.from - b.from);

@@ -1,4 +1,6 @@
 import type {
+	PluginFieldSpec,
+	PluginListColumn,
 	PluginManifest,
 	PluginNodeKind,
 } from '@/lib/plugins/manifest-schema';
@@ -20,12 +22,36 @@ import type {
  * kind's manifest, and saving builds `metadata.extension` from the typed fields.
  */
 
-const FIELD_EXAMPLE: Record<string, (name: string) => string> = {
-	string: (name) => `${name}:text`,
-	number: (name) => `${name}:10`,
-	integer: (name) => `${name}:3`,
-	boolean: (name) => `${name}:yes`,
+const COLUMN_EXAMPLE: Record<PluginListColumn['type'], (column: PluginListColumn) => string> = {
+	string: (column) => `"${column.title}"`,
+	number: () => '10',
+	integer: () => '3',
+	boolean: (column) => column.name,
+	enum: (column) => (column.type === 'enum' ? column.options[0] : ''),
 };
+
+function fieldExample(name: string, spec: PluginFieldSpec): string {
+	switch (spec.type) {
+		case 'string':
+			return `${name}:text`;
+		case 'number':
+			return `${name}:10`;
+		case 'integer':
+			return `${name}:3`;
+		case 'boolean':
+			return `${name}:yes`;
+		case 'enum':
+			return `${name}:${spec.options[0]}`;
+		case 'date':
+			return `${name}:2026-12-31`;
+		case 'list': {
+			const values = spec.columns.map((column) => COLUMN_EXAMPLE[column.type](column));
+			return spec.columns.length === 1
+				? `${name}:[${values[0]}]`
+				: `${name}:[[${values.join(', ')}]]`;
+		}
+	}
+}
 
 function fieldDescription(kind: PluginNodeKind, name: string): string {
 	const spec = kind.fields[name];
@@ -34,9 +60,33 @@ function fieldDescription(kind: PluginNodeKind, name: string): string {
 			? 'whole number'
 			: spec.type === 'enum'
 				? 'choice'
-				: spec.type;
+				: spec.type === 'list'
+					? spec.columns.length === 1
+						? `list of ${spec.columns[0].title.toLowerCase()}`
+						: `list of [${spec.columns.map((column) => column.name).join(', ')}]`
+					: spec.type;
 	const required = spec.type !== 'boolean' && spec.required ? ', required' : '';
 	return `${spec.title}${spec.description ? ` · ${spec.description}` : ''} (${type}${required})`;
+}
+
+/** Syntax Help rows for a list's columns, in the order rows are typed. */
+function columnPatterns(spec: Extract<PluginFieldSpec, { type: 'list' }>): ParsingPattern[] {
+	if (spec.columns.length === 1) return [];
+	return spec.columns.map((column, index) => ({
+		pattern: `  ${index + 1}. ${column.name}`,
+		description: `${column.title}${column.description ? ` · ${column.description}` : ''} (${
+			column.type === 'boolean'
+				? `write ${column.name}, or leave it out`
+				: column.type === 'integer'
+					? 'whole number'
+					: column.type === 'enum'
+						? `one of ${column.options.join(', ')}`
+						: column.type === 'string'
+							? 'text in quotes'
+							: column.type
+		}${column.type !== 'boolean' && column.required ? ', required' : ''})`,
+		category: 'metadata',
+	}));
 }
 
 /** Syntax Help patterns generated from the kind's fields. */
@@ -45,17 +95,16 @@ export function buildPluginKindPatterns(
 ): ParsingPattern[] {
 	const fieldPatterns = Object.entries(kind.fields)
 		.filter(([name]) => name !== kind.labelField)
-		.map(([name, spec]): ParsingPattern => ({
-			pattern: `${name}:`,
-			description: fieldDescription(kind, name),
-			category: 'metadata',
-			examples: [
-				spec.type === 'enum'
-					? `${name}:${spec.options[0]}`
-					: (FIELD_EXAMPLE[spec.type]?.(name) ?? `${name}:`),
-			],
-			insertText: `${name}:`,
-		}));
+		.flatMap(([name, spec]): ParsingPattern[] => [
+			{
+				pattern: `${name}:`,
+				description: fieldDescription(kind, name),
+				category: 'metadata',
+				examples: [fieldExample(name, spec)],
+				insertText: spec.type === 'list' ? `${name}:[` : `${name}:`,
+			},
+			...(spec.type === 'list' ? columnPatterns(spec) : []),
+		]);
 	return [
 		{
 			pattern: `$${kind.kind}`,

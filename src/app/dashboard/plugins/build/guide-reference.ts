@@ -46,18 +46,23 @@ export const FIELD_TYPE_ROWS: GuideRow[] = [
 	{ name: 'number, integer', description: 'title, description, required, default, min, max' },
 	{ name: 'boolean', description: 'title, description, default (typed as yes or no)' },
 	{ name: 'enum', description: `title, description, options (up to ${PLUGIN_LIMITS.enumOptions}), required, default` },
+	{ name: 'date', description: 'title, description, required (typed and stored as 2026-12-31)' },
+	{
+		name: 'list',
+		description: `title, description, required, maxItems (up to ${PLUGIN_LIMITS.listItems}), columns (up to ${PLUGIN_LIMITS.listColumns}, each a string, number, integer, boolean or enum with a name). Typed as items:[["Hotel", 520, paid]]; a yes/no column is its own name. Each row reaches your code as an object with an id from Shiko.`,
+	},
 ];
 
 /** Every view piece a plugin can return. `type` must match ui-tree.ts (checked by a test). */
 export const UI_CALLS: Array<GuideRow & { type: string }> = [
-	{ type: 'stack', name: 'ui.stack(options, children)', description: 'Pieces on top of each other. gap 0–4, align' },
+	{ type: 'stack', name: 'ui.stack(options, children)', description: 'Pieces on top of each other. gap 0–4, align. Any piece also takes key: give each list row its row.id' },
 	{ type: 'row', name: 'ui.row(options, children)', description: 'Pieces side by side. gap, align, justify, wrap' },
 	{ type: 'text', name: 'ui.text(value, options)', description: `Up to ${PLUGIN_UI_LIMITS.text} characters. size sm–xl, tone default / muted / strong, weight` },
 	{ type: 'badge', name: 'ui.badge(label, options)', description: 'tone neutral / success / warning / danger / info' },
 	{ type: 'progress', name: 'ui.progress(value, options)', description: 'value from 0 to 1. label, showValue' },
 	{ type: 'button', name: 'ui.button(label, action, options)', description: `Runs actions[action]. icon, payload (up to ${formatBytes(PLUGIN_UI_LIMITS.payloadBytes)})` },
 	{ type: 'checkbox', name: 'ui.checkbox(label, checked, action, options)', description: 'Runs actions[action]. payload' },
-	{ type: 'divider', name: 'ui.divider()', description: 'A line between pieces' },
+	{ type: 'divider', name: 'ui.divider(options)', description: 'A line between pieces' },
 	{ type: 'icon', name: 'ui.icon(name, options)', description: `tone. name is one of ${PLUGIN_UI_ICON_NAMES.join(', ')}` },
 ];
 

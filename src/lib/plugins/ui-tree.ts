@@ -17,6 +17,8 @@ export const PLUGIN_UI_ICON_NAMES = [
 	'pause',
 	'arrow-up',
 	'arrow-down',
+	'arrow-left',
+	'arrow-right',
 	'star',
 	'flag',
 	'target',
@@ -34,7 +36,11 @@ export const PLUGIN_UI_LIMITS = {
 type Gap = 0 | 1 | 2 | 3 | 4;
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
-export type PluginUiNode =
+/**
+ * Every piece may carry a `key` (unique among its siblings, e.g. a list row's id) so the
+ * view keeps focus and identity when rows move; without one, position is used.
+ */
+export type PluginUiNode = (
 	| {
 			type: 'stack';
 			gap?: Gap;
@@ -73,7 +79,8 @@ export type PluginUiNode =
 			payload?: unknown;
 	  }
 	| { type: 'divider' }
-	| { type: 'icon'; name: PluginUiIconName; tone?: Tone };
+	| { type: 'icon'; name: PluginUiIconName; tone?: Tone }
+) & { key?: string };
 
 const gapSchema = z.union([
 	z.literal(0),
@@ -83,6 +90,7 @@ const gapSchema = z.union([
 	z.literal(4),
 ]);
 const toneSchema = z.enum(['neutral', 'success', 'warning', 'danger', 'info']);
+const keySchema = z.string().min(1).max(64).optional();
 const actionSchema = z.string().regex(/^[a-zA-Z][a-zA-Z0-9_-]{0,31}$/);
 const payloadSchema = z
 	.unknown()
@@ -97,12 +105,14 @@ export const pluginUiNodeSchema: z.ZodType<PluginUiNode> = z.lazy(() =>
 	z.discriminatedUnion('type', [
 		z.strictObject({
 			type: z.literal('stack'),
+			key: keySchema,
 			gap: gapSchema.optional(),
 			align: z.enum(['start', 'center', 'end', 'stretch']).optional(),
 			children: z.array(pluginUiNodeSchema).max(PLUGIN_UI_LIMITS.children),
 		}),
 		z.strictObject({
 			type: z.literal('row'),
+			key: keySchema,
 			gap: gapSchema.optional(),
 			align: z.enum(['start', 'center', 'end', 'baseline']).optional(),
 			justify: z.enum(['start', 'center', 'end', 'between']).optional(),
@@ -111,6 +121,7 @@ export const pluginUiNodeSchema: z.ZodType<PluginUiNode> = z.lazy(() =>
 		}),
 		z.strictObject({
 			type: z.literal('text'),
+			key: keySchema,
 			value: z.string().max(PLUGIN_UI_LIMITS.text),
 			size: z.enum(['sm', 'md', 'lg', 'xl']).optional(),
 			tone: z.enum(['default', 'muted', 'strong']).optional(),
@@ -118,17 +129,20 @@ export const pluginUiNodeSchema: z.ZodType<PluginUiNode> = z.lazy(() =>
 		}),
 		z.strictObject({
 			type: z.literal('badge'),
+			key: keySchema,
 			label: z.string().min(1).max(40),
 			tone: toneSchema.optional(),
 		}),
 		z.strictObject({
 			type: z.literal('progress'),
+			key: keySchema,
 			value: z.number().finite().min(0).max(1),
 			label: z.string().max(60).optional(),
 			showValue: z.boolean().optional(),
 		}),
 		z.strictObject({
 			type: z.literal('button'),
+			key: keySchema,
 			label: z.string().min(1).max(30),
 			action: actionSchema,
 			icon: z.enum(PLUGIN_UI_ICON_NAMES).optional(),
@@ -136,14 +150,16 @@ export const pluginUiNodeSchema: z.ZodType<PluginUiNode> = z.lazy(() =>
 		}),
 		z.strictObject({
 			type: z.literal('checkbox'),
+			key: keySchema,
 			label: z.string().min(1).max(120),
 			checked: z.boolean(),
 			action: actionSchema,
 			payload: payloadSchema.optional(),
 		}),
-		z.strictObject({ type: z.literal('divider') }),
+		z.strictObject({ type: z.literal('divider'), key: keySchema }),
 		z.strictObject({
 			type: z.literal('icon'),
+			key: keySchema,
 			name: z.enum(PLUGIN_UI_ICON_NAMES),
 			tone: toneSchema.optional(),
 		}),

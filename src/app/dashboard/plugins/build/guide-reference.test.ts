@@ -3,7 +3,8 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { LIMIT_ROWS, UI_CALLS } from './guide-reference';
+import { pluginFieldSpecSchema } from '@/lib/plugins/manifest-schema';
+import { FIELD_TYPE_ROWS, LIMIT_ROWS, UI_CALLS } from './guide-reference';
 
 describe('build guide reference', () => {
 	it('documents every view piece the runtime accepts', () => {
@@ -24,5 +25,17 @@ describe('build guide reference', () => {
 				{ name: 'render', description: '50 ms' },
 			])
 		);
+	});
+});
+
+describe('build guide field types', () => {
+	it('documents every field type a manifest can use', () => {
+		const types = pluginFieldSpecSchema.options.flatMap((option) => {
+			const type = option.shape.type;
+			return 'options' in type ? [...type.options] : [type.value];
+		});
+
+		const documented = FIELD_TYPE_ROWS.flatMap((row) => row.name.split(', '));
+		expect(documented.sort()).toEqual([...types].sort());
 	});
 });

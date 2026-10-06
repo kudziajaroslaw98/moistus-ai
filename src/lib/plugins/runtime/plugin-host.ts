@@ -1,5 +1,7 @@
+import type { PluginCallContext } from '@/lib/plugins/call-context';
 import type { PluginNodeKind } from '@/lib/plugins/manifest-schema';
 import {
+	assignListRowIds,
 	validatePluginData,
 	type PluginData,
 } from '@/lib/plugins/plugin-fields';
@@ -42,10 +44,7 @@ export interface PluginWorkerLike {
 	onerror: ((event: Event) => void) | null;
 }
 
-/** What a plugin knows when it renders or runs an action. */
-export interface PluginCallContext {
-	canEdit: boolean;
-}
+export type { PluginCallContext } from '@/lib/plugins/call-context';
 
 export interface PluginRenderResult {
 	tree: PluginUiNode;
@@ -220,7 +219,8 @@ export class PluginHost {
 				'invalid-output'
 			);
 		}
-		return checked.data;
+		// Rows the plugin added get ids from Shiko; existing rows keep theirs.
+		return assignListRowIds(kind, checked.data, data);
 	}
 
 	unload(pluginId: string) {

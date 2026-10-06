@@ -183,7 +183,10 @@ function PluginCard({
 
 	return (
 		// relative: version boxes that are leaving are positioned against the card.
-		<div className='relative space-y-3 rounded-lg border border-zinc-800 bg-base p-3'>
+		<div
+			className='relative space-y-3 rounded-lg border border-zinc-800 bg-base p-3'
+			data-testid={`plugin-card-${entry.id}`}
+		>
 			<div className='flex items-start gap-3'>
 				<span className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-500/15 text-primary-400'>
 					{Icon ? <Icon aria-hidden className='size-[18px]' /> : null}

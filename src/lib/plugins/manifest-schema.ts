@@ -17,6 +17,8 @@ export const PLUGIN_ICON_KEYS = [
 	'star',
 	'lightbulb',
 	'file-text',
+	'wallet',
+	'scale',
 ] as const;
 export type PluginIconKey = (typeof PLUGIN_ICON_KEYS)[number];
 
@@ -54,7 +56,13 @@ export const PLUGIN_LIMITS = {
 	defaultStringMaxLength: 200,
 	/** Max serialized size of a node's plugin data, and of its saved snapshot. */
 	dataBytes: 16 * 1024,
+	/** Rows in one list field (also the default when a list sets no maxItems). */
+	listItems: 30,
+	listColumns: 6,
 } as const;
+
+/** Shiko's own key on every list row; plugins read it but columns can't use the name. */
+export const LIST_ROW_ID_KEY = 'id';
 
 // Plugin and field names appear in typed editor syntax (`target:2000`), so keep them plain.
 const pluginIdSchema = z
@@ -76,6 +84,45 @@ const fieldBase = {
 	title: z.string().trim().min(1).max(40),
 	description: z.string().trim().max(140).optional(),
 };
+
+const columnBase = {
+	name: fieldNameSchema,
+	title: z.string().trim().min(1).max(40),
+	description: z.string().trim().max(140).optional(),
+};
+
+/** One column of a list field; rows are typed as `["Hotel", 520, paid]` in that order. */
+export const pluginListColumnSchema = z.discriminatedUnion('type', [
+	z.strictObject({
+		...columnBase,
+		type: z.literal('string'),
+		required: z.boolean().optional(),
+		maxLength: z
+			.number()
+			.int()
+			.min(1)
+			.max(PLUGIN_LIMITS.stringMaxLength)
+			.optional(),
+	}),
+	z.strictObject({
+		...columnBase,
+		type: z.enum(['number', 'integer']),
+		required: z.boolean().optional(),
+		default: z.number().finite().optional(),
+		min: z.number().finite().optional(),
+		max: z.number().finite().optional(),
+	}),
+	/** Typed as the column's name (`paid`) when true; left out when false. */
+	z.strictObject({ ...columnBase, type: z.literal('boolean') }),
+	z.strictObject({
+		...columnBase,
+		type: z.literal('enum'),
+		required: z.boolean().optional(),
+		default: enumOptionSchema.optional(),
+		options: z.array(enumOptionSchema).min(1).max(PLUGIN_LIMITS.enumOptions),
+	}),
+]);
+export type PluginListColumn = z.infer<typeof pluginListColumnSchema>;
 
 export const pluginFieldSpecSchema = z.discriminatedUnion('type', [
 	z.strictObject({
@@ -110,8 +157,27 @@ export const pluginFieldSpecSchema = z.discriminatedUnion('type', [
 		default: enumOptionSchema.optional(),
 		options: z.array(enumOptionSchema).min(1).max(PLUGIN_LIMITS.enumOptions),
 	}),
+	/** A calendar date, typed and stored as YYYY-MM-DD. */
+	z.strictObject({
+		...fieldBase,
+		type: z.literal('date'),
+		required: z.boolean().optional(),
+	}),
+	/** Rows of typed columns: `items:[["Flights", 640, paid], ["Hotel", 520]]`. */
+	z.strictObject({
+		...fieldBase,
+		type: z.literal('list'),
+		/** At least one row. */
+		required: z.boolean().optional(),
+		columns: z
+			.array(pluginListColumnSchema)
+			.min(1)
+			.max(PLUGIN_LIMITS.listColumns),
+		maxItems: z.number().int().min(1).max(PLUGIN_LIMITS.listItems).optional(),
+	}),
 ]);
 export type PluginFieldSpec = z.infer<typeof pluginFieldSpecSchema>;
+export type PluginListFieldSpec = Extract<PluginFieldSpec, { type: 'list' }>;
 
 export const pluginNodeKindSchema = z
 	.strictObject({
@@ -171,6 +237,36 @@ export const pluginNodeKindSchema = z
 					path: ['fields', name],
 					message: 'default must be one of the options',
 				});
+			}
+			if (spec.type === 'list') {
+				const names = spec.columns.map((column) => column.name);
+				if (new Set(names).size !== names.length) {
+					ctx.addIssue({
+						code: 'custom',
+						path: ['fields', name, 'columns'],
+						message: 'Column names must be unique',
+					});
+				}
+				if (names.includes(LIST_ROW_ID_KEY)) {
+					ctx.addIssue({
+						code: 'custom',
+						path: ['fields', name, 'columns'],
+						message: `"${LIST_ROW_ID_KEY}" is reserved for Shiko's row ids`,
+					});
+				}
+				for (const column of spec.columns) {
+					if (
+						column.type === 'enum' &&
+						column.default &&
+						!column.options.includes(column.default)
+					) {
+						ctx.addIssue({
+							code: 'custom',
+							path: ['fields', name, 'columns'],
+							message: `${column.name}: default must be one of the options`,
+						});
+					}
+				}
 			}
 		}
 	});

@@ -2,6 +2,8 @@ import type { PluginIconKey } from '@/lib/plugins/manifest-schema';
 import type { PluginUiIconName } from '@/lib/plugins/ui-tree';
 import {
 	ArrowDown,
+	ArrowLeft,
+	ArrowRight,
 	ArrowUp,
 	BarChart3,
 	Calendar,
@@ -18,9 +20,11 @@ import {
 	Plus,
 	Puzzle,
 	RefreshCw,
+	Scale,
 	Star,
 	Target,
 	Timer,
+	Wallet,
 	X,
 	type LucideIcon,
 } from 'lucide-react';
@@ -39,6 +43,8 @@ export const PLUGIN_ICONS: Record<PluginIconKey, LucideIcon> = {
 	star: Star,
 	lightbulb: Lightbulb,
 	'file-text': FileText,
+	wallet: Wallet,
+	scale: Scale,
 };
 
 /** Icons a plugin can draw inside its node (buttons and `icon` primitives). */
@@ -52,6 +58,8 @@ export const PLUGIN_UI_ICONS: Record<PluginUiIconName, LucideIcon> = {
 	pause: Pause,
 	'arrow-up': ArrowUp,
 	'arrow-down': ArrowDown,
+	'arrow-left': ArrowLeft,
+	'arrow-right': ArrowRight,
 	star: Star,
 	flag: Flag,
 	target: Target,

@@ -17,6 +17,7 @@ import {
 } from '@codemirror/autocomplete';
 import type { EditorView } from '@codemirror/view';
 import { commandRegistry } from '../../core/commands/command-registry';
+import { localDateString } from '@/lib/plugins/call-context';
 import { readPluginFields, type PluginFieldSpecLite } from './plugin-fields';
 
 // ============================================================================
@@ -349,7 +350,9 @@ function completePluginFields(
 				? (field.options ?? [])
 				: field?.type === 'boolean'
 					? ['yes', 'no']
-					: [];
+					: field?.type === 'date'
+						? [localDateString()]
+						: [];
 		const options = values
 			.filter((value) => value.startsWith(valueMatch[2]))
 			.map((value) => ({ label: value, type: 'enum', apply: `${value} ` }));
@@ -365,8 +368,9 @@ function completePluginFields(
 		.map((field) => ({
 			label: `${field.name}:`,
 			type: 'property',
-			detail: field.title,
-			apply: createChainedApply(`${field.name}:`),
+			detail: field.type === 'list' ? `${field.title} (list)` : field.title,
+			// A list opens its brackets; the rows go inside.
+			apply: field.type === 'list' ? `${field.name}:[` : createChainedApply(`${field.name}:`),
 		}));
 	return options.length > 0 ? { from: word.from, options, validFor: /^\w*$/ } : null;
 }

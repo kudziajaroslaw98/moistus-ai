@@ -1,0 +1,76 @@
+{
+	"id": "shiko.kanban",
+	"name": "Kanban",
+	"version": "0.1.0",
+	"apiVersion": 1,
+	"author": "Shiko",
+	"description": "Cards you move from To do to Done, inside one node.",
+	"icon": "columns",
+	"permissions": ["node:own"],
+	"main": "plugin.js",
+	"nodeKinds": [
+		{
+			"kind": "kanban",
+			"label": "Kanban",
+			"description": "Cards in To do, Doing and Done",
+			"icon": "columns",
+			"labelField": "label",
+			"fields": {
+				"label": {
+					"type": "string",
+					"title": "Board",
+					"description": "The board's name",
+					"maxLength": 80
+				},
+				"todo": {
+					"type": "list",
+					"title": "To do",
+					"description": "Cards not started, up to 10",
+					"maxItems": 10,
+					"columns": [
+						{
+							"name": "text",
+							"type": "string",
+							"title": "Card",
+							"required": true,
+							"maxLength": 120
+						}
+					]
+				},
+				"doing": {
+					"type": "list",
+					"title": "Doing",
+					"description": "Cards in progress, up to 10",
+					"maxItems": 10,
+					"columns": [
+						{
+							"name": "text",
+							"type": "string",
+							"title": "Card",
+							"required": true,
+							"maxLength": 120
+						}
+					]
+				},
+				"done": {
+					"type": "list",
+					"title": "Done",
+					"description": "Finished cards, up to 10",
+					"maxItems": 10,
+					"columns": [
+						{
+							"name": "text",
+							"type": "string",
+							"title": "Card",
+							"required": true,
+							"maxLength": 120
+						}
+					]
+				}
+			},
+			"examples": [
+				"Launch board todo:[\"Build it\", \"Test on iPad\"] doing:[\"Design the panel\"] done:[\"Write the spec\"]"
+			]
+		}
+	]
+}
