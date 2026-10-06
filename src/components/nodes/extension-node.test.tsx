@@ -4,7 +4,8 @@ import type {
 	InlineCreatableNodeTypes,
 } from '@/registry/node-registry';
 import type { NodeExtensionData } from '@/types/extensions';
-import { render, screen } from '@testing-library/react';
+import { setPluginLibrary } from '@/lib/plugins/catalog';
+import { act, render, screen } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import ExtensionNode from './extension-node';
 
@@ -82,7 +83,28 @@ const createProps = (
 	}) as unknown as ExtensionNodeProps;
 
 describe('ExtensionNode', () => {
+	it('waits for the plugin library before saying a plugin is unavailable', () => {
+		render(
+			<ExtensionNode
+				{...createProps({
+					pluginId: 'com.example.kanban',
+					kind: 'kanban',
+					kindLabel: 'Kanban board',
+					version: '1.0.0',
+					data: {},
+				})}
+			/>
+		);
+		expect(screen.queryByTestId('plugin-node-status')).not.toBeInTheDocument();
+
+		act(() => setPluginLibrary({ plugins: [], disabled: [] }));
+		expect(screen.getByTestId('plugin-node-status')).toHaveTextContent(
+			'Needs the Kanban board plugin (com.example.kanban)'
+		);
+	});
+
 	it('shows the kind, content and required plugin when the plugin is unavailable', () => {
+		setPluginLibrary({ plugins: [], disabled: [] });
 		render(
 			<ExtensionNode
 				{...createProps(

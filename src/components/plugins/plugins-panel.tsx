@@ -28,6 +28,7 @@ import {
 	PluginPowersConfirm,
 	PluginPowersLine,
 } from './plugin-powers';
+import { PluginCardMenu } from './plugin-card-menu';
 import { PluginSubmitSheet } from './plugin-submit-sheet';
 import { PluginVersionControls } from './plugin-version-controls';
 import { useCatalogManifests } from './use-catalog-manifests';
@@ -152,6 +153,9 @@ interface PluginCardProps {
 	isConfirmingOn: boolean;
 	/** Why Shiko turned it off everywhere (the owner can turn it off, not on). */
 	offReason: string | null;
+	mapId: string | null;
+	/** The selected node's plugin data, if it's this plugin's (offered in a report). */
+	reportNodeData: Record<string, unknown> | null;
 	onToggle: (enabled: boolean) => void;
 	onConfirmOff: () => void;
 	onKeepOn: () => void;
@@ -177,6 +181,8 @@ function PluginCard({
 	isConfirmingOff,
 	isConfirmingOn,
 	offReason,
+	mapId,
+	reportNodeData,
 	onToggle,
 	onConfirmOff,
 	onKeepOn,
@@ -249,6 +255,15 @@ function PluginCard({
 						/>
 					</label>
 				)}
+
+				<PluginCardMenu
+					isOwner={isOwner}
+					mapId={mapId ?? undefined}
+					nodeData={reportNodeData}
+					pluginId={entry.id}
+					pluginName={name}
+					version={record?.version ?? latestCatalogVersion(entry).version}
+				/>
 			</div>
 
 			{manifest && <PluginPowersLine manifest={manifest} />}
@@ -508,6 +523,7 @@ export function PluginsPanel() {
 		mapPlugins,
 		loadedPlugins,
 		nodes,
+		selectedNodes,
 		setPopoverOpen,
 		setMapPluginEnabled,
 		setMapPluginVersion,
@@ -529,6 +545,7 @@ export function PluginsPanel() {
 				mapPlugins: state.mapPlugins,
 				loadedPlugins: state.loadedPlugins,
 				nodes: state.nodes,
+				selectedNodes: state.selectedNodes,
 				setPopoverOpen: state.setPopoverOpen,
 				setMapPluginEnabled: state.setMapPluginEnabled,
 				setMapPluginVersion: state.setMapPluginVersion,
@@ -627,6 +644,11 @@ export function PluginsPanel() {
 			recordFor(entry.id)?.version ?? latestCatalogVersion(entry).version
 		);
 
+	// Reports can attach the selected node's plugin data (only if it's this plugin's).
+	const reportNodeDataFor = (entry: PluginCatalogEntry) =>
+		selectedNodes.find((node) => node.data.metadata?.extension?.pluginId === entry.id)
+			?.data.metadata?.extension?.data ?? null;
+
 	const renderCard = (entry: PluginCatalogEntry) => (
 		<PluginCard
 			canEdit={canEdit}
@@ -642,7 +664,9 @@ export function PluginsPanel() {
 			loaded={loadedPlugins[entry.id]}
 			manifest={manifests[entry.id]}
 			nodeCount={nodeCountFor(entry.id)}
+			mapId={mapId}
 			offReason={offReasonFor(entry)}
+			reportNodeData={reportNodeDataFor(entry)}
 			record={recordFor(entry.id)}
 			onCancelOn={() => setConfirmingOn(null)}
 			onConfirmOff={() => void setEnabled(entry.id, false)}

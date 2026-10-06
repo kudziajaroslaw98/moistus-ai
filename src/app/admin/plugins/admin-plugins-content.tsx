@@ -2,12 +2,16 @@
 
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { formatTimeAgo } from '@/components/plugins/plugin-update-details';
+import { ReportsReview } from '@/components/plugins/review/reports-review';
 import { SubmissionReview } from '@/components/plugins/review/submission-review';
 import { Button } from '@/components/ui/button';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { networkHostsOf } from '@/lib/plugins/manifest-schema';
-import type { PluginSubmission } from '@/types/plugin-library';
+import type {
+	PluginReportGroup,
+	PluginSubmission,
+} from '@/types/plugin-library';
 import { cn } from '@/utils/cn';
 import { useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
@@ -15,6 +19,7 @@ import useSWR, { useSWRConfig } from 'swr';
 const SUBMISSIONS_KEY = '/api/admin/plugins/submissions';
 /** Also read by the dashboard sidebar's Plugin review badge. */
 const SUMMARY_KEY = '/api/admin/plugins/summary';
+const REPORTS_KEY = '/api/admin/plugins/reports';
 
 async function fetchData<T>(url: string): Promise<T> {
 	const response = await fetch(url, { cache: 'no-store' });
@@ -122,11 +127,48 @@ function SubmissionsTab() {
 }
 
 /** /admin/plugins: Shiko's reviewers approve submissions and act on reports. */
-export function AdminPluginsContent() {
-	const { data: summary } = useSWR(
-		SUMMARY_KEY,
-		(url: string) => fetchData<{ submissions: number; reports: number }>(url)
+function ReportsTab() {
+	const { mutate: mutateKey } = useSWRConfig();
+	const { data, error, isLoading, mutate } = useSWR(
+		REPORTS_KEY,
+		(url: string) => fetchData<{ groups: PluginReportGroup[] }>(url)
 	);
+	if (isLoading) return <Skeleton className='h-40 w-full rounded-xl' />;
+	if (error) {
+		return (
+			<div
+				className='flex items-center justify-between gap-3 rounded-lg border border-error-500/30 bg-error-500/10 px-3 py-2 text-sm text-error-200'
+				role='alert'
+			>
+				Couldn&apos;t load reports.
+				<Button onClick={() => void mutate()} size='sm' variant='outline'>
+					Try again
+				</Button>
+			</div>
+		);
+	}
+	return (
+		<ReportsReview
+			groups={data?.groups ?? []}
+			onChanged={() => {
+				void mutate();
+				void mutateKey(SUMMARY_KEY);
+			}}
+		/>
+	);
+}
+
+const TABS = [
+	{ id: 'submissions', label: 'Submissions' },
+	{ id: 'reports', label: 'Reports' },
+] as const;
+
+/** /admin/plugins: Shiko's reviewers approve submissions and act on reports. */
+export function AdminPluginsContent() {
+	const { data: summary } = useSWR(SUMMARY_KEY, (url: string) =>
+		fetchData<{ submissions: number; reports: number }>(url)
+	);
+	const [tab, setTab] = useState<(typeof TABS)[number]['id']>('submissions');
 
 	return (
 		<SidebarProvider>
@@ -138,20 +180,37 @@ export function AdminPluginsContent() {
 								Plugin review
 							</h1>
 
-							<nav
+							<div
 								aria-label='Plugin review'
 								className='flex gap-1 border-b border-zinc-800'
+								role='tablist'
 							>
-								<span
-									aria-current='page'
-									className='-mb-px border-b-2 border-primary-500 px-3 py-2 text-sm font-medium text-white'
-								>
-									{`Submissions${summary ? ` ${summary.submissions}` : ''}`}
-								</span>
-							</nav>
+								{TABS.map((item) => {
+									const count = summary?.[item.id];
+									return (
+										<button
+											aria-selected={tab === item.id}
+											key={item.id}
+											onClick={() => setTab(item.id)}
+											role='tab'
+											type='button'
+											className={cn(
+												'-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60',
+												tab === item.id
+													? 'border-primary-500 text-white'
+													: 'border-transparent text-zinc-400 hover:text-zinc-100'
+											)}
+										>
+											{`${item.label}${count ? ` ${count}` : ''}`}
+										</button>
+									);
+								})}
+							</div>
 						</div>
 
-						<SubmissionsTab />
+						<div role='tabpanel'>
+							{tab === 'submissions' ? <SubmissionsTab /> : <ReportsTab />}
+						</div>
 					</div>
 				</div>
 			</DashboardLayout>

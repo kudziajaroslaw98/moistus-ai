@@ -9,6 +9,7 @@ import {
 } from '@/components/plugins/plugin-powers';
 import { PluginUpdateDetails } from '@/components/plugins/plugin-update-details';
 import { useCatalogManifests } from '@/components/plugins/use-catalog-manifests';
+import { PluginCardMenu } from '@/components/plugins/plugin-card-menu';
 import { PluginsPageTabs } from '@/components/plugins/plugins-page-tabs';
 import { usePluginLibrary } from '@/components/plugins/use-plugin-library';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -282,7 +283,8 @@ function PluginCard({ entry, manifest, index, children, update, offReason }: Plu
 	return (
 		<motion.article
 			animate={{ opacity: 1, y: 0 }}
-			className='flex flex-col gap-3 rounded-lg border border-zinc-800 bg-base p-3.5'
+			className='flex scroll-mt-24 flex-col gap-3 rounded-lg border border-zinc-800 bg-base p-3.5'
+			id={`plugin-${entry.id}`}
 			initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
 			transition={
 				shouldReduceMotion
@@ -331,6 +333,13 @@ function PluginCard({ entry, manifest, index, children, update, offReason }: Plu
 				</div>
 
 				{children}
+
+				<PluginCardMenu
+					pluginId={entry.id}
+					pluginName={manifest?.name ?? entry.name ?? entry.id}
+					showAbout={false}
+					version={latestCatalogVersion(entry).version}
+				/>
 			</div>
 
 			{update}

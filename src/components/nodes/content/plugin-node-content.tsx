@@ -3,6 +3,7 @@
 import { PluginRefreshBar } from '@/components/plugins/plugin-refresh-bar';
 import { PluginUiTree } from '@/components/plugins/plugin-ui-tree';
 import { usePluginBranch } from '@/components/plugins/use-plugin-branch';
+import { usePluginLibrary } from '@/components/plugins/use-plugin-library';
 import {
 	pluginRenderKey,
 	rememberPluginRender,
@@ -83,7 +84,11 @@ export function PluginNodeContent({
 	const loaded = Object.values(loadedPlugins).find(
 		(plugin) => (plugin.manifest?.id ?? plugin.key) === extension.pluginId
 	);
+	// Library plugins are only known once the library has loaded; until then a node of
+	// an unknown plugin may still be one of them, so it shows as loading, not missing.
+	const library = usePluginLibrary(false);
 	const isCatalogPlugin = Boolean(findCatalogPlugin(extension.pluginId));
+	const mayBeLibraryPlugin = !isCatalogPlugin && !library.loaded;
 	const isEnabled = mapPlugins.some(
 		(record) => record.pluginId === extension.pluginId
 	);
@@ -95,6 +100,7 @@ export function PluginNodeContent({
 			: loaded?.status === 'error'
 			? 'failed'
 			: loaded?.status === 'loading' ||
+				  mayBeLibraryPlugin ||
 				  (isCatalogPlugin && (!mapPluginsLoaded || isEnabled))
 				? 'loading'
 				: isCatalogPlugin

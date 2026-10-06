@@ -89,6 +89,8 @@ describe('first-party plugin catalog', () => {
 			const code = publicFile(entry.id, version.version, manifest.main);
 
 			expect(manifest.id).toBe(entry.id);
+			// Shown where manifests aren't loaded (reports, notifications).
+			expect(entry.name).toBe(manifest.name);
 			expect(manifest.version).toBe(version.version);
 			expect([...manifest.permissions].sort()).toEqual(
 				[...version.permissions].sort()

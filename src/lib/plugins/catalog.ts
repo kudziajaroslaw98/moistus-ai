@@ -30,6 +30,8 @@ export interface PluginCatalogEntry {
 	source?: 'community';
 	/** A community plugin author's display name. */
 	author?: string;
+	/** Shiko's plugins: the manifest's name, for screens that don't load manifests. */
+	name?: string;
 }
 
 /** What `/api/plugins/catalog` returns. */
@@ -49,6 +51,7 @@ export interface DisabledPlugin {
 export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 	{
 		id: 'shiko.metric',
+		name: 'Metric',
 		versions: [
 			{
 				version: '0.1.0',
@@ -68,6 +71,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 	},
 	{
 		id: 'shiko.countdown',
+		name: 'Countdown',
 		versions: [
 			{
 				version: '0.1.0',
@@ -80,6 +84,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 	},
 	{
 		id: 'shiko.kanban',
+		name: 'Kanban',
 		versions: [
 			{
 				version: '0.1.0',
@@ -92,6 +97,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 	},
 	{
 		id: 'shiko.decision-matrix',
+		name: 'Decision matrix',
 		versions: [
 			{
 				version: '0.1.0',
@@ -104,6 +110,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 	},
 	{
 		id: 'shiko.okr',
+		name: 'OKR',
 		versions: [
 			{
 				version: '0.1.0',
@@ -116,6 +123,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 	},
 	{
 		id: 'shiko.budget',
+		name: 'Budget',
 		versions: [
 			{
 				version: '0.1.0',
@@ -128,6 +136,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 	},
 	{
 		id: 'shiko.branch-progress',
+		name: 'Branch progress',
 		versions: [
 			{
 				version: '0.1.0',
@@ -140,6 +149,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 	},
 	{
 		id: 'shiko.upcoming',
+		name: 'Upcoming',
 		versions: [
 			{
 				version: '0.1.0',
@@ -152,6 +162,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 	},
 	{
 		id: 'shiko.workload',
+		name: 'Workload',
 		versions: [
 			{
 				version: '0.1.0',
@@ -164,6 +175,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 	},
 	{
 		id: 'shiko.github-issue',
+		name: 'GitHub issue',
 		versions: [
 			{
 				version: '0.1.0',
@@ -176,6 +188,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 	},
 	{
 		id: 'shiko.wikipedia',
+		name: 'Wikipedia summary',
 		versions: [
 			{
 				version: '0.1.0',

@@ -76,6 +76,7 @@ function setup(overrides: Record<string, unknown> = {}) {
 		loadedPlugins: {},
 		devPluginUrls: [],
 		nodes: [],
+		selectedNodes: [],
 		...mockActions,
 		...overrides,
 	};
