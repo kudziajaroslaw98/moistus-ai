@@ -1,9 +1,5 @@
 'use client';
 
-import {
-	MAX_PREVIEW_MAP_IDS,
-	type MapPreview,
-} from '@/helpers/dashboard/map-preview';
 import type { DashboardMap } from '@/types/dashboard-map';
 import useSWR from 'swr';
 
@@ -66,45 +62,4 @@ export function useDashboardTemplates() {
 	});
 
 	return data?.data?.templates ?? [];
-}
-
-async function fetchPreviews(
-	ids: string[]
-): Promise<Record<string, MapPreview>> {
-	const chunks: string[][] = [];
-	for (let i = 0; i < ids.length; i += MAX_PREVIEW_MAP_IDS) {
-		chunks.push(ids.slice(i, i + MAX_PREVIEW_MAP_IDS));
-	}
-
-	const results = await Promise.all(
-		chunks.map(async (chunk) => {
-			const response = await fetch('/api/maps/previews', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ ids: chunk }),
-			});
-
-			if (!response.ok) throw new Error('Failed to fetch map previews');
-
-			const { data } = await response.json();
-			return data.previews as Record<string, MapPreview>;
-		})
-	);
-
-	return Object.assign({}, ...results);
-}
-
-/**
- * Structure previews for the given maps, loaded after the list so cards
- * render first. Sorted IDs keep the cache key stable across re-sorts.
- */
-export function useMapPreviews(ids: string[]) {
-	const sortedIds = [...new Set(ids)].sort();
-	const { data, isLoading } = useSWR(
-		sortedIds.length > 0 ? ['/api/maps/previews', sortedIds.join(',')] : null,
-		() => fetchPreviews(sortedIds),
-		{ revalidateOnFocus: false, keepPreviousData: true }
-	);
-
-	return { previews: data ?? {}, isLoading };
 }

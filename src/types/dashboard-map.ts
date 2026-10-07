@@ -8,7 +8,6 @@ export interface DashboardMap {
 	description: string | null;
 	created_at: string;
 	updated_at: string;
-	thumbnail_url?: string | null;
 	is_template?: boolean;
 	template_category?: string;
 	/** True when the map belongs to someone else and was shared with the viewer. */

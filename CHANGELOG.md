@@ -5,17 +5,23 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-07]
+
+### Removed
+
+- **dashboard/previews**: Removed the map card mini-map previews and `POST /api/maps/previews`; cards now show badge, title, description, meta and collaborators
+  - Why: A layout guess from stored positions never matched the canvas, and an editor-captured snapshot still looked wrong
+
 ## [2026-10-06]
 
 ### Added
 
-- **dashboard/previews**: `POST /api/maps/previews` returns scaled node outlines and edges (up to 40 nodes per map) so map and template cards show a real mini-map
 - **dashboard/collaborators**: `GET /api/maps` now returns up to 3 collaborators per map plus a total count for card avatars
-- **dashboard/first-run**: New users get a first-map input, keyboard hints, template cards with previews and a room-code join box
+- **dashboard/first-run**: New users get a first-map input, keyboard hints, template cards and a room-code join box
 
 ### Changed
 
-- **dashboard/redesign**: Rebuilt the dashboard per the design canvas: sidebar with New map, Recent maps, plan card (maps used on Free, AI suggestions on Pro) and account row; top bar with search and notifications; quick-create bar with template chips; filter tabs with counts; sort menu; new map cards and list rows
+- **dashboard/redesign**: Rebuilt the dashboard per the design canvas: sidebar with New map, Recent maps, plan card (maps used on Free, AI suggestions on Pro) and account row; top bar with search and notifications; quick-create bar with template chips; filter tabs with counts; sort menu; new map cards and list rows (no mini-map previews)
   - Why: Faster path from opening the app to a new map, and cards that show what each map actually looks like
 - **dashboard/plan-card**: Reset date is hidden when the usage billing period has already ended
   - Why: Stale usage rows would otherwise promise a reset in the past

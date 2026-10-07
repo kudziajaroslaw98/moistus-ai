@@ -197,7 +197,7 @@ shiko/
 │   │   ├── ai-chat/            # AI chat panel
 │   │   ├── auth/               # Auth UI (banner, upgrade, sign-up wizard)
 │   │   ├── context-menu/       # Right-click menus
-│   │   ├── dashboard/          # Dashboard shell, map cards + mini-map previews, first run, settings, loading skeletons
+│   │   ├── dashboard/          # Dashboard shell, map cards, first run, settings, loading skeletons
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
 │   │   ├── history/            # History sidebar: grouped rows, filter chips, one-line diffs, restore confirm, timeline model
@@ -335,10 +335,9 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `POST /api/ai/suggest-merges` - Merge suggestions
 - `POST /api/ai/counterpoints` - Opposing viewpoints
 
-**Maps (5):**
+**Maps (4):**
 
 - `GET/POST /api/maps` - List/create maps (GET includes up to 3 collaborators per map)
-- `POST /api/maps/previews` - Dashboard mini-map previews (<=60 map IDs, <=40 nodes each, RLS-scoped)
 - `GET/PUT/DELETE /api/maps/[id]` - Individual map
 - `GET /api/maps/[id]/check-access` - Permission check
 - `GET /api/maps/[id]/mentionable-users` - Mention resolution roster
@@ -420,12 +419,12 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `src/store/slices/core-slice.ts` exposes `clearMindMapRuntimeState()` and stale-guards `fetchMindMapData` writes so late responses cannot repopulate stale map data after route exit/switch
 
 **Dashboard Home (redesign):**
-<!-- Updated: 2026-10-06 - Dashboard redesign: sidebar, quick create, mini-map previews, collaborators, first run -->
+<!-- Updated: 2026-10-07 - Dashboard redesign: sidebar, quick create, collaborators, first run; mini-map previews removed -->
 
 - `src/components/dashboard/dashboard-layout.tsx`: sidebar (New map, nav, Recent from the `/api/maps` SWR cache, `DashboardPlanCard`, user row whose settings icon opens `UserMenu` via its `trigger` prop) + `DashboardHeader` (page label, Home-only search slot, notification bell, mobile sidebar trigger)
 - `src/app/dashboard/dashboard-content.tsx`: "Your maps" (quick-create bar, template chips, filter tabs, sort menu, grid/list, selection toolbar) or `DashboardFirstRun` when the user has no maps (big first-map input, template cards, room-code join to `/join?code=`)
-- `src/components/dashboard/use-dashboard-data.ts`: shared SWR hooks (`useDashboardMaps`, `useDashboardTemplates`, `useMapPreviews`)
-- `src/components/dashboard/map-preview.tsx` draws `POST /api/maps/previews` data (scaled node rects + edge index pairs from `src/helpers/dashboard/map-preview.ts`); `GET /api/maps` adds `collaborators`/`collaboratorCount` via `src/helpers/dashboard/map-collaborators.ts`
+- `src/components/dashboard/use-dashboard-data.ts`: shared SWR hooks (`useDashboardMaps`, `useDashboardTemplates`)
+- `GET /api/maps` adds `collaborators`/`collaboratorCount` via `src/helpers/dashboard/map-collaborators.ts`
 
 **Dashboard Progressive Loading:**
 

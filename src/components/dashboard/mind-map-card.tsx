@@ -10,21 +10,17 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatUpdatedAt } from '@/helpers/dashboard/format-updated-at';
-import type { MapPreview as MapPreviewData } from '@/helpers/dashboard/map-preview';
 import type { DashboardMap, DashboardViewMode } from '@/types/dashboard-map';
 import { cn } from '@/utils/cn';
 import { Copy, MoreHorizontal, Trash2, Users } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
 import { memo, useCallback, type KeyboardEvent } from 'react';
-import { MapPreview } from './map-preview';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
 interface MindMapCardProps {
 	map: DashboardMap;
-	preview?: MapPreviewData;
-	isPreviewLoading?: boolean;
 	selected?: boolean;
 	onSelect?: (id: string, isSelected: boolean) => void;
 	onDelete?: (id: string) => void;
@@ -149,8 +145,6 @@ const revealClass =
 
 const MindMapCardComponent = ({
 	map,
-	preview,
-	isPreviewLoading = false,
 	selected = false,
 	onSelect,
 	onDelete,
@@ -240,13 +234,6 @@ const MindMapCardComponent = ({
 			>
 				{selectBox}
 
-				<MapPreview
-					className='h-12 w-20 shrink-0 rounded-lg border border-[#1d1f24]'
-					isLoading={isPreviewLoading}
-					preview={preview}
-					thumbnailUrl={map.thumbnail_url}
-				/>
-
 				<div className='min-w-0 grow'>
 					<h3 className='truncate text-[15px] font-semibold text-white'>
 						<Link
@@ -298,34 +285,23 @@ const MindMapCardComponent = ({
 					: 'border-[#1d1f24] [@media(hover:hover)]:hover:border-[#34363e] [@media(hover:hover)]:hover:shadow-[0_16px_40px_rgba(0,0,0,0.4)]'
 			)}
 		>
-			<div className='relative'>
-				<MapPreview
-					className='h-[150px] border-b border-[#1d1f24]'
-					isLoading={isPreviewLoading}
-					preview={preview}
-					thumbnailUrl={map.thumbnail_url}
-				/>
+			<div className='px-4 pb-4 pt-3'>
+				<div className='-mr-2 flex h-8 items-center justify-between gap-2'>
+					{isShared ? <SharedBadge /> : <span />}
 
-				{isShared && (
-					<span className='absolute left-2.5 top-2.5'>
-						<SharedBadge />
-					</span>
-				)}
+					<div className='flex items-center gap-1'>
+						{selectBox}
 
-				<div className='absolute right-2 top-2 flex items-center gap-1'>
-					{selectBox}
-
-					<CardMenu
-						className={revealClass}
-						map={map}
-						onDelete={onDelete}
-						onDuplicate={onDuplicate}
-					/>
+						<CardMenu
+							className={revealClass}
+							map={map}
+							onDelete={onDelete}
+							onDuplicate={onDuplicate}
+						/>
+					</div>
 				</div>
-			</div>
 
-			<div className='px-4 pb-4 pt-3.5'>
-				<h3 className='truncate text-[15px] font-semibold text-white'>
+				<h3 className='mt-3 truncate text-[15px] font-semibold text-white'>
 					<Link
 						className='after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-sky-500'
 						data-card-link=''

@@ -6,19 +6,16 @@ interface DashboardMapsLoadingSkeletonProps {
 	cardCount?: number;
 }
 
-const DOTS =
-	'bg-[#0b0c0f] bg-[radial-gradient(rgba(255,255,255,0.05)_1px,transparent_1.3px)] bg-[size:18px_18px]';
-
 function GridMapSkeleton() {
 	return (
 		<div
 			className='overflow-hidden rounded-2xl border border-[#1d1f24] bg-[#0e0f12]'
 			data-testid='dashboard-grid-map-skeleton'
 		>
-			<div className={`h-[150px] border-b border-[#1d1f24] ${DOTS}`} />
+			<div className='space-y-2.5 px-4 pb-4 pt-3'>
+				<Skeleton className='h-8 w-16 rounded-full bg-zinc-800/40' />
 
-			<div className='space-y-2.5 px-4 pb-4 pt-3.5'>
-				<Skeleton className='h-4 w-2/3 bg-zinc-700/40' />
+				<Skeleton className='mt-3 h-4 w-2/3 bg-zinc-700/40' />
 
 				<Skeleton className='h-3 w-4/5 bg-zinc-800/60' />
 
@@ -34,8 +31,6 @@ function ListMapSkeleton() {
 			className='flex items-center gap-4 rounded-xl border border-[#1d1f24] bg-[#0e0f12] p-3 pr-4'
 			data-testid='dashboard-list-map-skeleton'
 		>
-			<div className={`h-12 w-20 shrink-0 rounded-lg border border-[#1d1f24] ${DOTS}`} />
-
 			<div className='grow space-y-2'>
 				<Skeleton className='h-4 w-1/3 bg-zinc-700/40' />
 

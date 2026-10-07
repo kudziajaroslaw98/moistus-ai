@@ -6,12 +6,8 @@ import { motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useId, useState, type FormEvent } from 'react';
-import { MapPreview } from './map-preview';
 import { QuickCreateForm } from './quick-create-bar';
-import {
-	useMapPreviews,
-	type DashboardTemplate,
-} from './use-dashboard-data';
+import type { DashboardTemplate } from './use-dashboard-data';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 // Same shape the join page accepts: 6 letters/digits, optional dash.
@@ -121,9 +117,6 @@ export function DashboardFirstRun({
 	const shouldReduceMotion = useReducedMotion() ?? false;
 	const isTouchFirst = useTouchFirst();
 	const featured = templates.slice(0, 3);
-	const { previews, isLoading: previewsLoading } = useMapPreviews(
-		featured.map((template) => template.id)
-	);
 
 	const rise = (delay: number) =>
 		({
@@ -212,13 +205,7 @@ export function DashboardFirstRun({
 									onClick={() => onPickTemplate(template)}
 									type='button'
 								>
-									<MapPreview
-										className='h-[120px] border-b border-[#1d1f24]'
-										isLoading={previewsLoading}
-										preview={previews[template.id]}
-									/>
-
-									<span className='block px-4 pb-4 pt-3.5'>
+									<span className='block px-4 py-4'>
 										<span className='block text-[15px] font-semibold text-white'>
 											{template.name}
 										</span>

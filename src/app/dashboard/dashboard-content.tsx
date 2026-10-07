@@ -12,7 +12,6 @@ import {
 	DASHBOARD_MAPS_KEY,
 	useDashboardMaps,
 	useDashboardTemplates,
-	useMapPreviews,
 	type DashboardTemplate,
 } from '@/components/dashboard/use-dashboard-data';
 import {
@@ -38,7 +37,6 @@ import {
 	forwardRef,
 	useCallback,
 	useEffect,
-	useMemo,
 	useRef,
 	useState,
 } from 'react';
@@ -217,10 +215,6 @@ export function DashboardContent() {
 	const templates = useDashboardTemplates();
 	const showMapsSkeleton = mapsLoading && maps.length === 0;
 	const isFirstRun = !showMapsSkeleton && maps.length === 0;
-
-	// Previews for every map (not just the filtered ones) keep the cache key stable.
-	const allMapIds = useMemo(() => maps.map((map) => map.id), [maps]);
-	const { previews, isLoading: previewsLoading } = useMapPreviews(allMapIds);
 
 	const sharedCount = maps.filter((map) => map.is_shared).length;
 	const filterCounts: Record<FilterType, number> = {
@@ -830,13 +824,11 @@ export function DashboardContent() {
 														{filteredMaps.map((map, index) => (
 															<MindMapCard
 																index={index}
-																isPreviewLoading={previewsLoading}
 																key={map.id}
 																map={map}
 																onDelete={handleDeleteMap}
 																onDuplicate={handleDuplicateMap}
 																onSelect={handleSelectMap}
-																preview={previews[map.id]}
 																selected={selectedMaps.has(map.id)}
 																viewMode={viewMode}
 															/>
