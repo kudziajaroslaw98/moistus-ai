@@ -1,7 +1,6 @@
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -29,8 +28,6 @@ const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
 interface MindMapCardProps {
 	map: DashboardMap;
-	selected?: boolean;
-	onSelect?: (id: string, isSelected: boolean) => void;
 	onDelete?: (id: string) => void;
 	onDuplicate?: (id: string) => void;
 	viewMode?: DashboardViewMode;
@@ -232,14 +229,16 @@ function CardMenu({
 	);
 }
 
-// Reveal-on-hover controls stay visible on touch, while focused or selected.
+// Reveal-on-hover controls stay visible on touch and while focused.
+//
+// The whole card opens the map: the title link's ::after covers the card at z-[1],
+// above the cover, description and avatars; only real controls (the card menu, Show
+// more / less) sit above it at z-10.
 const revealClass =
 	'[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/card:opacity-100 group-focus-within/card:opacity-100 data-[popup-open]:opacity-100';
 
 const MindMapCardComponent = ({
 	map,
-	selected = false,
-	onSelect,
 	onDelete,
 	onDuplicate,
 	viewMode = 'grid',
@@ -251,16 +250,13 @@ const MindMapCardComponent = ({
 	const meta = `${formatUpdatedAt(map.updated_at)} · ${nodeCount} ${nodeCount === 1 ? 'node' : 'nodes'}`;
 	const href = `/mind-map/${map.id}`;
 
-	// Keys while the card's link is focused: Space selects, Delete removes,
-	// Ctrl/Cmd+D duplicates, arrows move between cards.
+	// Keys while the card's link is focused: Delete removes, Ctrl/Cmd+D duplicates,
+	// arrows move between cards.
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent<HTMLElement>) => {
 			if (e.target !== e.currentTarget.querySelector('[data-card-link]')) return;
 
-			if (e.key === ' ' && onSelect) {
-				e.preventDefault();
-				onSelect(map.id, !selected);
-			} else if ((e.key === 'Delete' || e.key === 'Backspace') && onDelete) {
+			if ((e.key === 'Delete' || e.key === 'Backspace') && onDelete) {
 				e.preventDefault();
 				e.stopPropagation();
 				onDelete(map.id);
@@ -280,7 +276,7 @@ const MindMapCardComponent = ({
 				}
 			}
 		},
-		[map.id, selected, onSelect, onDelete, onDuplicate]
+		[map.id, onDelete, onDuplicate]
 	);
 
 	const entry = {
@@ -294,23 +290,6 @@ const MindMapCardComponent = ({
 		},
 	} as const;
 
-	const selectBox = onSelect && (
-		<div
-			className={cn(
-				'relative z-10 flex size-8 items-center justify-center',
-				!selected && revealClass
-			)}
-		>
-			<Checkbox
-				aria-label={`Select ${map.title}`}
-				checked={selected}
-				onChange={(checked) => onSelect(map.id, checked)}
-				size='sm'
-				variant='card'
-			/>
-		</div>
-	);
-
 	if (viewMode === 'list') {
 		return (
 			<motion.article
@@ -320,13 +299,9 @@ const MindMapCardComponent = ({
 				className={cn(
 					'group/card relative flex items-center gap-4 rounded-xl border bg-[#0e0f12] p-3 pr-4',
 					'transition-colors duration-200 ease',
-					selected
-						? 'border-sky-500/60'
-						: 'border-[#1d1f24] [@media(hover:hover)]:hover:border-[#34363e]'
+					'border-[#1d1f24] [@media(hover:hover)]:hover:border-[#34363e]'
 				)}
 			>
-				{selectBox}
-
 				<MapCover
 					compact
 					className='h-12 w-16 shrink-0 rounded-lg border border-[#1d1f24]'
@@ -337,7 +312,7 @@ const MindMapCardComponent = ({
 				<div className='min-w-0 grow'>
 					<h3 className='truncate text-[15px] font-semibold text-white'>
 						<Link
-							className='rounded-sm after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-sky-500'
+							className='rounded-sm after:absolute after:inset-0 after:z-[1] after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-sky-500'
 							data-card-link=''
 							href={href}
 						>
@@ -382,9 +357,7 @@ const MindMapCardComponent = ({
 			className={cn(
 				'group/card relative flex flex-col overflow-hidden rounded-2xl border bg-[#0e0f12]',
 				'transition-[border-color,box-shadow] duration-200 ease',
-				selected
-					? 'border-sky-500/60 shadow-[0_0_0_1px_rgba(14,165,233,0.35)]'
-					: 'border-[#1d1f24] [@media(hover:hover)]:hover:border-[#34363e] [@media(hover:hover)]:hover:shadow-[0_16px_40px_rgba(0,0,0,0.4)]'
+				'border-[#1d1f24] [@media(hover:hover)]:hover:border-[#34363e] [@media(hover:hover)]:hover:shadow-[0_16px_40px_rgba(0,0,0,0.4)]'
 			)}
 		>
 			<MapCover
@@ -401,8 +374,6 @@ const MindMapCardComponent = ({
 				)}
 
 				<div className='absolute right-2 top-2 flex items-center gap-1'>
-					{selectBox}
-
 					<CardMenu
 						className={revealClass}
 						map={map}
@@ -418,7 +389,7 @@ const MindMapCardComponent = ({
 			<div className='flex flex-1 flex-col px-4 pb-4 pt-3.5'>
 				<h3 className='truncate text-[15px] font-semibold leading-[22px] text-white'>
 					<Link
-						className='after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-sky-500'
+						className='after:absolute after:inset-0 after:z-[1] after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-sky-500'
 						data-card-link=''
 						href={href}
 					>

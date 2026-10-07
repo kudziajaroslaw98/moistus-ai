@@ -43,12 +43,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **plugins/tests**: The sandbox's eval/Function lockdown test builds its probes as plain closures instead of a `JSON.stringify` switch (CodeQL improper code sanitization)
 - **dashboard/sidebar**: A collapsed sidebar stays collapsed when you move between dashboard pages or reload
 - **dashboard/top-bar**: The search field stays in the same place and size on every dashboard page instead of shifting with the page name
+- **dashboard/map-cards**: Clicking anywhere on a map card opens the map; clicks on the description and collaborator avatars used to do nothing
 
 ### Removed
 
 - **dashboard/previews**: Removed the map card mini-map previews and `POST /api/maps/previews`
   - Why: A layout guess from stored positions never matched the canvas, and an editor-captured snapshot still looked wrong
-- **dashboard/select-all**: Removed select all (Ctrl+A, the toolbar button and the shortcut hint); maps are still selected one by one for bulk delete
+- **dashboard/selection**: Removed selecting maps on Home (the card checkboxes, Space to select, select all and the bulk-delete bar). Delete a map from its "…" menu, or press Delete on a focused card
 
 ### Added
 

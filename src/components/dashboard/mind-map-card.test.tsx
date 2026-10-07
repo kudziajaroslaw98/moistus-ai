@@ -71,4 +71,28 @@ describe('MindMapCard', () => {
 			'true'
 		);
 	});
+
+	it.each(['grid', 'list'] as const)(
+		'opens the map from anywhere on the card and has no selection (%s)',
+		async (viewMode) => {
+			const onDelete = jest.fn();
+			render(<MindMapCard map={MAP} onDelete={onDelete} viewMode={viewMode} />);
+
+			// One link, stretched over the whole card above the cover, text and avatars
+			// (jsdom can't hit-test, so check the layer it relies on).
+			const link = screen.getByRole('link', { name: 'Roadmap' });
+			expect(link).toHaveAttribute('href', '/mind-map/map-1');
+			expect(link.className).toContain('after:inset-0');
+			expect(link.className).toContain('after:z-[1]');
+			expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+
+			// Space no longer selects; Delete on the focused card still asks to delete it.
+			const user = userEvent.setup();
+			link.focus();
+			await user.keyboard(' ');
+			expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+			await user.keyboard('{Delete}');
+			expect(onDelete).toHaveBeenCalledWith('map-1');
+		}
+	);
 });

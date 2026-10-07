@@ -38,7 +38,7 @@ import { useTouchFirst } from '@/hooks/use-touch-first';
 import useAppStore from '@/store/mind-map-store';
 import type { DashboardMap, DashboardViewMode } from '@/types/dashboard-map';
 import { cn } from '@/utils/cn';
-import { ChevronDown, LayoutGrid, List, Search, Trash2 } from 'lucide-react';
+import { ChevronDown, LayoutGrid, List, Search } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -201,7 +201,6 @@ export function DashboardContent() {
 	const [viewMode, setViewMode] = useState<DashboardViewMode>('grid');
 	const [sortBy, setSortBy] = useState<SortByType>('updated');
 	const [filterBy, setFilterBy] = useState<FilterType>('all');
-	const [selectedMaps, setSelectedMaps] = useState<Set<string>>(new Set());
 	const [isCreatingMap, setIsCreatingMap] = useState(false);
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
 	const [dialogTemplate, setDialogTemplate] = useState<DashboardTemplate | null>(
@@ -403,12 +402,6 @@ export function DashboardContent() {
 					false
 				);
 
-				setSelectedMaps((prev) => {
-					if (!prev.has(mapId)) return prev;
-					const next = new Set(prev);
-					next.delete(mapId);
-					return next;
-				});
 				refreshUsageData();
 				toast.success('Map deleted successfully');
 			} catch (err: unknown) {
@@ -439,65 +432,9 @@ export function DashboardContent() {
 		}
 	}, []);
 
-	const handleBulkDelete = useCallback(async () => {
-		if (selectedMaps.size === 0) return;
-
-		if (
-			!confirm(
-				`Delete ${selectedMaps.size} selected maps? This action cannot be undone.`
-			)
-		) {
-			return;
-		}
-
-		try {
-			const response = await fetch('/api/maps', {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ mapIds: Array.from(selectedMaps) }),
-			});
-
-			if (!response.ok) {
-				throw new Error('Failed to delete maps.');
-			}
-
-			mutate(
-				DASHBOARD_MAPS_KEY,
-				{ maps: maps.filter((map) => !selectedMaps.has(map.id)) },
-				false
-			);
-
-			refreshUsageData();
-			setSelectedMaps(new Set());
-			toast.success(`${selectedMaps.size} maps deleted successfully`);
-		} catch (err: unknown) {
-			console.error('Error deleting maps:', err);
-			toast.error('Failed to delete maps');
-			mutate(DASHBOARD_MAPS_KEY);
-		}
-	}, [selectedMaps, maps]);
-
-	const handleSelectMap = useCallback((mapId: string, isSelected: boolean) => {
-		setSelectedMaps((prev) => {
-			const newSet = new Set(prev);
-			if (isSelected) {
-				newSet.add(mapId);
-			} else {
-				newSet.delete(mapId);
-			}
-			return newSet;
-		});
-	}, []);
-
 	// Keyboard navigation and shortcuts
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
-			const target = e.target as HTMLElement | null;
-			const isTyping =
-				target?.tagName === 'INPUT' ||
-				target?.tagName === 'TEXTAREA' ||
-				target?.isContentEditable;
-
 			if (e.ctrlKey || e.metaKey) {
 				switch (e.key.toLowerCase()) {
 					case 'n':
@@ -514,38 +451,18 @@ export function DashboardContent() {
 						setViewMode('list');
 						break;
 				}
-			} else {
-				switch (e.key) {
-					case 'Escape':
-						if (selectedMaps.size > 0) {
-							setSelectedMaps(new Set());
-						} else if (searchQuery) {
-							setSearchQuery('');
-						} else if (filterBy !== 'all') {
-							setFilterBy('all');
-						}
-						break;
-					case 'Delete':
-					case 'Backspace':
-						if (selectedMaps.size > 0 && !isTyping) {
-							e.preventDefault();
-							handleBulkDelete();
-						}
-						break;
+			} else if (e.key === 'Escape') {
+				if (searchQuery) {
+					setSearchQuery('');
+				} else if (filterBy !== 'all') {
+					setFilterBy('all');
 				}
 			}
 		};
 
 		document.addEventListener('keydown', handleKeyDown);
 		return () => document.removeEventListener('keydown', handleKeyDown);
-	}, [
-		selectedMaps,
-		searchQuery,
-		setSearchQuery,
-		filterBy,
-		handleBulkDelete,
-		handleRequestCreateMap,
-	]);
+	}, [searchQuery, setSearchQuery, filterBy, handleRequestCreateMap]);
 
 	const firstName =
 		(userProfile?.display_name || userProfile?.full_name)?.split(/\s+/)[0] ||
@@ -693,44 +610,6 @@ export function DashboardContent() {
 								</div>
 							</div>
 
-							{/* Selection toolbar */}
-							<AnimatePresence initial={false}>
-								{selectedMaps.size > 0 && (
-									<motion.div
-										animate={{ opacity: 1, height: 'auto' }}
-										className='overflow-hidden'
-										exit={{ opacity: 0, height: 0 }}
-										initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
-										transition={{ duration: 0.2, ease: EASE_OUT_QUART }}
-									>
-										<div className='mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#1d1f24] bg-[#0e0f12] px-3 py-2 text-sm'>
-											<span className='text-zinc-300'>
-												{selectedMaps.size} selected
-											</span>
-
-											<span className='flex-1' />
-
-											<button
-												className='flex items-center gap-1.5 rounded-md px-2 py-1 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500'
-												onClick={handleBulkDelete}
-												type='button'
-											>
-												<Trash2 aria-hidden='true' className='size-3.5' />
-												Delete
-											</button>
-
-											<button
-												className='rounded-md px-2 py-1 text-zinc-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
-												onClick={() => setSelectedMaps(new Set())}
-												type='button'
-											>
-												Clear
-											</button>
-										</div>
-									</motion.div>
-								)}
-							</AnimatePresence>
-
 							<TabsContent value={filterBy}>
 								{!showMapsSkeleton && filteredMaps.length === 0 ? (
 									<motion.div
@@ -788,8 +667,6 @@ export function DashboardContent() {
 															map={map}
 															onDelete={handleDeleteMap}
 															onDuplicate={handleDuplicateMap}
-															onSelect={handleSelectMap}
-															selected={selectedMaps.has(map.id)}
 															viewMode={viewMode}
 														/>
 													))}
