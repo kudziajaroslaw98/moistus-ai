@@ -34,11 +34,11 @@ function Chapter({
 				className='relative flex items-center justify-between gap-4 border-b border-white/8 pb-4 font-mono text-xs uppercase tracking-[0.12em] text-text-tertiary'
 				id={`chapter-${id}`}
 			>
-				{/* Rail dot (desktop only). Anchored to this row so it centers on the
-				    16px label line (8px - 20px = -12px) whatever the section padding. */}
+				{/* Rail dot (desktop only). Anchored to the bottom of this row so its
+				    center sits on the 1px divider under the step name. */}
 				<div
 					aria-hidden='true'
-					className={`absolute -left-[72px] -top-3 hidden size-10 items-center justify-center rounded-full border border-[#292929] md:flex ${isFinal ? 'bg-white' : 'bg-zinc-950'}`}
+					className={`absolute -left-[72px] top-[calc(100%+0.5px)] hidden size-10 -translate-y-1/2 items-center justify-center rounded-full border border-[#292929] md:flex ${isFinal ? 'bg-white' : 'bg-zinc-950'}`}
 				>
 					<span
 						className={`size-2 rounded-full ${isFinal ? 'bg-zinc-950' : 'bg-white'}`}

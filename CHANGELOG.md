@@ -7,6 +7,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ## [2026-10-07]
 
+### Fixed
+
+- **landing/story-rail**: Chapter rail dots are now centered on the divider line under each step name
+  - Why: They sat on the label line and looked misaligned with the steps
+
 ### Removed
 
 - **dashboard/previews**: Removed the map card mini-map previews and `POST /api/maps/previews`
