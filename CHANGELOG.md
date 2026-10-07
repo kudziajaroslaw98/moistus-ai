@@ -21,7 +21,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **dashboard/plugins**: The Plugins title and tabs stay in place when you switch between Library, My plugins and Build a plugin
 - **dashboard/home-loading**: While Home loads, the "Your maps" heading and the "Start a map from a thought" bar show right away; the map count line and the map list show skeletons until your maps arrive
 - **templates/search**: Ctrl+F (Cmd+F) jumps to the Templates search too, and its field shows the shortcut like Home's
-- **dashboard/map-cards**: Map cards are all the same height, like template cards: maps without a description say "No description available" in grey, and "Show more" sits at the end of the second line instead of adding a row. List rows show the description (or the same note) under the title and the date and node count on the right
+- **dashboard/map-cards**: Map cards are all the same height, like template cards: maps without a description say "No description available" in dark grey (dimmer than the date line), and "Show more" sits at the end of the second line instead of adding a row. List rows show the description (or the same note) under the title and the date and node count on the right
 - **dashboard/skeletons**: The loading screens also show placeholders for the "Have a room code?" box and the keyboard shortcut hints, and the card placeholders match the real card size, so nothing shifts when your maps arrive
 
 ### Fixed

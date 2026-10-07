@@ -126,7 +126,7 @@ function CardDescription({
 	if (!description) {
 		return (
 			<div className={className}>
-				<p className='truncate text-[13px] leading-5 text-zinc-500'>
+				<p className='truncate text-[13px] leading-5 text-zinc-600'>
 					No description available
 				</p>
 			</div>
