@@ -103,17 +103,15 @@ describe('plugin sandbox', () => {
 			'Object.getPrototypeOf(async function* () {}).constructor("yield 1")',
 			'Reflect.construct(Function, ["return 1"])()',
 		];
+		// Each attempt runs inside the plugin, exactly as written.
+		const probes = attempts.map((source) => `() => ${source}`).join(',\n');
 		const sandbox = createPluginSandbox(
 			QuickJS,
 			plugin(
-				`const results = ${JSON.stringify(attempts)}.map((source) => {
-					try { return String((0, globalThis.__probe)(source)); } catch (error) { return 'blocked'; }
+				`const results = [${probes}].map((probe) => {
+					try { return String(probe()); } catch (error) { return 'blocked'; }
 				});
-				return ui.text(results.join(","));`,
-				// Each attempt runs inside the plugin, exactly as written.
-				`globalThis.__probe = (source) => { switch (source) { ${attempts
-					.map((source, index) => `case ${JSON.stringify(source)}: return (() => ${source})();`)
-					.join(' ')} } };`
+				return ui.text(results.join(","));`
 			)
 		);
 

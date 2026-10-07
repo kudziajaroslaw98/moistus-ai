@@ -30,6 +30,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **templates/performance**: Removed the per-card staggered entry animation, `backdrop-blur` layers, `transition-all`, the no-op `AnimatePresence` and per-card hover state; cards use `content-visibility: auto`
   - Why: All cards mounted and animated at once (stutter), blur layers made scrolling slow, and cards below the fold were still fading in when scrolled to
 - **templates/header**: The top bar now says "Templates" instead of the default "Home"
+- **recipes/sanitize**: Recipe results are cleaned until nothing more changes, so text like `!<b>[x]<i>(url)` can no longer turn back into an image (or `<<b>script>` into a tag) after one pass
+  - Why: Images in approved nodes load their URL right away and could send map text to another site (CodeQL incomplete multi-character sanitization)
+- **plugins/tests**: The sandbox's eval/Function lockdown test builds its probes as plain closures instead of a `JSON.stringify` switch (CodeQL improper code sanitization)
 
 ### Removed
 

