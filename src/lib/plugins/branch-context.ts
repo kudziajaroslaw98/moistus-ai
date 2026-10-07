@@ -3,6 +3,7 @@ import {
 	getNodeOutlineText,
 } from '@/helpers/collapse/branch-index';
 import { localDateString } from '@/lib/plugins/call-context';
+import { PLUGIN_BRANCH_LIMITS } from '@/lib/plugins/limits';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 
@@ -12,7 +13,6 @@ import type { AppNode } from '@/types/app-node';
  * plugin that reads the branch can never reach a site.
  */
 
-export const PLUGIN_BRANCH_LIMITS = { nodes: 150, text: 500 } as const;
 
 export interface PluginBranchNode {
 	id: string;

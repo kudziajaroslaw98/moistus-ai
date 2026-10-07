@@ -14,6 +14,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **security/csp**: The page's policy allows `http://localhost:*` and `http://127.0.0.1:*` for developer plugin files, and is no longer sent with the network worker or the service worker script
 - **lint**: `react/no-danger` is an error; the one existing use (AI chat, sanitized with `sanitize-html`) carries a disable comment saying so
 
+- **plugins/guide**: "Build a plugin" is now the third tab of the dashboard Plugins page and covers the whole flow: Powers (refresh with `ctx.request`, `ctx.branch`, why a plugin can't have both) with a GitHub issue example that tests run through both refresh passes, request and branch limits, versions and updates, publishing to the library, what happens when a plugin is reported, and what plugins can't do. The out-of-date "Sharing a plugin" section is gone
+- **plugins/guide**: The "On this page" list highlights the last heading scrolled past, keeps a clicked entry while the page can't scroll it to the top, and reaches the last sections at the bottom of the page
+
 ### Fixed
 
 - **pwa/plugins**: With the service worker installed, plugins failed to load ("The plugin runtime could not start"): the service worker re-fetched worker scripts and lost the URL fragment Turbopack's worker bootstrap reads. Worker scripts and plugin requests now bypass the service worker, so a refresh can't save a cached answer as fresh data either

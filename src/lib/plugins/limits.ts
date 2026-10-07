@@ -21,3 +21,6 @@ export const PLUGIN_REQUEST_LIMITS = {
 	responseBytes: 256 * 1024,
 	urlLength: 2048,
 } as const;
+
+/** What `ctx.branch` holds for plugins with `branch:read` (built in branch-context.ts). */
+export const PLUGIN_BRANCH_LIMITS = { nodes: 150, text: 500 } as const;

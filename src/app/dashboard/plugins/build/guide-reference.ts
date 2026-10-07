@@ -1,4 +1,9 @@
-import { MAX_PLUGIN_CODE_BYTES, SANDBOX_LIMITS } from '@/lib/plugins/limits';
+import {
+	MAX_PLUGIN_CODE_BYTES,
+	PLUGIN_BRANCH_LIMITS,
+	PLUGIN_REQUEST_LIMITS,
+	SANDBOX_LIMITS,
+} from '@/lib/plugins/limits';
 import {
 	PLUGIN_API_VERSION,
 	PLUGIN_ICON_KEYS,
@@ -75,4 +80,22 @@ export const LIMIT_ROWS: GuideRow[] = [
 	{ name: 'An action', description: `${SANDBOX_LIMITS.actionMs} ms` },
 	{ name: 'A node’s data', description: formatBytes(PLUGIN_LIMITS.dataBytes) },
 	{ name: 'A view', description: `${PLUGIN_UI_LIMITS.nodes} pieces, ${PLUGIN_UI_LIMITS.depth} levels deep, ${formatBytes(PLUGIN_LIMITS.dataBytes)}` },
+	{ name: 'Requests', description: `Only in refresh: ${PLUGIN_REQUEST_LIMITS.perRefresh} per refresh, each answer up to ${formatBytes(PLUGIN_REQUEST_LIMITS.responseBytes)} and ${PLUGIN_REQUEST_LIMITS.timeoutMs / 1000} s` },
+	{ name: 'ctx.branch', description: `${PLUGIN_BRANCH_LIMITS.nodes} nodes, ${PLUGIN_BRANCH_LIMITS.text} characters of text each` },
+];
+
+/** The powers a manifest can ask for, beyond its own nodes. */
+export const POWER_ROWS: GuideRow[] = [
+	{
+		name: 'network:<host>',
+		description: `GET requests to that host over https, up to ${PLUGIN_POWER_LIMITS.networkHosts} hosts. For each one, say under networkHosts who runs it, link their privacy policy and say what you send; review checks all three. If it's your own server, link your own policy: people are told the plugin's author receives what it sends.`,
+	},
+	{
+		name: 'branch:read',
+		description: 'The nodes under yours: type, text, tasks done and total, status, priority, assigned people, due date and tags. Nothing leaves the browser.',
+	},
+	{
+		name: 'Not both',
+		description: 'A plugin can reach the internet or read the branch, never both. That way text other people wrote never leaves Shiko through a plugin.',
+	},
 ];

@@ -23,6 +23,10 @@ describe('build guide reference', () => {
 				{ name: 'plugin.js', description: '256 KB' },
 				{ name: 'Memory', description: '16 MB per plugin' },
 				{ name: 'render', description: '50 ms' },
+				{
+					name: 'Requests',
+					description: 'Only in refresh: 4 per refresh, each answer up to 256 KB and 10 s',
+				},
 			])
 		);
 	});
