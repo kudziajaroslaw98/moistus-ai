@@ -25,6 +25,7 @@ import {
 	DropdownMenuRadioItem,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatUpdatedAt } from '@/helpers/dashboard/format-updated-at';
 import { waitForSubscriptionActivation } from '@/helpers/subscription/wait-for-subscription-activation';
@@ -76,9 +77,19 @@ function lastEditLabel(iso: string) {
 
 const noop = () => {};
 
+/** The "N maps · last edit …" line while maps load; same height as the text line. */
+function StatsLineSkeleton() {
+	return (
+		<div className='mt-2 flex h-5 items-center' data-testid='maps-stats-skeleton'>
+			<Skeleton className='h-4 w-72 max-w-full bg-zinc-800/60' />
+		</div>
+	);
+}
+
 /**
  * Home before the page mounts ((home)/loading.tsx): the heading and the quick-create
- * bar are static, so they show right away; only the stats line and the map grid wait.
+ * bar are static, so they show right away; the stats line and the map grid are
+ * skeletons, as on the page itself while maps load.
  * The bar is `inert` so nothing typed here is lost when the real page replaces it.
  */
 export function DashboardHomePageSkeleton() {
@@ -90,7 +101,7 @@ export function DashboardHomePageSkeleton() {
 				Your maps
 			</h1>
 
-			<p className='mt-2 h-5 text-sm text-zinc-400'> </p>
+			<StatsLineSkeleton />
 
 			<div inert>
 				<QuickCreateBar
@@ -573,9 +584,11 @@ export function DashboardContent() {
 							Your maps
 						</h1>
 
-						<p className='mt-2 h-5 text-sm text-zinc-400'>
-							{showMapsSkeleton ? ' ' : statsLine}
-						</p>
+						{showMapsSkeleton ? (
+							<StatsLineSkeleton />
+						) : (
+							<p className='mt-2 h-5 text-sm text-zinc-400'>{statsLine}</p>
+						)}
 
 						<QuickCreateBar
 							isCreating={isCreatingMap}

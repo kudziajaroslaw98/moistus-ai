@@ -19,7 +19,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Every click rebuilt the whole dashboard, refetched notifications and flashed a full-page skeleton
 - **dashboard/plan**: The plan card and Free/Pro label load in after the rest of the dashboard instead of holding it back
 - **dashboard/plugins**: The Plugins title and tabs stay in place when you switch between Library, My plugins and Build a plugin
-- **dashboard/home-loading**: While Home loads, the "Your maps" heading and the "Start a map from a thought" bar show right away; only the map count line and the map list wait
+- **dashboard/home-loading**: While Home loads, the "Your maps" heading and the "Start a map from a thought" bar show right away; the map count line and the map list show skeletons until your maps arrive
 - **templates/search**: Ctrl+F (Cmd+F) jumps to the Templates search too, and its field shows the shortcut like Home's
 
 ### Fixed
@@ -40,6 +40,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Images in approved nodes load their URL right away and could send map text to another site (CodeQL incomplete multi-character sanitization)
 - **plugins/tests**: The sandbox's eval/Function lockdown test builds its probes as plain closures instead of a `JSON.stringify` switch (CodeQL improper code sanitization)
 - **dashboard/sidebar**: A collapsed sidebar stays collapsed when you move between dashboard pages or reload
+- **dashboard/top-bar**: The search field stays in the same place and size on every dashboard page instead of shifting with the page name
 
 ### Removed
 

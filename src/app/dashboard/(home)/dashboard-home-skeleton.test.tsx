@@ -31,6 +31,7 @@ describe('DashboardHomePageSkeleton', () => {
 		const input = screen.getByPlaceholderText('Start a map from a thought…');
 		expect(input.closest('[inert]')).not.toBeNull();
 		expect(screen.getByText('SWOT analysis')).toBeInTheDocument();
+		expect(screen.getByTestId('maps-stats-skeleton')).toBeInTheDocument();
 		expect(screen.getAllByTestId('dashboard-grid-map-skeleton')).toHaveLength(
 			8
 		);
