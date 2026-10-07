@@ -1,4 +1,4 @@
-import { getMapCoverStyle, hashString } from './map-cover';
+import { COVER_HUES, getMapCoverSpec, hashString } from './map-cover';
 
 describe('hashString', () => {
 	it('is deterministic and non-negative', () => {
@@ -12,29 +12,33 @@ describe('hashString', () => {
 	});
 });
 
-describe('getMapCoverStyle', () => {
-	it('returns the same cover for the same map', () => {
-		expect(getMapCoverStyle('id-1')).toEqual(getMapCoverStyle('id-1'));
+describe('getMapCoverSpec', () => {
+	it('is stable for the same map', () => {
+		expect(getMapCoverSpec('id-1', 'Dump')).toEqual(
+			getMapCoverSpec('id-1', 'Dump')
+		);
 	});
 
-	it('gives different maps different covers', () => {
-		const covers = new Set(
-			Array.from({ length: 20 }, (_, i) => getMapCoverStyle(`map-${i}`).backgroundImage)
+	it('uses the first letter of the title, uppercased', () => {
+		expect(getMapCoverSpec('id', 'mind dump temp').letter).toBe('M');
+		expect(getMapCoverSpec('id', '  dump').letter).toBe('D');
+	});
+
+	it('keeps accents and non-Latin letters whole', () => {
+		expect(getMapCoverSpec('id', 'żółw').letter).toBe('Ż');
+		expect(getMapCoverSpec('id', '😀 plan').letter).toBe('😀');
+	});
+
+	it('falls back to a plus sign for an empty title', () => {
+		expect(getMapCoverSpec('id', '   ').letter).toBe('+');
+	});
+
+	it('picks the accent from the brand hue set and spreads maps across it', () => {
+		const hues = new Set(
+			Array.from({ length: 40 }, (_, i) => getMapCoverSpec(`map-${i}`, 'x').hue)
 		);
 
-		expect(covers.size).toBeGreaterThan(15);
-	});
-
-	it('layers a gradient and keeps colors dark and muted for the dark UI', () => {
-		const { backgroundImage } = getMapCoverStyle('map-xyz');
-		const lightness = [...backgroundImage.matchAll(/hsla?\(\d+,\s*(\d+)%,\s*(\d+)%/g)];
-
-		expect(backgroundImage).toContain('radial-gradient');
-		expect(lightness.length).toBeGreaterThanOrEqual(2);
-
-		for (const [, saturation, light] of lightness) {
-			expect(Number(saturation)).toBeLessThanOrEqual(60);
-			expect(Number(light)).toBeLessThanOrEqual(40);
-		}
+		for (const hue of hues) expect(COVER_HUES).toContain(hue);
+		expect(hues.size).toBeGreaterThanOrEqual(4);
 	});
 });

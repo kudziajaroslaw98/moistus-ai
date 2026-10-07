@@ -10,7 +10,6 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatUpdatedAt } from '@/helpers/dashboard/format-updated-at';
-import { getMapCoverStyle } from '@/helpers/dashboard/map-cover';
 import type { DashboardMap, DashboardViewMode } from '@/types/dashboard-map';
 import { cn } from '@/utils/cn';
 import { Copy, MoreHorizontal, Trash2, Users } from 'lucide-react';
@@ -24,6 +23,7 @@ import {
 	useState,
 	type KeyboardEvent,
 } from 'react';
+import { MapCover } from './map-cover';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
@@ -219,7 +219,6 @@ const MindMapCardComponent = ({
 	const nodeCount = map._count?.nodes ?? 0;
 	const meta = `${formatUpdatedAt(map.updated_at)} · ${nodeCount} ${nodeCount === 1 ? 'node' : 'nodes'}`;
 	const href = `/mind-map/${map.id}`;
-	const coverStyle = getMapCoverStyle(map.id);
 
 	// Keys while the card's link is focused: Space selects, Delete removes,
 	// Ctrl/Cmd+D duplicates, arrows move between cards.
@@ -297,10 +296,11 @@ const MindMapCardComponent = ({
 			>
 				{selectBox}
 
-				<div
-					aria-hidden='true'
+				<MapCover
+					compact
 					className='h-12 w-16 shrink-0 rounded-lg border border-[#1d1f24]'
-					style={coverStyle}
+					seed={map.id}
+					title={map.title}
 				/>
 
 				<div className='min-w-0 grow'>
@@ -360,10 +360,13 @@ const MindMapCardComponent = ({
 					: 'border-[#1d1f24] [@media(hover:hover)]:hover:border-[#34363e] [@media(hover:hover)]:hover:shadow-[0_16px_40px_rgba(0,0,0,0.4)]'
 			)}
 		>
-			<div
-				className='relative h-[112px] border-b border-[#1d1f24]'
-				style={coverStyle}
-			>
+			<MapCover
+				className='h-[112px] border-b border-[#1d1f24]'
+				seed={map.id}
+				title={map.title}
+			/>
+
+			<div className='absolute inset-x-0 top-0 h-[112px]'>
 				{isShared && (
 					<span className='absolute left-2.5 top-2.5'>
 						<SharedBadge />

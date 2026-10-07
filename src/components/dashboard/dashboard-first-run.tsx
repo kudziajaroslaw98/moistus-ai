@@ -1,12 +1,12 @@
 'use client';
 
-import { getMapCoverStyle } from '@/helpers/dashboard/map-cover';
 import { useTouchFirst } from '@/hooks/use-touch-first';
 import { ArrowRight } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useId, useState, type FormEvent } from 'react';
+import { MapCover } from './map-cover';
 import { QuickCreateForm } from './quick-create-bar';
 import type { DashboardTemplate } from './use-dashboard-data';
 
@@ -206,10 +206,10 @@ export function DashboardFirstRun({
 									onClick={() => onPickTemplate(template)}
 									type='button'
 								>
-									<span
-										aria-hidden='true'
-										className='block h-[88px] border-b border-[#1d1f24]'
-										style={getMapCoverStyle(template.id)}
+									<MapCover
+										className='h-[88px] border-b border-[#1d1f24]'
+										seed={template.id}
+										title={template.name}
 									/>
 
 									<span className='block px-4 pb-4 pt-3.5'>
