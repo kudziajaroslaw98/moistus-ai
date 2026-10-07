@@ -21,7 +21,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Added
 
-- **dashboard/covers**: Map, list-row and template cards get an outline-echo cover: the title's first letter as thin outlines trailing up and to the right over the dot grid, in one of six accents picked from the map id (`src/helpers/dashboard/map-cover.ts`, `src/components/dashboard/map-cover.tsx`)
+- **dashboard/covers**: Map, list-row and template cards get an outline-echo cover: the title's first letter as thin outlines trailing up and to the right (bleeding off the right edge) over the dot grid, in one of six accents picked from the map id (`src/helpers/dashboard/map-cover.ts`, `src/components/dashboard/map-cover.tsx`)
   - Why: Cards were too empty without a preview, and a real layout preview never matched the canvas
 
 ## [2026-10-06]
