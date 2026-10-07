@@ -8,6 +8,7 @@ import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { DashboardMapsLoadingSkeleton } from '@/components/dashboard/dashboard-loading-skeleton';
 import { MindMapCard } from '@/components/dashboard/mind-map-card';
 import { QuickCreateBar } from '@/components/dashboard/quick-create-bar';
+import { RoomCodeJoin } from '@/components/dashboard/room-code-join';
 import {
 	DASHBOARD_MAPS_KEY,
 	useDashboardMaps,
@@ -63,7 +64,6 @@ const SORT_LABELS: Record<SortByType, string> = {
 const SHORTCUTS = [
 	{ keys: 'Ctrl N', label: 'New map' },
 	{ keys: 'Ctrl F', label: 'Search' },
-	{ keys: 'Ctrl A', label: 'Select all' },
 	{ keys: 'Ctrl 1 / 2', label: 'Grid / list' },
 ];
 
@@ -484,20 +484,6 @@ export function DashboardContent() {
 		});
 	}, []);
 
-	/** Toggles every visible map; selections hidden by other filters are kept. */
-	const handleSelectAll = useCallback(() => {
-		const filteredIds = filteredMaps.map((map) => map.id);
-		const allSelected = filteredIds.every((id) => selectedMaps.has(id));
-
-		setSelectedMaps((prev) => {
-			const next = new Set(prev);
-			filteredIds.forEach((id) =>
-				allSelected ? next.delete(id) : next.add(id)
-			);
-			return next;
-		});
-	}, [selectedMaps, filteredMaps]);
-
 	// Keyboard navigation and shortcuts
 	useEffect(() => {
 		const handleKeyDown = (e: KeyboardEvent) => {
@@ -517,12 +503,6 @@ export function DashboardContent() {
 						if (isFirstRun) break;
 						e.preventDefault();
 						searchInputRef.current?.focus();
-						break;
-					case 'a':
-						if (!isTyping && filteredMaps.length > 0) {
-							e.preventDefault();
-							handleSelectAll();
-						}
 						break;
 					case '1':
 						e.preventDefault();
@@ -561,9 +541,7 @@ export function DashboardContent() {
 		selectedMaps,
 		searchQuery,
 		filterBy,
-		filteredMaps.length,
 		isFirstRun,
-		handleSelectAll,
 		handleBulkDelete,
 		handleRequestCreateMap,
 	]);
@@ -583,9 +561,6 @@ export function DashboardContent() {
 	]
 		.filter(Boolean)
 		.join(' · ');
-	const allVisibleSelected =
-		filteredMaps.length > 0 &&
-		filteredMaps.every((map) => selectedMaps.has(map.id));
 
 	const headerSearch = isFirstRun ? undefined : (
 		<DashboardSearchField
@@ -740,14 +715,6 @@ export function DashboardContent() {
 													{selectedMaps.size} selected
 												</span>
 
-												<button
-													className='rounded-md px-2 py-1 text-zinc-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
-													onClick={handleSelectAll}
-													type='button'
-												>
-													{allVisibleSelected ? 'Deselect all' : 'Select all'}
-												</button>
-
 												<span className='flex-1' />
 
 												<button
@@ -847,6 +814,8 @@ export function DashboardContent() {
 									)}
 								</TabsContent>
 							</Tabs>
+
+							<RoomCodeJoin />
 
 							{!isTouchFirst && (
 								<ul className='mt-8 hidden flex-wrap gap-x-6 gap-y-2.5 text-xs text-zinc-500 lg:flex'>

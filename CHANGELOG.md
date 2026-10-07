@@ -12,6 +12,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **dashboard/previews**: Removed the map card mini-map previews and `POST /api/maps/previews`
   - Why: A layout guess from stored positions never matched the canvas, and an editor-captured snapshot still looked wrong
 
+### Removed
+
+- **dashboard/select-all**: Removed select all (Ctrl+A, the toolbar button and the shortcut hint); maps are still selected one by one for bulk delete
+
 ### Fixed
 
 - **dashboard/width**: Dashboard content now spans up to 1760px instead of stopping at 1240px
@@ -21,6 +25,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Added
 
+- **dashboard/join-code**: The "Have a room code?" box (previously first-run only) now also sits under the map grid, so joining a shared map by code works from the main dashboard
 - **dashboard/covers**: Map, list-row and template cards get an outline-echo cover: the title's first letter as thin outlines trailing up and to the right (bleeding off the right edge) over the dot grid, in one of six accents picked from the map id (`src/helpers/dashboard/map-cover.ts`, `src/components/dashboard/map-cover.tsx`)
   - Why: Cards were too empty without a preview, and a real layout preview never matched the canvas
 
