@@ -20,7 +20,7 @@ describe('getEchoTransform', () => {
 describe('TemplateCover', () => {
 	it('draws one icon per echo, back to front', () => {
 		const { container } = render(
-			<TemplateCover icon={FileText} seed='t1' title='Plan' />
+			<TemplateCover icon={FileText} hue={212} />
 		);
 		const groups = container.querySelectorAll('g[transform]');
 		expect(groups).toHaveLength(TEMPLATE_COVER_ECHOES.length);
@@ -29,9 +29,18 @@ describe('TemplateCover', () => {
 		);
 	});
 
+	it('tints with the given hue', () => {
+		const { container } = render(
+			<TemplateCover icon={FileText} hue={38} />
+		);
+		expect(container.querySelector('g[transform] svg')?.getAttribute('stroke')).toBe(
+			'hsl(38 80% 68%)'
+		);
+	});
+
 	it('crops tighter and shifts the icon left when compact', () => {
 		const { container } = render(
-			<TemplateCover compact icon={FileText} seed='t1' title='Plan' />
+			<TemplateCover compact icon={FileText} hue={212} />
 		);
 		expect(container.querySelector('svg')?.getAttribute('viewBox')).toBe(
 			'100 4 170 112'

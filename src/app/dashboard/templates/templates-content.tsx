@@ -64,6 +64,18 @@ const TEMPLATE_CATEGORIES: Record<TemplateCategory, string> = {
 	technical: 'Technical',
 };
 
+// One accent hue per category, shared by every template in it.
+const CATEGORY_HUES: Record<TemplateCategory, number> = {
+	creative: 270,
+	productivity: 152,
+	planning: 214,
+	analysis: 38,
+	business: 244,
+	education: 188,
+	personal: 330,
+	technical: 14,
+};
+
 // Covers are icon-per-category: the `icon` stored on each template row is
 // not used here.
 const CATEGORY_ICONS: Record<TemplateCategory, LucideIcon> = {
@@ -146,8 +158,7 @@ const TemplateCard = memo(function TemplateCard({
 					compact
 					className='h-12 w-16 shrink-0 rounded-lg border border-[#1d1f24]'
 					icon={Icon}
-					seed={template.id}
-					title={template.name}
+					hue={CATEGORY_HUES[template.category] ?? 214}
 				/>
 
 				<div className='min-w-0 grow'>
@@ -194,8 +205,7 @@ const TemplateCard = memo(function TemplateCard({
 				<TemplateCover
 					className='h-[112px] border-b border-[#1d1f24]'
 					icon={Icon}
-					seed={template.id}
-					title={template.name}
+					hue={CATEGORY_HUES[template.category] ?? 214}
 				/>
 
 				<span className='absolute left-2.5 top-2.5 rounded-full border border-[#2a2c33] bg-[#0e0f12] px-2 py-0.5 text-[11px] text-zinc-300'>

@@ -1,4 +1,3 @@
-import { getMapCoverSpec } from '@/helpers/dashboard/map-cover';
 import { cn } from '@/utils/cn';
 import type { LucideIcon } from 'lucide-react';
 import { useId } from 'react';
@@ -24,10 +23,9 @@ export function getEchoTransform(
 }
 
 interface TemplateCoverProps {
-	/** Template id; picks the accent. */
-	seed: string;
-	title: string;
 	icon: LucideIcon;
+	/** Accent hue (0-360); templates in one category share it. */
+	hue: number;
 	/** Tighter crop around the icon for small swatches. */
 	compact?: boolean;
 	className?: string;
@@ -39,14 +37,12 @@ interface TemplateCoverProps {
  * Sibling of MapCover (which echoes a letter).
  */
 export function TemplateCover({
-	seed,
-	title,
 	icon: Icon,
+	hue,
 	compact,
 	className,
 }: TemplateCoverProps) {
 	const patternId = useId();
-	const { hue } = getMapCoverSpec(seed, title);
 	const stroke = `hsl(${hue} 80% 68%)`;
 	const originX = compact ? 150 : 185;
 
