@@ -1,6 +1,5 @@
 import { render, screen } from '@testing-library/react';
 import {
-	DashboardHomeLoadingSkeleton,
 	DashboardMapsLoadingSkeleton,
 	DashboardRouteLoadingSkeleton,
 } from './dashboard-loading-skeleton';
@@ -20,11 +19,10 @@ describe('Dashboard loading skeletons', () => {
 		expect(container.querySelector('aside')).toHaveClass('w-[3.25rem]');
 	});
 
-	it('renders the Home content skeleton on its own for in-dashboard navigation', () => {
-		const { container } = render(<DashboardHomeLoadingSkeleton />);
+	it('draws no real headings, since it can show before any dashboard page', () => {
+		render(<DashboardRouteLoadingSkeleton />);
 
-		expect(container.querySelector('aside')).toBeNull();
-		expect(screen.getAllByTestId('dashboard-grid-map-skeleton')).toHaveLength(8);
+		expect(screen.queryByRole('heading')).not.toBeInTheDocument();
 	});
 
 	it('renders configurable grid map skeleton count', () => {

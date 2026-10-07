@@ -15,17 +15,13 @@ import {
 
 /**
  * Pages with a search field in the top bar. The field belongs to the shell (so it
- * renders on the server and survives navigation); the page reads the query with
- * `useDashboardSearch()`.
+ * renders on the server and survives navigation, and Ctrl/Cmd+F focuses it on every
+ * one of these pages); the page reads the query with `useDashboardSearch()`.
  */
 export const DASHBOARD_HEADER_SEARCH: Readonly<
-	Record<string, { id: string; label: string; shortcut?: string }>
+	Record<string, { id: string; label: string }>
 > = {
-	'/dashboard': {
-		id: 'dashboard-map-search',
-		label: 'Search maps',
-		shortcut: 'Ctrl F',
-	},
+	'/dashboard': { id: 'dashboard-map-search', label: 'Search maps' },
 	'/dashboard/templates': { id: 'templates-search', label: 'Search templates' },
 };
 
@@ -115,7 +111,7 @@ export function useDashboardShell(): DashboardShellContextValue {
 export function useDashboardSearch({
 	hidden = false,
 }: { hidden?: boolean } = {}) {
-	const { query, setQuery, searchInputRef, update } = useDashboardShell();
+	const { query, setQuery, update } = useDashboardShell();
 
 	useEffect(() => {
 		if (!hidden) return;
@@ -123,7 +119,7 @@ export function useDashboardSearch({
 		return () => update({ searchHidden: false });
 	}, [hidden, update]);
 
-	return { query, setQuery, inputRef: searchInputRef };
+	return { query, setQuery };
 }
 
 /**

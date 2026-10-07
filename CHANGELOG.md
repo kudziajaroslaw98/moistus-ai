@@ -19,6 +19,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: Every click rebuilt the whole dashboard, refetched notifications and flashed a full-page skeleton
 - **dashboard/plan**: The plan card and Free/Pro label load in after the rest of the dashboard instead of holding it back
 - **dashboard/plugins**: The Plugins title and tabs stay in place when you switch between Library, My plugins and Build a plugin
+- **dashboard/home-loading**: While Home loads, the "Your maps" heading and the "Start a map from a thought" bar show right away; only the map count line and the map list wait
+- **templates/search**: Ctrl+F (Cmd+F) jumps to the Templates search too, and its field shows the shortcut like Home's
 
 ### Fixed
 

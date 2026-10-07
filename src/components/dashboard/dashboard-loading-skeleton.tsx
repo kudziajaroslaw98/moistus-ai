@@ -60,8 +60,11 @@ export function DashboardMapsLoadingSkeleton({
 	);
 }
 
-/** Home content while the page loads (inside the shell, under the top bar). */
-export function DashboardHomeLoadingSkeleton() {
+/**
+ * Abstract content blocks for the entry skeleton. It shows before any dashboard page,
+ * so it draws no real headings ((home)/loading.tsx shows Home's own).
+ */
+function DashboardHomeLoadingSkeleton() {
 	return (
 		<div
 			className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'

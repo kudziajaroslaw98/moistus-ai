@@ -360,10 +360,24 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 			label={searchConfig.label}
 			onChange={setSearchQuery}
 			ref={searchInputRef}
-			shortcut={isTouchFirst ? undefined : searchConfig.shortcut}
+			shortcut={isTouchFirst ? undefined : 'Ctrl F'}
 			value={searchQuery}
 		/>
 	) : undefined;
+
+	// Ctrl/Cmd+F jumps to the top-bar search wherever one is shown; elsewhere the
+	// browser's own find still works.
+	useEffect(() => {
+		if (!searchConfig) return;
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+				event.preventDefault();
+				searchInputRef.current?.focus();
+			}
+		};
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [searchConfig, searchInputRef]);
 
 	const displayName =
 		userProfile?.display_name || userProfile?.full_name || 'Account';

@@ -439,7 +439,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 <!-- Updated: 2026-10-07 - Dashboard redesign plus shared dashboard layout (persistent shell, shell context, plugins frame) -->
 
 - `src/app/dashboard/layout.tsx`: shared shell for every `/dashboard` page. Shows `DashboardRouteLoadingSkeleton` in Suspense while it checks the session (redirects signed-out visitors, using the `x-dashboard-path` header from `src/proxy.ts`), then renders `SidebarProvider` (collapsed state from the `sidebar_state` cookie, `src/components/ui/sidebar-cookie.ts`) + `DashboardLayout`, and streams the plan in through `SubscriptionStateHydrator`. Pages (`(home)/page.tsx`, `templates/`, `recipes/`, `plugins/`) render only their content
-- `src/components/dashboard/dashboard-shell-context.tsx`: per-page shell state keyed by pathname: `useDashboardSearch()` (top-bar query, `DASHBOARD_HEADER_SEARCH` paths), `useDashboardNewMapAction()` (Home's New map dialog); `dashboard-search-field.tsx` is the shared top-bar field
+- `src/components/dashboard/dashboard-shell-context.tsx`: per-page shell state keyed by pathname: `useDashboardSearch()` (top-bar query, `DASHBOARD_HEADER_SEARCH` paths; the shell focuses the field on Ctrl/Cmd+F), `useDashboardNewMapAction()` (Home's New map dialog); `dashboard-search-field.tsx` is the shared top-bar field
 - `src/app/dashboard/plugins/layout.tsx` + `src/components/plugins/plugins-page-tabs.tsx` (`PluginsPageFrame`): Plugins title and Library / My plugins / Build tabs, active tab from the pathname
 - `src/components/dashboard/dashboard-layout.tsx`: sidebar (New map, nav, Recent from the `/api/maps` SWR cache, `DashboardPlanCard`, user row whose settings icon opens `UserMenu` via its `trigger` prop) + `DashboardHeader` (page label from the active nav item, search field for `DASHBOARD_HEADER_SEARCH` paths, notification bell, mobile sidebar trigger); resets `<main>` scroll on pathname change
 - `src/app/dashboard/(home)/dashboard-content.tsx`: "Your maps" (quick-create bar, template chips, filter tabs, sort menu, grid/list, selection toolbar) or `DashboardFirstRun` when the user has no maps (big first-map input, template cards, room-code join to `/join?code=`)
@@ -451,8 +451,8 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 **Dashboard Progressive Loading:**
 
 - Entering the dashboard shows `DashboardRouteLoadingSkeleton` (whole shell + Home content) as the dashboard layout's Suspense fallback while the session is checked
-- Inside the shell each section has a content-only `loading.tsx`: `(home)/loading.tsx` (`DashboardHomeLoadingSkeleton`, in a route group so it doesn't wrap sibling sections), `templates/loading.tsx` (`TemplatesPageSkeleton`), `recipes/loading.tsx` (`RecipesPageSkeleton`), `plugins/loading.tsx` (under the plugins frame)
-- `src/components/dashboard/dashboard-loading-skeleton.tsx` contains the whole-shell fallback (narrow sidebar when collapsed), the Home content skeleton and in-page map-card skeleton placeholders (`grid`/`list`)
+- Inside the shell each section has a content-only `loading.tsx`: `(home)/loading.tsx` (`DashboardHomePageSkeleton`: real heading and `inert` quick-create bar, skeleton stats and grid; in a route group so it doesn't wrap sibling sections), `templates/loading.tsx` (`TemplatesPageSkeleton`), `recipes/loading.tsx` (`RecipesPageSkeleton`), `plugins/loading.tsx` (under the plugins frame)
+- `src/components/dashboard/dashboard-loading-skeleton.tsx` contains the whole-shell fallback (narrow sidebar when collapsed, abstract content blocks, no real headings) and in-page map-card skeleton placeholders (`grid`/`list`)
 - `src/app/dashboard/(home)/dashboard-content.tsx` progressively streams `DashboardMapsLoadingSkeleton` while `/api/maps` is loading for the initial empty cache
 
 **Dashboard Account/Billing Settings Panel:**

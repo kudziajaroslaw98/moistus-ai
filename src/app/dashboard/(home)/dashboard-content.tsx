@@ -74,6 +74,42 @@ function lastEditLabel(iso: string) {
 		: label.charAt(0).toLowerCase() + label.slice(1);
 }
 
+const noop = () => {};
+
+/**
+ * Home before the page mounts ((home)/loading.tsx): the heading and the quick-create
+ * bar are static, so they show right away; only the stats line and the map grid wait.
+ * The bar is `inert` so nothing typed here is lost when the real page replaces it.
+ */
+export function DashboardHomePageSkeleton() {
+	const templates = useDashboardTemplates();
+
+	return (
+		<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
+			<h1 className='text-3xl font-bold leading-tight tracking-[-0.02em]'>
+				Your maps
+			</h1>
+
+			<p className='mt-2 h-5 text-sm text-zinc-400'> </p>
+
+			<div inert>
+				<QuickCreateBar
+					onCreate={noop}
+					onOpenDialog={noop}
+					onPickTemplate={noop}
+					templates={templates}
+				/>
+			</div>
+
+			<div className='mt-9 h-11 border-b border-[#1d1f24]' />
+
+			<div className='mt-6 grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5'>
+				<DashboardMapsLoadingSkeleton viewMode='grid' />
+			</div>
+		</div>
+	);
+}
+
 export function DashboardContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -158,11 +194,9 @@ export function DashboardContent() {
 	const showMapsSkeleton = mapsLoading && maps.length === 0;
 	const isFirstRun = !showMapsSkeleton && maps.length === 0;
 	// The field sits in the shell's top bar; there's nothing to search on first run.
-	const {
-		query: searchQuery,
-		setQuery: setSearchQuery,
-		inputRef: searchInputRef,
-	} = useDashboardSearch({ hidden: isFirstRun });
+	const { query: searchQuery, setQuery: setSearchQuery } = useDashboardSearch({
+		hidden: isFirstRun,
+	});
 
 	const sharedCount = maps.filter((map) => map.is_shared).length;
 	const filterCounts: Record<FilterType, number> = {
@@ -450,11 +484,7 @@ export function DashboardContent() {
 						e.preventDefault();
 						handleRequestCreateMap();
 						break;
-					case 'f':
-						if (isFirstRun) break;
-						e.preventDefault();
-						searchInputRef.current?.focus();
-						break;
+					// Ctrl/Cmd+F (focus search) is handled by the dashboard shell.
 					case '1':
 						e.preventDefault();
 						setViewMode('grid');
@@ -492,9 +522,7 @@ export function DashboardContent() {
 		selectedMaps,
 		searchQuery,
 		setSearchQuery,
-		searchInputRef,
 		filterBy,
-		isFirstRun,
 		handleBulkDelete,
 		handleRequestCreateMap,
 	]);
