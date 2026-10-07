@@ -3,7 +3,7 @@ import { cn } from '@/utils/cn';
 import { useId } from 'react';
 
 // Echoes trail up and to the right, back to front; the last one is the letter.
-// The letter starts at x=150 on purpose: wide ones run off the right edge.
+// The letter starts at x=185 on purpose: wide ones run off the right edge.
 const ECHOES = [
 	{ dx: 30, dy: -22, opacity: 0.12 },
 	{ dx: 20, dy: -14, opacity: 0.22 },
@@ -69,7 +69,7 @@ export function MapCover({ seed, title, compact, className }: MapCoverProps) {
 						stroke={stroke}
 						strokeOpacity={echo.opacity}
 						strokeWidth='1.2'
-						x={150 + echo.dx}
+						x={185 + echo.dx}
 						y={132 + echo.dy}
 					>
 						{letter}
