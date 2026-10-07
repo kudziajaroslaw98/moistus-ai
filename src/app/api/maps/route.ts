@@ -1,6 +1,11 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { checkUsageLimit } from '@/helpers/api/with-subscription-check';
+import {
+	groupMapCollaborators,
+	type CollaboratorRow,
+	type MapCollaboratorSummary,
+} from '@/helpers/dashboard/map-collaborators';
 import generateUuid from '@/helpers/generate-uuid';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
@@ -13,6 +18,74 @@ const requestBodySchema = z.object({
 	template_category: z.string().optional().nullable(),
 	template_id: z.string().optional().nullable(),
 });
+
+/**
+ * Loads everyone with access to each map (owner first, then active shares)
+ * for dashboard avatars. Non-fatal: returns {} when profiles can't be read.
+ */
+async function fetchMapCollaborators(
+	maps: { id: string; ownerId: string }[],
+	currentUserId: string
+): Promise<Record<string, MapCollaboratorSummary>> {
+	if (maps.length === 0) return {};
+
+	try {
+		const adminClient = createServiceRoleClient();
+		const mapIds = maps.map((map) => map.id);
+		const ownerIds = [
+			...new Set(
+				maps.map((map) => map.ownerId).filter((id) => id !== currentUserId)
+			),
+		];
+
+		const [shareResult, ownerResult] = await Promise.all([
+			adminClient
+				.from('share_access_with_profiles')
+				.select('map_id, user_id, display_name, full_name, avatar_url, email')
+				.in('map_id', mapIds)
+				.eq('status', 'active'),
+			ownerIds.length > 0
+				? adminClient
+						.from('user_profiles')
+						.select('user_id, display_name, full_name, avatar_url, email')
+						.in('user_id', ownerIds)
+				: Promise.resolve({ data: [], error: null }),
+		]);
+
+		if (shareResult.error || ownerResult.error) {
+			console.error(
+				'Error fetching map collaborators:',
+				shareResult.error ?? ownerResult.error
+			);
+			return {};
+		}
+
+		const ownerProfiles = new Map(
+			(ownerResult.data ?? []).map((profile) => [profile.user_id, profile])
+		);
+		const ownerRows: CollaboratorRow[] = maps
+			.filter((map) => map.ownerId !== currentUserId)
+			.map((map) => {
+				const profile = ownerProfiles.get(map.ownerId);
+				return {
+					map_id: map.id,
+					user_id: map.ownerId,
+					display_name: profile?.display_name ?? null,
+					full_name: profile?.full_name ?? null,
+					avatar_url: profile?.avatar_url ?? null,
+					email: profile?.email ?? null,
+				};
+			});
+
+		return groupMapCollaborators(
+			[...ownerRows, ...((shareResult.data ?? []) as CollaboratorRow[])],
+			currentUserId
+		);
+	} catch (error) {
+		console.error('Error fetching map collaborators:', error);
+		return {};
+	}
+}
 
 export const GET = withApiValidation(
 	z.any().nullish(),
@@ -108,9 +181,22 @@ export const GET = withApiValidation(
 					new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
 			);
 
+			// 4. Collaborators for card avatars. Service role because user_profiles
+			// RLS hides co-collaborators; scoped to map IDs the user-session
+			// queries above already returned, so nothing new is exposed.
+			const collaboratorsByMap = await fetchMapCollaborators(
+				allMaps.map((map) => ({ id: map.id, ownerId: map.user_id })),
+				user.id
+			);
+
 			return respondSuccess(
 				{
-					maps: allMaps,
+					maps: allMaps.map((map) => ({
+						...map,
+						collaborators: collaboratorsByMap[map.id]?.collaborators ?? [],
+						collaboratorCount:
+							collaboratorsByMap[map.id]?.collaboratorCount ?? 0,
+					})),
 				},
 				200,
 				'Mind maps fetched successfully.'

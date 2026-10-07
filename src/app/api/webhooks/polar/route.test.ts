@@ -188,7 +188,11 @@ describe('POST /api/webhooks/polar', () => {
 	});
 
 	it('records cancel-at-period-end from a subscription.canceled wire payload', async () => {
-		const fake = createFakeSupabase(() => null);
+		const fake = createFakeSupabase((op) =>
+			op.table === 'user_subscriptions' && op.action === 'select'
+				? { id: 'row-1', metadata: { polar_product_id: PRODUCT_ID } }
+				: null
+		);
 		mockedCreateServiceRoleClient.mockReturnValue(fake.client as never);
 
 		const response = await POST(
@@ -288,6 +292,126 @@ describe('POST /api/webhooks/polar', () => {
 					polar_modified_at: subscriptionUpdatedFixture.data.modified_at,
 				},
 			});
+		});
+	});
+
+	describe('events that arrive before the subscription row exists', () => {
+		// In-memory user_subscriptions table, so a sequence of deliveries sees
+		// what earlier deliveries wrote.
+		function statefulFake() {
+			let row: Record<string, unknown> | null = null;
+			const fake = createFakeSupabase((op) => {
+				if (op.table === 'subscription_plans') return { id: 'plan-pro-id' };
+				if (op.table !== 'user_subscriptions') return null;
+				if (op.action === 'insert') row = { id: 'row-1', ...op.payload };
+				if (op.action === 'update' && row) row = { ...row, ...op.payload };
+				return op.action === 'select' ? row : null;
+			});
+			return { fake, getRow: () => row };
+		}
+
+		it.each([
+			['subscription.revoked', { status: 'canceled' }, { status: 'canceled' }],
+			[
+				'subscription.canceled',
+				{ cancel_at_period_end: true, canceled_at: '2026-09-20T12:00:00Z' },
+				{ status: 'active', cancel_at_period_end: true },
+			],
+			[
+				'subscription.uncanceled',
+				{},
+				{ status: 'active', cancel_at_period_end: false },
+			],
+		])(
+			'persists %s with its version instead of updating nothing',
+			async (eventType, overrides, expected) => {
+				const { fake, getRow } = statefulFake();
+				mockedCreateServiceRoleClient.mockReturnValue(fake.client as never);
+
+				const response = await POST(
+					signedRequest(buildPayload(eventType, overrides))
+				);
+
+				expect(response.status).toBe(200);
+				expect(getRow()).toMatchObject({
+					...expected,
+					polar_subscription_id: SUBSCRIPTION_ID,
+					metadata: expect.objectContaining({
+						polar_modified_at: subscriptionUpdatedFixture.data.modified_at,
+					}),
+				});
+			}
+		);
+
+		it('keeps a revoked subscription canceled even if the payload status says active', async () => {
+			const { fake, getRow } = statefulFake();
+			mockedCreateServiceRoleClient.mockReturnValue(fake.client as never);
+
+			await POST(
+				signedRequest(
+					buildPayload('subscription.revoked', { status: 'active' })
+				)
+			);
+
+			expect(getRow()).toMatchObject({ status: 'canceled' });
+		});
+
+		it('does not re-grant access when a late subscription.created follows an early revoke', async () => {
+			const { fake, getRow } = statefulFake();
+			mockedCreateServiceRoleClient.mockReturnValue(fake.client as never);
+
+			await POST(
+				signedRequest(
+					buildPayload('subscription.revoked', { status: 'canceled' })
+				)
+			);
+			const response = await POST(
+				signedRequest(
+					buildPayload('subscription.created', { modified_at: null })
+				)
+			);
+
+			expect(response.status).toBe(200);
+			expect(getRow()).toMatchObject({ status: 'canceled' });
+		});
+	});
+
+	it('keeps plan-change metadata when subscription.active updates an existing row', async () => {
+		const fake = createFakeSupabase((op) => {
+			if (op.table === 'subscription_plans') return { id: 'plan-pro-id' };
+			if (op.table === 'user_subscriptions' && op.action === 'select') {
+				return {
+					id: 'row-1',
+					metadata: {
+						polar_product_id: PRODUCT_ID,
+						previous_plan: 'starter',
+						last_plan_change: '2026-09-10T00:00:00.000Z',
+						previous_period_start: '2026-08-16T11:01:04.893Z',
+						polar_modified_at: '2026-09-10T00:00:00.000Z',
+					},
+				};
+			}
+			return null;
+		});
+		mockedCreateServiceRoleClient.mockReturnValue(fake.client as never);
+
+		const response = await POST(
+			signedRequest(buildPayload('subscription.active'))
+		);
+
+		expect(response.status).toBe(200);
+		const update = fake.ops.find(
+			(op) => op.table === 'user_subscriptions' && op.action === 'update'
+		);
+		expect(update?.payload?.metadata).toEqual({
+			polar_product_id: PRODUCT_ID,
+			previous_plan: 'starter',
+			last_plan_change: '2026-09-10T00:00:00.000Z',
+			previous_period_start: '2026-08-16T11:01:04.893Z',
+			billing_interval: 'monthly',
+			amount: 1200,
+			currency: 'usd',
+			polar_modified_at: subscriptionUpdatedFixture.data.modified_at,
 		});
 	});
 

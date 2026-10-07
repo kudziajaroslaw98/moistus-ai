@@ -69,7 +69,7 @@ export function RecipesContent() {
 
 	return (
 		<SidebarProvider>
-			<DashboardLayout>
+			<DashboardLayout title='Recipes'>
 				<div className='p-6 md:p-8'>
 					<div className='mx-auto flex max-w-3xl flex-col gap-6'>
 						<div className='space-y-2'>

@@ -13,15 +13,36 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: the page's policy only knew Shiko's own plugins' sites at build time; listing every library site there would let any script on the page reach them
 - **security/csp**: The page's policy allows `http://localhost:*` and `http://127.0.0.1:*` for developer plugin files, and is no longer sent with the network worker or the service worker script
 - **lint**: `react/no-danger` is an error; the one existing use (AI chat, sanitized with `sanitize-html`) carries a disable comment saying so
-
 - **plugins/guide**: "Build a plugin" is now the third tab of the dashboard Plugins page and covers the whole flow: Powers (refresh with `ctx.request`, `ctx.branch`, why a plugin can't have both) with a GitHub issue example that tests run through both refresh passes, request and branch limits, versions and updates, publishing to the library, what happens when a plugin is reported, and what plugins can't do. The out-of-date "Sharing a plugin" section is gone
 - **plugins/guide**: The "On this page" list highlights the last heading scrolled past, keeps a clicked entry while the page can't scroll it to the top, and reaches the last sections at the bottom of the page
 
 ### Fixed
 
 - **pwa/plugins**: With the service worker installed, plugins failed to load ("The plugin runtime could not start"): the service worker re-fetched worker scripts and lost the URL fragment Turbopack's worker bootstrap reads. Worker scripts and plugin requests now bypass the service worker, so a refresh can't save a cached answer as fresh data either
+- **dashboard/width**: Dashboard content now spans up to 1760px instead of stopping at 1240px
+  - Why: It left a wide empty strip on the right of large screens
+- **dashboard/mobile-height**: The dashboard shell (and its loading skeleton) is pinned to the visible viewport (`fixed inset-0`) instead of `h-screen` (100vh)
+  - Why: On phones 100vh doesn't match the visible screen, which could leave blank space below the scrolling map list
+- **dashboard/descriptions**: Map descriptions wrap to two lines (one in list view) with a Show more / Show less toggle that appears only when text is cut off
+  - Why: Long descriptions were truncated with no way to read them
+- **landing/story-rail**: Chapter rail dots are now centered on the divider line under each step name
+  - Why: They sat on the label line and looked misaligned with the steps
+- **templates/performance**: Removed the per-card staggered entry animation, `backdrop-blur` layers, `transition-all`, the no-op `AnimatePresence` and per-card hover state; cards use `content-visibility: auto`
+  - Why: All cards mounted and animated at once (stutter), blur layers made scrolling slow, and cards below the fold were still fading in when scrolled to
+- **templates/header**: The top bar now says "Templates" instead of the default "Home"
 
----
+### Removed
+
+- **dashboard/previews**: Removed the map card mini-map previews and `POST /api/maps/previews`
+  - Why: A layout guess from stored positions never matched the canvas, and an editor-captured snapshot still looked wrong
+- **dashboard/select-all**: Removed select all (Ctrl+A, the toolbar button and the shortcut hint); maps are still selected one by one for bulk delete
+
+### Added
+
+- **templates/page**: Templates page restyled to match the dashboard (underline category tabs, segmented grid/list toggle, `#0e0f12` cards, header search, card skeletons, always-visible "Use template" button) with new `TemplateCover` icon covers (dot grid, per-category accent color, four trailing outline echoes of the category's icon, sunk so the bottom is cut off)
+- **dashboard/join-code**: The "Have a room code?" box (previously first-run only) now also sits under the map grid, so joining a shared map by code works from the main dashboard
+- **dashboard/covers**: Map, list-row and template cards get an outline-echo cover: the title's first letter as thin outlines trailing up and to the right (bleeding off the right edge) over the dot grid, in one of six accents picked from the map id (`src/helpers/dashboard/map-cover.ts`, `src/components/dashboard/map-cover.tsx`)
+  - Why: Cards were too empty without a preview, and a real layout preview never matched the canvas
 
 ## [2026-10-06]
 
@@ -44,6 +65,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **plugins/turned-off**: A plugin Shiko turns off everywhere stops loading on every map; its nodes show their last saved view with "Turned off by Shiko: <reason>", and it can't be turned on until Shiko turns it back on
 - **legal/plugins**: The FAQ, the privacy policy (new "5.3 Plugins" section) and the subprocessors page say what plugins that connect to other sites send, to whom and when, and that viewing a map never contacts them
 - **plugins/approval**: Turning on a plugin with a power asks the owner first ("Turn on …?", in the Plugins panel and the dashboard map picker) and says what it reads or sends, to whom and when; every plugin card says what it can reach; the editor and the first Refresh say where the data goes. The API refuses a turn-on or update that doesn't confirm the version's powers
+- **dashboard/collaborators**: `GET /api/maps` now returns up to 3 collaborators per map plus a total count for card avatars
+- **dashboard/first-run**: New users get a first-map input, keyboard hints, template cards and a room-code join box
 
 ### Fixed
 
@@ -56,6 +79,20 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **node-editor**: Typing a `$` command no longer logs a "NOT AvailableNodeTypes" warning
 - **history**: A refresh that fetched the same data shows as "Last refresh changed" instead of "Extension.fetched At changed"
 - **node-editor**: Create/Update looks dimmed while it can't be used (for example while a plugin field has an error); the entrance animation's inline opacity was hiding the disabled style
+- **dashboard/templates-cache**: Dashboard template chips cache `/api/templates` in the same raw shape as the Templates page and template picker
+  - Why: A different shape under the same SWR key made the other screens read zero templates
+
+### Changed
+
+- **dashboard/redesign**: Rebuilt the dashboard per the design canvas: sidebar with New map, Recent maps, plan card (maps used on Free, AI suggestions on Pro) and account row; top bar with search and notifications; quick-create bar with template chips; filter tabs with counts; sort menu; new map cards and list rows (no mini-map previews)
+  - Why: Faster path from opening the app to a new map, and cards that show what each map actually looks like
+- **dashboard/plan-card**: Reset date is hidden when the usage billing period has already ended
+  - Why: Stale usage rows would otherwise promise a reset in the past
+
+### Removed
+
+- **ui/unused**: Deleted `sidebar-item.tsx`, `sidebar-section.tsx` and `search-input.tsx`
+  - Why: The dashboard redesign was their last user
 
 ## [2026-10-05]
 
@@ -78,6 +115,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **plugins/metric**: Metric 0.2.0 adds a trend arrow (set by − and +, or `trend:up`) and fixes rounding for decimals; it reads 0.1.0 data unchanged
 - **ai/recipes**: Recipes page in the dashboard sidebar (`/dashboard/recipes`): your recipes and starters with search, create, edit, duplicate, share and delete outside a map; the in-map recipes panel links to it and keeps Try; the shared recipe page links to it after adding
   - Why: Recipes were only reachable from the bottom of the AI menu
+- **landing/product-frames**: Shared static mocks under `src/components/landing/product/` (canvas surface, node card, task node, AI ghost card, edge layer, cursor, editor chrome)
+- **landing/mobile**: Phone layouts for the hero, Grow (root plus AI card) and Clarity frames, plus a menu button in the nav
 
 ### Changed
 
@@ -91,6 +130,21 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **ai/models**: All OpenAI calls (suggestions, recipes, chat, connections, merges, node search, generate answer, URL processing) use `gpt-6-luna` (was `gpt-5.4-mini` / `gpt-5.4-nano`)
 - **ai/recipes**: "Generate counterpoints" now runs the Counterpoints starter recipe through `POST /api/ai/recipes/run`: its suggestions show the recipe name and accepting one records a single history entry attributed to "Counterpoints"
   - Why: Counterpoints was already recipe-shaped; one engine means one set of guardrails (fixed system prompt, output sanitisation, type/label/count checks)
+- **landing/redesign**: Rebuilt the landing page as one scroll story (hero, Capture, Grow, Share, Clarity, use cases, pricing with trust strip, FAQ, closing CTA)
+  - Why: Show what a map becomes instead of listing features; every product frame uses the app's real node, edge, ghost and toolbar styling
+- **landing/quick-input-demo**: The Capture chapter plays a pre-scripted typing timeline once when scrolled into view (typed text mirrors into the task preview, progress eases, strike-through draws), then stops with a Replay button
+  - Why: A looping state-swap flashed; the script is static data so the real parser and CodeMirror stay out of the landing bundle
+- **landing/copy**: Removed the offline claim and the app-menu inventory (layout presets, AI action grid, editor hints)
+  - Why: Offline editing is only partly true today and the page should stay outcome-led
+- **landing/quick-input-examples**: The Capture demo now shows three real quick-input examples (Tasks, Question, Note) with example tabs; it plays Tasks on scroll, then advances once through the other two, then stops (Replay restarts)
+  - Why: Show that one typing flow covers different node types, with only verified real syntax
+- **landing/quick-input-accuracy**: The task preview now shows the app's always-present amber `pending` chip and a relative `Tomorrow` date chip (`^tomorrow`) instead of a fixed past date
+  - Why: A fixed 2026-03-12 date would render as red "Overdue" in the real app today
+- **landing/story-rail**: Chapter rail dots are anchored to each chapter's label row, so they line up with the step labels; the final chapter shows the inverted (filled) dot instead of an invisible one
+- **landing/faq**: FAQ matches the design: no card box, "Straight answers." heading, plus/close icon, first answer open, tighter answer copy
+  - Why: The FAQ and the closing CTA were both boxed back to back; only the CTA keeps its box
+- **landing/final-cta**: Removed the decorative "What are you planning?" node from the closing CTA
+  - Why: It looked like a text field people could type into
 
 ### Fixed
 
@@ -102,6 +156,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Removed
 
 - **ai/counterpoints**: `POST /api/ai/counterpoints`, `src/helpers/ai-counterpoint-{request,context,prompts,postprocess}.ts` and `generateCounterpointsForNode` (replaced by the starter recipe)
+- **landing/legacy-sections**: Deleted the unused problem/solution, features, hero demo, hero scene, hero background and grain overlay components plus the three old screenshot PNGs
+  - Why: Replaced by the scroll story; nothing imports them
+- **landing/noise-texture**: Deleted `public/images/noise-blue.png`, whose only user was the removed grain overlay
 
 ## [2026-10-04]
 
@@ -155,6 +212,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **ai**: Anchored annotations are folded into their host's context (`note(<type>): <text>`) for chat, suggestions, counterpoints, merges, connections and search; approved AI annotation ghosts anchor to their source instead of adding an edge
 - **collapse**: Collapsed-branch redesign: stacked collapsed card with "N nodes hidden" pill, branch roll-up (task progress, pending chip, red/amber severity dot), hover/tap peek outline with expand-path rows, Shift+click expand all, add-child expands, cross-links re-attach to the collapsed ancestor as dashed proxy edges
 - **search**: Ctrl/Cmd+F canvas search that reaches inside collapsed branches ("N matches inside"), with Enter/Shift+Enter navigation that opens the collapsed branch containing a hidden match
+- **groups/drag-membership**: Drag a node over a group and hold to add it, or drag a member outside its group and hold to remove it; release applies the change, and the group's label shows hold/release progress
+  - Why: Group membership could only be changed from menus before
 
 ### Changed
 
@@ -206,12 +265,21 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: The checkpoint function treated `edges.animated` (a text column) as a boolean
 - **ai/structured-outputs**: AI suggestions (expand) and counterpoints no longer fail with `invalid_json_schema`
   - Why: `@ai-sdk/openai` 3.x enables OpenAI strict structured outputs by default, which rejects optional (`.partial()`/`.optional()`) keys and the `uri` string format
+- **billing/webhooks**: A `subscription.canceled`, `uncanceled` or `revoked` event that arrives before the subscription row exists is now saved from its payload (revoked as `canceled`) instead of updating nothing
+  - Why: A late `subscription.created` retry then had no stored version to compare against and re-granted Pro after a revoke
+- **billing/webhooks**: `subscription.created` / `active` on an existing row merges into stored metadata, so plan-change fields (`previous_plan`, `last_plan_change`, `previous_period_start`) are no longer wiped
+- **groups/member-interaction**: Nodes inside a group can be clicked, selected and edited again, even while the group is selected
+  - Why: Groups rendered above their members and captured every click
+- **groups/multi-remove**: Removing several nodes from the same group no longer leaves some of them listed in the group's children
+- **groups/create-from-selection**: Groups created from a selection now share one id with their members, so the original members can be dragged out of the group
+  - Why: The group node was created with a different id than the one written to its members; existing groups with that mismatch are repaired the next time a member is dragged in or out
 
 ### Removed
 
 - **history**: Unused history components and helpers left over from earlier panel versions (`history-entry-card`, `history-actions`, `history-group`, `change-item`, `git-diff-view`, `grouping-utils`)
 - **history**: Unused `formatTimeRange`, `diff-formatter`, `text-diff-utils` helpers and the direct `diff` dependency
 - **hooks**: `useCoarsePointer` (duplicate of `useTouchFirst` without iPad detection)
+- **groups/html5-drop**: Removed unused HTML5 drop handlers from the group node (React Flow node drags never fired them)
 
 ## [2026-10-02]
 

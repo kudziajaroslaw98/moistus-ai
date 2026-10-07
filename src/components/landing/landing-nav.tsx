@@ -14,11 +14,12 @@ import {
 	useScroll,
 	useTransform,
 } from 'motion/react';
+import Image from 'next/image';
 import { useCallback, useRef, useState } from 'react';
 import { StartMappingLink } from './start-mapping-link';
 
 const navLinks = [
-	{ label: 'Features', href: '#features' },
+	{ label: 'How a map grows', href: '#story' },
 	{ label: 'Pricing', href: '#pricing' },
 	{ label: 'FAQ', href: '#faq' },
 ];
@@ -61,7 +62,7 @@ export function LandingNav() {
 	return (
 		<motion.header className='fixed left-0 right-0 top-0 z-50'>
 			<motion.div
-				className='absolute inset-0 bg-background/90 backdrop-blur-xl'
+				className='absolute inset-0 bg-zinc-950/90 backdrop-blur-xl'
 				style={{ opacity: shouldReduceMotion ? 1 : backgroundOpacity }}
 			/>
 			<motion.div
@@ -73,8 +74,9 @@ export function LandingNav() {
 				<div className='flex h-16 items-center justify-between'>
 					<a
 						href='/'
-						className='text-lg font-semibold text-text-primary hover:text-primary-400 transition-colors duration-200'
+						className='flex items-center gap-2.5 text-lg font-semibold text-text-primary hover:text-primary-400 transition-colors duration-200'
 					>
+						<Image alt='' height={22} src='/images/shiko-logo.svg' width={22} />
 						Shiko
 					</a>
 
@@ -119,7 +121,13 @@ export function LandingNav() {
 								className='w-[280px] border-l border-border-subtle p-0'
 							>
 								<SheetHeader className='px-6 pt-6 pb-4 border-b border-border-subtle'>
-									<span className='text-lg font-semibold text-text-primary'>
+									<span className='flex items-center gap-2.5 text-lg font-semibold text-text-primary'>
+										<Image
+											alt=''
+											height={22}
+											src='/images/shiko-logo.svg'
+											width={22}
+										/>
 										Shiko
 									</span>
 								</SheetHeader>

@@ -57,7 +57,7 @@ export function SharedRecipeContent({ recipe, isOwner }: SharedRecipeContentProp
 
 	return (
 		<SidebarProvider>
-			<DashboardLayout>
+			<DashboardLayout title='Recipes'>
 				<div className='p-6 md:p-8'>
 					<div className='mx-auto max-w-3xl space-y-6'>
 						<div className='space-y-2'>

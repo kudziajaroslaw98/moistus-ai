@@ -23,6 +23,7 @@ import type {
 import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
+import type { GroupDragIntent } from '@/utils/group/group-utils';
 import type { PermissionEvent } from '@/types/permission-events';
 import {
 	SharedUser,
@@ -157,9 +158,20 @@ export interface EdgesSlice {
 }
 
 // Groups Slice
+export interface GroupDragState extends GroupDragIntent {
+	/** True once the drag has dwelled long enough; drop then commits it. */
+	armed: boolean;
+}
+
 export interface GroupsSlice {
+	// Transient drag-to-group feedback (not persisted)
+	groupDragIntent: GroupDragState | null;
+	setGroupDragIntent: (intent: GroupDragState | null) => void;
+
 	// Group actions
 	createGroupFromSelected: (label?: string) => Promise<void>;
+	/** Move nodes into `groupId` (detaching from old groups), or out of any group when null. No toasts. */
+	setNodesGroup: (nodeIds: string[], groupId: string | null) => Promise<void>;
 	addNodesToGroup: (groupId: string, nodeIds: string[]) => Promise<void>;
 	removeNodesFromGroup: (nodeIds: string[]) => Promise<void>;
 	deleteGroup: (groupId: string, preserveChildren?: boolean) => Promise<void>;

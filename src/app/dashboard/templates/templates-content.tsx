@@ -1,28 +1,29 @@
 'use client';
 
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import { Button } from '@/components/ui/button';
+import { TemplateCover } from '@/components/dashboard/template-cover';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
+import type { DashboardViewMode } from '@/types/dashboard-map';
 import { cn } from '@/utils/cn';
 import {
 	BarChart,
-	BookOpen,
 	Briefcase,
 	Calendar,
 	Code,
 	FileText,
 	GraduationCap,
-	Grid3x3,
+	LayoutGrid,
 	Lightbulb,
 	List,
-	Loader2,
-	Plus,
+	Search,
 	User,
+	X,
 	Zap,
 	type LucideIcon,
 } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -52,45 +53,40 @@ type TemplateCategory =
 	| 'personal'
 	| 'technical';
 
-// Category metadata
-const TEMPLATE_CATEGORIES: Record<
-	TemplateCategory,
-	{ label: string; icon: LucideIcon }
-> = {
-	creative: { label: 'Creative', icon: Lightbulb },
-	productivity: { label: 'Productivity', icon: Zap },
-	planning: { label: 'Planning', icon: Calendar },
-	analysis: { label: 'Analysis', icon: BarChart },
-	business: { label: 'Business', icon: Briefcase },
-	education: { label: 'Education', icon: GraduationCap },
-	personal: { label: 'Personal', icon: User },
-	technical: { label: 'Technical', icon: Code },
+const TEMPLATE_CATEGORIES: Record<TemplateCategory, string> = {
+	creative: 'Creative',
+	productivity: 'Productivity',
+	planning: 'Planning',
+	analysis: 'Analysis',
+	business: 'Business',
+	education: 'Education',
+	personal: 'Personal',
+	technical: 'Technical',
 };
 
-// Category colors
-const CATEGORY_COLORS: Record<TemplateCategory, string> = {
-	productivity: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-	planning: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-	analysis: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-	creative: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-	business: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
-	education: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-	personal: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
-	technical: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+// One accent hue per category, shared by every template in it.
+const CATEGORY_HUES: Record<TemplateCategory, number> = {
+	creative: 270,
+	productivity: 152,
+	planning: 214,
+	analysis: 38,
+	business: 244,
+	education: 188,
+	personal: 330,
+	technical: 14,
 };
 
-// Icon mapping
-const ICON_MAP: Record<string, LucideIcon> = {
-	Lightbulb,
-	Calendar,
-	BarChart,
-	Zap,
-	Briefcase,
-	GraduationCap,
-	User,
-	Code,
-	FileText,
-	BookOpen,
+// Covers are icon-per-category: the `icon` stored on each template row is
+// not used here.
+const CATEGORY_ICONS: Record<TemplateCategory, LucideIcon> = {
+	creative: Lightbulb,
+	productivity: Zap,
+	planning: Calendar,
+	analysis: BarChart,
+	business: Briefcase,
+	education: GraduationCap,
+	personal: User,
+	technical: Code,
 };
 
 // SWR fetcher with proper error handling
@@ -103,6 +99,19 @@ const fetcher = async (url: string) => {
 	return res.json();
 };
 
+// Off-screen cards skip layout and paint; sizes keep the scrollbar stable.
+const CARD_VISIBILITY = {
+	grid: '[content-visibility:auto] [contain-intrinsic-size:auto_240px]',
+	list: '[content-visibility:auto] [contain-intrinsic-size:auto_72px]',
+} as const;
+
+const USE_BUTTON_CLASS =
+	'relative z-10 h-8 shrink-0 rounded-[9px] border border-[#2a2c33] bg-[#131418] px-3 text-[13px] text-white transition-colors duration-200 ease [@media(hover:hover)]:hover:bg-[#1a1b20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-50';
+
+// Stretches the title button over the whole card so the card is one target.
+const TITLE_BUTTON_CLASS =
+	'truncate text-left text-[15px] font-semibold text-white after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-sky-500';
+
 // Template Card Component
 interface TemplateCardProps {
 	template: TemplateFromAPI;
@@ -110,8 +119,7 @@ interface TemplateCardProps {
 	onView: (templateDbId: string) => void;
 	isCreating: boolean;
 	isAtMapLimit: boolean;
-	viewMode: 'grid' | 'list';
-	index: number;
+	viewMode: DashboardViewMode;
 }
 
 const TemplateCard = memo(function TemplateCard({
@@ -121,238 +129,202 @@ const TemplateCard = memo(function TemplateCard({
 	isCreating,
 	isAtMapLimit,
 	viewMode,
-	index,
 }: TemplateCardProps) {
-	const [isHovered, setIsHovered] = useState(false);
-	const prefersReducedMotion = useReducedMotion();
-	const Icon = ICON_MAP[template.icon] || FileText;
-	const CategoryIcon = TEMPLATE_CATEGORIES[template.category]?.icon || FileText;
+	const Icon = CATEGORY_ICONS[template.category] ?? FileText;
+	const categoryLabel = TEMPLATE_CATEGORIES[template.category];
+	const meta = `${template.nodeCount} nodes · ${template.usageCount} uses`;
 
-	const gradientStyle = useMemo(() => {
-		if (!template.previewColors?.length) {
-			return {
-				background: 'linear-gradient(135deg, #3f3f46 0%, #27272a 100%)',
-			};
-		}
-		const colors = template.previewColors;
-		return {
-			background: `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1] || colors[0]} 50%, ${colors[2] || colors[0]} 100%)`,
-		};
-	}, [template.previewColors]);
-
-	const handleCardClick = () => {
-		onView(template.id);
-	};
-
-	const handleUseClick = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		onUse(template.templateId);
-	};
+	const useButton = (
+		<button
+			className={USE_BUTTON_CLASS}
+			disabled={isCreating || isAtMapLimit}
+			onClick={() => onUse(template.templateId)}
+			type='button'
+		>
+			{isAtMapLimit ? 'Limit reached' : 'Use template'}
+		</button>
+	);
 
 	if (viewMode === 'list') {
 		return (
-			<motion.div
-				initial={{ opacity: 0, x: prefersReducedMotion ? 0 : -12 }}
-				animate={{ opacity: 1, x: 0 }}
-				transition={
-					prefersReducedMotion
-						? { duration: 0 }
-						: { delay: index * 0.02, duration: 0.2 }
-				}
-				onClick={handleCardClick}
+			<article
 				className={cn(
-					'group flex items-center gap-4 p-4 rounded-xl cursor-pointer',
-					'bg-zinc-900/50 border border-zinc-800/50',
-					'hover:bg-zinc-800/50 hover:border-zinc-700/50',
-					'transition-all duration-200'
+					'relative flex items-center gap-4 rounded-xl border border-[#1d1f24] bg-[#0e0f12] p-3 pr-4',
+					'transition-[border-color] duration-200 ease [@media(hover:hover)]:hover:border-[#34363e]',
+					CARD_VISIBILITY.list
 				)}
 			>
-				<div
-					className='w-12 h-12 rounded-lg flex items-center justify-center shrink-0'
-					style={gradientStyle}
-				>
-					<Icon className='w-6 h-6 text-white' />
-				</div>
-				<div className='flex-grow min-w-0'>
-					<div className='flex items-center gap-2 mb-1'>
-						<h3 className='font-medium text-white truncate'>{template.name}</h3>
-						<span
-							className={cn(
-								'px-2 py-0.5 rounded-full text-xs font-medium border',
-								CATEGORY_COLORS[template.category]
-							)}
-						>
-							{TEMPLATE_CATEGORIES[template.category]?.label}
+				<TemplateCover
+					compact
+					className='h-12 w-16 shrink-0 rounded-lg border border-[#1d1f24]'
+					icon={Icon}
+					hue={CATEGORY_HUES[template.category] ?? 214}
+				/>
+
+				<div className='min-w-0 grow'>
+					<div className='flex items-center gap-2'>
+						<h3 className='min-w-0 truncate'>
+							<button
+								className={cn(TITLE_BUTTON_CLASS, 'after:rounded-xl')}
+								onClick={() => onView(template.id)}
+								type='button'
+							>
+								{template.name}
+							</button>
+						</h3>
+
+						<span className='shrink-0 rounded-full border border-[#2a2c33] bg-[#0e0f12] px-2 py-px text-[11px] text-zinc-300'>
+							{categoryLabel}
 						</span>
 					</div>
-					<p className='text-sm text-zinc-400 line-clamp-1'>
+
+					<p className='mt-0.5 truncate text-[13px] text-zinc-400'>
 						{template.description}
 					</p>
 				</div>
-				<div className='hidden sm:flex items-center gap-4 text-xs text-zinc-500'>
-					<span>{template.nodeCount} nodes</span>
-					<span>{template.usageCount} uses</span>
-				</div>
-				<Button
-					size='sm'
-					onClick={handleUseClick}
-					disabled={isCreating || isAtMapLimit}
-					className='opacity-0 group-hover:opacity-100 transition-opacity'
-				>
-					<Plus className='w-4 h-4 mr-1' />
-					{isAtMapLimit ? 'Limit reached' : 'Use'}
-				</Button>
-			</motion.div>
+
+				<span className='hidden shrink-0 text-xs text-zinc-500 sm:block'>
+					{meta}
+				</span>
+
+				{useButton}
+			</article>
 		);
 	}
 
 	return (
-		<motion.div
-			initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 12 }}
-			animate={{ opacity: 1, y: 0 }}
-			transition={
-				prefersReducedMotion
-					? { duration: 0 }
-					: { delay: index * 0.03, duration: 0.2 }
-			}
-			onClick={handleCardClick}
-			onMouseEnter={() => setIsHovered(true)}
-			onMouseLeave={() => setIsHovered(false)}
+		<article
 			className={cn(
-				'group relative rounded-xl overflow-hidden cursor-pointer',
-				'bg-zinc-900/50 border border-zinc-800/50',
-				'hover:border-zinc-700/50',
-				'transition-all duration-200'
+				'relative overflow-hidden rounded-2xl border border-[#1d1f24] bg-[#0e0f12]',
+				'transition-[border-color,box-shadow] duration-200 ease',
+				'[@media(hover:hover)]:hover:border-[#34363e] [@media(hover:hover)]:hover:shadow-[0_16px_40px_rgba(0,0,0,0.4)]',
+				CARD_VISIBILITY.grid
 			)}
 		>
-			<div className='relative h-32' style={gradientStyle}>
-				<div className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20' />
-				<div
-					className={cn(
-						'absolute top-3 left-3 p-2 rounded-lg',
-						'bg-black/30 backdrop-blur-sm',
-						'transition-transform duration-200',
-						isHovered && 'scale-110'
-					)}
-				>
-					<Icon className='w-5 h-5 text-white/90' />
-				</div>
-				<div
-					className={cn(
-						'absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 rounded-full',
-						'text-xs font-medium border backdrop-blur-sm',
-						CATEGORY_COLORS[template.category]
-					)}
-				>
-					<CategoryIcon className='w-3 h-3' />
-					{TEMPLATE_CATEGORIES[template.category]?.label}
-				</div>
-				<div className='absolute bottom-0 left-0 right-0 p-3'>
-					<h3 className='text-white font-medium text-sm truncate'>
-						{template.name}
-					</h3>
-				</div>
+			<div className='relative'>
+				<TemplateCover
+					className='h-[112px] border-b border-[#1d1f24]'
+					icon={Icon}
+					hue={CATEGORY_HUES[template.category] ?? 214}
+				/>
+
+				<span className='absolute left-2.5 top-2.5 rounded-full border border-[#2a2c33] bg-[#0e0f12] px-2 py-0.5 text-[11px] text-zinc-300'>
+					{categoryLabel}
+				</span>
 			</div>
-			<div className='p-3'>
-				<p className='text-xs text-zinc-400 line-clamp-2 mb-3 min-h-[2.5rem]'>
+
+			<div className='px-4 pb-4 pt-3.5'>
+				<h3 className='flex'>
+					<button
+						className={TITLE_BUTTON_CLASS}
+						onClick={() => onView(template.id)}
+						type='button'
+					>
+						{template.name}
+					</button>
+				</h3>
+
+				<p className='mt-1 line-clamp-2 min-h-10 text-[13px] leading-5 text-zinc-400'>
 					{template.description}
 				</p>
-				<div className='flex items-center justify-between'>
-					<div className='flex items-center gap-3 text-xs text-zinc-500'>
-						<span>{template.nodeCount} nodes</span>
-						<span>•</span>
-						<span>{template.usageCount} uses</span>
-					</div>
-					<Button
-						size='sm'
-						variant='ghost'
-						onClick={handleUseClick}
-						disabled={isCreating || isAtMapLimit}
-						className={cn(
-							'h-7 px-2 text-xs',
-							'opacity-0 group-hover:opacity-100',
-							'transition-opacity duration-200'
-						)}
-					>
-						<Plus className='w-3.5 h-3.5 mr-1' />
-						{isAtMapLimit ? 'Limit reached' : 'Use'}
-					</Button>
+
+				<div className='mt-3.5 flex items-center justify-between gap-2'>
+					<span className='truncate text-xs text-zinc-500'>{meta}</span>
+
+					{useButton}
 				</div>
 			</div>
-		</motion.div>
+		</article>
 	);
 });
 
-// Category Filter Component
-interface CategoryFilterProps {
-	selectedCategory: TemplateCategory | 'all';
-	onSelectCategory: (category: TemplateCategory | 'all') => void;
-	templatesByCategory: Record<TemplateCategory, TemplateFromAPI[]>;
-	totalCount: number;
+function TemplatesSkeleton({ viewMode }: { viewMode: DashboardViewMode }) {
+	return (
+		<>
+			{Array.from({ length: 8 }).map((_, index) =>
+				viewMode === 'grid' ? (
+					<div
+						className='overflow-hidden rounded-2xl border border-[#1d1f24] bg-[#0e0f12]'
+						key={index}
+					>
+						<div className='h-[112px] border-b border-[#1d1f24] bg-zinc-900/60' />
+
+						<div className='space-y-2.5 px-4 pb-4 pt-3.5'>
+							<Skeleton className='h-4 w-2/3 bg-zinc-700/40' />
+
+							<Skeleton className='h-3 w-4/5 bg-zinc-800/60' />
+
+							<Skeleton className='mt-4 h-3 w-1/3 bg-zinc-800/60' />
+						</div>
+					</div>
+				) : (
+					<div
+						className='flex items-center gap-4 rounded-xl border border-[#1d1f24] bg-[#0e0f12] p-3 pr-4'
+						key={index}
+					>
+						<Skeleton className='h-12 w-16 shrink-0 rounded-lg bg-zinc-900/60' />
+
+						<div className='grow space-y-2'>
+							<Skeleton className='h-4 w-1/3 bg-zinc-700/40' />
+
+							<Skeleton className='h-3 w-1/2 bg-zinc-800/60' />
+						</div>
+					</div>
+				)
+			)}
+		</>
+	);
 }
 
-const CategoryFilter = memo(function CategoryFilter({
-	selectedCategory,
-	onSelectCategory,
-	templatesByCategory,
-	totalCount,
-}: CategoryFilterProps) {
-	const categories = Object.keys(TEMPLATE_CATEGORIES) as TemplateCategory[];
+interface TemplatesSearchFieldProps {
+	value: string;
+	onChange: (value: string) => void;
+}
 
+function TemplatesSearchField({ value, onChange }: TemplatesSearchFieldProps) {
 	return (
-		<div className='flex flex-wrap gap-2'>
-			<button
-				onClick={() => onSelectCategory('all')}
-				className={cn(
-					'px-3 py-1.5 rounded-full text-sm font-medium',
-					'transition-all duration-200',
-					'border',
-					selectedCategory === 'all'
-						? 'bg-zinc-700 text-white border-zinc-600'
-						: 'text-zinc-400 border-transparent hover:bg-zinc-800 hover:text-zinc-300'
-				)}
-			>
-				All ({totalCount})
-			</button>
-			{categories.map((category) => {
-				const meta = TEMPLATE_CATEGORIES[category];
-				const count = templatesByCategory[category]?.length || 0;
-				if (count === 0) return null;
+		<div className='relative'>
+			<label className='sr-only' htmlFor='templates-search'>
+				Search templates
+			</label>
 
-				const CategoryIcon = meta.icon;
-				const isSelected = selectedCategory === category;
+			<Search
+				aria-hidden='true'
+				className='pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500'
+			/>
 
-				return (
-					<button
-						key={category}
-						onClick={() => onSelectCategory(category)}
-						className={cn(
-							'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium',
-							'transition-all duration-200',
-							'border',
-							isSelected
-								? CATEGORY_COLORS[category]
-								: 'text-zinc-400 border-transparent hover:bg-zinc-800 hover:text-zinc-300'
-						)}
-					>
-						<CategoryIcon className='w-3.5 h-3.5' />
-						<span>{meta.label}</span>
-						<span className='text-xs opacity-60'>({count})</span>
-					</button>
-				);
-			})}
+			<input
+				autoComplete='off'
+				className='h-10 w-full rounded-[10px] border border-[#1d1f24] bg-[#0e0f12] pl-[38px] pr-10 text-sm text-white placeholder:text-zinc-500 transition-colors duration-200 ease focus:border-[#2f3139] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 [&::-webkit-search-cancel-button]:hidden'
+				id='templates-search'
+				onChange={(e) => onChange(e.target.value)}
+				placeholder='Search templates'
+				type='search'
+				value={value}
+			/>
+
+			{value && (
+				<button
+					aria-label='Clear search'
+					className='absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-zinc-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+					onClick={() => onChange('')}
+					type='button'
+				>
+					<X aria-hidden='true' className='size-3.5' />
+				</button>
+			)}
 		</div>
 	);
-});
+}
 
 // Main Content Component
 export function TemplatesContent() {
 	const router = useRouter();
-	const prefersReducedMotion = useReducedMotion();
-	const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+	const [viewMode, setViewMode] = useState<DashboardViewMode>('grid');
 	const [selectedCategory, setSelectedCategory] = useState<
 		TemplateCategory | 'all'
 	>('all');
+	const [searchQuery, setSearchQuery] = useState('');
 	const [isCreating, setIsCreating] = useState(false);
 
 	// Subscription limits for map creation
@@ -367,27 +339,30 @@ export function TemplatesContent() {
 		dedupingInterval: 60000,
 	});
 
-	const templates = data?.data?.templates || [];
+	const templates = useMemo(() => data?.data?.templates ?? [], [data]);
 
-	// Group by category
-	const templatesByCategory = useMemo(() => {
-		const grouped = {} as Record<TemplateCategory, TemplateFromAPI[]>;
-		Object.keys(TEMPLATE_CATEGORIES).forEach((cat) => {
-			grouped[cat as TemplateCategory] = [];
-		});
-		templates.forEach((t) => {
-			if (grouped[t.category]) {
-				grouped[t.category].push(t);
-			}
-		});
-		return grouped;
+	// Tabs only list categories that have templates
+	const categoryCounts = useMemo(() => {
+		const counts = new Map<TemplateCategory, number>();
+		for (const t of templates) {
+			counts.set(t.category, (counts.get(t.category) ?? 0) + 1);
+		}
+		return counts;
 	}, [templates]);
 
-	// Filter templates
 	const filteredTemplates = useMemo(() => {
-		if (selectedCategory === 'all') return templates;
-		return templatesByCategory[selectedCategory] || [];
-	}, [selectedCategory, templates, templatesByCategory]);
+		const query = searchQuery.trim().toLowerCase();
+		return templates.filter((t) => {
+			if (selectedCategory !== 'all' && t.category !== selectedCategory) {
+				return false;
+			}
+			if (!query) return true;
+			return (
+				t.name.toLowerCase().includes(query) ||
+				(t.description ?? '').toLowerCase().includes(query)
+			);
+		});
+	}, [templates, selectedCategory, searchQuery]);
 
 	// View template
 	const handleViewTemplate = useCallback(
@@ -474,117 +449,160 @@ export function TemplatesContent() {
 		[templates, router, isAtMapLimit, limits.mindMaps]
 	);
 
+	const clearFilters = useCallback(() => {
+		setSelectedCategory('all');
+		setSearchQuery('');
+	}, []);
+
+	const tabs: ReadonlyArray<readonly [TemplateCategory | 'all', string, number]> =
+		[
+			['all', 'All', templates.length],
+			...(Object.keys(TEMPLATE_CATEGORIES) as TemplateCategory[])
+				.filter((category) => categoryCounts.has(category))
+				.map(
+					(category) =>
+						[
+							category,
+							TEMPLATE_CATEGORIES[category],
+							categoryCounts.get(category) ?? 0,
+						] as const
+				),
+		];
+
+	const headerSearch = (
+		<TemplatesSearchField onChange={setSearchQuery} value={searchQuery} />
+	);
+
+	const showSkeleton = isLoading && !error;
+	const showEmpty = !isLoading && !error && filteredTemplates.length === 0;
+
 	return (
 		<SidebarProvider>
-			<DashboardLayout>
-				<div className='p-6 md:p-8'>
-					<div className='mx-auto max-w-7xl'>
-						{/* Header */}
-						<div className='mb-8'>
-							<h1 className='text-3xl font-bold text-white tracking-tight mb-2'>
-								Templates
-							</h1>
-							<p className='text-zinc-400'>
-								Browse {templates.length} pre-built templates to jumpstart your
-								mind maps
+			<DashboardLayout headerSearch={headerSearch} title='Templates'>
+				<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
+					<h1 className='text-3xl font-bold leading-tight tracking-[-0.02em] text-white'>
+						Templates
+					</h1>
+
+					<p className='mt-2 text-sm text-zinc-400'>
+						Start from a ready-made structure. Pick one and it becomes your own
+						map.
+					</p>
+
+					<Tabs
+						className='mt-9 gap-0'
+						value={selectedCategory}
+						onValueChange={(value) =>
+							setSelectedCategory(value as TemplateCategory | 'all')
+						}
+					>
+						<div className='flex flex-wrap items-center justify-between gap-3 border-b border-[#1d1f24]'>
+							<TabsList
+								aria-label='Filter templates by category'
+								className='h-11 gap-1 overflow-x-auto p-0'
+							>
+								{tabs.map(([value, label, count]) => (
+									<TabsTrigger
+										className='h-11 flex-none rounded-none border-0 px-3 font-normal text-zinc-400 data-[active]:border-0 data-[active]:bg-transparent data-[active]:font-medium data-[active]:text-white data-[active]:shadow-[inset_0_-2px_0_#fafafa] [@media(hover:hover)]:hover:bg-transparent'
+										key={value}
+										value={value}
+									>
+										{label}
+
+										<span className='font-mono text-xs text-zinc-500'>
+											{count}
+										</span>
+									</TabsTrigger>
+								))}
+							</TabsList>
+
+							<div
+								aria-label='View mode'
+								className='mb-1.5 flex rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] p-0.5'
+								role='group'
+							>
+								{(
+									[
+										['grid', 'Grid view', LayoutGrid],
+										['list', 'List view', List],
+									] as const
+								).map(([mode, label, ViewIcon]) => (
+									<button
+										aria-label={label}
+										aria-pressed={viewMode === mode}
+										key={mode}
+										onClick={() => setViewMode(mode)}
+										type='button'
+										className={cn(
+											'flex h-[30px] w-8 items-center justify-center rounded-[7px] transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
+											viewMode === mode
+												? 'bg-[#1c1d22] text-white'
+												: 'text-zinc-500 hover:text-white'
+										)}
+									>
+										<ViewIcon aria-hidden='true' className='size-3.5' />
+									</button>
+								))}
+							</div>
+						</div>
+					</Tabs>
+
+					{error && (
+						<div className='flex h-64 items-center justify-center text-zinc-500'>
+							<p>Failed to load templates. Please try again.</p>
+						</div>
+					)}
+
+					{!error && !showEmpty && (
+						<div
+							className={cn(
+								'mt-6',
+								viewMode === 'grid'
+									? 'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4'
+									: 'flex flex-col gap-2'
+							)}
+						>
+							{showSkeleton ? (
+								<TemplatesSkeleton viewMode={viewMode} />
+							) : (
+								filteredTemplates.map((template) => (
+									<TemplateCard
+										isAtMapLimit={isAtMapLimit}
+										isCreating={isCreating}
+										key={template.templateId}
+										onUse={handleUseTemplate}
+										onView={handleViewTemplate}
+										template={template}
+										viewMode={viewMode}
+									/>
+								))
+							)}
+						</div>
+					)}
+
+					{showEmpty && (
+						<div className='flex flex-col items-center py-20 text-center'>
+							<span className='flex size-11 items-center justify-center rounded-full border border-[#2a2c33] bg-[#0e0f12]'>
+								<Search aria-hidden='true' className='size-4 text-zinc-400' />
+							</span>
+
+							<h2 className='mt-4 text-base font-semibold text-white'>
+								No templates found
+							</h2>
+
+							<p className='mt-1 text-sm text-zinc-400'>
+								Try another category or search term.
 							</p>
+
+							<button
+								className='mt-5 h-9 rounded-[9px] border border-[#2a2c33] bg-[#131418] px-4 text-sm text-white transition-colors duration-200 ease hover:bg-[#1a1b20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+								onClick={clearFilters}
+								type='button'
+							>
+								Show all templates
+							</button>
 						</div>
-
-						{/* Toolbar */}
-						<div className='flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6'>
-							<CategoryFilter
-								selectedCategory={selectedCategory}
-								onSelectCategory={setSelectedCategory}
-								templatesByCategory={templatesByCategory}
-								totalCount={templates.length}
-							/>
-							<div className='flex items-center rounded-lg bg-zinc-800/30 border border-zinc-700/50 p-1'>
-								<Button
-									onClick={() => setViewMode('grid')}
-									size='sm'
-									variant='ghost'
-									className={cn(
-										'h-8 px-3',
-										viewMode === 'grid' && 'bg-zinc-700'
-									)}
-								>
-									<Grid3x3 className='h-4 w-4' />
-								</Button>
-								<Button
-									onClick={() => setViewMode('list')}
-									size='sm'
-									variant='ghost'
-									className={cn(
-										'h-8 px-3',
-										viewMode === 'list' && 'bg-zinc-700'
-									)}
-								>
-									<List className='h-4 w-4' />
-								</Button>
-							</div>
-						</div>
-
-						{/* Loading State */}
-						{isLoading && (
-							<div className='flex items-center justify-center h-64'>
-								{prefersReducedMotion ? (
-									<span className='text-zinc-500 text-sm'>
-										Loading templates...
-									</span>
-								) : (
-									<Loader2 className='w-8 h-8 text-zinc-500 animate-spin' />
-								)}
-							</div>
-						)}
-
-						{/* Error State */}
-						{error && (
-							<div className='flex items-center justify-center h-64 text-zinc-500'>
-								<p>Failed to load templates. Please try again.</p>
-							</div>
-						)}
-
-						{/* Templates Grid/List */}
-						{!isLoading && !error && (
-							<AnimatePresence mode='popLayout'>
-								<div
-									className={cn(
-										viewMode === 'grid'
-											? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-											: 'space-y-2'
-									)}
-								>
-									{filteredTemplates.map((template, index) => (
-										<TemplateCard
-											key={template.templateId}
-											template={template}
-											onUse={handleUseTemplate}
-											onView={handleViewTemplate}
-											isCreating={isCreating}
-											isAtMapLimit={isAtMapLimit}
-											viewMode={viewMode}
-											index={index}
-										/>
-									))}
-								</div>
-							</AnimatePresence>
-						)}
-
-						{/* Empty State */}
-						{!isLoading && !error && filteredTemplates.length === 0 && (
-							<div className='flex flex-col items-center justify-center h-64 text-zinc-500'>
-								<FileText className='w-12 h-12 mb-4 opacity-50' />
-								<p>No templates found in this category</p>
-								<Button
-									variant='ghost'
-									onClick={() => setSelectedCategory('all')}
-									className='mt-2'
-								>
-									View all templates
-								</Button>
-							</div>
-						)}
-					</div>
+					)}
 				</div>
 			</DashboardLayout>
 		</SidebarProvider>
