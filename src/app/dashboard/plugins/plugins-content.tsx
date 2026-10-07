@@ -1,7 +1,6 @@
 'use client';
 
 import type { PluginMapSummary } from '@/app/api/plugins/maps/route';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import {
 	needsPowerApproval,
 	PluginPowersConfirm,
@@ -10,7 +9,6 @@ import {
 import { PluginUpdateDetails } from '@/components/plugins/plugin-update-details';
 import { useCatalogManifests } from '@/components/plugins/use-catalog-manifests';
 import { PluginCardMenu } from '@/components/plugins/plugin-card-menu';
-import { PluginsPageTabs } from '@/components/plugins/plugins-page-tabs';
 import { usePluginLibrary } from '@/components/plugins/use-plugin-library';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -18,7 +16,6 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from '@/components/ui/popover';
-import { SidebarProvider } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
 	compareVersions,
@@ -512,87 +509,74 @@ export function PluginsContent() {
 		);
 	};
 
+	// Title and tabs come from the plugins layout (PluginsPageFrame).
 	return (
-		<SidebarProvider>
-			<DashboardLayout title='Plugins'>
-				<div className='p-6 md:p-8'>
-					<div className='mx-auto flex max-w-3xl flex-col gap-6'>
-						<div className='flex flex-col gap-4'>
-							<h1 className='text-3xl font-bold tracking-tight text-white'>
-								Plugins
-							</h1>
+		<div className='mt-4 flex flex-col gap-6'>
+			<p className='text-zinc-400'>
+				New kinds of nodes for your maps. Turn a plugin on for a map and
+				everyone who can edit it can add those nodes.
+			</p>
 
-							<PluginsPageTabs current='library' />
+			<section
+				aria-label='Shiko plugins'
+				className='flex flex-col gap-3 rounded-xl border border-zinc-800 bg-base p-4'
+			>
+				<GroupHeader count={shikoEntries.length} label='Shiko plugins' />
 
-							<p className='text-zinc-400'>
-								New kinds of nodes for your maps. Turn a plugin on for a map and
-								everyone who can edit it can add those nodes.
-							</p>
-						</div>
-
-						<section
-							aria-label='Shiko plugins'
-							className='flex flex-col gap-3 rounded-xl border border-zinc-800 bg-base p-4'
-						>
-							<GroupHeader count={shikoEntries.length} label='Shiko plugins' />
-
-							{error && (
-								<div
-									className='flex items-center justify-between gap-3 rounded-lg border border-error-500/30 bg-error-500/10 px-3 py-2 text-sm text-error-200'
-									role='alert'
-								>
-									Couldn&apos;t load your maps.
-									<Button onClick={() => void mutate()} size='sm' variant='outline'>
-										Try again
-									</Button>
-								</div>
-							)}
-
-							{shikoEntries.map(renderEntry)}
-						</section>
-
-						{libraryEntries.length > 0 && (
-							<section
-								aria-label='Library'
-								className='flex flex-col gap-3 rounded-xl border border-zinc-800 bg-base p-4'
-							>
-								<GroupHeader count={libraryEntries.length} label='Library' />
-
-								<p className='text-sm text-zinc-400'>
-									Made by other people and reviewed by Shiko before they&apos;re
-									listed.
-								</p>
-
-								{libraryEntries.map(renderEntry)}
-							</section>
-						)}
-
-						<section className='flex flex-wrap items-center gap-4 rounded-xl border border-zinc-800 bg-base p-5'>
-							<span className='flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-white/6 text-zinc-300'>
-								<Code2 aria-hidden className='size-5' />
-							</span>
-
-							<div className='flex min-w-60 flex-1 flex-col gap-1'>
-								<h2 className='text-base font-semibold text-white'>Build a plugin</h2>
-
-								<p className='text-sm text-zinc-400'>
-									Write one in plain JavaScript and load it from localhost while
-									you work on it. Only you see it until you submit it and Shiko
-									publishes it in the library.
-								</p>
-							</div>
-
-							<Link
-								className={cn(buttonVariants({ variant: 'outline' }), 'gap-1.5')}
-								href='/dashboard/plugins/build'
-							>
-								Read the guide
-								<ArrowRight aria-hidden className='size-3.5' />
-							</Link>
-						</section>
+				{error && (
+					<div
+						className='flex items-center justify-between gap-3 rounded-lg border border-error-500/30 bg-error-500/10 px-3 py-2 text-sm text-error-200'
+						role='alert'
+					>
+						Couldn&apos;t load your maps.
+						<Button onClick={() => void mutate()} size='sm' variant='outline'>
+							Try again
+						</Button>
 					</div>
+				)}
+
+				{shikoEntries.map(renderEntry)}
+			</section>
+
+			{libraryEntries.length > 0 && (
+				<section
+					aria-label='Library'
+					className='flex flex-col gap-3 rounded-xl border border-zinc-800 bg-base p-4'
+				>
+					<GroupHeader count={libraryEntries.length} label='Library' />
+
+					<p className='text-sm text-zinc-400'>
+						Made by other people and reviewed by Shiko before they&apos;re
+						listed.
+					</p>
+
+					{libraryEntries.map(renderEntry)}
+				</section>
+			)}
+
+			<section className='flex flex-wrap items-center gap-4 rounded-xl border border-zinc-800 bg-base p-5'>
+				<span className='flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-white/6 text-zinc-300'>
+					<Code2 aria-hidden className='size-5' />
+				</span>
+
+				<div className='flex min-w-60 flex-1 flex-col gap-1'>
+					<h2 className='text-base font-semibold text-white'>Build a plugin</h2>
+
+					<p className='text-sm text-zinc-400'>
+						Write one in plain JavaScript and load it from localhost while
+						you work on it. Only you see it until you submit it and Shiko
+						publishes it in the library.
+					</p>
 				</div>
-			</DashboardLayout>
-		</SidebarProvider>
+
+				<Link
+					className={cn(buttonVariants({ variant: 'outline' }), 'gap-1.5')}
+					href='/dashboard/plugins/build'
+				>
+					Read the guide
+					<ArrowRight aria-hidden className='size-3.5' />
+				</Link>
+			</section>
+		</div>
 	);
 }

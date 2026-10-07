@@ -4,8 +4,11 @@ import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import { CreateMapCard } from '@/components/dashboard/create-map-card';
 import { CreateMapDialog } from '@/components/dashboard/create-map-dialog';
 import { DashboardFirstRun } from '@/components/dashboard/dashboard-first-run';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { DashboardMapsLoadingSkeleton } from '@/components/dashboard/dashboard-loading-skeleton';
+import {
+	useDashboardNewMapAction,
+	useDashboardSearch,
+} from '@/components/dashboard/dashboard-shell-context';
 import { MindMapCard } from '@/components/dashboard/mind-map-card';
 import { QuickCreateBar } from '@/components/dashboard/quick-create-bar';
 import { RoomCodeJoin } from '@/components/dashboard/room-code-join';
@@ -22,7 +25,6 @@ import {
 	DropdownMenuRadioItem,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { SidebarProvider } from '@/components/ui/sidebar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatUpdatedAt } from '@/helpers/dashboard/format-updated-at';
 import { waitForSubscriptionActivation } from '@/helpers/subscription/wait-for-subscription-activation';
@@ -31,16 +33,10 @@ import { useTouchFirst } from '@/hooks/use-touch-first';
 import useAppStore from '@/store/mind-map-store';
 import type { DashboardMap, DashboardViewMode } from '@/types/dashboard-map';
 import { cn } from '@/utils/cn';
-import { ChevronDown, LayoutGrid, List, Search, Trash2, X } from 'lucide-react';
+import { ChevronDown, LayoutGrid, List, Search, Trash2 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-	forwardRef,
-	useCallback,
-	useEffect,
-	useRef,
-	useState,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { mutate } from 'swr';
 import { useShallow } from 'zustand/react/shallow';
@@ -78,64 +74,11 @@ function lastEditLabel(iso: string) {
 		: label.charAt(0).toLowerCase() + label.slice(1);
 }
 
-interface DashboardSearchFieldProps {
-	value: string;
-	onChange: (value: string) => void;
-	showShortcut: boolean;
-}
-
-const DashboardSearchField = forwardRef<
-	HTMLInputElement,
-	DashboardSearchFieldProps
->(function DashboardSearchField({ value, onChange, showShortcut }, ref) {
-	return (
-		<div className='relative'>
-			<label className='sr-only' htmlFor='dashboard-map-search'>
-				Search maps
-			</label>
-
-			<Search
-				aria-hidden='true'
-				className='pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500'
-			/>
-
-			<input
-				autoComplete='off'
-				className='h-10 w-full rounded-[10px] border border-[#1d1f24] bg-[#0e0f12] pl-[38px] pr-16 text-sm text-white placeholder:text-zinc-500 transition-colors duration-200 ease focus:border-[#2f3139] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 [&::-webkit-search-cancel-button]:hidden'
-				id='dashboard-map-search'
-				onChange={(e) => onChange(e.target.value)}
-				placeholder='Search maps'
-				ref={ref}
-				type='search'
-				value={value}
-			/>
-
-			{value ? (
-				<button
-					aria-label='Clear search'
-					className='absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-zinc-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
-					onClick={() => onChange('')}
-					type='button'
-				>
-					<X aria-hidden='true' className='size-3.5' />
-				</button>
-			) : (
-				showShortcut && (
-					<kbd className='pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-[5px] border border-[#2a2c33] px-1.5 py-px font-mono text-[11px] text-zinc-400'>
-						Ctrl F
-					</kbd>
-				)
-			)}
-		</div>
-	);
-});
-
 export function DashboardContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const checkoutActivationStarted = useRef(false);
 	const createParamHandled = useRef(false);
-	const searchInputRef = useRef<HTMLInputElement>(null);
 	const isTouchFirst = useTouchFirst();
 	const prefersReducedMotion = useReducedMotion() ?? false;
 
@@ -200,7 +143,6 @@ export function DashboardContent() {
 
 	// State
 	const [viewMode, setViewMode] = useState<DashboardViewMode>('grid');
-	const [searchQuery, setSearchQuery] = useState('');
 	const [sortBy, setSortBy] = useState<SortByType>('updated');
 	const [filterBy, setFilterBy] = useState<FilterType>('all');
 	const [selectedMaps, setSelectedMaps] = useState<Set<string>>(new Set());
@@ -215,6 +157,12 @@ export function DashboardContent() {
 	const templates = useDashboardTemplates();
 	const showMapsSkeleton = mapsLoading && maps.length === 0;
 	const isFirstRun = !showMapsSkeleton && maps.length === 0;
+	// The field sits in the shell's top bar; there's nothing to search on first run.
+	const {
+		query: searchQuery,
+		setQuery: setSearchQuery,
+		inputRef: searchInputRef,
+	} = useDashboardSearch({ hidden: isFirstRun });
 
 	const sharedCount = maps.filter((map) => map.is_shared).length;
 	const filterCounts: Record<FilterType, number> = {
@@ -291,6 +239,9 @@ export function DashboardContent() {
 		setDialogTemplate(null);
 		setShowCreateDialog(true);
 	}, [canCreateMap]);
+
+	// Sidebar "New map" opens the dialog here instead of linking to ?create=1.
+	useDashboardNewMapAction(handleRequestCreateMap);
 
 	const handlePickTemplate = useCallback(
 		(template: DashboardTemplate) => {
@@ -540,6 +491,8 @@ export function DashboardContent() {
 	}, [
 		selectedMaps,
 		searchQuery,
+		setSearchQuery,
+		searchInputRef,
 		filterBy,
 		isFirstRun,
 		handleBulkDelete,
@@ -562,302 +515,291 @@ export function DashboardContent() {
 		.filter(Boolean)
 		.join(' · ');
 
-	const headerSearch = isFirstRun ? undefined : (
-		<DashboardSearchField
-			onChange={setSearchQuery}
-			ref={searchInputRef}
-			showShortcut={!isTouchFirst}
-			value={searchQuery}
-		/>
-	);
-
 	return (
-		<SidebarProvider>
-			<DashboardLayout headerSearch={headerSearch} onNewMap={handleRequestCreateMap}>
-				<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
-					{isTrialing?.() && trialDays !== null && (
-						<div className='mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-500/20 bg-violet-500/[0.06] px-4 py-3 text-sm'>
-							<span className='font-medium text-violet-200'>
-								{`Pro trial: ${trialDays} ${trialDays === 1 ? 'day' : 'days'} left`}
-							</span>
+		<>
+			<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
+				{isTrialing?.() && trialDays !== null && (
+					<div className='mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-500/20 bg-violet-500/[0.06] px-4 py-3 text-sm'>
+						<span className='font-medium text-violet-200'>
+							{`Pro trial: ${trialDays} ${trialDays === 1 ? 'day' : 'days'} left`}
+						</span>
 
-							<span className='text-xs text-zinc-400'>
-								Your trial ends soon.
-							</span>
-						</div>
-					)}
+						<span className='text-xs text-zinc-400'>
+							Your trial ends soon.
+						</span>
+					</div>
+				)}
 
-					{isFirstRun ? (
-						<DashboardFirstRun
-							firstName={firstName}
+				{isFirstRun ? (
+					<DashboardFirstRun
+						firstName={firstName}
+						isCreating={isCreatingMap}
+						onCreate={handleQuickCreate}
+						onOpenDialog={handleRequestCreateMap}
+						onPickTemplate={handlePickTemplate}
+						templates={templates}
+					/>
+				) : (
+					<>
+						<h1 className='text-3xl font-bold leading-tight tracking-[-0.02em]'>
+							Your maps
+						</h1>
+
+						<p className='mt-2 h-5 text-sm text-zinc-400'>
+							{showMapsSkeleton ? ' ' : statsLine}
+						</p>
+
+						<QuickCreateBar
 							isCreating={isCreatingMap}
 							onCreate={handleQuickCreate}
 							onOpenDialog={handleRequestCreateMap}
 							onPickTemplate={handlePickTemplate}
 							templates={templates}
 						/>
-					) : (
-						<>
-							<h1 className='text-3xl font-bold leading-tight tracking-[-0.02em]'>
-								Your maps
-							</h1>
 
-							<p className='mt-2 h-5 text-sm text-zinc-400'>
-								{showMapsSkeleton ? ' ' : statsLine}
-							</p>
+						<Tabs
+							className='mt-9 gap-0'
+							onValueChange={(value) => setFilterBy(value as FilterType)}
+							value={filterBy}
+						>
+							<div className='flex flex-wrap items-center justify-between gap-3 border-b border-[#1d1f24]'>
+								<TabsList
+									aria-label='Filter maps'
+									className='h-11 gap-1 overflow-x-auto p-0'
+								>
+									{(
+										[
+											['all', 'All maps'],
+											['owned', 'My maps'],
+											['shared', 'Shared with me'],
+										] as const
+									).map(([value, label]) => (
+										<TabsTrigger
+											className='h-11 flex-none rounded-none border-0 px-3 font-normal text-zinc-400 data-[active]:border-0 data-[active]:bg-transparent data-[active]:font-medium data-[active]:text-white data-[active]:shadow-[inset_0_-2px_0_#fafafa] [@media(hover:hover)]:hover:bg-transparent'
+											key={value}
+											value={value}
+										>
+											{label}
 
-							<QuickCreateBar
-								isCreating={isCreatingMap}
-								onCreate={handleQuickCreate}
-								onOpenDialog={handleRequestCreateMap}
-								onPickTemplate={handlePickTemplate}
-								templates={templates}
-							/>
+											<span className='font-mono text-xs text-zinc-500'>
+												{filterCounts[value]}
+											</span>
+										</TabsTrigger>
+									))}
+								</TabsList>
 
-							<Tabs
-								className='mt-9 gap-0'
-								onValueChange={(value) => setFilterBy(value as FilterType)}
-								value={filterBy}
-							>
-								<div className='flex flex-wrap items-center justify-between gap-3 border-b border-[#1d1f24]'>
-									<TabsList
-										aria-label='Filter maps'
-										className='h-11 gap-1 overflow-x-auto p-0'
+								<div className='flex items-center gap-2 pb-1.5'>
+									<DropdownMenu>
+										<DropdownMenuTrigger className='flex h-9 items-center gap-2 rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] px-3 text-[13px] text-zinc-300 transition-colors duration-200 ease hover:border-[#2a2c33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'>
+											<span className='text-zinc-500'>Sort</span>
+
+											{SORT_LABELS[sortBy]}
+
+											<ChevronDown aria-hidden='true' className='size-3 text-zinc-500' />
+										</DropdownMenuTrigger>
+
+										<DropdownMenuContent align='end' className='w-44'>
+											<DropdownMenuRadioGroup
+												onValueChange={(value) => setSortBy(value as SortByType)}
+												value={sortBy}
+											>
+												{(Object.keys(SORT_LABELS) as SortByType[]).map((key) => (
+													<DropdownMenuRadioItem key={key} value={key}>
+														{SORT_LABELS[key]}
+													</DropdownMenuRadioItem>
+												))}
+											</DropdownMenuRadioGroup>
+										</DropdownMenuContent>
+									</DropdownMenu>
+
+									<div
+										aria-label='View mode'
+										className='flex rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] p-0.5'
+										role='group'
 									>
 										{(
 											[
-												['all', 'All maps'],
-												['owned', 'My maps'],
-												['shared', 'Shared with me'],
+												['grid', 'Grid view', LayoutGrid],
+												['list', 'List view', List],
 											] as const
-										).map(([value, label]) => (
-											<TabsTrigger
-												className='h-11 flex-none rounded-none border-0 px-3 font-normal text-zinc-400 data-[active]:border-0 data-[active]:bg-transparent data-[active]:font-medium data-[active]:text-white data-[active]:shadow-[inset_0_-2px_0_#fafafa] [@media(hover:hover)]:hover:bg-transparent'
-												key={value}
-												value={value}
+										).map(([mode, label, Icon]) => (
+											<button
+												aria-label={label}
+												aria-pressed={viewMode === mode}
+												key={mode}
+												onClick={() => setViewMode(mode)}
+												type='button'
+												className={cn(
+													'flex h-[30px] w-8 items-center justify-center rounded-[7px] transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
+													viewMode === mode
+														? 'bg-[#1c1d22] text-white'
+														: 'text-zinc-500 hover:text-white'
+												)}
 											>
-												{label}
-
-												<span className='font-mono text-xs text-zinc-500'>
-													{filterCounts[value]}
-												</span>
-											</TabsTrigger>
+												<Icon aria-hidden='true' className='size-3.5' />
+											</button>
 										))}
-									</TabsList>
-
-									<div className='flex items-center gap-2 pb-1.5'>
-										<DropdownMenu>
-											<DropdownMenuTrigger className='flex h-9 items-center gap-2 rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] px-3 text-[13px] text-zinc-300 transition-colors duration-200 ease hover:border-[#2a2c33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'>
-												<span className='text-zinc-500'>Sort</span>
-
-												{SORT_LABELS[sortBy]}
-
-												<ChevronDown aria-hidden='true' className='size-3 text-zinc-500' />
-											</DropdownMenuTrigger>
-
-											<DropdownMenuContent align='end' className='w-44'>
-												<DropdownMenuRadioGroup
-													onValueChange={(value) => setSortBy(value as SortByType)}
-													value={sortBy}
-												>
-													{(Object.keys(SORT_LABELS) as SortByType[]).map((key) => (
-														<DropdownMenuRadioItem key={key} value={key}>
-															{SORT_LABELS[key]}
-														</DropdownMenuRadioItem>
-													))}
-												</DropdownMenuRadioGroup>
-											</DropdownMenuContent>
-										</DropdownMenu>
-
-										<div
-											aria-label='View mode'
-											className='flex rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] p-0.5'
-											role='group'
-										>
-											{(
-												[
-													['grid', 'Grid view', LayoutGrid],
-													['list', 'List view', List],
-												] as const
-											).map(([mode, label, Icon]) => (
-												<button
-													aria-label={label}
-													aria-pressed={viewMode === mode}
-													key={mode}
-													onClick={() => setViewMode(mode)}
-													type='button'
-													className={cn(
-														'flex h-[30px] w-8 items-center justify-center rounded-[7px] transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
-														viewMode === mode
-															? 'bg-[#1c1d22] text-white'
-															: 'text-zinc-500 hover:text-white'
-													)}
-												>
-													<Icon aria-hidden='true' className='size-3.5' />
-												</button>
-											))}
-										</div>
 									</div>
 								</div>
+							</div>
 
-								{/* Selection toolbar */}
-								<AnimatePresence initial={false}>
-									{selectedMaps.size > 0 && (
-										<motion.div
-											animate={{ opacity: 1, height: 'auto' }}
-											className='overflow-hidden'
-											exit={{ opacity: 0, height: 0 }}
-											initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
-											transition={{ duration: 0.2, ease: EASE_OUT_QUART }}
-										>
-											<div className='mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#1d1f24] bg-[#0e0f12] px-3 py-2 text-sm'>
-												<span className='text-zinc-300'>
-													{selectedMaps.size} selected
-												</span>
-
-												<span className='flex-1' />
-
-												<button
-													className='flex items-center gap-1.5 rounded-md px-2 py-1 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500'
-													onClick={handleBulkDelete}
-													type='button'
-												>
-													<Trash2 aria-hidden='true' className='size-3.5' />
-													Delete
-												</button>
-
-												<button
-													className='rounded-md px-2 py-1 text-zinc-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
-													onClick={() => setSelectedMaps(new Set())}
-													type='button'
-												>
-													Clear
-												</button>
-											</div>
-										</motion.div>
-									)}
-								</AnimatePresence>
-
-								<TabsContent value={filterBy}>
-									{!showMapsSkeleton && filteredMaps.length === 0 ? (
-										<motion.div
-											animate={{ opacity: 1, y: 0 }}
-											className='flex flex-col items-center py-20 text-center'
-											initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-											transition={{ duration: 0.3, ease: EASE_OUT_QUART }}
-										>
-											<span className='flex size-11 items-center justify-center rounded-full border border-[#2a2c33] bg-[#0e0f12]'>
-												<Search aria-hidden='true' className='size-4 text-zinc-400' />
+							{/* Selection toolbar */}
+							<AnimatePresence initial={false}>
+								{selectedMaps.size > 0 && (
+									<motion.div
+										animate={{ opacity: 1, height: 'auto' }}
+										className='overflow-hidden'
+										exit={{ opacity: 0, height: 0 }}
+										initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
+										transition={{ duration: 0.2, ease: EASE_OUT_QUART }}
+									>
+										<div className='mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-[#1d1f24] bg-[#0e0f12] px-3 py-2 text-sm'>
+											<span className='text-zinc-300'>
+												{selectedMaps.size} selected
 											</span>
 
-											<h2 className='mt-4 text-base font-semibold'>No maps found</h2>
-
-											<p className='mt-1 text-sm text-zinc-400'>
-												{searchQuery
-													? `Nothing matches "${searchQuery}".`
-													: filterBy === 'shared'
-														? 'No one has shared a map with you yet.'
-														: 'Try a different filter.'}
-											</p>
+											<span className='flex-1' />
 
 											<button
-												className='mt-5 h-9 rounded-[9px] border border-[#2a2c33] bg-[#131418] px-4 text-sm text-white transition-colors duration-200 ease hover:bg-[#1a1b20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+												className='flex items-center gap-1.5 rounded-md px-2 py-1 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500'
+												onClick={handleBulkDelete}
 												type='button'
-												onClick={() => {
-													setSearchQuery('');
-													setFilterBy('all');
-												}}
 											>
-												Clear filters
+												<Trash2 aria-hidden='true' className='size-3.5' />
+												Delete
 											</button>
-										</motion.div>
-									) : (
-										<div
-											// Remount on view switch so cards re-enter instead of
-											// layout-animating from their grid positions.
-											key={viewMode}
-											className={cn(
-												'mt-6',
-												viewMode === 'grid'
-													? 'grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5'
-													: 'flex flex-col gap-2'
-											)}
-										>
-											{showMapsSkeleton ? (
-												<DashboardMapsLoadingSkeleton viewMode={viewMode} />
-											) : (
-												<>
-													<AnimatePresence mode='popLayout'>
-														{filteredMaps.map((map, index) => (
-															<MindMapCard
-																index={index}
-																key={map.id}
-																map={map}
-																onDelete={handleDeleteMap}
-																onDuplicate={handleDuplicateMap}
-																onSelect={handleSelectMap}
-																selected={selectedMaps.has(map.id)}
-																viewMode={viewMode}
-															/>
-														))}
-													</AnimatePresence>
 
-													<CreateMapCard
-														disabled={isAtMapLimit}
-														limitInfo={mapLimitInfo}
-														onClick={handleRequestCreateMap}
-														viewMode={viewMode}
-													/>
-												</>
-											)}
+											<button
+												className='rounded-md px-2 py-1 text-zinc-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+												onClick={() => setSelectedMaps(new Set())}
+												type='button'
+											>
+												Clear
+											</button>
 										</div>
-									)}
-								</TabsContent>
-							</Tabs>
+									</motion.div>
+								)}
+							</AnimatePresence>
 
-							<RoomCodeJoin />
+							<TabsContent value={filterBy}>
+								{!showMapsSkeleton && filteredMaps.length === 0 ? (
+									<motion.div
+										animate={{ opacity: 1, y: 0 }}
+										className='flex flex-col items-center py-20 text-center'
+										initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+										transition={{ duration: 0.3, ease: EASE_OUT_QUART }}
+									>
+										<span className='flex size-11 items-center justify-center rounded-full border border-[#2a2c33] bg-[#0e0f12]'>
+											<Search aria-hidden='true' className='size-4 text-zinc-400' />
+										</span>
 
-							{!isTouchFirst && (
-								<ul className='mt-8 hidden flex-wrap gap-x-6 gap-y-2.5 text-xs text-zinc-500 lg:flex'>
-									{SHORTCUTS.map((shortcut) => (
-										<li className='flex items-center gap-2' key={shortcut.keys}>
-											<kbd className='rounded-[5px] border border-b-2 border-[#2a2c33] px-1.5 py-px font-mono text-[11px] text-zinc-300'>
-												{shortcut.keys}
-											</kbd>
+										<h2 className='mt-4 text-base font-semibold'>No maps found</h2>
 
-											{shortcut.label}
-										</li>
-									))}
-								</ul>
-							)}
-						</>
-					)}
-				</div>
+										<p className='mt-1 text-sm text-zinc-400'>
+											{searchQuery
+												? `Nothing matches "${searchQuery}".`
+												: filterBy === 'shared'
+													? 'No one has shared a map with you yet.'
+													: 'Try a different filter.'}
+										</p>
 
-				<CreateMapDialog
-					disabled={isCreatingMap}
-					initialTemplate={dialogTemplate}
-					onSubmit={handleCreateMap}
-					open={showCreateDialog}
-					onOpenChange={(open) => {
-						setShowCreateDialog(open);
-						if (!open) setDialogTemplate(null);
-					}}
-				/>
+										<button
+											className='mt-5 h-9 rounded-[9px] border border-[#2a2c33] bg-[#131418] px-4 text-sm text-white transition-colors duration-200 ease hover:bg-[#1a1b20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+											type='button'
+											onClick={() => {
+												setSearchQuery('');
+												setFilterBy('all');
+											}}
+										>
+											Clear filters
+										</button>
+									</motion.div>
+								) : (
+									<div
+										// Remount on view switch so cards re-enter instead of
+										// layout-animating from their grid positions.
+										key={viewMode}
+										className={cn(
+											'mt-6',
+											viewMode === 'grid'
+												? 'grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5'
+												: 'flex flex-col gap-2'
+										)}
+									>
+										{showMapsSkeleton ? (
+											<DashboardMapsLoadingSkeleton viewMode={viewMode} />
+										) : (
+											<>
+												<AnimatePresence mode='popLayout'>
+													{filteredMaps.map((map, index) => (
+														<MindMapCard
+															index={index}
+															key={map.id}
+															map={map}
+															onDelete={handleDeleteMap}
+															onDuplicate={handleDuplicateMap}
+															onSelect={handleSelectMap}
+															selected={selectedMaps.has(map.id)}
+															viewMode={viewMode}
+														/>
+													))}
+												</AnimatePresence>
 
-				{/* Upgrade prompt for anonymous users */}
-				{showAnonymousUpgrade && (
-					<UpgradeAnonymousPrompt
-						autoShowDelay={0}
-						isAnonymous={true}
-						onDismiss={() => setShowAnonymousUpgrade(false)}
-						onUpgradeSuccess={() => router.refresh()}
-						userDisplayName={
-							userProfile?.display_name || userProfile?.full_name
-						}
-					/>
+												<CreateMapCard
+													disabled={isAtMapLimit}
+													limitInfo={mapLimitInfo}
+													onClick={handleRequestCreateMap}
+													viewMode={viewMode}
+												/>
+											</>
+										)}
+									</div>
+								)}
+							</TabsContent>
+						</Tabs>
+
+						<RoomCodeJoin />
+
+						{!isTouchFirst && (
+							<ul className='mt-8 hidden flex-wrap gap-x-6 gap-y-2.5 text-xs text-zinc-500 lg:flex'>
+								{SHORTCUTS.map((shortcut) => (
+									<li className='flex items-center gap-2' key={shortcut.keys}>
+										<kbd className='rounded-[5px] border border-b-2 border-[#2a2c33] px-1.5 py-px font-mono text-[11px] text-zinc-300'>
+											{shortcut.keys}
+										</kbd>
+
+										{shortcut.label}
+									</li>
+								))}
+							</ul>
+						)}
+					</>
 				)}
-			</DashboardLayout>
-		</SidebarProvider>
+			</div>
+
+			<CreateMapDialog
+				disabled={isCreatingMap}
+				initialTemplate={dialogTemplate}
+				onSubmit={handleCreateMap}
+				open={showCreateDialog}
+				onOpenChange={(open) => {
+					setShowCreateDialog(open);
+					if (!open) setDialogTemplate(null);
+				}}
+			/>
+
+			{/* Upgrade prompt for anonymous users */}
+			{showAnonymousUpgrade && (
+				<UpgradeAnonymousPrompt
+					autoShowDelay={0}
+					isAnonymous={true}
+					onDismiss={() => setShowAnonymousUpgrade(false)}
+					onUpgradeSuccess={() => router.refresh()}
+					userDisplayName={
+						userProfile?.display_name || userProfile?.full_name
+					}
+				/>
+			)}
+		</>
 	);
 }

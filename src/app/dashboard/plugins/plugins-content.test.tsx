@@ -1,9 +1,3 @@
-jest.mock('@/components/dashboard/dashboard-layout', () => ({
-	DashboardLayout: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-jest.mock('@/components/ui/sidebar', () => ({
-	SidebarProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
-}));
 const mockToastError = jest.fn();
 const mockToastSuccess = jest.fn();
 jest.mock('sonner', () => ({
@@ -17,7 +11,6 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { ReactNode } from 'react';
 import { SWRConfig } from 'swr';
 import { PluginsContent } from './plugins-content';
 

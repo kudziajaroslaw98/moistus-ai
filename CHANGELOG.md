@@ -15,6 +15,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **lint**: `react/no-danger` is an error; the one existing use (AI chat, sanitized with `sanitize-html`) carries a disable comment saying so
 - **plugins/guide**: "Build a plugin" is now the third tab of the dashboard Plugins page and covers the whole flow: Powers (refresh with `ctx.request`, `ctx.branch`, why a plugin can't have both) with a GitHub issue example that tests run through both refresh passes, request and branch limits, versions and updates, publishing to the library, what happens when a plugin is reported, and what plugins can't do. The out-of-date "Sharing a plugin" section is gone
 - **plugins/guide**: The "On this page" list highlights the last heading scrolled past, keeps a clicked entry while the page can't scroll it to the top, and reaches the last sections at the bottom of the page
+- **dashboard/navigation**: Moving between Home, Templates, Recipes and Plugins keeps the sidebar and the top bar (search, notifications) in place; only the page content changes, with a skeleton shaped like the page while it loads. The sign-in check and plan lookup run once when you open the dashboard, not on every click
+  - Why: Every click rebuilt the whole dashboard, refetched notifications and flashed a full-page skeleton
+- **dashboard/plan**: The plan card and Free/Pro label load in after the rest of the dashboard instead of holding it back
+- **dashboard/plugins**: The Plugins title and tabs stay in place when you switch between Library, My plugins and Build a plugin
 
 ### Fixed
 
@@ -33,6 +37,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **recipes/sanitize**: Recipe results are cleaned until nothing more changes, so text like `!<b>[x]<i>(url)` can no longer turn back into an image (or `<<b>script>` into a tag) after one pass
   - Why: Images in approved nodes load their URL right away and could send map text to another site (CodeQL incomplete multi-character sanitization)
 - **plugins/tests**: The sandbox's eval/Function lockdown test builds its probes as plain closures instead of a `JSON.stringify` switch (CodeQL improper code sanitization)
+- **dashboard/sidebar**: A collapsed sidebar stays collapsed when you move between dashboard pages or reload
 
 ### Removed
 

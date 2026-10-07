@@ -1,9 +1,7 @@
 'use client';
 
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import { PluginSubmitSheet } from '@/components/plugins/plugin-submit-sheet';
 import { formatTimeAgo } from '@/components/plugins/plugin-update-details';
-import { PluginsPageTabs } from '@/components/plugins/plugins-page-tabs';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -13,7 +11,6 @@ import {
 	DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { SidebarProvider } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { isLocalDevPluginUrl } from '@/lib/plugins/catalog';
 import type { MyPlugin, MyPluginVersion } from '@/types/plugin-library';
@@ -182,121 +179,110 @@ export function MyPluginsContent() {
 	} = useSWR(MINE_KEY, fetchMine);
 	const [submitOpen, setSubmitOpen] = useState(false);
 
+	// Title and tabs come from the plugins layout (PluginsPageFrame).
 	return (
-		<SidebarProvider>
-			<DashboardLayout title='Plugins'>
-				<div className='p-6 md:p-8'>
-					<div className='mx-auto flex max-w-3xl flex-col gap-6'>
-						<div className='flex flex-col gap-4'>
-							<h1 className='text-3xl font-bold tracking-tight text-white'>
-								Plugins
-							</h1>
+		<>
+			<div className='mt-6 flex flex-col gap-6'>
+				<div className='flex flex-wrap items-center justify-between gap-3'>
+					<p className='text-sm text-zinc-400'>
+						Plugins you submitted to the library. Shiko reviews every
+						version before map owners can turn it on.
+					</p>
 
-							<PluginsPageTabs current='mine' />
-						</div>
-
-						<div className='flex flex-wrap items-center justify-between gap-3'>
-							<p className='text-sm text-zinc-400'>
-								Plugins you submitted to the library. Shiko reviews every
-								version before map owners can turn it on.
-							</p>
-
-							<Button onClick={() => setSubmitOpen(true)} variant='outline'>
-								Submit a version
-							</Button>
-						</div>
-
-						{error && (
-							<div
-								className='flex items-center justify-between gap-3 rounded-lg border border-error-500/30 bg-error-500/10 px-3 py-2 text-sm text-error-200'
-								role='alert'
-							>
-								Couldn&apos;t load your plugins.
-								<Button
-									onClick={() => void mutate()}
-									size='sm'
-									variant='outline'
-								>
-									Try again
-								</Button>
-							</div>
-						)}
-
-						{isLoading && <Skeleton className='h-32 w-full rounded-xl' />}
-
-						{plugins && plugins.length === 0 && (
-							<p className='rounded-xl border border-zinc-800 bg-base p-5 text-sm text-zinc-400'>
-								You haven&apos;t submitted a plugin yet. Build one, load it in
-								Developer mode, then choose Submit to the library in a
-								map&apos;s Plugins panel.{' '}
-
-								<Link
-									className='font-medium text-primary-400 hover:text-primary-300'
-									href='/dashboard/plugins/build'
-								>
-									How to build a plugin
-								</Link>
-							</p>
-						)}
-
-						{plugins?.map((plugin) => {
-							const published = plugin.versions.some(
-								(version) => version.status === 'published'
-							);
-							return (
-								<article
-									className='flex flex-col gap-3 rounded-xl border border-zinc-800 bg-base p-4'
-									data-testid={`my-plugin-${plugin.id}`}
-									key={plugin.id}
-								>
-									<div className='flex items-start gap-3'>
-										<span
-											aria-hidden
-											className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-500/15 text-sm font-semibold text-primary-300'
-										>
-											{plugin.name.charAt(0).toUpperCase()}
-										</span>
-
-										<div className='flex min-w-0 flex-col gap-0.5'>
-											<h2 className='text-[15px] font-medium leading-5 text-text-primary'>
-												{plugin.name}
-											</h2>
-
-											<span className='text-xs text-text-secondary'>
-												{published
-													? `${plugin.id} · on in ${plugin.mapCount} ${plugin.mapCount === 1 ? 'map' : 'maps'} · ${plugin.openReports} ${plugin.openReports === 1 ? 'report' : 'reports'}`
-													: `${plugin.id} · not published yet`}
-											</span>
-										</div>
-									</div>
-
-									{plugin.disabledReason && (
-										<p className='flex items-start gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1.5 text-xs leading-4 text-red-300'>
-											<Ban aria-hidden className='mt-px size-3.5 shrink-0' />
-
-											{`Turned off everywhere by Shiko: ${plugin.disabledReason}`}
-										</p>
-									)}
-
-									<ul className='flex flex-col gap-2.5'>
-										{plugin.versions.map((version) => (
-											<VersionRow key={version.version} version={version} />
-										))}
-									</ul>
-								</article>
-							);
-						})}
-					</div>
+					<Button onClick={() => setSubmitOpen(true)} variant='outline'>
+						Submit a version
+					</Button>
 				</div>
 
-				<SubmitDialog
-					open={submitOpen}
-					onOpenChange={(open) => {
-						setSubmitOpen(open);
-						if (!open) void mutate();
-					}}
-				/>
-			</DashboardLayout>
-		</SidebarProvider>
+				{error && (
+					<div
+						className='flex items-center justify-between gap-3 rounded-lg border border-error-500/30 bg-error-500/10 px-3 py-2 text-sm text-error-200'
+						role='alert'
+					>
+						Couldn&apos;t load your plugins.
+						<Button
+							onClick={() => void mutate()}
+							size='sm'
+							variant='outline'
+						>
+							Try again
+						</Button>
+					</div>
+				)}
+
+				{isLoading && <Skeleton className='h-32 w-full rounded-xl' />}
+
+				{plugins && plugins.length === 0 && (
+					<p className='rounded-xl border border-zinc-800 bg-base p-5 text-sm text-zinc-400'>
+						You haven&apos;t submitted a plugin yet. Build one, load it in
+						Developer mode, then choose Submit to the library in a
+						map&apos;s Plugins panel.{' '}
+
+						<Link
+							className='font-medium text-primary-400 hover:text-primary-300'
+							href='/dashboard/plugins/build'
+						>
+							How to build a plugin
+						</Link>
+					</p>
+				)}
+
+				{plugins?.map((plugin) => {
+					const published = plugin.versions.some(
+						(version) => version.status === 'published'
+					);
+					return (
+						<article
+							className='flex flex-col gap-3 rounded-xl border border-zinc-800 bg-base p-4'
+							data-testid={`my-plugin-${plugin.id}`}
+							key={plugin.id}
+						>
+							<div className='flex items-start gap-3'>
+								<span
+									aria-hidden
+									className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-500/15 text-sm font-semibold text-primary-300'
+								>
+									{plugin.name.charAt(0).toUpperCase()}
+								</span>
+
+								<div className='flex min-w-0 flex-col gap-0.5'>
+									<h2 className='text-[15px] font-medium leading-5 text-text-primary'>
+										{plugin.name}
+									</h2>
+
+									<span className='text-xs text-text-secondary'>
+										{published
+											? `${plugin.id} · on in ${plugin.mapCount} ${plugin.mapCount === 1 ? 'map' : 'maps'} · ${plugin.openReports} ${plugin.openReports === 1 ? 'report' : 'reports'}`
+											: `${plugin.id} · not published yet`}
+									</span>
+								</div>
+							</div>
+
+							{plugin.disabledReason && (
+								<p className='flex items-start gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1.5 text-xs leading-4 text-red-300'>
+									<Ban aria-hidden className='mt-px size-3.5 shrink-0' />
+
+									{`Turned off everywhere by Shiko: ${plugin.disabledReason}`}
+								</p>
+							)}
+
+							<ul className='flex flex-col gap-2.5'>
+								{plugin.versions.map((version) => (
+									<VersionRow key={version.version} version={version} />
+								))}
+							</ul>
+						</article>
+					);
+				})}
+			</div>
+
+			<SubmitDialog
+				open={submitOpen}
+				onOpenChange={(open) => {
+					setSubmitOpen(open);
+					if (!open) void mutate();
+				}}
+			/>
+		</>
 	);
 }

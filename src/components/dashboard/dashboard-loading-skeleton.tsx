@@ -60,34 +60,83 @@ export function DashboardMapsLoadingSkeleton({
 	);
 }
 
-/** Route-level fallback that mirrors the dashboard shell (sidebar, top bar, grid). */
-export function DashboardRouteLoadingSkeleton() {
+/** Home content while the page loads (inside the shell, under the top bar). */
+export function DashboardHomeLoadingSkeleton() {
+	return (
+		<div
+			className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'
+			data-testid='dashboard-home-loading-skeleton'
+		>
+			<Skeleton className='h-8 w-40 bg-zinc-700/50' />
+
+			<Skeleton className='mt-3 h-4 w-72 bg-zinc-800/60' />
+
+			<Skeleton className='mt-7 h-[86px] w-full rounded-[18px] bg-zinc-900/70' />
+
+			<div className='mt-9 h-11 border-b border-[#1d1f24]' />
+
+			<div className='mt-6 grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5'>
+				<DashboardMapsLoadingSkeleton viewMode='grid' />
+			</div>
+		</div>
+	);
+}
+
+/**
+ * The whole dashboard (sidebar, top bar, Home content) while the dashboard layout
+ * checks the session on entry. `sidebarCollapsed` matches the saved sidebar state so
+ * the real sidebar doesn't jump in at a different width.
+ */
+export function DashboardRouteLoadingSkeleton({
+	sidebarCollapsed = false,
+}: {
+	sidebarCollapsed?: boolean;
+}) {
 	return (
 		<div
 			className='fixed inset-0 flex w-full bg-zinc-950'
 			data-testid='dashboard-route-loading-skeleton'
 		>
-			<aside className='hidden w-64 flex-col gap-5 border-r border-[#16171b] bg-[#0b0b0d] px-3.5 py-4 md:flex'>
-				<div className='flex h-8 items-center justify-between px-1'>
-					<Skeleton className='h-5 w-20 bg-zinc-700/50' />
-
+			{sidebarCollapsed ? (
+				<aside className='hidden w-[3.25rem] flex-col items-center gap-5 border-r border-[#16171b] bg-[#0b0b0d] px-1.5 py-4 md:flex'>
 					<Skeleton className='size-8 rounded-lg bg-zinc-800/60' />
-				</div>
 
-				<Skeleton className='h-10 w-full rounded-[10px] bg-[#005bc7]/40' />
+					<Skeleton className='size-10 rounded-[10px] bg-[#005bc7]/40' />
 
-				<div className='space-y-1'>
-					{/* Home, Templates, Recipes, Plugins, Teams, Archive */}
-					{Array.from({ length: 6 }).map((_, index) => (
-						<Skeleton
-							className='h-[38px] w-full rounded-[9px] bg-zinc-900/80'
-							key={index}
-						/>
-					))}
-				</div>
+					<div className='space-y-1'>
+						{Array.from({ length: 6 }).map((_, index) => (
+							<Skeleton
+								className='size-[38px] rounded-[9px] bg-zinc-900/80'
+								key={index}
+							/>
+						))}
+					</div>
 
-				<Skeleton className='mt-auto h-[132px] w-full rounded-[14px] bg-zinc-900/80' />
-			</aside>
+					<Skeleton className='mt-auto size-8 rounded-full bg-zinc-900/80' />
+				</aside>
+			) : (
+				<aside className='hidden w-64 flex-col gap-5 border-r border-[#16171b] bg-[#0b0b0d] px-3.5 py-4 md:flex'>
+					<div className='flex h-8 items-center justify-between px-1'>
+						<Skeleton className='h-5 w-20 bg-zinc-700/50' />
+
+						<Skeleton className='size-8 rounded-lg bg-zinc-800/60' />
+					</div>
+
+					<Skeleton className='h-10 w-full rounded-[10px] bg-[#005bc7]/40' />
+
+					<div className='space-y-1'>
+						{/* Home, Templates, Recipes, Plugins, Teams, Archive */}
+						{Array.from({ length: 6 }).map((_, index) => (
+							<Skeleton
+								className='h-[38px] w-full rounded-[9px] bg-zinc-900/80'
+								key={index}
+							/>
+						))}
+					</div>
+
+					<Skeleton className='mt-auto h-[132px] w-full rounded-[14px] bg-zinc-900/80' />
+				</aside>
+			)}
 
 			<main className='flex min-h-0 grow flex-col overflow-hidden'>
 				<header className='flex min-h-16 items-center justify-between gap-6 border-b border-[#16171b] px-4 sm:px-8'>
@@ -99,19 +148,7 @@ export function DashboardRouteLoadingSkeleton() {
 				</header>
 
 				<div className='flex-1 overflow-y-auto'>
-					<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
-						<Skeleton className='h-8 w-40 bg-zinc-700/50' />
-
-						<Skeleton className='mt-3 h-4 w-72 bg-zinc-800/60' />
-
-						<Skeleton className='mt-7 h-[86px] w-full rounded-[18px] bg-zinc-900/70' />
-
-						<div className='mt-9 h-11 border-b border-[#1d1f24]' />
-
-						<div className='mt-6 grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5'>
-							<DashboardMapsLoadingSkeleton viewMode='grid' />
-						</div>
-					</div>
+					<DashboardHomeLoadingSkeleton />
 				</div>
 			</main>
 		</div>
