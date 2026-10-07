@@ -7,11 +7,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ## [2026-10-07]
 
-### Fixed
-
-- **landing/story-rail**: Chapter rail dots are now centered on the divider line under each step name
-  - Why: They sat on the label line and looked misaligned with the steps
-
 ### Removed
 
 - **dashboard/previews**: Removed the map card mini-map previews and `POST /api/maps/previews`
@@ -29,6 +24,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: On phones 100vh doesn't match the visible screen, which could leave blank space below the scrolling map list
 - **dashboard/descriptions**: Map descriptions wrap to two lines (one in list view) with a Show more / Show less toggle that appears only when text is cut off
   - Why: Long descriptions were truncated with no way to read them
+- **landing/story-rail**: Chapter rail dots are now centered on the divider line under each step name
+  - Why: They sat on the label line and looked misaligned with the steps
 
 ### Added
 
