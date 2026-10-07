@@ -288,8 +288,10 @@ export function DashboardLayout({
 		</>
 	);
 
+	// fixed + inset-0 sizes the shell to the visible viewport; 100vh is taller or
+	// shorter than the screen on phones with collapsing browser bars.
 	return (
-		<div className='group flex h-screen w-full bg-zinc-950 text-white'>
+		<div className='group fixed inset-0 flex w-full bg-zinc-950 text-white'>
 			<Sidebar className='border-[#16171b]' collapsible='icon'>
 				<div
 					className={cn(
@@ -447,7 +449,7 @@ export function DashboardLayout({
 				</div>
 			</Sidebar>
 
-			<main className='flex h-screen grow flex-col overflow-hidden'>
+			<main className='flex min-h-0 grow flex-col overflow-hidden'>
 				<DashboardHeader search={headerSearch} title={title} />
 
 				<AnonymousUserBanner />

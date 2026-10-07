@@ -20,6 +20,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **dashboard/width**: Dashboard content now spans up to 1760px instead of stopping at 1240px
   - Why: It left a wide empty strip on the right of large screens
+- **dashboard/mobile-height**: The dashboard shell (and its loading skeleton) is pinned to the visible viewport (`fixed inset-0`) instead of `h-screen` (100vh)
+  - Why: On phones 100vh doesn't match the visible screen, which could leave blank space below the scrolling map list
 - **dashboard/descriptions**: Map descriptions wrap to two lines (one in list view) with a Show more / Show less toggle that appears only when text is cut off
   - Why: Long descriptions were truncated with no way to read them
 

@@ -64,7 +64,7 @@ export function DashboardMapsLoadingSkeleton({
 export function DashboardRouteLoadingSkeleton() {
 	return (
 		<div
-			className='flex h-screen w-full bg-zinc-950'
+			className='fixed inset-0 flex w-full bg-zinc-950'
 			data-testid='dashboard-route-loading-skeleton'
 		>
 			<aside className='hidden w-64 flex-col gap-5 border-r border-[#16171b] bg-[#0b0b0d] px-3.5 py-4 md:flex'>
@@ -88,7 +88,7 @@ export function DashboardRouteLoadingSkeleton() {
 				<Skeleton className='mt-auto h-[132px] w-full rounded-[14px] bg-zinc-900/80' />
 			</aside>
 
-			<main className='flex h-screen grow flex-col overflow-hidden'>
+			<main className='flex min-h-0 grow flex-col overflow-hidden'>
 				<header className='flex min-h-16 items-center justify-between gap-6 border-b border-[#16171b] px-4 sm:px-8'>
 					<Skeleton className='h-4 w-12 bg-zinc-800/80' />
 
