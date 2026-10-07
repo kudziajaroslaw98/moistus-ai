@@ -6,6 +6,7 @@ interface DashboardMapsLoadingSkeletonProps {
 	cardCount?: number;
 }
 
+/** Same rows as `MindMapCard`'s grid card (22px title, two 20px description lines, 20px footer) so nothing jumps when maps arrive. */
 function GridMapSkeleton() {
 	return (
 		<div
@@ -14,12 +15,20 @@ function GridMapSkeleton() {
 		>
 			<div className='h-[112px] border-b border-[#1d1f24] bg-zinc-900/60' />
 
-			<div className='space-y-2.5 px-4 pb-4 pt-3.5'>
-				<Skeleton className='h-4 w-2/3 bg-zinc-700/40' />
+			<div className='px-4 pb-4 pt-3.5'>
+				<div className='flex h-[22px] items-center'>
+					<Skeleton className='h-4 w-2/3 bg-zinc-700/40' />
+				</div>
 
-				<Skeleton className='h-3 w-4/5 bg-zinc-800/60' />
+				<div className='mt-1 flex h-10 flex-col justify-center gap-2'>
+					<Skeleton className='h-3 w-full bg-zinc-800/60' />
 
-				<Skeleton className='mt-4 h-3 w-1/3 bg-zinc-800/60' />
+					<Skeleton className='h-3 w-3/5 bg-zinc-800/60' />
+				</div>
+
+				<div className='mt-3.5 flex h-5 items-center'>
+					<Skeleton className='h-3 w-1/3 bg-zinc-800/60' />
+				</div>
 			</div>
 		</div>
 	);
@@ -60,6 +69,55 @@ export function DashboardMapsLoadingSkeleton({
 	);
 }
 
+/** The "Have a room code?" box under the map grid, same size as `RoomCodeJoin`. */
+export function RoomCodeJoinSkeleton() {
+	return (
+		<div
+			aria-hidden
+			className='mt-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-2xl border border-[#1d1f24] bg-[#0c0d10] px-5 py-[18px]'
+			data-testid='room-code-skeleton'
+		>
+			<div className='flex h-11 flex-col justify-center gap-2'>
+				<Skeleton className='h-4 w-36 bg-zinc-700/40' />
+
+				<Skeleton className='h-3 w-56 bg-zinc-800/60' />
+			</div>
+
+			<div className='flex flex-[0_1_360px] gap-2'>
+				<Skeleton className='h-11 min-w-0 flex-auto rounded-[10px] bg-zinc-900/80' />
+
+				<Skeleton className='h-11 w-16 shrink-0 rounded-[10px] bg-zinc-900/80' />
+			</div>
+		</div>
+	);
+}
+
+// Key and label widths roughly match "Ctrl N New map", "Ctrl F Search", "Ctrl 1 / 2 Grid / list".
+const SHORTCUT_SKELETON_WIDTHS = [
+	['w-11', 'w-12'],
+	['w-11', 'w-10'],
+	['w-16', 'w-14'],
+] as const;
+
+/** Home's keyboard-shortcut hints (key cap + label), shown on large screens like the real list. */
+export function ShortcutsSkeleton() {
+	return (
+		<div
+			aria-hidden
+			className='mt-8 hidden flex-wrap gap-x-6 gap-y-2.5 lg:flex'
+			data-testid='shortcuts-skeleton'
+		>
+			{SHORTCUT_SKELETON_WIDTHS.map(([keyWidth, labelWidth]) => (
+				<div className='flex items-center gap-2' key={`${keyWidth}-${labelWidth}`}>
+					<Skeleton className={`h-5 ${keyWidth} rounded-[5px] bg-zinc-800/70`} />
+
+					<Skeleton className={`h-3 ${labelWidth} bg-zinc-800/60`} />
+				</div>
+			))}
+		</div>
+	);
+}
+
 /**
  * Abstract content blocks for the entry skeleton. It shows before any dashboard page,
  * so it draws no real headings ((home)/loading.tsx shows Home's own).
@@ -81,6 +139,10 @@ function DashboardHomeLoadingSkeleton() {
 			<div className='mt-6 grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5'>
 				<DashboardMapsLoadingSkeleton viewMode='grid' />
 			</div>
+
+			<RoomCodeJoinSkeleton />
+
+			<ShortcutsSkeleton />
 		</div>
 	);
 }

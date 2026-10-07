@@ -35,5 +35,7 @@ describe('DashboardHomePageSkeleton', () => {
 		expect(screen.getAllByTestId('dashboard-grid-map-skeleton')).toHaveLength(
 			8
 		);
+		expect(screen.getByTestId('room-code-skeleton')).toBeInTheDocument();
+		expect(screen.getByTestId('shortcuts-skeleton')).toBeInTheDocument();
 	});
 });

@@ -19,6 +19,13 @@ describe('Dashboard loading skeletons', () => {
 		expect(container.querySelector('aside')).toHaveClass('w-[3.25rem]');
 	});
 
+	it('includes the room-code box and the three shortcut hints under the grid', () => {
+		render(<DashboardRouteLoadingSkeleton />);
+
+		expect(screen.getByTestId('room-code-skeleton')).toBeInTheDocument();
+		expect(screen.getByTestId('shortcuts-skeleton').children).toHaveLength(3);
+	});
+
 	it('draws no real headings, since it can show before any dashboard page', () => {
 		render(<DashboardRouteLoadingSkeleton />);
 

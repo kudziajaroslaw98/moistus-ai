@@ -4,7 +4,11 @@ import { UpgradeAnonymousPrompt } from '@/components/auth/upgrade-anonymous';
 import { CreateMapCard } from '@/components/dashboard/create-map-card';
 import { CreateMapDialog } from '@/components/dashboard/create-map-dialog';
 import { DashboardFirstRun } from '@/components/dashboard/dashboard-first-run';
-import { DashboardMapsLoadingSkeleton } from '@/components/dashboard/dashboard-loading-skeleton';
+import {
+	DashboardMapsLoadingSkeleton,
+	RoomCodeJoinSkeleton,
+	ShortcutsSkeleton,
+} from '@/components/dashboard/dashboard-loading-skeleton';
 import {
 	useDashboardNewMapAction,
 	useDashboardSearch,
@@ -88,12 +92,13 @@ function StatsLineSkeleton() {
 
 /**
  * Home before the page mounts ((home)/loading.tsx): the heading and the quick-create
- * bar are static, so they show right away; the stats line and the map grid are
- * skeletons, as on the page itself while maps load.
+ * bar are static, so they show right away; the stats line, the map grid, the room-code
+ * box and the shortcut hints are skeletons.
  * The bar is `inert` so nothing typed here is lost when the real page replaces it.
  */
 export function DashboardHomePageSkeleton() {
 	const templates = useDashboardTemplates();
+	const isTouchFirst = useTouchFirst();
 
 	return (
 		<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
@@ -117,6 +122,10 @@ export function DashboardHomePageSkeleton() {
 			<div className='mt-6 grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5'>
 				<DashboardMapsLoadingSkeleton viewMode='grid' />
 			</div>
+
+			<RoomCodeJoinSkeleton />
+
+			{!isTouchFirst && <ShortcutsSkeleton />}
 		</div>
 	);
 }
