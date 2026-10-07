@@ -1,6 +1,5 @@
 import { withSerwist } from '@serwist/turbopack';
 import type { NextConfig } from 'next';
-import { FIRST_PARTY_PLUGINS } from './src/lib/plugins/catalog';
 
 /** HTTP(S) origin plus matching WS(S) origin for a configured service URL. */
 const toConnectOrigins = (value: string | undefined): string[] => {
@@ -13,21 +12,6 @@ const toConnectOrigins = (value: string | undefined): string[] => {
 		return [];
 	}
 };
-
-/** Sites reviewed catalog plugins may fetch from when an editor refreshes them. */
-const pluginConnectOrigins = [
-	...new Set(
-		FIRST_PARTY_PLUGINS.flatMap((entry) =>
-			entry.versions.flatMap((version) =>
-				version.permissions.flatMap((permission) =>
-					permission.startsWith('network:')
-						? [`https://${permission.slice('network:'.length)}`]
-						: []
-				)
-			)
-		)
-	),
-];
 
 // Report-only until violations from real traffic are reviewed; then enforce.
 const contentSecurityPolicyReportOnly = [
@@ -42,7 +26,11 @@ const contentSecurityPolicyReportOnly = [
 		"'self'",
 		...toConnectOrigins(process.env.NEXT_PUBLIC_SUPABASE_URL),
 		...toConnectOrigins(process.env.NEXT_PUBLIC_PARTYKIT_URL),
-		...pluginConnectOrigins,
+		// Developer plugins' files, from the developer's own machine (Developer mode only).
+		// Plugin sites are never listed here: refresh requests run in a network worker
+		// whose own policy names the plugin's sites (/api/plugins/network-worker).
+		'http://localhost:*',
+		'http://127.0.0.1:*',
 	].join(' '),
 	"worker-src 'self' blob:",
 	"manifest-src 'self'",
@@ -57,6 +45,9 @@ const securityHeaders = [
 	{ key: 'X-Content-Type-Options', value: 'nosniff' },
 	{ key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
 	{ key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+];
+
+const pagePolicyHeaders = [
 	{ key: 'Content-Security-Policy', value: "frame-ancestors 'self'" },
 	...(process.env.NODE_ENV === 'production'
 		? [
@@ -68,9 +59,23 @@ const securityHeaders = [
 		: []),
 ];
 
+/**
+ * Scripts that set their own policy and must not get the page's too (a browser applies
+ * every policy it receives). The plugin network worker lists its plugin's sites. The
+ * service worker re-fetches requests that pages and workers already checked against
+ * their own policies, so the page's list would only block those.
+ */
+const OWN_POLICY_PATHS = ['api/plugins/network-worker', 'app/sw\\.js'];
+
 const nextConfig: NextConfig = {
 	async headers() {
-		return [{ source: '/:path*', headers: securityHeaders }];
+		return [
+			{ source: '/:path*', headers: securityHeaders },
+			{
+				source: `/:path((?!(?:${OWN_POLICY_PATHS.join('|')})(?:$|/)).*)`,
+				headers: pagePolicyHeaders,
+			},
+		];
 	},
 	/* config options here */
 	reactStrictMode: true,

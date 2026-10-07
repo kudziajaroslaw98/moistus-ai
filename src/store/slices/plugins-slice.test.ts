@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { applyGraphOps } from '@/lib/extensions/graph-ops';
 import { setPluginLibrary } from '@/lib/plugins/catalog';
 import { pluginManifestSchema } from '@/lib/plugins/manifest-schema';
-import { fetchPluginJson } from '@/lib/plugins/network';
+import { requestPluginJson } from '@/lib/plugins/network-client';
 import { issueManifest } from '@/lib/plugins/runtime/test-network-plugin';
 import { webcrypto } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -27,9 +27,8 @@ jest.mock('@/lib/extensions/graph-ops', () => ({
 	...jest.requireActual('@/lib/extensions/graph-ops'),
 	applyGraphOps: jest.fn(async () => ({ ok: true, applied: 1 })),
 }));
-jest.mock('@/lib/plugins/network', () => ({
-	...jest.requireActual('@/lib/plugins/network'),
-	fetchPluginJson: jest.fn(),
+jest.mock('@/lib/plugins/network-client', () => ({
+	requestPluginJson: jest.fn(),
 }));
 
 const manifestJson = readFileSync(
@@ -558,16 +557,18 @@ describe('refreshPluginNode', () => {
 
 	it('fetches from the approved site and saves one change credited to the plugin', async () => {
 		jest
-			.mocked(fetchPluginJson)
-			.mockResolvedValue({ status: 'ok', code: 200, json: {} });
+			.mocked(requestPluginJson)
+			.mockResolvedValue({ [url]: { status: 'ok', code: 200, json: {} } });
 		const store = refreshStore();
 
 		await expect(store.getState().refreshPluginNode('node-1')).resolves.toBe(
 			true
 		);
 
-		expect(fetchPluginJson).toHaveBeenCalledWith(url, {
-			allowedHosts: ['api.github.com'],
+		// A developer plugin: the worker gets the sites from its own manifest.
+		expect(requestPluginJson).toHaveBeenCalledWith([url], {
+			kind: 'developer',
+			hosts: ['api.github.com'],
 		});
 		const [, ops, actor] = jest.mocked(applyGraphOps).mock.calls[0];
 		expect(actor).toEqual({ kind: 'plugin', id: 'dev.issue', label: 'Issue' });
@@ -601,14 +602,40 @@ describe('refreshPluginNode', () => {
 			false
 		);
 		expect(mockHost.refresh).not.toHaveBeenCalled();
-		expect(fetchPluginJson).not.toHaveBeenCalled();
+		expect(requestPluginJson).not.toHaveBeenCalled();
+	});
+
+	it('asks for a reviewed version’s worker by plugin and version, not by sites', async () => {
+		jest
+			.mocked(requestPluginJson)
+			.mockResolvedValue({ [url]: { status: 'ok', code: 200, json: {} } });
+		const store = refreshStore();
+		store.setState({
+			loadedPlugins: {
+				'dev.issue': {
+					...loadedIssue['http://localhost:5173/manifest.json'],
+					key: 'dev.issue',
+					source: 'catalog',
+				},
+			},
+		} as never);
+
+		await store.getState().refreshPluginNode('node-1');
+
+		expect(requestPluginJson).toHaveBeenCalledWith([url], {
+			kind: 'reviewed',
+			pluginId: 'dev.issue',
+			version: manifest.version,
+		});
 	});
 
 	it('keeps the old “Updated” time and says why when a request fails', async () => {
-		jest.mocked(fetchPluginJson).mockResolvedValue({
-			status: 'error',
-			code: 404,
-			message: 'api.github.com answered 404',
+		jest.mocked(requestPluginJson).mockResolvedValue({
+			[url]: {
+				status: 'error',
+				code: 404,
+				message: 'api.github.com answered 404',
+			},
 		});
 		const store = refreshStore();
 

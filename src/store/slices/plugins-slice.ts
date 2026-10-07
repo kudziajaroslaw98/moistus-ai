@@ -15,7 +15,8 @@ import {
 	pluginManifestSchema,
 	type PluginManifest,
 } from '@/lib/plugins/manifest-schema';
-import { blockedPluginHosts, fetchPluginJson } from '@/lib/plugins/network';
+import { blockedPluginHosts } from '@/lib/plugins/network';
+import { requestPluginJson } from '@/lib/plugins/network-client';
 import { refreshPluginLibrary } from '@/lib/plugins/plugin-library-client';
 import { validatePluginData } from '@/lib/plugins/plugin-fields';
 import { sha256Hex } from '@/lib/plugins/code-fingerprint';
@@ -569,7 +570,18 @@ export const createPluginsSlice: StateCreator<
 				return false;
 			}
 			setRefresh(nodeId, { status: 'running' });
-			const allowedHosts = networkHostsOf(active.manifest.permissions);
+			// Reviewed versions: the server names their sites. Developer plugins: their own.
+			const target =
+				active.source === 'catalog'
+					? {
+							kind: 'reviewed' as const,
+							pluginId: active.manifest.id,
+							version: active.manifest.version,
+						}
+					: {
+							kind: 'developer' as const,
+							hosts: networkHostsOf(active.manifest.permissions),
+						};
 			try {
 				const host = await loadPluginHost();
 				const ctx = pluginCallContext(true);
@@ -578,15 +590,7 @@ export const createPluginsSlice: StateCreator<
 					active.kind,
 					checked.data,
 					ctx,
-					async (urls) =>
-						Object.fromEntries(
-							await Promise.all(
-								urls.map(
-									async (url) =>
-										[url, await fetchPluginJson(url, { allowedHosts })] as const
-								)
-							)
-						)
+					(urls) => requestPluginJson(urls, target)
 				);
 				const rendered = await host.render(
 					active.manifest.id,

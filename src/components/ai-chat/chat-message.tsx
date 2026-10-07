@@ -141,6 +141,7 @@ export function ChatMessage({ message, isStreaming = false }: ChatMessageProps) 
 					) : (
 						<div
 							className='prose prose-sm prose-invert max-w-none'
+							// eslint-disable-next-line react/no-danger -- formattedContent goes through sanitize-html (5 tags, class only)
 							dangerouslySetInnerHTML={{ __html: formattedContent || '' }}
 						/>
 					)}

@@ -5,6 +5,21 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-07]
+
+### Changed
+
+- **plugins/network**: Plugin refresh requests run in a network worker whose script (`/api/plugins/network-worker`) carries its own Content Security Policy listing only that plugin's reviewed sites (or a developer plugin's sites, with Developer mode on). The page's policy no longer lists any plugin site, so library plugins keep working once the policy is enforced, and a plugin published after the page opened needs no reload
+  - Why: the page's policy only knew Shiko's own plugins' sites at build time; listing every library site there would let any script on the page reach them
+- **security/csp**: The page's policy allows `http://localhost:*` and `http://127.0.0.1:*` for developer plugin files, and is no longer sent with the network worker or the service worker script
+- **lint**: `react/no-danger` is an error; the one existing use (AI chat, sanitized with `sanitize-html`) carries a disable comment saying so
+
+### Fixed
+
+- **pwa/plugins**: With the service worker installed, plugins failed to load ("The plugin runtime could not start"): the service worker re-fetched worker scripts and lost the URL fragment Turbopack's worker bootstrap reads. Worker scripts and plugin requests now bypass the service worker, so a refresh can't save a cached answer as fresh data either
+
+---
+
 ## [2026-10-06]
 
 ### Added

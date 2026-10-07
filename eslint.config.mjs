@@ -34,6 +34,9 @@ const eslintConfig = [
 				},
 			],
 			'@typescript-eslint/no-explicit-any': 'warn',
+			// Raw HTML is the main way script injection gets in. Each use needs a
+			// sanitizer and an eslint-disable comment saying which one.
+			'react/no-danger': 'error',
 		},
 	},
 	stylistic.configs['disable-legacy'],

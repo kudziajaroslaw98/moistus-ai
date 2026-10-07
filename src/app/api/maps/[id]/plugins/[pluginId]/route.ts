@@ -1,15 +1,10 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
-import {
-	compareVersions,
-	findCatalogPlugin,
-	powersConfirmed,
-	type PluginCatalogVersion,
-} from '@/lib/plugins/catalog';
+import { compareVersions, powersConfirmed } from '@/lib/plugins/catalog';
 import {
 	pluginDisabledReason,
-	publishedCommunityVersions,
+	reviewedPluginVersions,
 } from '@/lib/plugins/server/plugin-library';
 import type { MapPluginRecord } from '@/types/plugins';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
@@ -47,15 +42,6 @@ async function isMapOwner(
 }
 
 /** A plugin's reviewed versions, oldest first: Shiko's from the app, others from the library. */
-async function reviewedVersions(
-	admin: SupabaseClient,
-	pluginId: string
-): Promise<PluginCatalogVersion[]> {
-	const firstParty = findCatalogPlugin(pluginId);
-	if (firstParty) return [...firstParty.versions];
-	return publishedCommunityVersions(admin, pluginId);
-}
-
 const turnedOff = (reason: string) =>
 	respondError(`Shiko turned this plugin off: ${reason}`, 409);
 
@@ -76,7 +62,7 @@ export const PUT = withApiValidation<
 	const pluginId = params?.pluginId ?? '';
 	if (!mapId.success) return respondError('Map not found.', 404);
 	const admin = createServiceRoleClient();
-	const versions = await reviewedVersions(admin, pluginId);
+	const versions = await reviewedPluginVersions(admin, pluginId);
 	if (versions.length === 0) return respondError('Unknown plugin.', 404);
 	if (!(await isMapOwner(supabase, mapId.data, user.id))) {
 		return respondError('Only the map owner can change plugins.', 403);
@@ -123,7 +109,7 @@ export const PATCH = withApiValidation<
 	const pluginId = params?.pluginId ?? '';
 	if (!mapId.success) return respondError('Map not found.', 404);
 	const admin = createServiceRoleClient();
-	const target = (await reviewedVersions(admin, pluginId)).find(
+	const target = (await reviewedPluginVersions(admin, pluginId)).find(
 		(candidate) => candidate.version === body.version
 	);
 	if (!target) return respondError('Unknown plugin version.', 404);

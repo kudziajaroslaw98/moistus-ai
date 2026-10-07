@@ -1,7 +1,12 @@
 /**
  * @jest-environment node
  */
-import { checkPluginRequestUrl, fetchPluginJson } from './network';
+import {
+	checkPluginRequestUrl,
+	fetchPluginJson,
+	pluginNetworkWorkerSource,
+	type PluginNetworkAnswer,
+} from './network';
 
 const allowed = ['api.github.com'];
 
@@ -151,5 +156,94 @@ describe('fetchPluginJson', () => {
 			code: null,
 			message: 'api.github.com took too long to answer',
 		});
+	});
+});
+
+describe('pluginNetworkWorkerSource', () => {
+	/** Runs the worker's source text in a fake worker scope, as the browser would. */
+	function startWorker(
+		hosts: string[],
+		fetchImpl: jest.Mock,
+		blockedHosts: string[] = ['shiko.app']
+	) {
+		const answers: PluginNetworkAnswer[] = [];
+		const scope = {
+			onmessage: null as ((event: MessageEvent) => void) | null,
+			postMessage: (answer: PluginNetworkAnswer) => answers.push(answer),
+		};
+		// Runs the worker's source text the way the browser would.
+		new Function(
+			'self',
+			'fetch',
+			pluginNetworkWorkerSource({ hosts, blockedHosts })
+		)(scope, fetchImpl);
+		const ask = async (message: unknown) => {
+			scope.onmessage?.({ data: message } as MessageEvent);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		};
+		return { answers, ask };
+	}
+
+	it('is self-contained and answers approved requests with locked-down settings', async () => {
+		const fetchImpl = jest.fn(async () =>
+			jsonResponse('{"title":"Fix login"}')
+		);
+		const worker = startWorker(['api.github.com'], fetchImpl);
+
+		await worker.ask({
+			id: 3,
+			url: 'https://api.github.com/repos/a/b/issues/1',
+		});
+
+		expect(worker.answers).toEqual([
+			{
+				id: 3,
+				response: { status: 'ok', code: 200, json: { title: 'Fix login' } },
+			},
+		]);
+		expect(fetchImpl).toHaveBeenCalledWith(
+			'https://api.github.com/repos/a/b/issues/1',
+			expect.objectContaining({
+				method: 'GET',
+				credentials: 'omit',
+				referrerPolicy: 'no-referrer',
+				redirect: 'manual',
+			})
+		);
+	});
+
+	it('only reaches the sites baked into it, whatever the page asks for', async () => {
+		const fetchImpl = jest.fn();
+		const worker = startWorker(['api.github.com'], fetchImpl);
+
+		await worker.ask({ id: 0, url: 'https://evil.example/collect?d=secret' });
+		await worker.ask({ id: 1, url: 'https://shiko.app/api/maps' });
+
+		expect(fetchImpl).not.toHaveBeenCalled();
+		expect(worker.answers.map((answer) => answer.response)).toEqual([
+			{
+				status: 'error',
+				code: null,
+				message: 'This plugin can’t reach evil.example',
+			},
+			{
+				status: 'error',
+				code: null,
+				message: 'This plugin can’t reach shiko.app',
+			},
+		]);
+	});
+
+	it('ignores messages that aren’t requests', async () => {
+		const fetchImpl = jest.fn();
+		const worker = startWorker(['api.github.com'], fetchImpl);
+
+		await worker.ask(null);
+		await worker.ask({ url: 'https://api.github.com/x' });
+		await worker.ask({ id: '1', url: 'https://api.github.com/x' });
+
+		expect(fetchImpl).not.toHaveBeenCalled();
+		expect(worker.answers).toEqual([]);
 	});
 });

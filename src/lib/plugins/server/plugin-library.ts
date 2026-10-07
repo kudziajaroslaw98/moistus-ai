@@ -3,7 +3,7 @@ import type {
 	PluginCatalogEntry,
 	PluginCatalogVersion,
 } from '@/lib/plugins/catalog';
-import { compareVersions } from '@/lib/plugins/catalog';
+import { compareVersions, FIRST_PARTY_PLUGINS } from '@/lib/plugins/catalog';
 import type { PluginPermission } from '@/lib/plugins/manifest-schema';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -186,6 +186,16 @@ export async function publishedCommunityVersions(
 	return ((data ?? []) as PluginVersionRow[])
 		.sort((a, b) => compareVersions(a.version, b.version))
 		.map(toCatalogVersion);
+}
+
+/** A plugin's reviewed versions, oldest first: Shiko's own from the catalog, others published. */
+export async function reviewedPluginVersions(
+	admin: SupabaseClient,
+	pluginId: string
+): Promise<PluginCatalogVersion[]> {
+	const firstParty = FIRST_PARTY_PLUGINS.find((entry) => entry.id === pluginId);
+	if (firstParty) return [...firstParty.versions];
+	return publishedCommunityVersions(admin, pluginId);
 }
 
 /** Maps with a plugin on, per plugin id. */
