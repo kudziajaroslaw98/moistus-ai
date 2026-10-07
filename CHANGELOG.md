@@ -27,7 +27,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Added
 
-- **templates/page**: Templates page restyled to match the dashboard (underline category tabs, segmented grid/list toggle, `#0e0f12` cards, header search, card skeletons, always-visible "Use template" button) with new `TemplateCover` icon covers (dot grid, accent tint, four trailing outline echoes of the template's icon, sunk so the bottom is cut off)
+- **templates/page**: Templates page restyled to match the dashboard (underline category tabs, segmented grid/list toggle, `#0e0f12` cards, header search, card skeletons, always-visible "Use template" button) with new `TemplateCover` icon covers (dot grid, accent tint, four trailing outline echoes of the category's icon, sunk so the bottom is cut off)
 
 ### Fixed
 

@@ -9,35 +9,19 @@ import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import type { DashboardViewMode } from '@/types/dashboard-map';
 import { cn } from '@/utils/cn';
 import {
-	BookOpen,
-	BookText,
-	Brain,
+	BarChart,
+	Briefcase,
 	Calendar,
-	CheckCircle,
-	ClipboardList,
-	Coffee,
-	FileJson,
+	Code,
 	FileText,
-	FolderKanban,
 	GraduationCap,
-	Grid2x2,
-	HelpCircle,
-	Layers,
 	LayoutGrid,
 	Lightbulb,
 	List,
-	ListChecks,
-	Map as MapIcon,
-	Network,
-	PartyPopper,
-	RotateCcw,
-	Route,
-	Scale,
 	Search,
-	Target,
-	Trophy,
-	Users,
+	User,
 	X,
+	Zap,
 	type LucideIcon,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -80,35 +64,17 @@ const TEMPLATE_CATEGORIES: Record<TemplateCategory, string> = {
 	technical: 'Technical',
 };
 
-// Icon names come from `metadata.icon` on template rows (Lucide names);
-// unknown names fall back to FileText.
-const ICON_MAP: Record<string, LucideIcon> = {
-	Users,
-	Brain,
-	BookText,
-	Coffee,
-	FolderKanban,
-	Map: MapIcon,
-	PartyPopper,
-	Grid2x2,
-	ListChecks,
-	HelpCircle,
-	LayoutGrid,
-	Target,
-	Lightbulb,
-	BookOpen,
-	GraduationCap,
-	ClipboardList,
-	Trophy,
-	Scale,
-	CheckCircle,
-	Network,
-	FileJson,
-	Layers,
-	RotateCcw,
-	Route,
-	Calendar,
-	FileText,
+// Covers are icon-per-category: the `icon` stored on each template row is
+// not used here.
+const CATEGORY_ICONS: Record<TemplateCategory, LucideIcon> = {
+	creative: Lightbulb,
+	productivity: Zap,
+	planning: Calendar,
+	analysis: BarChart,
+	business: Briefcase,
+	education: GraduationCap,
+	personal: User,
+	technical: Code,
 };
 
 // SWR fetcher with proper error handling
@@ -152,7 +118,7 @@ const TemplateCard = memo(function TemplateCard({
 	isAtMapLimit,
 	viewMode,
 }: TemplateCardProps) {
-	const Icon = ICON_MAP[template.icon] || FileText;
+	const Icon = CATEGORY_ICONS[template.category] ?? FileText;
 	const categoryLabel = TEMPLATE_CATEGORIES[template.category];
 	const meta = `${template.nodeCount} nodes · ${template.usageCount} uses`;
 
