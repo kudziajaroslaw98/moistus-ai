@@ -12,10 +12,10 @@ function GridMapSkeleton() {
 			className='overflow-hidden rounded-2xl border border-[#1d1f24] bg-[#0e0f12]'
 			data-testid='dashboard-grid-map-skeleton'
 		>
-			<div className='space-y-2.5 px-4 pb-4 pt-3'>
-				<Skeleton className='h-8 w-16 rounded-full bg-zinc-800/40' />
+			<div className='h-[112px] border-b border-[#1d1f24] bg-zinc-900/60' />
 
-				<Skeleton className='mt-3 h-4 w-2/3 bg-zinc-700/40' />
+			<div className='space-y-2.5 px-4 pb-4 pt-3.5'>
+				<Skeleton className='h-4 w-2/3 bg-zinc-700/40' />
 
 				<Skeleton className='h-3 w-4/5 bg-zinc-800/60' />
 
@@ -31,6 +31,8 @@ function ListMapSkeleton() {
 			className='flex items-center gap-4 rounded-xl border border-[#1d1f24] bg-[#0e0f12] p-3 pr-4'
 			data-testid='dashboard-list-map-skeleton'
 		>
+			<Skeleton className='h-12 w-16 shrink-0 rounded-lg bg-zinc-900/60' />
+
 			<div className='grow space-y-2'>
 				<Skeleton className='h-4 w-1/3 bg-zinc-700/40' />
 
@@ -96,7 +98,7 @@ export function DashboardRouteLoadingSkeleton() {
 				</header>
 
 				<div className='flex-1 overflow-y-auto'>
-					<div className='w-full max-w-[1240px] px-4 pb-12 pt-10 sm:px-8'>
+					<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
 						<Skeleton className='h-8 w-40 bg-zinc-700/50' />
 
 						<Skeleton className='mt-3 h-4 w-72 bg-zinc-800/60' />

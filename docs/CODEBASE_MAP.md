@@ -424,6 +424,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `src/components/dashboard/dashboard-layout.tsx`: sidebar (New map, nav, Recent from the `/api/maps` SWR cache, `DashboardPlanCard`, user row whose settings icon opens `UserMenu` via its `trigger` prop) + `DashboardHeader` (page label, Home-only search slot, notification bell, mobile sidebar trigger)
 - `src/app/dashboard/dashboard-content.tsx`: "Your maps" (quick-create bar, template chips, filter tabs, sort menu, grid/list, selection toolbar) or `DashboardFirstRun` when the user has no maps (big first-map input, template cards, room-code join to `/join?code=`)
 - `src/components/dashboard/use-dashboard-data.ts`: shared SWR hooks (`useDashboardMaps`, `useDashboardTemplates`)
+- `src/helpers/dashboard/map-cover.ts`: deterministic per-map gradient + dots cover used by map cards, list swatches and first-run template cards (no layout previews; see CLAUDE.md dashboard contract)
 - `GET /api/maps` adds `collaborators`/`collaboratorCount` via `src/helpers/dashboard/map-collaborators.ts`
 
 **Dashboard Progressive Loading:**

@@ -599,7 +599,7 @@ export function DashboardContent() {
 	return (
 		<SidebarProvider>
 			<DashboardLayout headerSearch={headerSearch} onNewMap={handleRequestCreateMap}>
-				<div className='w-full max-w-[1240px] px-4 pb-12 pt-10 sm:px-8'>
+				<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
 					{isTrialing?.() && trialDays !== null && (
 						<div className='mb-6 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-violet-500/20 bg-violet-500/[0.06] px-4 py-3 text-sm'>
 							<span className='font-medium text-violet-200'>

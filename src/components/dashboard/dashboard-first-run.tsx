@@ -1,5 +1,6 @@
 'use client';
 
+import { getMapCoverStyle } from '@/helpers/dashboard/map-cover';
 import { useTouchFirst } from '@/hooks/use-touch-first';
 import { ArrowRight } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
@@ -205,7 +206,13 @@ export function DashboardFirstRun({
 									onClick={() => onPickTemplate(template)}
 									type='button'
 								>
-									<span className='block px-4 py-4'>
+									<span
+										aria-hidden='true'
+										className='block h-[88px] border-b border-[#1d1f24]'
+										style={getMapCoverStyle(template.id)}
+									/>
+
+									<span className='block px-4 pb-4 pt-3.5'>
 										<span className='block text-[15px] font-semibold text-white'>
 											{template.name}
 										</span>

@@ -10,12 +10,20 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatUpdatedAt } from '@/helpers/dashboard/format-updated-at';
+import { getMapCoverStyle } from '@/helpers/dashboard/map-cover';
 import type { DashboardMap, DashboardViewMode } from '@/types/dashboard-map';
 import { cn } from '@/utils/cn';
 import { Copy, MoreHorizontal, Trash2, Users } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
-import { memo, useCallback, type KeyboardEvent } from 'react';
+import {
+	memo,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+	type KeyboardEvent,
+} from 'react';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
@@ -77,6 +85,60 @@ function CollaboratorAvatars({ map }: { map: DashboardMap }) {
 				</span>
 			)}
 		</span>
+	);
+}
+
+/**
+ * Clamped description with a "Show more" toggle that appears only when the
+ * text is actually cut off. The button sits above the card's full-card link.
+ */
+function CardDescription({
+	text,
+	clampClassName,
+	className,
+}: {
+	text: string;
+	clampClassName: string;
+	className?: string;
+}) {
+	const ref = useRef<HTMLParagraphElement>(null);
+	const [expanded, setExpanded] = useState(false);
+	const [isClamped, setIsClamped] = useState(false);
+
+	useEffect(() => {
+		const el = ref.current;
+		if (!el) return;
+
+		const measure = () => {
+			if (!expanded) setIsClamped(el.scrollHeight > el.clientHeight + 1);
+		};
+
+		measure();
+		const observer = new ResizeObserver(measure);
+		observer.observe(el);
+		return () => observer.disconnect();
+	}, [text, expanded]);
+
+	return (
+		<div className={className}>
+			<p
+				className={cn('text-[13px] leading-5 text-zinc-400', !expanded && clampClassName)}
+				ref={ref}
+			>
+				{text}
+			</p>
+
+			{(isClamped || expanded) && (
+				<button
+					aria-expanded={expanded}
+					className='relative z-10 mt-0.5 rounded-sm text-xs text-sky-400 transition-colors duration-200 ease hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+					onClick={() => setExpanded((value) => !value)}
+					type='button'
+				>
+					{expanded ? 'Show less' : 'Show more'}
+				</button>
+			)}
+		</div>
 	);
 }
 
@@ -157,6 +219,7 @@ const MindMapCardComponent = ({
 	const nodeCount = map._count?.nodes ?? 0;
 	const meta = `${formatUpdatedAt(map.updated_at)} · ${nodeCount} ${nodeCount === 1 ? 'node' : 'nodes'}`;
 	const href = `/mind-map/${map.id}`;
+	const coverStyle = getMapCoverStyle(map.id);
 
 	// Keys while the card's link is focused: Space selects, Delete removes,
 	// Ctrl/Cmd+D duplicates, arrows move between cards.
@@ -234,6 +297,12 @@ const MindMapCardComponent = ({
 			>
 				{selectBox}
 
+				<div
+					aria-hidden='true'
+					className='h-12 w-16 shrink-0 rounded-lg border border-[#1d1f24]'
+					style={coverStyle}
+				/>
+
 				<div className='min-w-0 grow'>
 					<h3 className='truncate text-[15px] font-semibold text-white'>
 						<Link
@@ -245,9 +314,15 @@ const MindMapCardComponent = ({
 						</Link>
 					</h3>
 
-					<p className='mt-0.5 truncate text-[13px] text-zinc-400'>
-						{map.description || meta}
-					</p>
+					{map.description ? (
+						<CardDescription
+							className='mt-0.5'
+							clampClassName='line-clamp-1'
+							text={map.description}
+						/>
+					) : (
+						<p className='mt-0.5 truncate text-[13px] text-zinc-400'>{meta}</p>
+					)}
 				</div>
 
 				<span className='hidden shrink-0 text-xs text-zinc-500 sm:block'>
@@ -285,23 +360,30 @@ const MindMapCardComponent = ({
 					: 'border-[#1d1f24] [@media(hover:hover)]:hover:border-[#34363e] [@media(hover:hover)]:hover:shadow-[0_16px_40px_rgba(0,0,0,0.4)]'
 			)}
 		>
-			<div className='px-4 pb-4 pt-3'>
-				<div className='-mr-2 flex h-8 items-center justify-between gap-2'>
-					{isShared ? <SharedBadge /> : <span />}
+			<div
+				className='relative h-[112px] border-b border-[#1d1f24]'
+				style={coverStyle}
+			>
+				{isShared && (
+					<span className='absolute left-2.5 top-2.5'>
+						<SharedBadge />
+					</span>
+				)}
 
-					<div className='flex items-center gap-1'>
-						{selectBox}
+				<div className='absolute right-2 top-2 flex items-center gap-1'>
+					{selectBox}
 
-						<CardMenu
-							className={revealClass}
-							map={map}
-							onDelete={onDelete}
-							onDuplicate={onDuplicate}
-						/>
-					</div>
+					<CardMenu
+						className={revealClass}
+						map={map}
+						onDelete={onDelete}
+						onDuplicate={onDuplicate}
+					/>
 				</div>
+			</div>
 
-				<h3 className='mt-3 truncate text-[15px] font-semibold text-white'>
+			<div className='px-4 pb-4 pt-3.5'>
+				<h3 className='truncate text-[15px] font-semibold text-white'>
 					<Link
 						className='after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-sky-500'
 						data-card-link=''
@@ -311,14 +393,15 @@ const MindMapCardComponent = ({
 					</Link>
 				</h3>
 
-				<p
-					className='mt-1 truncate text-[13px] text-zinc-400'
-					title={map.description ?? undefined}
-				>
-					{map.description || ' '}
-				</p>
+				{map.description && (
+					<CardDescription
+						className='mt-1'
+						clampClassName='line-clamp-2'
+						text={map.description}
+					/>
+				)}
 
-				<div className='mt-3.5 flex items-center justify-between gap-2 text-xs text-zinc-500'>
+				<div className='mt-3 flex items-center justify-between gap-2 text-xs text-zinc-500'>
 					<span className='truncate'>{meta}</span>
 
 					<CollaboratorAvatars map={map} />

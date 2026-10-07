@@ -9,8 +9,19 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Removed
 
-- **dashboard/previews**: Removed the map card mini-map previews and `POST /api/maps/previews`; cards now show badge, title, description, meta and collaborators
+- **dashboard/previews**: Removed the map card mini-map previews and `POST /api/maps/previews`
   - Why: A layout guess from stored positions never matched the canvas, and an editor-captured snapshot still looked wrong
+
+### Fixed
+
+- **dashboard/width**: Dashboard content now spans up to 1760px instead of stopping at 1240px
+  - Why: It left a wide empty strip on the right of large screens
+- **dashboard/descriptions**: Map descriptions wrap to two lines (one in list view) with a Show more / Show less toggle that appears only when text is cut off
+  - Why: Long descriptions were truncated with no way to read them
+
+### Added
+
+- **dashboard/covers**: Map and template cards get a deterministic gradient cover with a dotted texture, derived from the map id (`src/helpers/dashboard/map-cover.ts`), so cards aren't empty and each map looks distinct
 
 ## [2026-10-06]
 
