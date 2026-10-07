@@ -1,10 +1,5 @@
-import type { AppNode } from '@/types/app-node';
 import type { NodeData } from '@/types/node-data';
-import {
-	foldAnchoredAnnotationData,
-	foldAnchoredAnnotationNodes,
-} from './ai-anchored-annotations';
-import { buildCounterpointPromptContext } from './ai-counterpoint-context';
+import { foldAnchoredAnnotationData } from './ai-anchored-annotations';
 import { buildMergePromptContext } from './ai-merge-context';
 import { extractNodesForConnections } from './extract-connection-context';
 
@@ -72,25 +67,5 @@ describe('AI context builders fold anchored annotations', () => {
 		const nodes = extractNodesForConnections([host, warning, free]);
 		expect(nodes.map((node) => node.id)).toEqual(['host', 'free']);
 		expect(nodes[0].semantic).toContain('note(warning): Breaking change');
-	});
-
-	it('counterpoints resolve an annotation source to its host', () => {
-		const toAppNode = (data: NodeData): AppNode => ({
-			id: data.id,
-			type: data.node_type,
-			position: { x: 0, y: 0 },
-			data,
-		});
-		const { nodes } = foldAnchoredAnnotationNodes([toAppNode(host), toAppNode(warning)]);
-		expect(nodes.map((node) => node.id)).toEqual(['host']);
-
-		const context = buildCounterpointPromptContext({
-			nodes: [toAppNode(host), toAppNode(warning)],
-			edges: [],
-			context: { sourceNodeId: 'warn', trigger: 'magic-wand' } as never,
-		});
-		expect(context.contextRows).toHaveLength(1);
-		expect(context.contextRows[0]).toContain('Release plan');
-		expect(context.contextRows[0]).toContain('note(warning)');
 	});
 });

@@ -2,6 +2,8 @@
 
 import { DeleteMapConfirmationDialog } from '@/components/mind-map/delete-map-confirmation-dialog';
 import { DiscardSettingsChangesDialog } from '@/components/mind-map/discard-settings-changes-dialog';
+import { DeveloperModeSetting } from '@/components/plugins/developer-mode-switch';
+import { PluginsSettingsLink } from '@/components/plugins/plugins-settings-link';
 import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { SidePanel } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
@@ -13,7 +15,7 @@ import useAppStore from '@/store/mind-map-store';
 import type { MindMapData } from '@/types/mind-map-data';
 import { AlertTriangle, Loader2, PenTool, Save } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 const TITLE_MAX_LENGTH = 255;
@@ -64,6 +66,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 		edges,
 		updatePreferences,
 		getDefaultNodeType,
+		openPluginsPanel,
 	} = useAppStore(
 		useShallow((state) => ({
 			mindMap: state.mindMap,
@@ -74,6 +77,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			edges: state.edges,
 			updatePreferences: state.updatePreferences,
 			getDefaultNodeType: state.getDefaultNodeType,
+			openPluginsPanel: state.openPluginsPanel,
 		}))
 	);
 
@@ -179,18 +183,31 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 		setHasChanges(computeHasChanges());
 	}, [computeHasChanges]);
 
-	const requestClose = () => {
+	// Runs once the panel has closed (after a discard if there were unsaved edits).
+	const afterCloseRef = useRef<(() => void) | null>(null);
+
+	const finishClose = () => {
+		const after = afterCloseRef.current;
+		afterCloseRef.current = null;
+		onClose();
+		after?.();
+	};
+
+	const requestCloseThen = (after: (() => void) | null) => {
 		if (isSaving) return;
+		afterCloseRef.current = after;
 		if (computeHasChanges()) {
 			setShowDiscardDialog(true);
 			return;
 		}
-		onClose();
+		finishClose();
 	};
+
+	const requestClose = () => requestCloseThen(null);
 
 	const handleDiscardChanges = () => {
 		setShowDiscardDialog(false);
-		onClose();
+		finishClose();
 	};
 
 	const handleSave = async () => {
@@ -479,9 +496,15 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 						</div>
 					</motion.section>
 
+					{/* Plugins (owner only): managed in the Plugins panel */}
+					<PluginsSettingsLink
+						motionProps={getSectionMotionProps(0.15)}
+						onManage={() => requestCloseThen(openPluginsPanel)}
+					/>
+
 					{/* Editor Preferences Section */}
 					<motion.section
-						{...getSectionMotionProps(0.15)}
+						{...getSectionMotionProps(0.2)}
 						className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
 					>
 						<h3 className='text-lg font-semibold text-text-primary flex items-center gap-2'>
@@ -519,12 +542,16 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 									}
 								/>
 							</div>
+
+							<div aria-hidden className='h-px bg-border-subtle' />
+
+							<DeveloperModeSetting id='map-settings-developer-mode' />
 						</div>
 					</motion.section>
 
 					{/* Danger Zone */}
 					<motion.section
-						{...getSectionMotionProps(0.2)}
+						{...getSectionMotionProps(0.25)}
 						className='space-y-4 rounded-lg border border-error-800/30 bg-error-950/20 p-4'
 					>
 						<div className='flex items-start gap-3'>
@@ -576,10 +603,13 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			/>
 
 			<DiscardSettingsChangesDialog
-				onContinueEditing={() => setShowDiscardDialog(false)}
 				onDiscardChanges={handleDiscardChanges}
 				onOpenChange={setShowDiscardDialog}
 				open={showDiscardDialog}
+				onContinueEditing={() => {
+					afterCloseRef.current = null;
+					setShowDiscardDialog(false);
+				}}
 			/>
 		</>
 	);

@@ -7,6 +7,7 @@ import {
 import { ChangePasswordModal } from '@/components/auth/change-password-modal';
 import { CancelSubscriptionDialog } from '@/components/dashboard/cancel-subscription-dialog';
 import { DiscardAccountSettingsChangesDialog } from '@/components/dashboard/discard-account-settings-changes-dialog';
+import { DeveloperModeSwitch } from '@/components/plugins/developer-mode-switch';
 import { NodeTypeSelector } from '@/components/settings/node-type-selector';
 import { SidePanel } from '@/components/side-panel';
 import { Badge } from '@/components/ui/badge';
@@ -152,6 +153,8 @@ function createFormDataFromProfile(profile: UserProfile): UserProfileFormData {
 				push_reactions: profile.preferences?.notifications?.push_reactions ?? true,
 			},
 			defaultNodeType: profile.preferences?.defaultNodeType || 'defaultNode',
+			// Saving replaces all preferences, so every stored one must be in the form.
+			developerMode: profile.preferences?.developerMode ?? false,
 			privacy: {
 				profile_visibility:
 					profile.preferences?.privacy?.profile_visibility || 'public',
@@ -259,6 +262,7 @@ export function SettingsPanel({
 				push_reactions: true,
 			},
 			defaultNodeType: 'defaultNode',
+			developerMode: false,
 			privacy: {
 				profile_visibility: 'private',
 			},
@@ -1445,6 +1449,15 @@ export function SettingsPanel({
 												value={formData.preferences.defaultNodeType}
 											/>
 										</div>
+
+										<DeveloperModeSwitch
+											checked={formData.preferences.developerMode}
+											disabled={isSaving || isLoadingProfile}
+											id='settings-developer-mode'
+											onCheckedChange={(checked) =>
+												updateNestedFormData('preferences', 'developerMode', checked)
+											}
+										/>
 									</motion.section>
 
 									<motion.section

@@ -1,0 +1,71 @@
+{
+	"id": "shiko.budget",
+	"name": "Budget",
+	"version": "0.1.0",
+	"apiVersion": 1,
+	"author": "Shiko",
+	"description": "Add up items against a limit and tick what you paid.",
+	"icon": "wallet",
+	"permissions": ["node:own"],
+	"main": "plugin.js",
+	"nodeKinds": [
+		{
+			"kind": "budget",
+			"label": "Budget",
+			"description": "Items against a limit",
+			"icon": "wallet",
+			"labelField": "label",
+			"fields": {
+				"label": {
+					"type": "string",
+					"title": "Budget",
+					"description": "What it's for",
+					"required": true,
+					"maxLength": 80
+				},
+				"limit": {
+					"type": "number",
+					"title": "Limit",
+					"description": "How much you can spend",
+					"min": 0
+				},
+				"unit": {
+					"type": "string",
+					"title": "Unit",
+					"description": "Shown after amounts",
+					"maxLength": 8
+				},
+				"items": {
+					"type": "list",
+					"title": "Items",
+					"description": "What it costs, up to 30",
+					"columns": [
+						{
+							"name": "name",
+							"type": "string",
+							"title": "Item",
+							"required": true,
+							"maxLength": 60
+						},
+						{
+							"name": "amount",
+							"type": "number",
+							"title": "Amount",
+							"required": true,
+							"min": 0
+						},
+						{
+							"name": "paid",
+							"type": "boolean",
+							"title": "Paid",
+							"description": "Already paid"
+						}
+					]
+				}
+			},
+			"examples": [
+				"Trip to Lisbon limit:2000 unit:€ items:[[\"Flights\", 640, paid], [\"Hotel\", 520], [\"Food\", 300]]"
+			]
+		}
+	]
+}

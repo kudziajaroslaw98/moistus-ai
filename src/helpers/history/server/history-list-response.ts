@@ -54,6 +54,23 @@ function attributionFor(
 	};
 }
 
+/**
+ * Display name of the recipe or plugin that made a change (`changes.actor`, written
+ * by `applyGraphOps`). User-made changes have no label.
+ */
+export function readHistoryActorLabel(changes: unknown): string | undefined {
+	if (!changes || typeof changes !== 'object') return undefined;
+	const actor = (changes as { actor?: unknown }).actor;
+	if (!actor || typeof actor !== 'object') return undefined;
+
+	const { kind, label } = actor as { kind?: unknown; label?: unknown };
+	if (kind !== 'recipe' && kind !== 'plugin') return undefined;
+	if (typeof label !== 'string') return undefined;
+
+	const trimmed = label.trim().slice(0, 60);
+	return trimmed || undefined;
+}
+
 export function buildHistoryListItems({
 	snapshots,
 	events,
@@ -101,6 +118,7 @@ export function buildHistoryListItems({
 			subjects: storedDelta
 				? storedDelta.subjectHints || deriveHistorySubjectHints(storedDelta)
 				: undefined,
+			actorLabel: readHistoryActorLabel(event.changes),
 			...attributionFor(profileMap, event.user_id),
 		};
 	});

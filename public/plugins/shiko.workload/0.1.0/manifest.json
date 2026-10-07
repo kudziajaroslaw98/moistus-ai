@@ -1,0 +1,29 @@
+{
+	"id": "shiko.workload",
+	"name": "Workload",
+	"version": "0.1.0",
+	"apiVersion": 1,
+	"author": "Shiko",
+	"description": "Who has what in the branch under it: nodes and open tasks per person.",
+	"icon": "users",
+	"permissions": ["node:own", "branch:read"],
+	"main": "plugin.js",
+	"nodeKinds": [
+		{
+			"kind": "workload",
+			"label": "Workload",
+			"description": "Open tasks per person in the nodes under it",
+			"icon": "users",
+			"labelField": "label",
+			"fields": {
+				"label": {
+					"type": "string",
+					"title": "Name",
+					"description": "What the branch is, like Sprint 12",
+					"maxLength": 80
+				}
+			},
+			"examples": ["Sprint 12"]
+		}
+	]
+}

@@ -1,6 +1,5 @@
 // eslint-disable-file @typescript-eslint/no-unused-vars
 
-import type { Command } from '@/components/node-editor/core/commands/command-types';
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import type { CollaboratorRealtimeEvent } from '@/lib/realtime/collaborator-events';
 import { AvailableNodeTypes } from '@/registry/node-registry';
@@ -15,6 +14,8 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { ContextMenuState } from '@/types/context-menu-state';
 import type { EdgeData } from '@/types/edge-data';
+import type { ExtensionsSlice, GraphActor } from '@/types/extensions';
+import type { PluginKindRef, PluginsSlice } from '@/types/plugins';
 import type {
 	AttributedHistoryDelta,
 	HistoryItem,
@@ -208,8 +209,13 @@ export interface HistorySlice {
 	persistDeltaEvent: (
 		actionName: string,
 		prev: { nodes: AppNode[]; edges: AppEdge[] },
-		next: { nodes: AppNode[]; edges: AppEdge[] }
+		next: { nodes: AppNode[]; edges: AppEdge[] },
+		options?: { actor?: GraphActor }
 	) => Promise<void>;
+	/** While > 0, per-action history events are suppressed so a batch records one event. */
+	historyBatchDepth: number;
+	beginHistoryBatch: () => void;
+	endHistoryBatch: () => void;
 	subscribeToHistoryCurrent: (mapId: string) => Promise<void>;
 	unsubscribeFromHistoryCurrent: () => Promise<void>;
 
@@ -484,6 +490,12 @@ export interface Popovers {
 	referenceSearch: boolean;
 	mapSettings: boolean;
 	upgradeUser: boolean;
+	/** Ctrl/Cmd+K command palette */
+	commandPalette: boolean;
+	/** AI recipes side panel (list + editor) */
+	recipes: boolean;
+	/** Plugins side panel (turn plugins on/off, developer plugins) */
+	plugins: boolean;
 }
 
 // InlineNodeCreator types
@@ -514,6 +526,8 @@ export interface NodeEditorState {
 	parentNode: AppNode | null;
 	existingNodeId: string | null; // For edit mode
 	suggestedType: AvailableNodeTypes | null;
+	/** Plugin kind to create when suggestedType is `extensionNode`. */
+	extensionKind: PluginKindRef | null;
 	initialValue: string | null;
 	onboardingSource: 'onboarding-pattern' | null;
 }
@@ -525,28 +539,10 @@ export interface NodeEditorOptions {
 	parentNode?: AppNode | null;
 	existingNodeId?: string | null;
 	suggestedType?: AvailableNodeTypes | null;
+	extensionKind?: PluginKindRef | null;
 	initialValue?: string | null;
 	onboardingSource?: 'onboarding-pattern' | null;
 	openTypePicker?: boolean;
-}
-
-// CommandPalette types
-export interface CommandPaletteState {
-	isOpen: boolean;
-	position: XYPosition;
-	searchQuery: string;
-	selectedIndex: number;
-	filteredCommands: Command[];
-	trigger: '/' | '$' | null;
-	anchorPosition: number;
-	activeNodeType: string;
-}
-
-export interface CommandPaletteOptions {
-	position: XYPosition;
-	trigger: '/' | '$' | null;
-	anchorPosition: number;
-	activeNodeType?: string;
 }
 
 export interface UIStateSlice {
@@ -560,7 +556,6 @@ export interface UIStateSlice {
 	// editingNodeId: string | null; // Removed - replaced by NodeEditor system
 	snapLines: SnapLine[];
 	nodeEditor: NodeEditorState;
-	commandPalette: CommandPaletteState;
 	/** Canvas find (Ctrl/Cmd+F); matches are derived from nodes + query. */
 	canvasSearch: { isOpen: boolean; query: string; activeIndex: number };
 
@@ -576,14 +571,6 @@ export interface UIStateSlice {
 
 	openNodeEditor: (options: NodeEditorOptions) => void;
 	closeNodeEditor: () => void;
-
-	// CommandPalette actions
-	openCommandPalette: (options: CommandPaletteOptions) => void;
-	closeCommandPalette: () => void;
-	setCommandPaletteSearch: (query: string) => void;
-	setCommandPaletteSelection: (index: number) => void;
-	navigateCommandPalette: (direction: 'up' | 'down') => void;
-	executeCommand: (command: Command) => void;
 
 	// Canvas search actions
 	openCanvasSearch: () => void;
@@ -673,4 +660,6 @@ export interface AppState
 		QuickInputSlice,
 		LayoutSlice,
 		ExportSlice,
-		GuidedTourSlice {}
+		GuidedTourSlice,
+		ExtensionsSlice,
+		PluginsSlice {}

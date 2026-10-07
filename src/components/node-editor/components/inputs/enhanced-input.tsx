@@ -1,7 +1,7 @@
 'use client';
 
 import type { AvailableNodeTypes } from '@/registry/node-registry';
-import { assertAvailableNodeTypeWithLog } from '@/registry/type-guards';
+import { isAvailableNodeType } from '@/registry/type-guards';
 import { cn } from '@/utils/cn';
 import {
 	acceptCompletion,
@@ -20,6 +20,10 @@ import React, {
 import { Command } from '../../core/commands/command-types';
 import { validateInput } from '../../core/validators/input-validator';
 import type { CollaboratorMention } from '../../integrations/codemirror/completions';
+import {
+	setPluginFieldsEffect,
+	type PluginFieldSpecLite,
+} from '../../integrations/codemirror/plugin-fields';
 import {
 	createNodeEditor,
 	type NodeEditorView,
@@ -56,6 +60,10 @@ interface EnhancedInputProps {
 	showNativeAutocomplete?: boolean;
 	enableCommands?: boolean; // Feature flag
 	collaborators?: CollaboratorMention[];
+	/** Set for plugin node types: highlighting and autocomplete use these fields. */
+	pluginFields?: PluginFieldSpecLite[] | null;
+	/** Adds "More node types…" to the `$` list. Read when the editor is created. */
+	onBrowsePlugins?: () => void;
 }
 
 export const EnhancedInput = ({
@@ -77,6 +85,8 @@ export const EnhancedInput = ({
 	showNativeAutocomplete = true,
 	enableCommands = true, // Default enabled
 	collaborators,
+	pluginFields = null,
+	onBrowsePlugins,
 	...rest
 }: EnhancedInputProps) => {
 	const editorRef = useRef<HTMLDivElement>(null);
@@ -85,6 +95,8 @@ export const EnhancedInput = ({
 	const [validationTooltipOpen, setValidationTooltipOpen] = useState(false);
 	const initializedRef = useRef(false);
 	const lastKnownValueRef = useRef(value);
+	const pluginFieldsRef = useRef(pluginFields);
+	const onBrowsePluginsRef = useRef(onBrowsePlugins);
 
 	// Store the latest callbacks in refs to avoid stale closures
 	const onKeyDownRef = useRef(onKeyDown);
@@ -97,12 +109,14 @@ export const EnhancedInput = ({
 
 	// Update refs when callbacks change
 	useEffect(() => {
+		onBrowsePluginsRef.current = onBrowsePlugins;
 		onKeyDownRef.current = onKeyDown;
 		onSelectionChangeRef.current = onSelectionChange;
 		onAutocompleteControllerReadyRef.current = onAutocompleteControllerReady;
 		onAutocompleteStateChangeRef.current = onAutocompleteStateChange;
 		onFocusChangeRef.current = onFocusChange;
 	}, [
+		onBrowsePlugins,
 		onAutocompleteControllerReady,
 		onAutocompleteStateChange,
 		onFocusChange,
@@ -112,6 +126,8 @@ export const EnhancedInput = ({
 
 	// Get validation results with error boundary using new validator
 	const validationErrors = useMemo(() => {
+		// Built-in rules don't apply to plugin node types.
+		if (pluginFields) return [];
 		try {
 			const result = validateInput(value);
 			return [...(result.errors || []), ...(result.warnings || [])];
@@ -119,7 +135,7 @@ export const EnhancedInput = ({
 			console.error('Validation error:', error);
 			return [];
 		}
-	}, [value]);
+	}, [value, pluginFields]);
 	const hasErrors = validationErrors.some((error) => error.type === 'error');
 	const hasWarnings = validationErrors.some(
 		(error) => error.type === 'warning'
@@ -277,6 +293,9 @@ export const EnhancedInput = ({
 				enablePatternHighlighting: true,
 				enableValidation: true,
 				collaborators: collaborators ?? [],
+				onBrowsePlugins: onBrowsePluginsRef.current
+					? () => onBrowsePluginsRef.current?.()
+					: undefined,
 				showNativeAutocompleteTooltip: showNativeAutocomplete,
 				onAutocompleteChange: (nextAutocompleteState) => {
 					onAutocompleteStateChangeRef.current?.(nextAutocompleteState);
@@ -289,8 +308,10 @@ export const EnhancedInput = ({
 					}
 				},
 				onNodeTypeChange: (nodeType) => {
-					// Validate node type with logging guard
-					if (assertAvailableNodeTypeWithLog(nodeType, 'onNodeTypeChange')) {
+					// CodeMirror reports the word after `$` ("task", "countdown"), which isn't a
+					// node type, so this rarely passes; quick-input's processNodeTypeSwitch does
+					// the actual switch. No warning: every `$` command would log one.
+					if (isAvailableNodeType(nodeType)) {
 						if (onNodeTypeChange) {
 							onNodeTypeChange(nodeType);
 						}
@@ -310,6 +331,9 @@ export const EnhancedInput = ({
 
 			editorViewRef.current = view;
 			initializedRef.current = true;
+			if (pluginFieldsRef.current) {
+				view.dispatch({ effects: setPluginFieldsEffect.of(pluginFieldsRef.current) });
+			}
 			onAutocompleteControllerReadyRef.current?.({
 				acceptOption: (index: number) => {
 					if (!editorViewRef.current) {
@@ -416,6 +440,11 @@ export const EnhancedInput = ({
 			}
 		};
 	}, [collaborators]); // Recreate only when the completion source changes structurally
+
+	useEffect(() => {
+		pluginFieldsRef.current = pluginFields;
+		editorViewRef.current?.dispatch({ effects: setPluginFieldsEffect.of(pluginFields) });
+	}, [pluginFields]);
 
 	useEffect(() => {
 		editorViewRef.current?.updateRuntimeConfig({

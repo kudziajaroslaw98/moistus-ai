@@ -4,7 +4,11 @@ export type NotificationEventType =
 	| 'node_mention'
 	| 'comment_mention'
 	| 'comment_reply'
-	| 'comment_reaction';
+	| 'comment_reaction'
+	/** A plugin version you submitted was approved or needs changes. */
+	| 'plugin_review'
+	/** Shiko turned off a plugin on a map you own. */
+	| 'plugin_disabled';
 
 export type NotificationEmailStatus =
 	| 'pending'

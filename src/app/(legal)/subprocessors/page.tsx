@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 		'List of third-party service providers that process data on behalf of Shiko.',
 };
 
-const EFFECTIVE_DATE = 'January 24, 2026';
+const EFFECTIVE_DATE = 'October 6, 2026';
 const CONTACT_EMAIL = 'support@shiko.app';
 
 interface Subprocessor {
@@ -89,7 +89,7 @@ export default function SubprocessorsPage() {
 					Subprocessors
 				</h1>
 				<p className='text-text-secondary'>
-					Last updated: <time dateTime='2026-01-24'>{EFFECTIVE_DATE}</time>
+					Last updated: <time dateTime='2026-10-06'>{EFFECTIVE_DATE}</time>
 				</p>
 			</header>
 
@@ -107,6 +107,14 @@ export default function SubprocessorsPage() {
 					privacy practices. Where applicable, we have Data Processing
 					Agreements (DPAs) or Standard Contractual Clauses (SCCs) in place to
 					protect your data.
+				</p>
+				<p>
+					Sites that map plugins connect to, such as GitHub or Wikipedia, are
+					not on this list: Shiko doesn&apos;t send them data. A plugin&apos;s
+					site is contacted from the browser of the person who adds or
+					refreshes that plugin&apos;s node. See{' '}
+
+					<Link href='/privacy#plugins'>Plugins in our Privacy Policy</Link>.
 				</p>
 			</section>
 

@@ -11,9 +11,12 @@ import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import {
 	Archive,
+	ChefHat,
 	Home,
 	PanelLeft,
 	Plus,
+	Puzzle,
+	ShieldCheck,
 	SlidersHorizontal,
 	Star,
 	Users,
@@ -22,6 +25,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import useSWR from 'swr';
 import { useShallow } from 'zustand/shallow';
 import { UpgradeModal } from '../modals/upgrade-modal';
 import { Sidebar, useSidebar } from '../ui/sidebar';
@@ -47,6 +51,8 @@ interface NavItem {
 	icon: typeof Home;
 	href: string;
 	comingSoon?: boolean;
+	/** A count shown next to the label, like items waiting for review. */
+	badge?: number;
 }
 
 const mainNavItems: NavItem[] = [
@@ -56,6 +62,18 @@ const mainNavItems: NavItem[] = [
 		label: 'Templates',
 		icon: Star,
 		href: '/dashboard/templates',
+	},
+	{
+		id: 'recipes',
+		label: 'Recipes',
+		icon: ChefHat,
+		href: '/dashboard/recipes',
+	},
+	{
+		id: 'plugins',
+		label: 'Plugins',
+		icon: Puzzle,
+		href: '/dashboard/plugins',
 	},
 	{
 		id: 'teams',
@@ -74,6 +92,18 @@ const mainNavItems: NavItem[] = [
 ];
 
 const RECENT_MAP_COUNT = 3;
+
+/** What's waiting for Shiko's plugin reviewers, or null for everyone else (the route 404s). */
+async function fetchReviewSummary(
+	url: string
+): Promise<{ submissions: number; reports: number } | null> {
+	const response = await fetch(url);
+	if (!response.ok) return null;
+	const body = (await response.json().catch(() => null)) as {
+		data?: { submissions: number; reports: number };
+	} | null;
+	return body?.data ?? null;
+}
 
 /** Tooltip with the label, shown only while the sidebar is collapsed to icons. */
 function CollapsedTip({
@@ -140,11 +170,13 @@ function SidebarNavItem({
 		);
 	}
 
+	const badgeLabel = item.badge ? `${item.label}, ${item.badge} waiting` : item.label;
+
 	return (
-		<CollapsedTip collapsed={collapsed} label={item.label}>
+		<CollapsedTip collapsed={collapsed} label={badgeLabel}>
 			<Link
 				aria-current={isActive ? 'page' : undefined}
-				aria-label={collapsed ? item.label : undefined}
+				aria-label={collapsed || item.badge ? badgeLabel : undefined}
 				href={item.href}
 				className={cn(
 					base,
@@ -160,6 +192,12 @@ function SidebarNavItem({
 				/>
 
 				{!collapsed && item.label}
+
+				{!collapsed && item.badge ? (
+					<span className='ml-auto rounded-full bg-sky-500/15 px-2 py-px text-[11px] tabular-nums text-sky-300'>
+						{item.badge}
+					</span>
+				) : null}
 			</Link>
 		</CollapsedTip>
 	);
@@ -207,6 +245,22 @@ export function DashboardLayout({
 	const isPro = isProSubscription(currentSubscription);
 	const { maps } = useDashboardMaps();
 	const recentMaps = maps.slice(0, RECENT_MAP_COUNT);
+	const { data: review } = useSWR('/api/admin/plugins/summary', fetchReviewSummary, {
+		shouldRetryOnError: false,
+		revalidateOnFocus: false,
+	});
+	const navItems: NavItem[] = review
+		? [
+				...mainNavItems,
+				{
+					id: 'plugin-review',
+					label: 'Plugin review',
+					icon: ShieldCheck,
+					href: '/admin/plugins',
+					badge: review.submissions + review.reports || undefined,
+				},
+			]
+		: mainNavItems;
 
 	// Load the profile once. Skip after an error (no retry loop) and during
 	// logout (avoids a race that spammed toasts).
@@ -346,7 +400,7 @@ export function DashboardLayout({
 					</CollapsedTip>
 
 					<nav aria-label='Dashboard' className='flex flex-col gap-0.5'>
-						{mainNavItems.map((item) => (
+						{navItems.map((item) => (
 							<SidebarNavItem
 								collapsed={collapsed}
 								isActive={isItemActive(item.href)}

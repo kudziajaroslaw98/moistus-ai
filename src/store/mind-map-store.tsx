@@ -6,6 +6,7 @@ import { createCommentsSlice } from './slices/comments-slice';
 import { createCoreDataSlice } from './slices/core-slice';
 import { createEdgeSlice } from './slices/edges-slice';
 import { createExportSlice } from './slices/export-slice';
+import { createExtensionsSlice } from './slices/extensions-slice';
 import { createGroupsSlice } from './slices/groups-slice';
 import { createHistorySlice } from './slices/history-slice';
 import { createLayoutSlice } from './slices/layout-slice';
@@ -16,6 +17,7 @@ import { createGuidedTourSlice } from './slices/guided-tour-slice';
 import { createQuickInputSlice } from './slices/quick-input-slice';
 import { createRealtimeSlice } from './slices/realtime-slice';
 import { createPermissionsSlice } from './slices/permissions-slice';
+import { createPluginsSlice } from './slices/plugins-slice';
 import { createSharingSlice } from './slices/sharing-slice';
 import { createStreamingToastSlice } from './slices/streaming-toast-slice';
 import { createSubscriptionSlice } from './slices/subscription-slice';
@@ -46,6 +48,8 @@ const sliceCreators = [
 	createLayoutSlice,
 	createExportSlice,
 	createGuidedTourSlice,
+	createExtensionsSlice,
+	createPluginsSlice,
 ];
 
 const useAppStore = create<AppState>((set, get, api) => {

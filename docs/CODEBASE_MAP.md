@@ -92,7 +92,7 @@ graph TB
         Auth[Auth Pages]
     end
 
-    subgraph State["Zustand Store (21 Slices)"]
+    subgraph State["Zustand Store (23 Slices)"]
         Core[core-slice]
         Nodes[nodes-slice]
         Edges[edges-slice]
@@ -175,7 +175,7 @@ flowchart LR
 shiko/
 ├── src/
 │   ├── app/                    # Next.js App Router pages & API
-│   │   ├── api/                # 65 API routes
+│   │   ├── api/                # 69 API routes
 │   │   │   ├── ai/             # AI features (suggestions, chat, merges)
 │   │   │   ├── auth/           # Sign-up, upgrade flows
 │   │   │   ├── comments/       # Comment threads & reactions
@@ -189,7 +189,7 @@ shiko/
 │   │   │   ├── templates/      # Map templates
 │   │   │   └── user/           # Profile, billing
 │   │   ├── auth/               # Sign-in/up pages
-│   │   ├── dashboard/          # Map list/templates with shell-parity route loading fallback plus progressive in-page map-card skeleton streaming
+│   │   ├── dashboard/          # Map list/templates/recipes with shell-parity route loading fallback plus progressive in-page map-card skeleton streaming
 │   │   ├── join/               # Room code join flow
 │   │   └── mind-map/           # Canvas page
 │   │
@@ -205,7 +205,7 @@ shiko/
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
 │   │   ├── node-editor/        # Command system, CodeMirror, mobile autocomplete tray
-│   │   ├── nodes/              # 12 node types + base wrapper
+│   │   ├── nodes/              # 13 node types + base wrapper
 │   │   ├── notifications/      # Notification bell + shared inbox data hook
 │   │   ├── onboarding/         # Editor-first onboarding shell (intro/checklist/coachmarks/upsell)
 │   │   ├── realtime/           # Live cursors, presence
@@ -216,7 +216,7 @@ shiko/
 │   │   └── waitlist/           # Landing page forms
 │   │
 │   ├── store/                  # Zustand state management
-│   │   ├── slices/             # 21 focused slices
+│   │   ├── slices/             # 23 focused slices
 │   │   ├── app-state.ts        # Master state interface
 │   │   └── mind-map-store.tsx  # Store composition
 │   │
@@ -240,6 +240,7 @@ shiko/
 │   │   └── subscription/       # Feature gates
 │   │
 │   ├── lib/                    # Core utilities
+│   │   ├── extensions/         # Extensibility foundations: graph-ops (single programmatic write path)
 │   │   ├── realtime/           # Yjs provider, broadcast adapter, graph-sync, room-names
 │   │   ├── validations/        # Zod schemas
 │   │   └── ai-security/        # Rate limiting
@@ -265,7 +266,7 @@ shiko/
 
 ## Module Guide
 
-### State Management (21 Slices)
+### State Management (23 Slices)
 
 | Slice                     | Lines | Purpose                                                                                      |
 | ------------------------- | ----- | -------------------------------------------------------------------------------------------- |
@@ -290,8 +291,11 @@ shiko/
 | **quick-input-slice**     | 55    | Quick node creation                                                           |
 | **loading-state-slice**   | 33    | Loading flags                                                                 |
 | **realtime-slice**        | 17    | Selection sync                                                                |
+| **permissions-slice**     | —     | Map role/permissions + realtime permission updates                            |
+| **extensions-slice**      | 48    | Contribution registry (built-in AI actions, palette commands, starter recipes, plugin entries) |
+| **plugins-slice**         | 502   | Per-map plugins: enabled list (`map_plugins`) pinned to versions, loading manifests/code into the sandbox, update/roll back (`setMapPluginVersion`), developer plugins, `openPluginsPanel` |
 
-### Node System (12 Types)
+### Node System (13 Types)
 
 | Type           | Category  | Command       | Purpose                       |
 | -------------- | --------- | ------------- | ----------------------------- |
@@ -307,6 +311,7 @@ shiko/
 | groupNode      | structure | —             | Container (UI only)           |
 | commentNode    | structure | —             | Thread anchor (UI only)       |
 | ghostNode      | ai        | —             | AI suggestions (system only)  |
+| extensionNode  | structure | —             | Plugin host (fallback card)   |
 
 **Node Editor note:** Quick-input parser/help intentionally excludes `$reference` quick-switch and deprecated parser tokens (`bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`). The editor modal is a wide 50/50 split layout with matching split top/body rows: node type and editor on the left, Preview/Syntax Help tabs and tab content on the right. The split body is bounded so panes fill the modal region without pushing the footer out of view; the editor keeps line/scroll affordance for multi-line input with line-number glyphs horizontally centered but baseline-aligned, preview content starts at the top of its pane, and right-panel controls are styled as a full-height tab strip (strong hover + selected underline rather than button pills) aligned from the split divider. Syntax-help panel mode should rely on right-pane scrolling instead of nested inner max-height clipping. Syntax Help remains split into type-filtered `Universal` plus `Node-specific` sections.
 Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
@@ -333,7 +338,19 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `POST /api/ai/chat` - AI chat with context modes
 - `POST /api/ai/suggest-connections` - Connection recommendations
 - `POST /api/ai/suggest-merges` - Merge suggestions
-- `POST /api/ai/counterpoints` - Opposing viewpoints
+- `POST /api/ai/recipes/run` - Run an AI recipe (saved, starter or draft definition) and stream attributed ghost suggestions
+- `GET/POST /api/recipes`, `PATCH/DELETE /api/recipes/[id]` - Saved AI recipes (owner-only)
+- `GET /api/recipes/shared/[id]` - Read an unlisted recipe by link (service role)
+- `POST /api/recipes/[id]/install` - Copy a shared recipe into the caller's recipes
+- `PUT/DELETE /api/maps/[id]/plugins/[pluginId]` - Turn a first-party plugin on (pinned to its latest version) or off for a map (owner only, catalog plugins only; plugins with powers need `{ permissions }` matching the version)
+- `PATCH /api/maps/[id]/plugins/[pluginId]` - Move a map to another catalog version of a plugin that's on: Update or Roll back (owner only; keeps `previous_version`)
+- `GET /api/plugins/maps` - The caller's own maps with the plugins each has on and their pinned versions (dashboard Plugins page)
+- `GET /api/plugins/catalog` - Published library plugins (no code) and every turned-off plugin or version
+- `GET /api/plugins/files/[pluginId]/[version]/[...file]` - A library plugin's manifest or code, as plain text (published: anyone signed in; otherwise the author or an admin)
+- `GET /api/plugins/network-worker` - A plugin's network worker script, with its own CSP naming only that plugin's sites (`?plugin=&version=` reviewed versions; `?hosts=` developer plugins, Developer mode only)
+- `POST /api/plugins/submissions` - Submit a plugin version for review; `GET /api/plugins/mine` - the author's plugins and review status
+- `POST /api/plugins/reports` - Report a plugin
+- `GET /api/admin/plugins/summary|submissions|reports`, `POST /api/admin/plugins/review|moderate` - Plugin review (admins only; 404 for others)
 
 **Maps (4):**
 
@@ -548,13 +565,13 @@ sequenceDiagram
     SuggestionsSlice->>Store: Convert ghost → real node
 ```
 
-**AI suggestion note:** Map-scoped toolbar suggestions now reuse the node-suggestion stream with literal full-map eligible-anchor context. The client persists per-map recent suggestion history plus a shuffled exploration-lens cycle in `localStorage`, sends the active lens pair and recent ideas with each click, and the API prompts `gpt-5-mini` with every eligible non-system anchor instead of a rotating top window. The API only accepts model-returned anchor IDs from the provided candidate list, rejects near-duplicate ideas against recent/current suggestions, fails explicitly when the literal full-map prompt exceeds the model request limit, and the slice falls back to viewport-centered unanchored ghosts if no valid anchor survives.
+**AI suggestion note:** Map-scoped toolbar suggestions now reuse the node-suggestion stream with literal full-map eligible-anchor context. The client persists per-map recent suggestion history plus a shuffled exploration-lens cycle in `localStorage`, sends the active lens pair and recent ideas with each click, and the API prompts `gpt-6-luna` with every eligible non-system anchor instead of a rotating top window. The API only accepts model-returned anchor IDs from the provided candidate list, rejects near-duplicate ideas against recent/current suggestions, fails explicitly when the literal full-map prompt exceeds the model request limit, and the slice falls back to viewport-centered unanchored ghosts if no valid anchor survives.
 
 **History presentation and scope:** Stored history still uses JSONB deltas, and list/delta endpoints still derive deterministic local object-first summaries from normalized action intents plus delta semantics (property edits, movement, reroutes, lifecycle events). Manual checkpoints are full-state baselines read from persisted node/edge rows inside the `create_history_checkpoint_and_prune` Supabase RPC (`supabase/migrations/20260512130000_create_history_checkpoint_and_prune.sql`), so snapshot insert, current-pointer update, and old-history pruning happen in one transaction. The active sidebar scope is the current checkpoint plus its later events, with older snapshots/events pruned on checkpoint creation and hidden from list/delta/revert routes. History route helpers live under `src/helpers/history/server/` for access checks, RPC invocation, current-scope utilities, and list DTO assembly. The sidebar is a compact grouped list: `model/history-timeline.ts` (pure) owns filter categories (All/Edits/Added/Links, Removed when present), verb+type row titles, subject lines (live node label or `#id`), day sections and collapsing of consecutive identical runs (same author, title and `fieldLabels`; never the current entry) into `history-row-group.tsx`. List items carry server-derived `fieldLabels` (`collectHistoryFieldLabels`). `HistoryItem` is the store/delta container rendering `history-row.tsx`; Focus/Revert icons appear on hover or keyboard focus (touch uses the expanded panel's actions), diffs are one line per property (`old → new`), and Revert goes through `history-revert-confirm.tsx`, which states that restoring undoes every newer change. Raw technical patch paths are not exposed in the panel UI.
 
 **AI suggestion helper split:** `/api/ai/suggestions` now delegates graph context modeling to `src/helpers/ai-suggestion-graph.ts`, row serialization to `src/helpers/ai-suggestion-rows.ts`, user-prompt assembly to `src/helpers/ai-suggestion-user-prompt.ts`, system prompt text to `src/helpers/ai-suggestion-prompts.ts`, and streamed normalization/duplicate filtering/error mapping to `src/helpers/ai-suggestion-postprocess.ts`. `src/helpers/ai-suggestion-context.ts` is the thin entrypoint that stitches graph rows + user prompt together for the route.
 
-**Structured AI route helper split:** `/api/ai/counterpoints`, `/api/ai/suggest-merges`, and `/api/ai/suggest-connections` now follow the same orchestration-only pattern as suggestions. Each route keeps auth/quota checks, Supabase fetches, `streamObject(...)`, stream-status writes, and usage tracking inline, but request parsing, prompt/context assembly, and streamed element normalization live in route-specific helpers (`src/helpers/ai-counterpoint-*`, `src/helpers/ai-merge-*`, `src/helpers/ai-connection-*`). Keep alias remapping and duplicate/self-pair filtering in those helper pipelines rather than rebuilding them inside the route handlers.
+**Structured AI route helper split:** `/api/ai/suggest-merges` and `/api/ai/suggest-connections` now follow the same orchestration-only pattern as suggestions. Each route keeps auth/quota checks, Supabase fetches, `streamObject(...)`, stream-status writes, and usage tracking inline, but request parsing, prompt/context assembly, and streamed element normalization live in route-specific helpers (`src/helpers/ai-merge-*`, `src/helpers/ai-connection-*`). Keep alias remapping and duplicate/self-pair filtering in those helper pipelines rather than rebuilding them inside the route handlers.
 
 **Collapsed-branch connection suggestion rendering:** `suggestions-slice.addConnectionSuggestion()` now resolves hidden node endpoints to the nearest visible collapsed ancestor for display while preserving original endpoint IDs in `edge.data.aiData.connectionProxy`. `acceptConnectionSuggestion()` must use those original IDs when converting to a real edge. Suggested-connection rendering surfaces compact “Collapsed child” chips from this metadata and supports same-ancestor proxy self-loops without dropping the edge. `nodes-slice.getDescendantNodeIds()` now ignores transient AI suggestion edges so these proxy edges do not alter collapsed-branch visibility, and hidden-endpoint ancestor lookup uses structural (non-suggested) edges.
 
@@ -562,7 +579,7 @@ sequenceDiagram
 
 **AI typed suggestion payloads:** The suggestions route can now stream an optional `nodePayload` with ghost suggestions for safe typed nodes. Post-processing normalizes or downgrades malformed structured payloads before ghosts reach the client, and `suggestions-slice.acceptSuggestion()` now creates the approved node from that payload instead of reconstructing typed nodes from plain `suggestedContent`. This is especially important for `taskNode`, because approved task ghosts must populate `metadata.tasks` to render anything.
 
-**AI row ID aliasing:** Compact row-based AI routes now share `src/helpers/ai-id-alias-map.ts` so the model sees request-local numeric node IDs instead of UUIDs. `extract-enhanced-node-context.ts`, `extract-node-context.ts`, and the suggestion row/prompt helpers serialize aliased IDs in `NODE`, `REL`, `ANCHOR`, `RECENT`, and request metadata rows; the routes remap returned aliases back to UUIDs before any downstream validation or streamed output. This alias boundary now applies to suggestions, chat, counterpoints, merge suggestions, and AI node search.
+**AI row ID aliasing:** Compact row-based AI routes now share `src/helpers/ai-id-alias-map.ts` so the model sees request-local numeric node IDs instead of UUIDs. `extract-enhanced-node-context.ts`, `extract-node-context.ts`, and the suggestion row/prompt helpers serialize aliased IDs in `NODE`, `REL`, `ANCHOR`, `RECENT`, and request metadata rows; the routes remap returned aliases back to UUIDs before any downstream validation or streamed output. This alias boundary now applies to suggestions, chat, AI recipes, merge suggestions, and AI node search.
 
 ### Notification Flow
 
@@ -675,6 +692,16 @@ sequenceDiagram
 21. **DB-Level Security Enforcement** - SECURITY DEFINER RPCs in `public` are service_role-only unless explicitly granted to `authenticated` and bound to `auth.uid()` (`supabase/migrations/20261003172506_lock_down_security_definer_functions.sql`). `create_node_with_parent_edge` runs as SECURITY INVOKER under nodes/edges RLS. Triggers guard `user_profiles.role`, `mind_maps` template flags, and the owner-scoped node limit (`enforce_map_node_limit`, mirrors `checkMapNodeLimit()`); billing tables have no user write policies; profile visibility is limited to the owner plus map-sharing users. Server routes that need privileged RPCs (AI usage, template usage count, history cleanup, subscription writes) use `createServiceRoleClient()`.
 
 <!-- Updated: 2026-10-03 - Documented DB-level security enforcement after production audit -->
+
+22. **Programmatic Graph Changes** - `applyGraphOps(getState, ops, actor)` in `src/lib/extensions/graph-ops.ts` wraps the existing node/edge store actions for plugins and recipes: edit-permission gate, `metadata.ext[pluginId]` namespace + 16 KB cap, and one history event per batch via `beginHistoryBatch`/`endHistoryBatch` with `changes.actor`. Types live in `src/types/extensions.ts`.
+
+<!-- Updated: 2026-10-04 - Documented graph-ops extension write path -->
+
+23. **Contribution Registry** - `extensions-slice` holds `Contribution` entries (built-ins from `src/lib/extensions/builtin-ai-actions.ts` and `builtin-commands.ts`). `AIActionsPopover` and the Ctrl/Cmd+K `CommandPalette` (mounted in `modals-wrapper.tsx`, flag `popoverOpen.commandPalette`) render them through `src/lib/extensions/select-contributions.ts` (the right-click menu lists no contributions); `useContributions()` provides context + quota-guarded `runContribution`. `extensionNode` is the plugin host node type (not user/AI creatable). Recipes (`src/lib/extensions/recipe-schema.ts`, `starter-recipes.ts`, `recipe-contributions.ts`) register as `group: 'recipes'` contributions that call `runRecipe()` (the built-in "Generate counterpoints" action runs `COUNTERPOINTS_RECIPE` the same way); the route `/api/ai/recipes/run` uses `src/helpers/ai-recipe-*` and `buildBranchSuggestionGraph` for branch scope. Saved recipes (`ai_recipes` table, `src/helpers/recipes/saved-recipe-rows.ts`) load through `useSavedRecipes()` (SWR) and register via `RecipeContributionsRegistrar` (mounted in `mind-map-canvas.tsx`). The recipes panel (`src/components/recipes/`: `recipes-panel`, `recipe-list`, `recipe-editor`, `recipe-icon-picker`, `recipe-choice-chip`, `recipe-confirm-dialog`) is mounted in `modals-wrapper.tsx`; the dashboard page `src/app/dashboard/recipes/` reuses the list and editor without Try. The shared page `src/app/recipes/[id]/page.tsx` loads via `loadSharedRecipe` and renders `SharedRecipeContent` (dashboard shell) or `SharedRecipePublic` (signed out / guest) around `SharedRecipeCard`.
+
+24. **Plugins** - Contracts in `src/lib/plugins/` (`manifest-schema.ts`, `plugin-fields.ts` typed field syntax + data validation, `ui-tree.ts` declarative view schema, `catalog.ts`, `active-plugins.ts`, `plugin-icons.ts`, `network.ts` request runtime and `network-client.ts`, which runs refresh requests in a network worker whose script comes from `/api/plugins/network-worker`); runtime in `src/lib/plugins/runtime/` (`sandbox.ts` QuickJS, `worker-protocol.ts`, `plugin-worker.ts`, `plugin-host.ts`, lazy `load-plugin-host.ts`). `plugins-slice` loads the map's enabled plugins (`map_plugins`) and developer plugins; `PluginRegistrar` (`src/components/plugins/`) registers `$kind` editor commands and palette entries; `extension-node.tsx` renders `PluginNodeContent` (`src/components/nodes/content/`) with `PluginUiTree` and `usePluginRender` (`src/components/plugins/`); actions save via `applyGraphOps`. The node editor handles plugin kinds through `plugin-kind-editor.ts`, `integrations/codemirror/plugin-fields.ts` and `components/preview/plugin-editor-preview.tsx`. First-party plugins live in `public/plugins/<id>/<version>/` (Metric: `shiko.metric`). Managing plugins: `PluginsPanel` (`src/components/plugins/plugins-panel.tsx`, flag `popoverOpen.plugins`, mounted in `modals-wrapper.tsx`) opened from Ctrl/Cmd+K "Plugins" (`open-plugins` in `builtin-commands.ts`), the `$` list's "More node types…" row and Map Settings' `PluginsSettingsLink`; catalog manifests load through `use-catalog-manifests.ts` (latest, or one version with `useCatalogVersionManifest`). Field types, list rows and row ids live in `plugin-fields.ts` (`parsePluginFieldInput`, `serializePluginFieldInput`, `validatePluginData`, `assignListRowIds`); the render/action context (`canEdit`, `today`) in `call-context.ts`. First-party plugins in `public/plugins/`: `shiko.metric`, `shiko.countdown`, `shiko.kanban`, `shiko.decision-matrix`, `shiko.okr`, `shiko.budget`, `shiko.branch-progress`, `shiko.upcoming`, `shiko.workload`, `shiko.github-issue`, `shiko.wikipedia` (behavior tests in `first-party-plugins.test.ts`). Developer mode (`user_profiles.preferences.developerMode`) gates the panel's Developer section and developer plugin loading; its switch is `developer-mode-switch.tsx` (Map Settings, dashboard Settings, guide). Versions: `catalog.ts` lists each plugin's versions; the owner's Update / Later / Roll back controls are `plugin-version-controls.tsx` (notes and power changes in `plugin-update-details.tsx`, node fit check in `src/lib/plugins/version-fit.ts`). Dashboard: `src/app/dashboard/plugins/` (per-map toggles via `GET /api/plugins/maps`) and `src/app/dashboard/plugins/build/` (the "Build a plugin" tab; reference tables in `guide-reference.ts`, examples from `src/lib/plugins/starter-plugin.ts` and `network-example.ts`). The three tabs (Library, My plugins, Build a plugin) come from `src/components/plugins/plugins-page-tabs.tsx`. The guide's Counter starter is `src/lib/plugins/starter-plugin.ts`; runtime limits shared by the sandbox, loader and guide are in `src/lib/plugins/limits.ts`. Powers: `manifest-schema.ts` (`network:<host>` / `branch:read` rules, `networkHosts`, `setBy`), `powers.ts` (what a plugin reaches, for UI copy), `network.ts` (URL checks and the locked-down fetch), `branch-context.ts` (`ctx.branch`); `plugins-slice.refreshPluginNode` runs the two-pass refresh; UI in `plugin-refresh-bar.tsx` (node footer), `plugin-powers.tsx` (card line and the owner's "Turn on …?" box), `plugin-site-note.tsx`, `refresh-note.ts`, `use-plugin-branch.ts`. Library: `src/lib/plugins/server/plugin-library.ts` and `require-plugin-admin.ts` (service-role reads, admin gate), `plugin-library-client.ts` + `use-plugin-library.ts` (catalog registry in the browser), `plugin-checks.ts` (submission checks, run in the worker), `line-diff.ts`; UI `plugin-submit-sheet.tsx`, `plugin-checks-list.tsx`, `plugin-card-menu.tsx`, `plugin-report-dialog.tsx`, `plugins-page-tabs.tsx`, `review/submission-review.tsx`, `review/reports-review.tsx`; pages `src/app/dashboard/plugins/mine/` (My plugins) and `src/app/admin/plugins/` (Plugin review).
+
+<!-- Updated: 2026-10-07 - Documented contribution registry, command palette, extensionNode, AI recipes, the editing-only right-click menu, plugins, the Plugins panel, dashboard Plugins page, build guide, plugin versions, plugin powers, the plugin network worker and the guide as a Plugins tab -->
 
 ## Navigation Guide
 

@@ -42,6 +42,26 @@ const serwist = new Serwist({
 	},
 });
 
+// Requests left to the browser (registered before Serwist's listener, so stopping here
+// skips it):
+// - Worker scripts. Turbopack passes a worker's bootstrap config in the script URL's
+//   #fragment, which a service-worker response loses, so the plugin runtime failed with
+//   "Missing worker bootstrap config". The plugin network worker must also arrive fresh,
+//   with its own policy.
+// - Plugin refresh requests (`src/lib/plugins/network.ts`): cross-origin with
+//   `cache: 'no-store'`. A cached answer would be saved into the node as fresh data.
+self.addEventListener('fetch', (event) => {
+	const { request } = event;
+	const isWorkerScript =
+		request.destination === 'worker' || request.destination === 'sharedworker';
+	const isUncachedCrossOrigin =
+		request.cache === 'no-store' &&
+		new URL(request.url).origin !== self.location.origin;
+	if (isWorkerScript || isUncachedCrossOrigin) {
+		event.stopImmediatePropagation();
+	}
+});
+
 serwist.addEventListeners();
 
 self.addEventListener('message', (event) => {

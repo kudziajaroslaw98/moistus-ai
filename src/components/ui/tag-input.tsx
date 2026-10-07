@@ -11,6 +11,8 @@ interface TagInputProps {
 	maxTags?: number;
 	className?: string;
 	error?: boolean;
+	/** Id for the text input, so a `<Label htmlFor>` can point at it. */
+	id?: string;
 }
 
 export function TagInput({
@@ -20,6 +22,7 @@ export function TagInput({
 	maxTags = 20,
 	className,
 	error,
+	id,
 }: TagInputProps) {
 	const [inputValue, setInputValue] = useState('');
 
@@ -93,6 +96,7 @@ export function TagInput({
 			<input
 				className='min-w-[120px] flex-1 border-none bg-transparent text-sm text-zinc-100 placeholder-zinc-400 outline-none'
 				disabled={value.length >= maxTags}
+				id={id}
 				onBlur={addTag}
 				onChange={(e) => setInputValue(e.target.value)}
 				onKeyDown={handleKeyDown}

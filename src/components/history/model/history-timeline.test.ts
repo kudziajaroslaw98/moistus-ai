@@ -272,6 +272,25 @@ describe('buildHistoryTimeline', () => {
 		]);
 	});
 
+	it('does not group recipe changes with the same change made by hand', () => {
+		const items = [
+			collapse('a', NOW - 3 * MINUTE),
+			{ ...collapse('b', NOW - 2 * MINUTE), actorLabel: 'Pre-mortem' },
+			{ ...collapse('c', NOW - MINUTE), actorLabel: 'Pre-mortem' },
+		];
+
+		const sections = buildHistoryTimeline(items, {
+			historyIndex: -1,
+			filter: 'all',
+			now: NOW,
+		});
+
+		expect(sections[0].rows.map((row) => row.kind)).toEqual([
+			'group',
+			'single',
+		]);
+	});
+
 	it('applies the filter before grouping', () => {
 		const items = [
 			collapse('a', NOW - 3 * MINUTE),
@@ -312,5 +331,47 @@ describe('time and revert helpers', () => {
 	it('counts entries a revert rolls back', () => {
 		expect(countChangesUndoneByRevert(3, 8)).toBe(5);
 		expect(countChangesUndoneByRevert(8, 3)).toBe(0);
+	});
+});
+
+describe('plugin nodes in history rows', () => {
+	const metricSubject = (id: string) => ({
+		id,
+		type: 'node' as const,
+		nodeType: 'extensionNode',
+		nodeKindLabel: 'Metric',
+	});
+
+	it('names a plugin node by its kind', () => {
+		const meta = event({
+			actionName: 'addNode',
+			operationType: 'add',
+			subjects: [metricSubject('7c1e9a42-0000-0000-0000-000000000000')],
+		});
+
+		expect(buildHistoryRowTitle(meta)).toBe('Added metric');
+		expect(buildHistoryRowSubject(meta)).toMatchObject({
+			typeLabel: 'Metric',
+			names: ['#7c1e9a42'],
+		});
+	});
+
+	it('keeps different plugin kinds apart in mixed rows', () => {
+		const meta = event({
+			subjects: [
+				metricSubject('a'),
+				{
+					id: 'b',
+					type: 'node',
+					nodeType: 'extensionNode',
+					nodeKindLabel: 'Kanban board',
+				},
+			],
+		});
+
+		expect(buildHistoryRowSubject(meta)).toMatchObject({
+			typeLabel: 'Nodes',
+			names: ['Metric, Kanban board'],
+		});
 	});
 });

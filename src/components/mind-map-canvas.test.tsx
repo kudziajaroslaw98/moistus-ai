@@ -62,6 +62,8 @@ jest.mock('./mind-map/modals-wrapper', () => ({
 }));
 
 jest.mock('./node-editor/node-editor', () => () => null);
+// Registers editor commands; the command registry loads every node component.
+jest.mock('./plugins/plugin-registrar', () => ({ PluginRegistrar: () => null }));
 jest.mock('./ai/ai-stream-mediator', () => ({
 	AIStreamMediator: () => null,
 }));

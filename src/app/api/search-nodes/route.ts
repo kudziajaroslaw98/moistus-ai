@@ -93,7 +93,7 @@ export const POST = withApiValidation(
     ${nodeContentList}`;
 
 			const result = await generateText({
-				model: openai('gpt-5.4-nano'),
+				model: openai('gpt-6-luna'),
 				prompt: aiPrompt,
 			});
 			const text = result.text;

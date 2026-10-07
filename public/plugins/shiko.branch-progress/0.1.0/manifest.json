@@ -1,0 +1,29 @@
+{
+	"id": "shiko.branch-progress",
+	"name": "Branch progress",
+	"version": "0.1.0",
+	"apiVersion": 1,
+	"author": "Shiko",
+	"description": "How many tasks are done in the branch under it.",
+	"icon": "list-checks",
+	"permissions": ["node:own", "branch:read"],
+	"main": "plugin.js",
+	"nodeKinds": [
+		{
+			"kind": "progress",
+			"label": "Branch progress",
+			"description": "Tasks done in the nodes under it",
+			"icon": "list-checks",
+			"labelField": "label",
+			"fields": {
+				"label": {
+					"type": "string",
+					"title": "Name",
+					"description": "What the branch is, like Launch checklist",
+					"maxLength": 80
+				}
+			},
+			"examples": ["Launch checklist"]
+		}
+	]
+}

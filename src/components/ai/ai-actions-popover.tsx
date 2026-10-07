@@ -1,14 +1,17 @@
 'use client';
 
-import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import { overlaySurfaceClassName } from '@/components/ui/overlay-surface';
+import { useContributions } from '@/hooks/extensions/use-contributions';
 import useAppStore from '@/store/mind-map-store';
+import {
+	resolveContributionDescription,
+	selectContributions,
+} from '@/lib/extensions/select-contributions';
+import type { Contribution } from '@/types/extensions';
 import { cn } from '@/utils/cn';
-import { Link2, Loader2, Merge, NotepadTextDashed, Sparkles } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useCallback } from 'react';
-import { toast } from 'sonner';
-import { useShallow } from 'zustand/shallow';
+import { useMemo } from 'react';
 
 export interface AIActionsPopoverProps {
 	/** Whether actions are scoped to a single node or the entire map */
@@ -21,22 +24,13 @@ export interface AIActionsPopoverProps {
 	className?: string;
 }
 
-interface ActionItem {
-	id: string;
-	label: string;
-	icon: React.ReactNode;
-	description: string;
-	/** Only show this action for certain scopes */
-	scopes: ('node' | 'map')[];
-	action: () => void;
-}
-
 /**
  * AIActionsPopover - Shared popover menu for AI actions
  *
- * Used on:
- * - Node selection (scope='node'): Shows all 4 actions scoped to that node
- * - Toolbar (scope='map'): Shows whole-map suggestions plus connection/merge actions
+ * Lists contributions placed in 'aiMenu': built-in AI actions, then recipes under a
+ * "Recipes" heading. Used on:
+ * - Node selection (scope='node')
+ * - Toolbar (scope='map')
  */
 export function AIActionsPopover({
 	scope,
@@ -44,177 +38,150 @@ export function AIActionsPopover({
 	onClose,
 	className,
 }: AIActionsPopoverProps) {
-	const {
-		generateSuggestions,
-		generateConnectionSuggestions,
-		generateMergeSuggestions,
-		generateCounterpointsForNode,
-		isStreaming,
-		setPopoverOpen,
-	} = useAppStore(
-		useShallow((state) => ({
-			generateSuggestions: state.generateSuggestions,
-			generateConnectionSuggestions: state.generateConnectionSuggestions,
-			generateMergeSuggestions: state.generateMergeSuggestions,
-			generateCounterpointsForNode: state.generateCounterpointsForNode,
-			isStreaming: state.isStreaming,
-			setPopoverOpen: state.setPopoverOpen,
-		}))
+	const { contributions, createContext, runContribution } = useContributions();
+
+	const ctx = useMemo(
+		() => createContext(scope, sourceNodeId ?? null),
+		[createContext, scope, sourceNodeId]
+	);
+	const visibleActions = useMemo(
+		() => selectContributions(contributions, 'aiMenu', ctx),
+		[contributions, ctx]
+	);
+	const builtinActions = visibleActions.filter((action) => !action.group);
+	const recipeActions = visibleActions.filter(
+		(action) => action.group === 'recipes'
 	);
 
-	const { isAtLimit } = useSubscriptionLimits();
-
-	/** Check AI limit and show toast if at limit. Returns true if blocked. */
-	const checkAILimit = useCallback(() => {
-		if (isAtLimit('aiSuggestions')) {
-			toast.error('AI feature limit reached', {
-				description: 'Upgrade to Pro for unlimited AI features.',
-				action: {
-					label: 'Upgrade',
-					onClick: () => setPopoverOpen({ upgradeUser: true }),
-				},
-				duration: 8000,
-			});
-			onClose();
-			return true;
-		}
-		return false;
-	}, [isAtLimit, setPopoverOpen, onClose]);
-
-	const handleExpandIdeas = useCallback(() => {
-		if (!sourceNodeId) return;
-		if (checkAILimit()) return;
-		generateSuggestions({
-			sourceNodeId,
-			trigger: 'magic-wand',
-		});
+	// Recipes are saved per account: guests and viewers only see what they can run.
+	const canManageRecipes = useAppStore(
+		(state) => state.currentUser?.is_anonymous === false
+	) && ctx.canEdit;
+	const openRecipesPanel = useAppStore((state) => state.openRecipesPanel);
+	const openPanel = (view?: Parameters<typeof openRecipesPanel>[0]) => {
+		openRecipesPanel(view);
 		onClose();
-	}, [sourceNodeId, checkAILimit, generateSuggestions, onClose]);
+	};
 
-	const handleExpandMap = useCallback(() => {
-		if (checkAILimit()) return;
-		generateSuggestions({
-			trigger: 'magic-wand',
-		});
+	const handleRun = (contribution: Contribution) => {
+		runContribution(contribution, ctx);
 		onClose();
-	}, [checkAILimit, generateSuggestions, onClose]);
+	};
 
-	const handleFindConnections = useCallback(() => {
-		if (checkAILimit()) return;
-		generateConnectionSuggestions(sourceNodeId);
-		onClose();
-	}, [checkAILimit, sourceNodeId, generateConnectionSuggestions, onClose]);
+	const renderAction = (action: Contribution) => {
+		const ActionIcon = action.icon;
+		const isBusy = action.isBusy?.(ctx) ?? false;
+		return (
+			<button
+				type='button'
+				key={action.id}
+				onClick={() => handleRun(action)}
+				disabled={isBusy}
+				className={cn(
+					'group w-full px-3 py-2.5 flex items-center gap-3 text-left',
+					'hover:bg-elevated focus:bg-elevated data-[highlighted]:bg-elevated active:bg-elevated/80',
+					'transition-all duration-200 ease',
+					'disabled:opacity-50 disabled:cursor-not-allowed',
+					'focus:outline-none'
+				)}
+			>
+				<span
+					className={cn(
+						'text-text-secondary transition-colors duration-200',
+						'group-hover:text-primary-400'
+					)}
+				>
+					{isBusy ? (
+						<Loader2 className='size-4 animate-spin' />
+					) : (
+						<ActionIcon className='size-4' />
+					)}
+				</span>
 
-	const handleFindSimilar = useCallback(() => {
-		if (checkAILimit()) return;
-		generateMergeSuggestions(sourceNodeId);
-		onClose();
-	}, [checkAILimit, sourceNodeId, generateMergeSuggestions, onClose]);
+				<div className='flex flex-col'>
+					<span
+						className={cn(
+							'text-sm font-medium text-text-primary transition-colors duration-200',
+							'group-hover:text-primary-400'
+						)}
+					>
+						{action.title}
+					</span>
 
-	const handleGenerateCounterpoints = useCallback(() => {
-		if (!sourceNodeId) return;
-		if (checkAILimit()) return;
-		generateCounterpointsForNode(sourceNodeId);
-		onClose();
-	}, [sourceNodeId, checkAILimit, generateCounterpointsForNode, onClose]);
-
-	const actions: ActionItem[] = [
-		{
-			id: 'expand-ideas',
-			label: 'Expand ideas',
-			icon: <Sparkles className='size-4' />,
-			description: 'Generate child nodes from this idea',
-			scopes: ['node'],
-			action: handleExpandIdeas,
-		},
-		{
-			id: 'expand-map',
-			label: 'Expand map',
-			icon: <Sparkles className='size-4' />,
-			description: 'Generate suggestions across the whole map',
-			scopes: ['map'],
-			action: handleExpandMap,
-		},
-		{
-			id: 'generate-counterpoints',
-			label: 'Generate counterpoints',
-			icon: <NotepadTextDashed className='size-4' />,
-			description: 'Challenge this idea with opposing views',
-			scopes: ['node'],
-			action: handleGenerateCounterpoints,
-		},
-		{
-			id: 'find-connections',
-			label: 'Find connections',
-			icon: <Link2 className='size-4' />,
-			description: scope === 'node' ? 'Find relationships for this node' : 'Discover connections across the map',
-			scopes: ['node', 'map'],
-			action: handleFindConnections,
-		},
-		{
-			id: 'find-similar',
-			label: 'Find similar',
-			icon: <Merge className='size-4' />,
-			description: scope === 'node' ? 'Find duplicates or overlapping nodes' : 'Find mergeable nodes across the map',
-			scopes: ['node', 'map'],
-			action: handleFindSimilar,
-		},
-	];
-
-	// Filter actions based on scope
-	const visibleActions = actions.filter((action) => action.scopes.includes(scope));
+					<span className='text-xs text-text-tertiary'>
+						{resolveContributionDescription(action, ctx)}
+					</span>
+				</div>
+			</button>
+		);
+	};
 
 	return (
 		<motion.div
 			initial={{ opacity: 0, scale: 0.95 }}
 			animate={{ opacity: 1, scale: 1 }}
 			exit={{ opacity: 0, scale: 0.95 }}
-			transition={{ duration: 0.15, type: 'spring', stiffness: 500, damping: 30 }}
+			transition={{
+				duration: 0.15,
+				type: 'spring',
+				stiffness: 500,
+				damping: 30,
+			}}
 			className={cn(
 				overlaySurfaceClassName,
 				'rounded-md overflow-hidden min-w-[200px]',
 				className
 			)}
 		>
-			<div className='py-1'>
-				{visibleActions.map((action) => (
-					<button
-						type="button"
-						key={action.id}
-						onClick={action.action}
-						disabled={isStreaming}
-						className={cn(
-							'group w-full px-3 py-2.5 flex items-center gap-3 text-left',
-							'hover:bg-elevated focus:bg-elevated data-[highlighted]:bg-elevated active:bg-elevated/80',
-							'transition-all duration-200 ease',
-							'disabled:opacity-50 disabled:cursor-not-allowed',
-							'focus:outline-none'
-						)}
-					>
-						<span className={cn(
-							'text-text-secondary transition-colors duration-200',
-							'group-hover:text-primary-400'
-						)}>
-							{isStreaming ? (
-								<Loader2 className='size-4 animate-spin' />
-							) : (
-								action.icon
-							)}
+			<div className='py-1'>{builtinActions.map(renderAction)}</div>
+
+			{(recipeActions.length > 0 || canManageRecipes) && (
+				<>
+					<div className='flex items-center gap-2.5 px-3 pt-2 pb-1'>
+						<span className='text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55'>
+							Recipes
 						</span>
-						<div className='flex flex-col'>
-							<span className={cn(
-								'text-sm font-medium text-text-primary transition-colors duration-200',
-								'group-hover:text-primary-400'
-							)}>
-								{action.label}
-							</span>
-							<span className='text-xs text-text-tertiary'>
-								{action.description}
-							</span>
+
+						<span aria-hidden className='h-px flex-1 bg-white/8' />
+
+						{canManageRecipes && (
+							<button
+								className='rounded-sm text-xs text-text-tertiary transition-colors duration-200 ease hover:text-primary-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60'
+								onClick={() => openPanel()}
+								type='button'
+							>
+								Manage
+							</button>
+						)}
+					</div>
+
+					<div className='pb-1'>{recipeActions.map(renderAction)}</div>
+
+					{canManageRecipes && (
+						<div className='border-t border-border-default py-1'>
+							<button
+								type='button'
+								onClick={() =>
+									openPanel({ mode: 'edit', recipeId: null, initial: null })
+								}
+								className={cn(
+									'group w-full px-3 py-2.5 flex items-center gap-3 text-left',
+									'hover:bg-elevated focus:bg-elevated active:bg-elevated/80',
+									'transition-all duration-200 ease focus:outline-none'
+								)}
+							>
+								<span className='text-text-secondary transition-colors duration-200 group-hover:text-primary-400'>
+									<Plus className='size-4' />
+								</span>
+
+								<span className='text-sm font-medium text-text-primary transition-colors duration-200 group-hover:text-primary-400'>
+									New recipe…
+								</span>
+							</button>
 						</div>
-					</button>
-				))}
-			</div>
+					)}
+				</>
+			)}
 		</motion.div>
 	);
 }

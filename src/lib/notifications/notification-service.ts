@@ -418,7 +418,13 @@ const shouldDeliverPush = (
 	if (eventType === 'comment_reaction') {
 		return pushPreferences.reactions;
 	}
-	if (eventType === 'comment_reply' || eventType === 'access_changed' || eventType === 'access_revoked') {
+	if (
+		eventType === 'comment_reply' ||
+		eventType === 'access_changed' ||
+		eventType === 'access_revoked' ||
+		eventType === 'plugin_review' ||
+		eventType === 'plugin_disabled'
+	) {
 		return pushPreferences.comments;
 	}
 	return pushPreferences.mentions;

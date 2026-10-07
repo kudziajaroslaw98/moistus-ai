@@ -88,7 +88,7 @@ export const POST = withApiValidation(
 			const aiPrompt = `${contextPrompt}Please answer the following question based on your knowledge and the provided context (if any), make sure to summarize the answer in a very short paragraph. Do not include thinking in the response.:\n\nQuestion: "${questionNode.content}"\n\nAnswer:`;
 
 			const result = streamText({
-				model: openai('gpt-5.4-mini'),
+				model: openai('gpt-6-luna'),
 				prompt: aiPrompt,
 			});
 

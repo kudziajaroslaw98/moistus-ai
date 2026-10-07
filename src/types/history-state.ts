@@ -31,6 +31,8 @@ export interface HistorySubjectHint {
 	type: 'node' | 'edge';
 	label?: string;
 	nodeType?: string;
+	/** Plugin node kind label at the time ("Metric"), so rows name it after uninstall. */
+	nodeKindLabel?: string;
 	position?: { x: number; y: number };
 	width?: number | null;
 	height?: number | null;
@@ -89,6 +91,8 @@ export interface HistoryItem {
 	/** Distinct property labels the event changed, e.g. ["Width", "Height"]. */
 	fieldLabels?: string[];
 	subjects?: HistorySubjectHint[];
+	/** Recipe or plugin that made the change, e.g. "Pre-mortem". */
+	actorLabel?: string;
 	userId?: string;
 	userName?: string;
 	userAvatar?: string;

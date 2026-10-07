@@ -77,7 +77,8 @@ export function DashboardRouteLoadingSkeleton() {
 				<Skeleton className='h-10 w-full rounded-[10px] bg-[#005bc7]/40' />
 
 				<div className='space-y-1'>
-					{Array.from({ length: 4 }).map((_, index) => (
+					{/* Home, Templates, Recipes, Plugins, Teams, Archive */}
+					{Array.from({ length: 6 }).map((_, index) => (
 						<Skeleton
 							className='h-[38px] w-full rounded-[9px] bg-zinc-900/80'
 							key={index}

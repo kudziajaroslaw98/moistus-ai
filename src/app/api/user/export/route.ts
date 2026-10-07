@@ -55,6 +55,7 @@ export async function GET(request: Request) {
 			preferencesResult,
 			usageQuotasResult,
 			activityLogResult,
+			recipesResult,
 		] = await Promise.all([
 			supabase
 				.from('user_profiles')
@@ -71,6 +72,7 @@ export async function GET(request: Request) {
 				.from('profile_activity_log')
 				.select('*')
 				.eq('user_id', user.id),
+			supabase.from('ai_recipes').select('*').eq('user_id', user.id),
 		]);
 
 		// Profile is critical — if it fails, abort
@@ -93,6 +95,7 @@ export async function GET(request: Request) {
 			warnings.push('Failed to export usage quotas');
 		if (activityLogResult.error)
 			warnings.push('Failed to export activity log');
+		if (recipesResult.error) warnings.push('Failed to export AI recipes');
 
 		const mindMaps = mindMapsResult.data ?? [];
 		const mapIds = mindMaps.map((m) => m.id);
@@ -104,6 +107,7 @@ export async function GET(request: Request) {
 		let shareTokens: Record<string, unknown>[] = [];
 		let shareAccess: Record<string, unknown>[] = [];
 		let mapHistoryEvents: Record<string, unknown>[] = [];
+		let mapPlugins: Record<string, unknown>[] = [];
 
 		if (mapIds.length > 0) {
 			const [
@@ -113,6 +117,7 @@ export async function GET(request: Request) {
 				shareTokensResult,
 				shareAccessResult,
 				mapHistoryResult,
+				mapPluginsResult,
 			] = await Promise.all([
 				batchedIn(supabase, 'nodes', 'map_id', mapIds),
 				batchedIn(supabase, 'edges', 'map_id', mapIds),
@@ -123,6 +128,7 @@ export async function GET(request: Request) {
 					.eq('created_by', user.id),
 				supabase.from('share_access').select('*').eq('user_id', user.id),
 				batchedIn(supabase, 'map_history_events', 'map_id', mapIds),
+				batchedIn(supabase, 'map_plugins', 'map_id', mapIds),
 			]);
 
 			if (nodesResult.error) warnings.push('Failed to export nodes');
@@ -134,6 +140,8 @@ export async function GET(request: Request) {
 				warnings.push('Failed to export share access');
 			if (mapHistoryResult.error)
 				warnings.push('Failed to export map history');
+			if (mapPluginsResult.error)
+				warnings.push('Failed to export map plugins');
 
 			// Filter out system-only ghost nodes
 			nodes = (nodesResult.data ?? []).filter(
@@ -144,6 +152,7 @@ export async function GET(request: Request) {
 			shareTokens = shareTokensResult.data ?? [];
 			shareAccess = shareAccessResult.data ?? [];
 			mapHistoryEvents = mapHistoryResult.data ?? [];
+			mapPlugins = mapPluginsResult.data ?? [];
 		}
 
 		// --- Batch 3: User's comment messages & reactions ---
@@ -191,6 +200,7 @@ export async function GET(request: Request) {
 		const nodesByMap = groupBy(nodes, 'map_id');
 		const edgesByMap = groupBy(edges, 'map_id');
 		const commentsByMap = groupBy(comments, 'map_id');
+		const pluginsByMap = groupBy(mapPlugins, 'map_id');
 		const messagesByComment = groupBy(commentMessages, 'comment_id');
 		const reactionsByComment = groupBy(commentReactions, 'comment_id');
 
@@ -198,6 +208,7 @@ export async function GET(request: Request) {
 			...map,
 			nodes: nodesByMap[map.id] ?? [],
 			edges: edgesByMap[map.id] ?? [],
+			plugins: pluginsByMap[map.id] ?? [],
 			comments: (commentsByMap[map.id] ?? []).map((comment) => ({
 				...comment,
 				messages: messagesByComment[comment.id as string] ?? [],
@@ -216,6 +227,7 @@ export async function GET(request: Request) {
 			preferences: preferencesResult.data ?? [],
 			mind_maps: enrichedMaps,
 			folders: foldersResult.data ?? [],
+			ai_recipes: recipesResult.data ?? [],
 			sharing: {
 				tokens_created: sanitizedTokens,
 				maps_accessed: shareAccess,

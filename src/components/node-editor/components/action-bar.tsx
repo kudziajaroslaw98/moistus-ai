@@ -69,7 +69,9 @@ export const ActionBar: React.FC<ActionBarProps> = ({
 			)}
 
 			<motion.button
-				animate={{ opacity: 1 }}
+				// Motion's inline opacity overrides the disabled:opacity class, so it animates
+				// to the dimmed value itself.
+				animate={{ opacity: !canCreate || isBusy ? 0.5 : 1 }}
 				data-testid='create-button'
 				disabled={!canCreate || isBusy}
 				initial={{ opacity: 0 }}

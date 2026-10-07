@@ -212,8 +212,26 @@ function createSuggestionsSliceHarness(overrides: Record<string, unknown> = {}) 
 		setStreamingToastError: jest.fn(),
 		hideStreamingToast: jest.fn(),
 		setStreamSteps: jest.fn(),
-		addNode: jest.fn(),
-		addEdge: jest.fn(),
+		currentUser: { id: 'user-1' },
+		permissions: { can_edit: true },
+		historyBatchDepth: 0,
+		beginHistoryBatch: jest.fn(),
+		endHistoryBatch: jest.fn(),
+		persistDeltaEvent: jest.fn(),
+		// Approval goes through applyGraphOps, which checks results are in the store.
+		addNode: jest.fn(async (props: { nodeId: string; nodeType?: string }) => {
+			set((current: Record<string, any>) => ({
+				nodes: [
+					...current.nodes,
+					{ id: props.nodeId, type: props.nodeType, position: { x: 0, y: 0 }, data: {} },
+				],
+			}));
+		}),
+		addEdge: jest.fn(async (source: string, target: string) => {
+			const edge = { id: `${source}-${target}`, source, target, data: {} };
+			set((current: Record<string, any>) => ({ edges: [...current.edges, edge] }));
+			return edge;
+		}),
 		deleteEdges: jest.fn(),
 		deleteNodes: jest.fn(),
 		getNode: jest.fn(),
@@ -416,11 +434,7 @@ describe('suggestions slice', () => {
 			.mockReturnValueOnce('approved-task-1')
 			.mockReturnValueOnce('approved-task-2');
 
-		const addNode = jest.fn().mockResolvedValue(undefined);
-		const addEdge = jest.fn().mockResolvedValue(undefined);
 		const harness = createSuggestionsSliceHarness({
-			addNode,
-			addEdge,
 			ghostNodes: [
 				createGhostNode(
 					'ghost-task-1',
@@ -442,6 +456,7 @@ describe('suggestions slice', () => {
 		});
 
 		await harness.getState().acceptSuggestion('ghost-task-1');
+		const { addNode, addEdge } = harness.getState();
 
 		expect(addNode).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -478,11 +493,7 @@ describe('suggestions slice', () => {
 	it('anchors approved annotation ghosts to their source node instead of adding an edge', async () => {
 		mockGenerateUuidString.mockReturnValueOnce('approved-annotation-1');
 
-		const addNode = jest.fn().mockResolvedValue(undefined);
-		const addEdge = jest.fn().mockResolvedValue(undefined);
 		const harness = createSuggestionsSliceHarness({
-			addNode,
-			addEdge,
 			nodes: [createNode('source-node', { x: -100, y: -40 }, 80)],
 			ghostNodes: [
 				createGhostNode(
@@ -499,6 +510,7 @@ describe('suggestions slice', () => {
 		});
 
 		await harness.getState().acceptSuggestion('ghost-annotation-1');
+		const { addNode, addEdge } = harness.getState();
 
 		expect(addNode).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -520,8 +532,6 @@ describe('suggestions slice', () => {
 	it('anchors approved annotation ghosts to the host when the source is an anchored annotation', async () => {
 		mockGenerateUuidString.mockReturnValueOnce('approved-annotation-2');
 
-		const addNode = jest.fn().mockResolvedValue(undefined);
-		const addEdge = jest.fn().mockResolvedValue(undefined);
 		const hostNode = createNode('host-node', { x: -100, y: -40 }, 80);
 		const sourceAnnotation = createNode('source-note', { x: 200, y: 0 }, 80);
 		sourceAnnotation.type = 'annotationNode';
@@ -531,8 +541,6 @@ describe('suggestions slice', () => {
 			metadata: { anchorNodeId: 'host-node', anchorOffset: { x: 300, y: 40 } },
 		};
 		const harness = createSuggestionsSliceHarness({
-			addNode,
-			addEdge,
 			nodes: [hostNode, sourceAnnotation],
 			ghostNodes: [
 				createGhostNode(
@@ -546,6 +554,7 @@ describe('suggestions slice', () => {
 		});
 
 		await harness.getState().acceptSuggestion('ghost-annotation-2');
+		const { addNode, addEdge } = harness.getState();
 
 		expect(addNode).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -561,14 +570,10 @@ describe('suggestions slice', () => {
 	it('never adds an edge between an approved annotation and a free annotation source', async () => {
 		mockGenerateUuidString.mockReturnValueOnce('approved-annotation-3');
 
-		const addNode = jest.fn().mockResolvedValue(undefined);
-		const addEdge = jest.fn().mockResolvedValue(undefined);
 		const freeAnnotation = createNode('free-note', { x: 0, y: 0 }, 80);
 		freeAnnotation.type = 'annotationNode';
 		freeAnnotation.data = { ...freeAnnotation.data, node_type: 'annotationNode' };
 		const harness = createSuggestionsSliceHarness({
-			addNode,
-			addEdge,
 			nodes: [freeAnnotation],
 			ghostNodes: [
 				createGhostNode(
@@ -582,6 +587,7 @@ describe('suggestions slice', () => {
 		});
 
 		await harness.getState().acceptSuggestion('ghost-annotation-3');
+		const { addNode, addEdge } = harness.getState();
 
 		expect(addNode).toHaveBeenCalledTimes(1);
 		expect(addEdge).not.toHaveBeenCalled();
@@ -997,5 +1003,194 @@ describe('suggestions slice', () => {
 				node2Id: 'node-2',
 			}),
 		]);
+	});
+});
+
+describe('runRecipe', () => {
+	const recipe = {
+		id: 'recipe-1',
+		definition: {
+			title: 'Pre-mortem',
+			description: '',
+			icon: 'alert' as const,
+			scope: 'node' as const,
+			instruction: 'List the likely causes of failure.',
+			output: { maxItems: 3, nodeTypes: ['defaultNode' as const], labels: ['risk'] },
+		},
+	};
+	const staleGhost = {
+		id: 'stale-ghost',
+		type: 'ghostNode',
+		position: { x: 0, y: 0 },
+		data: { id: 'stale-ghost', metadata: {} },
+	} as unknown as AppNode;
+
+	beforeEach(() => {
+		jest.clearAllMocks();
+	});
+
+	it('streams the recipe, replaces earlier ghosts and attributes new ones', () => {
+		mockGenerateUuidString.mockReturnValueOnce('ghost-r1');
+		const harness = createSuggestionsSliceHarness({
+			nodes: [createNode('focus', { x: 100, y: 100 }, 60)],
+			ghostNodes: [staleGhost],
+		});
+
+		harness.getState().runRecipe(recipe, 'focus');
+
+		const state = harness.getState();
+		expect(state.streamTrigger.api).toBe('/api/ai/recipes/run');
+		expect(state.streamTrigger.body).toMatchObject({
+			mapId: 'map-1',
+			mapMeta: { title: 'Mind Map', description: 'Map description' },
+			recipe,
+			sourceNodeId: 'focus',
+		});
+		expect(state.ghostNodes).toHaveLength(0);
+		expect(state.showStreamingToast).toHaveBeenCalledWith('Pre-mortem');
+
+		streamSuggestion(harness, {
+			id: 'r-1',
+			content: 'Testers churn after week one',
+			nodeType: 'defaultNode',
+			nodePayload: null,
+			confidence: 0.8,
+			position: { x: 0, y: 0 },
+			context: {
+				sourceNodeId: 'focus',
+				targetNodeId: null,
+				relationshipType: 'risk',
+				trigger: 'magic-wand',
+				recipe: { id: 'recipe-1', title: 'Pre-mortem', icon: 'alert' },
+			},
+		});
+
+		const [ghost] = harness.getState().ghostNodes;
+		expect(ghost.position).toEqual({ x: 100, y: 210 });
+		expect(ghost.data.metadata.context.recipe).toEqual({
+			id: 'recipe-1',
+			title: 'Pre-mortem',
+			icon: 'alert',
+		});
+	});
+
+	it('sends no node for map recipes and does nothing for node recipes without a node', () => {
+		const harness = createSuggestionsSliceHarness();
+
+		harness.getState().runRecipe(recipe, null);
+		expect(harness.getState().streamTrigger).toBeNull();
+
+		harness
+			.getState()
+			.runRecipe(
+				{ ...recipe, definition: { ...recipe.definition, scope: 'map' as const } },
+				'ignored'
+			);
+		expect(harness.getState().streamTrigger.body.sourceNodeId).toBeNull();
+	});
+
+	it('keeps existing ghosts when another stream is already running', () => {
+		const harness = createSuggestionsSliceHarness({
+			isStreaming: true,
+			ghostNodes: [staleGhost],
+		});
+
+		harness.getState().runRecipe(recipe, 'focus');
+
+		expect(harness.getState().ghostNodes).toEqual([staleGhost]);
+		expect(harness.getState().showStreamingToast).not.toHaveBeenCalled();
+	});
+});
+
+describe('acceptSuggestion history and failures', () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+	});
+
+	function ghostFromRecipe() {
+		const ghost = createGhostNode('ghost-r', 'Testers churn after week one', {
+			sourceNodeId: 'source-node',
+			trigger: 'magic-wand',
+		});
+		ghost.data.metadata = {
+			...ghost.data.metadata,
+			context: {
+				sourceNodeId: 'source-node',
+				trigger: 'magic-wand',
+				relationshipType: 'risk',
+				recipe: { id: 'recipe-1', title: 'Pre-mortem', icon: 'alert' },
+			},
+		};
+		return ghost;
+	}
+
+	it('records one history event for node and edge, attributed to the recipe', async () => {
+		mockGenerateUuidString.mockReturnValueOnce('approved-r');
+		const harness = createSuggestionsSliceHarness({
+			nodes: [createNode('source-node', { x: 0, y: 0 }, 60)],
+			ghostNodes: [ghostFromRecipe()],
+		});
+
+		await harness.getState().acceptSuggestion('ghost-r');
+
+		const state = harness.getState();
+		expect(state.addEdge).toHaveBeenCalledWith('source-node', 'approved-r', {
+			label: 'risk',
+			animated: false,
+		});
+		expect(state.beginHistoryBatch).toHaveBeenCalledTimes(1);
+		expect(state.persistDeltaEvent).toHaveBeenCalledTimes(1);
+		expect(state.persistDeltaEvent).toHaveBeenCalledWith(
+			'addNode',
+			expect.anything(),
+			expect.anything(),
+			{ actor: { kind: 'recipe', id: 'recipe-1', label: 'Pre-mortem' } }
+		);
+		expect(state.ghostNodes).toEqual([]);
+	});
+
+	it('attributes ordinary AI suggestions to the accepting user', async () => {
+		mockGenerateUuidString.mockReturnValueOnce('approved-u');
+		const harness = createSuggestionsSliceHarness({
+			ghostNodes: [createGhostNode('ghost-u', 'Plain idea')],
+		});
+
+		await harness.getState().acceptSuggestion('ghost-u');
+
+		expect(harness.getState().persistDeltaEvent).toHaveBeenCalledWith(
+			'addNode',
+			expect.anything(),
+			expect.anything(),
+			{ actor: { kind: 'user', id: 'user-1' } }
+		);
+	});
+
+	it('keeps the ghost and skips the edge when the node could not be saved', async () => {
+		mockGenerateUuidString.mockReturnValueOnce('approved-fail');
+		// The real addNode shows an error toast and resolves when saving fails.
+		const addNode = jest.fn(async () => undefined);
+		const harness = createSuggestionsSliceHarness({
+			addNode,
+			nodes: [createNode('source-node', { x: 0, y: 0 }, 60)],
+			ghostNodes: [ghostFromRecipe()],
+		});
+
+		await harness.getState().acceptSuggestion('ghost-r');
+
+		expect(harness.getState().addEdge).not.toHaveBeenCalled();
+		expect(harness.getState().ghostNodes).toHaveLength(1);
+	});
+
+	it('does nothing for viewers without edit access', async () => {
+		const harness = createSuggestionsSliceHarness({
+			currentUser: { id: 'viewer-1' },
+			permissions: { can_edit: false },
+			ghostNodes: [createGhostNode('ghost-v', 'Idea')],
+		});
+
+		await harness.getState().acceptSuggestion('ghost-v');
+
+		expect(harness.getState().addNode).not.toHaveBeenCalled();
+		expect(harness.getState().ghostNodes).toHaveLength(1);
 	});
 });

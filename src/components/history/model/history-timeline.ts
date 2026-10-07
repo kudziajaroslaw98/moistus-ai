@@ -78,6 +78,7 @@ const NODE_TYPE_TONES: Record<string, string> = {
 	referenceNode: 'text-indigo-300',
 	commentNode: 'text-yellow-200',
 	ghostNode: 'text-violet-300',
+	extensionNode: 'text-blue-300',
 };
 
 const MIXED_NODES_TONE = 'text-violet-300';
@@ -101,6 +102,14 @@ export function nodeTypeLabel(nodeType: string | undefined): string {
 function nodeTypeTone(nodeType: string | undefined): string {
 	return (nodeType && NODE_TYPE_TONES[nodeType]) || 'text-zinc-200';
 }
+
+/** Type label for a subject; plugin nodes use their kind ("Metric"), not "Extension". */
+function subjectTypeLabel(subject: HistorySubjectHint | undefined): string {
+	return subject?.nodeKindLabel ?? nodeTypeLabel(subject?.nodeType);
+}
+
+const subjectTypeKey = (subject: HistorySubjectHint) =>
+	`${subject.nodeType ?? ''}:${subject.nodeKindLabel ?? ''}`;
 
 export function shortId(id: string): string {
 	return `#${id.length > 8 ? id.slice(0, 8) : id}`;
@@ -187,7 +196,7 @@ function verbWithSubject(
 			: `${verb} node + connection`;
 	}
 	if (nodes.length === 1) {
-		return `${verb} ${nodeTypeLabel(nodes[0].nodeType).toLowerCase()}`;
+		return `${verb} ${subjectTypeLabel(nodes[0]).toLowerCase()}`;
 	}
 	if (nodes.length > 1) return `${verb} ${nodes.length} nodes`;
 	return `${verb} node`;
@@ -274,7 +283,7 @@ function listNames(
 function typeBreakdown(nodes: HistorySubjectHint[]): string {
 	const counts = new Map<string, number>();
 	for (const node of nodes) {
-		const label = nodeTypeLabel(node.nodeType);
+		const label = subjectTypeLabel(node);
 		counts.set(label, (counts.get(label) ?? 0) + 1);
 	}
 	return [...counts.entries()]
@@ -314,7 +323,7 @@ export function buildHistoryRowSubject(
 			: null;
 
 	if (nodes.length > 0) {
-		const types = new Set(nodes.map((node) => node.nodeType ?? ''));
+		const types = new Set(nodes.map(subjectTypeKey));
 		const singleType = types.size === 1 ? nodes[0].nodeType : undefined;
 
 		if (nodes.length > 1 && types.size > 1) {
@@ -328,7 +337,8 @@ export function buildHistoryRowSubject(
 			};
 		}
 
-		const baseLabel = nodeTypeLabel(singleType);
+		const baseLabel =
+			types.size === 1 ? subjectTypeLabel(nodes[0]) : nodeTypeLabel(undefined);
 		return {
 			typeLabel: nodes.length > 1 ? `${baseLabel} nodes` : baseLabel,
 			tone: nodeTypeTone(singleType),
@@ -359,6 +369,7 @@ export function buildHistoryRowSubject(
 function rowGroupKey(meta: HistoryMeta): string {
 	return [
 		meta.userId ?? '',
+		meta.actorLabel ?? '',
 		getHistoryFilterCategory(meta),
 		buildHistoryRowTitle(meta),
 		[...(meta.fieldLabels ?? [])].sort().join(','),

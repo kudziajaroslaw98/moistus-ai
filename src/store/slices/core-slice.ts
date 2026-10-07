@@ -104,6 +104,7 @@ export const createCoreDataSlice: StateCreator<
 		get().clearPermissionsState();
 		get().stopStream?.();
 		get().clearToast?.();
+		get().resetPlugins?.();
 
 		set({
 			mindMap: null,
@@ -145,6 +146,9 @@ export const createCoreDataSlice: StateCreator<
 				referenceSearch: false,
 				mapSettings: false,
 				upgradeUser: false,
+				commandPalette: false,
+				recipes: false,
+				plugins: false,
 			},
 			edgeInfo: null,
 			contextMenuState: {
@@ -164,18 +168,9 @@ export const createCoreDataSlice: StateCreator<
 				parentNode: null,
 				existingNodeId: null,
 				suggestedType: null,
+				extensionKind: null,
 				initialValue: null,
 				onboardingSource: null,
-			},
-			commandPalette: {
-				isOpen: false,
-				position: { x: 0, y: 0 },
-				searchQuery: '',
-				selectedIndex: 0,
-				filteredCommands: [],
-				trigger: null,
-				anchorPosition: 0,
-				activeNodeType: 'defaultNode',
 			},
 			canvasSearch: { isOpen: false, query: '', activeIndex: 0 },
 			aiFeature: 'suggest-nodes',
@@ -584,6 +579,8 @@ export const createCoreDataSlice: StateCreator<
 				get().fetchComments(mapId),
 				// Fetch permissions first; realtime updates apply deltas afterwards.
 				get().fetchInitialPermissions(mapId),
+				// Plugins the owner turned on; their code loads in the background.
+				get().fetchMapPlugins(mapId),
 			]);
 			if (abortIfStale()) {
 				return;

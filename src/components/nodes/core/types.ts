@@ -6,6 +6,8 @@
  */
 
 import { AvailableNodeTypes } from '@/registry/node-registry';
+import type { SuggestionContext } from '@/types/ghost-node';
+import type { NodeExtensionData } from '@/types/extensions';
 import { Node, NodeProps } from '@xyflow/react';
 import { ReactNode } from 'react';
 
@@ -175,12 +177,7 @@ export interface GhostNodeMetadata extends BaseNodeMetadata {
 		fileName?: string | null;
 	} | null;
 	confidence: number;
-	context?: {
-		sourceNodeId?: string | null;
-		targetNodeId?: string | null;
-		relationshipType?: string | null;
-		trigger: 'magic-wand' | 'dangling-edge' | 'auto';
-	};
+	context?: SuggestionContext;
 	sourceNodeName?: string; // Name of the node that triggered this suggestion
 }
 
@@ -194,6 +191,10 @@ export interface AIMetadata {
 		embedding?: number[];
 		extractedConcepts?: string[];
 	};
+}
+
+export interface ExtensionNodeMetadata extends BaseNodeMetadata {
+	extension?: NodeExtensionData | null;
 }
 
 // Map all node types to their specific metadata
@@ -210,6 +211,7 @@ export interface NodeMetadataMap {
 	referenceNode: ReferenceNodeMetadata & AIMetadata;
 	commentNode: CommentNodeMetadata;
 	ghostNode: GhostNodeMetadata;
+	extensionNode: ExtensionNodeMetadata;
 }
 
 // Discriminated union for type-safe metadata access
@@ -260,6 +262,8 @@ export interface BaseNodeWrapperProps<
 	disableConnections?: boolean;
 	accentColor?: string;
 	elevation?: number;
+	/** Card width in px (default 320); wide plugin kinds pass PLUGIN_KIND_WIDTHS.wide. */
+	nodeWidth?: number;
 	metadataColorOverrides?: {
 		accentColor?: string;
 		bgOpacity?: number;

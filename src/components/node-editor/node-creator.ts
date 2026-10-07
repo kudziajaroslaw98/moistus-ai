@@ -295,6 +295,14 @@ export const transformDataForNodeType = (
 				},
 			};
 
+		case 'extensionNode':
+			// Plugin nodes: the plugin's data, saved view and summary are built by the
+			// editor (plugin-kind-editor.ts); universal metadata doesn't apply.
+			return {
+				content: data.content || '',
+				metadata: { extension: data.metadata?.extension },
+			};
+
 		default:
 			// Fallback for any unknown node types
 			return {

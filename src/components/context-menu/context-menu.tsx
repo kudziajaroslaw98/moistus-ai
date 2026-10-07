@@ -25,14 +25,6 @@ import { useShallow } from 'zustand/shallow';
 import { ContextMenuItem } from './context-menu-item';
 import { useContextMenuConfig } from './use-context-menu-config';
 
-interface ContextMenuProps {
-	aiActions: {
-		suggestConnections: () => void;
-		suggestMerges: () => void;
-		suggestCounterpoints?: () => void;
-	};
-}
-
 interface VirtualElement {
 	getBoundingClientRect(): DOMRect;
 }
@@ -57,7 +49,7 @@ function createVirtualElement(x: number, y: number): VirtualElement {
 	};
 }
 
-export function ContextMenu({ aiActions }: ContextMenuProps) {
+export function ContextMenu() {
 	const { contextMenuState, popoverOpen, setPopoverOpen, setContextMenuState } =
 		useAppStore(
 			useShallow((state) => ({
@@ -84,10 +76,7 @@ export function ContextMenu({ aiActions }: ContextMenuProps) {
 	}, [setPopoverOpen, setContextMenuState]);
 
 	// Get menu configuration
-	const { menuConfig } = useContextMenuConfig({
-		aiActions,
-		onClose: handleClose,
-	});
+	const { menuConfig } = useContextMenuConfig({ onClose: handleClose });
 
 	// Create virtual element from mouse coordinates
 	const virtualElement = useMemo(() => {

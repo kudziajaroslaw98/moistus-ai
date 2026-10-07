@@ -45,6 +45,7 @@
     "@codemirror/view": "6.43.13",
     "@floating-ui/react": "0.27.18",
     "@hookform/resolvers": "5.9.1",
+    "@jitl/quickjs-singlefile-browser-release-sync": "0.32.0",
     "@polar-sh/nextjs": "1.0.1",
     "@polar-sh/sdk": "1.0.2",
     "@supabase/ssr": "0.12.7",
@@ -61,6 +62,7 @@
     "lucide-react": "1.50.0",
     "motion": "14.0.0",
     "next": "16.3.8",
+    "quickjs-emscripten-core": "0.32.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-hook-form": "7.89.0",
@@ -81,6 +83,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "3.3.7",
+    "@jitl/quickjs-wasmfile-release-sync": "0.32.0",
     "@playwright/test": "1.63.0",
     "@serwist/turbopack": "^9.5.12",
     "@stylistic/eslint-plugin": "5.10.0",

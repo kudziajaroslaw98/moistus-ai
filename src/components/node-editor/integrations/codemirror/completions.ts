@@ -9,6 +9,7 @@
  */
 
 import {
+	Completion,
 	CompletionContext,
 	CompletionResult,
 	CompletionSource,
@@ -16,6 +17,8 @@ import {
 } from '@codemirror/autocomplete';
 import type { EditorView } from '@codemirror/view';
 import { commandRegistry } from '../../core/commands/command-registry';
+import { localDateString } from '@/lib/plugins/call-context';
+import { readPluginFields, type PluginFieldSpecLite } from './plugin-fields';
 
 // ============================================================================
 // COLLABORATOR MENTION TYPE
@@ -326,13 +329,60 @@ function createChainedApply(insertText: string) {
 // MAIN COMPLETION SOURCE
 // ============================================================================
 
+const PLUGIN_KINDS_SECTION = { name: 'Plugins on this map', rank: 1 };
+
+export interface CreateCompletionsOptions {
+	/** Adds "More node types…" to the `$` list; it clears the trigger and calls this. */
+	onBrowsePlugins?: () => void;
+}
+
+/** Field names (`target:`) and enum/boolean values for a plugin node type. */
+function completePluginFields(
+	word: { from: number; text: string },
+	explicit: boolean,
+	fields: PluginFieldSpecLite[]
+): CompletionResult | null {
+	const valueMatch = word.text.match(/^([a-z][a-zA-Z0-9]*):(\S*)$/);
+	if (valueMatch) {
+		const field = fields.find((candidate) => candidate.name === valueMatch[1]);
+		const values =
+			field?.type === 'enum'
+				? (field.options ?? [])
+				: field?.type === 'boolean'
+					? ['yes', 'no']
+					: field?.type === 'date'
+						? [localDateString()]
+						: [];
+		const options = values
+			.filter((value) => value.startsWith(valueMatch[2]))
+			.map((value) => ({ label: value, type: 'enum', apply: `${value} ` }));
+		return options.length > 0
+			? { from: word.from + valueMatch[1].length + 1, options, validFor: /^[\w-]*$/ }
+			: null;
+	}
+
+	const isFieldStart = /^[a-z][a-zA-Z0-9]*$/.test(word.text);
+	if (!isFieldStart && !(explicit && word.text === '')) return null;
+	const options = fields
+		.filter((field) => field.name.startsWith(word.text))
+		.map((field) => ({
+			label: `${field.name}:`,
+			type: 'property',
+			detail: field.type === 'list' ? `${field.title} (list)` : field.title,
+			// A list opens its brackets; the rows go inside.
+			apply: field.type === 'list' ? `${field.name}:[` : createChainedApply(`${field.name}:`),
+		}));
+	return options.length > 0 ? { from: word.from, options, validFor: /^\w*$/ } : null;
+}
+
 /**
  * Main completion source
  * @returns source - CompletionSource for CodeMirror autocompletion
  * @returns mentionMap - Map of label → CollaboratorMention for avatar rendering
  */
 export function createCompletions(
-	collaborators: CollaboratorMention[] = []
+	collaborators: CollaboratorMention[] = [],
+	{ onBrowsePlugins }: CreateCompletionsOptions = {}
 ): { source: CompletionSource; mentionMap: Map<string, CollaboratorMention> } {
 	const allMentions = [...BUILT_IN_MENTIONS, ...collaborators];
 
@@ -346,6 +396,12 @@ export function createCompletions(
 		if (!word) return null;
 
 		const prefix = word.text;
+
+		// Plugin node types: only their own fields (node type triggers still work).
+		const pluginFields = readPluginFields(context.state);
+		if (pluginFields && !prefix.startsWith('$')) {
+			return completePluginFields(word, explicit, pluginFields);
+		}
 
 		// ================================================================
 		// TAG COMPLETIONS (#)
@@ -715,20 +771,40 @@ export function createCompletions(
 		if (prefix.startsWith('$')) {
 			const search = prefix.slice(1).toLowerCase();
 			const nodeTypes = commandRegistry.getCommandsByTriggerType('node-type');
-			const options = nodeTypes
+			const typeOptions: Completion[] = nodeTypes
 				.filter((cmd) => cmd.trigger.toLowerCase().includes(search))
 				.map((cmd) => ({
 					label: cmd.trigger,
 					type: 'class',
 					apply: cmd.trigger + ' ',
 					info: cmd.description,
+					...(cmd.extension
+						? { detail: cmd.label, section: PLUGIN_KINDS_SECTION }
+						: {}),
 				}));
 
-			if (options.length === 0) return null;
+			// The label keeps the `$` so CodeMirror's own filtering shows it for `$` and `$plu…`.
+			if (onBrowsePlugins && '$plugins'.startsWith(prefix.toLowerCase())) {
+				typeOptions.push({
+					label: '$plugins',
+					displayLabel: 'More node types…',
+					detail: 'Opens Plugins',
+					info: 'Turn on plugins to add new kinds of nodes to this map',
+					type: 'browse-plugins',
+					section: PLUGIN_KINDS_SECTION,
+					boost: -99,
+					apply: (view, _completion, from, to) => {
+						view.dispatch({ changes: { from, to, insert: '' } });
+						onBrowsePlugins();
+					},
+				});
+			}
+
+			if (typeOptions.length === 0) return null;
 
 			return {
 				from: word.from,
-				options,
+				options: typeOptions,
 				validFor: /^\$\w*/,
 			};
 		}

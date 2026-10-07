@@ -1,6 +1,6 @@
 import type { AppNode } from '@/types/app-node'
 import { transformDataForNodeType } from './node-creator'
-import { transformNodeToQuickInputString } from './node-updater'
+import { transformNodeToQuickInputString, updateNodeDirect } from './node-updater'
 
 const createNode = (overrides: Partial<AppNode>): AppNode =>
 	({
@@ -156,5 +156,54 @@ describe('node updater parser cleanup', () => {
 		expect(quickInput).toContain('[ ] Ship feature')
 		expect(quickInput).toContain('[x] Write tests')
 		expect(quickInput).toContain('title:"Sprint Tasks"')
+	})
+})
+
+describe('updateNodeDirect type switches', () => {
+	const metricNode = createNode({
+		type: 'extensionNode',
+		data: {
+			id: 'node-1',
+			content: 'Signups: 5 / 10',
+			map_id: 'map-1',
+			node_type: 'extensionNode',
+			metadata: {
+				extension: {
+					pluginId: 'shiko.metric',
+					kind: 'metric',
+					version: '0.1.0',
+					data: { label: 'Signups', value: 5, target: 10 },
+				},
+			},
+		} as unknown as AppNode['data'],
+	})
+
+	it('clears the plugin data when a plugin node becomes a note', async () => {
+		const updateNode = jest.fn().mockResolvedValue(undefined)
+
+		await updateNodeDirect({
+			nodeType: 'defaultNode',
+			data: { content: 'Signups value:5 target:10', metadata: {} },
+			existingNode: metricNode,
+			updateNode,
+		})
+
+		const saved = updateNode.mock.calls[0][0].data
+		expect(saved.node_type).toBe('defaultNode')
+		expect(saved.metadata).toHaveProperty('extension', undefined)
+	})
+
+	it('keeps the plugin data when a plugin node stays a plugin node', async () => {
+		const updateNode = jest.fn().mockResolvedValue(undefined)
+		const extension = { ...metricNode.data.metadata!.extension!, data: { label: 'Signups', value: 6, target: 10 } }
+
+		await updateNodeDirect({
+			nodeType: 'extensionNode',
+			data: { content: 'Signups: 6 / 10', metadata: { extension } },
+			existingNode: metricNode,
+			updateNode,
+		})
+
+		expect(updateNode.mock.calls[0][0].data.metadata.extension).toEqual(extension)
 	})
 })

@@ -188,3 +188,87 @@ describe('codemirror completions cleanup', () => {
 		}
 	})
 })
+
+describe('plugin node type completions', () => {
+	const { EditorState } = jest.requireActual('@codemirror/state') as typeof import('@codemirror/state')
+	const { pluginFieldsField, setPluginFieldsEffect } = jest.requireActual(
+		'./plugin-fields'
+	) as typeof import('./plugin-fields')
+
+	const pluginContext = (text: string, explicit = false) => {
+		const state = EditorState.create({ doc: text, extensions: [pluginFieldsField] }).update({
+			effects: setPluginFieldsEffect.of([
+				{ name: 'target', title: 'Target', type: 'number' },
+				{ name: 'trend', title: 'Trend', type: 'enum', options: ['up', 'down'] },
+				{ name: 'unit', title: 'Unit', type: 'string' },
+			]),
+		}).state
+		return { ...buildContext(text, { explicit }), state } as unknown as CompletionContext
+	}
+
+	it('suggests only the kind’s field names', () => {
+		const { source } = createCompletions()
+		const result = source(pluginContext('Users t')) as unknown as { options: Array<{ label: string }> }
+
+		expect(result.options.map((option) => option.label)).toEqual(['target:', 'trend:'])
+	})
+
+	it('suggests enum values after the field name', () => {
+		const { source } = createCompletions()
+		const result = source(pluginContext('Users trend:d')) as unknown as {
+			from: number
+			options: Array<{ label: string }>
+		}
+
+		expect(result.options.map((option) => option.label)).toEqual(['down'])
+		expect(result.from).toBe('Users trend:'.length)
+	})
+
+	it('does not offer built-in metadata keys', () => {
+		const { source } = createCompletions()
+
+		expect(source(pluginContext('Users wei'))).toBeNull()
+	})
+})
+
+describe('"More node types…" in the $ list', () => {
+	type Option = { label: string; displayLabel?: string; apply?: unknown }
+
+	it('is listed last when the editor can open the Plugins panel', () => {
+		const { source } = createCompletions([], { onBrowsePlugins: jest.fn() })
+		const result = source(buildContext('$')) as unknown as { options: Option[] }
+
+		expect(result.options.map((option) => option.label)).toEqual(['$note', '$task', '$plugins'])
+		expect(result.options.at(-1)?.displayLabel).toBe('More node types…')
+	})
+
+	it('is left out otherwise, and when the typed trigger does not match', () => {
+		const withoutCallback = createCompletions().source(buildContext('$')) as unknown as {
+			options: Option[]
+		}
+		const notMatching = createCompletions([], { onBrowsePlugins: jest.fn() }).source(
+			buildContext('$no')
+		) as unknown as { options: Option[] }
+
+		expect(withoutCallback.options.map((option) => option.label)).not.toContain('$plugins')
+		expect(notMatching.options.map((option) => option.label)).toEqual(['$note'])
+	})
+
+	it('clears the typed trigger and opens the panel', () => {
+		const onBrowsePlugins = jest.fn()
+		const dispatch = jest.fn()
+		const { source } = createCompletions([], { onBrowsePlugins })
+		const result = source(buildContext('$')) as unknown as { options: Option[] }
+		const apply = result.options.at(-1)?.apply as (
+			view: EditorView,
+			completion: unknown,
+			from: number,
+			to: number
+		) => void
+
+		apply({ dispatch } as unknown as EditorView, null, 0, 1)
+
+		expect(dispatch).toHaveBeenCalledWith({ changes: { from: 0, to: 1, insert: '' } })
+		expect(onBrowsePlugins).toHaveBeenCalledTimes(1)
+	})
+})

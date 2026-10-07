@@ -44,7 +44,8 @@ const EXCLUDED_PROMPT_ALIAS_NODE_TYPES = new Set([
 	'group',
 ]);
 
-function isPromptAliasCandidate(node: SuggestionPromptInput['nodes'][number]) {
+/** Nodes the model may see and reference: no ghosts, comments, groups or system-only types. */
+export function isPromptAliasCandidate(node: SuggestionPromptInput['nodes'][number]) {
 	const nodeType = node.data.node_type || node.type || 'defaultNode';
 	const userCreatable = (node as { userCreatable?: boolean }).userCreatable;
 	return (

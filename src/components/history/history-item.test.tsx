@@ -307,6 +307,18 @@ describe('HistoryItem revert confirmation', () => {
 		expect(mockStoreState.revertToHistoryState).not.toHaveBeenCalled();
 	});
 
+	it('names the recipe that made the change', () => {
+		render(
+			<HistoryItem
+				isCurrent={false}
+				meta={{ ...meta, actionName: 'addNode', actorLabel: 'Pre-mortem' }}
+				originalIndex={1}
+			/>
+		);
+
+		expect(screen.getByText(/Pre-mortem/)).toBeInTheDocument();
+	});
+
 	it('offers no restore on the current entry', () => {
 		render(<HistoryItem isCurrent meta={meta} originalIndex={3} />);
 

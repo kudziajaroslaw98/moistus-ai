@@ -183,6 +183,7 @@ export const NodeEditor = () => {
 					>
 						<QuickInput
 							existingNode={existingNode}
+							extensionKind={nodeEditor.extensionKind}
 							initialValue={nodeEditor.initialValue}
 							mode={mode}
 							nodeType={nodeType}

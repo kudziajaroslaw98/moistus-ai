@@ -1,0 +1,224 @@
+/**
+ * @jest-environment node
+ */
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import {
+	newQuickJSWASMModuleFromVariant,
+	type QuickJSWASMModule,
+} from 'quickjs-emscripten-core';
+import {
+	catalogManifestUrl,
+	compareVersions,
+	FIRST_PARTY_PLUGINS,
+	mapPluginRequest,
+	newerCatalogVersions,
+	permissionChanges,
+	powersConfirmed,
+	type PluginCatalogEntry,
+} from './catalog';
+import { pluginManifestSchema, type PluginManifest } from './manifest-schema';
+import {
+	assignListRowIds,
+	parsePluginFieldInput,
+	validatePluginData,
+} from './plugin-fields';
+import { createPluginSandbox } from './runtime/sandbox';
+import { nodeTestVariant } from './runtime/test-quickjs-variant';
+import { validatePluginTree, type PluginUiNode } from './ui-tree';
+
+let QuickJS: QuickJSWASMModule;
+beforeAll(async () => {
+	QuickJS = await newQuickJSWASMModuleFromVariant(nodeTestVariant());
+});
+
+const publicFile = (pluginId: string, version: string, name: string) =>
+	readFileSync(
+		join(
+			process.cwd(),
+			'public',
+			catalogManifestUrl(pluginId, version).replace('manifest.json', name)
+		),
+		'utf8'
+	);
+
+const readManifest = (pluginId: string, version: string): PluginManifest =>
+	pluginManifestSchema.parse(
+		JSON.parse(publicFile(pluginId, version, 'manifest.json'))
+	);
+
+const allVersions = FIRST_PARTY_PLUGINS.flatMap((entry) =>
+	entry.versions.map((version, index) => ({
+		label: `${entry.id}@${version.version}`,
+		entry,
+		version,
+		previous: index > 0 ? entry.versions[index - 1] : undefined,
+	}))
+);
+
+function actionsIn(node: PluginUiNode): Array<{ action: string; payload: unknown }> {
+	if (node.type === 'button' || node.type === 'checkbox')
+		return [{ action: node.action, payload: node.payload ?? null }];
+	if (node.type === 'stack' || node.type === 'row')
+		return node.children.flatMap(actionsIn);
+	return [];
+}
+
+const TODAY = { canEdit: true, today: '2026-10-06' };
+
+describe('first-party plugin catalog', () => {
+	it.each(FIRST_PARTY_PLUGINS.map((entry): [string, PluginCatalogEntry] => [entry.id, entry]))(
+		'%s lists its versions oldest first, each with notes',
+		(_id, entry) => {
+			entry.versions.forEach((version, index) => {
+				expect(version.notes.trim()).not.toBe('');
+				if (index > 0) {
+					expect(
+						compareVersions(version.version, entry.versions[index - 1].version)
+					).toBeGreaterThan(0);
+				}
+			});
+		}
+	);
+
+	it.each(allVersions.map((item) => [item.label, item]))(
+		'%s: the manifest matches and the code fingerprint is current',
+		(_label, { entry, version }) => {
+			const manifest = readManifest(entry.id, version.version);
+			const code = publicFile(entry.id, version.version, manifest.main);
+
+			expect(manifest.id).toBe(entry.id);
+			// Shown where manifests aren't loaded (reports, notifications).
+			expect(entry.name).toBe(manifest.name);
+			expect(manifest.version).toBe(version.version);
+			expect([...manifest.permissions].sort()).toEqual(
+				[...version.permissions].sort()
+			);
+			// If this fails after editing plugin.js, put the new hash in catalog.ts.
+			expect(createHash('sha256').update(code).digest('hex')).toBe(
+				version.sha256
+			);
+		}
+	);
+
+	it.each(allVersions.map((item) => [item.label, item]))(
+		'%s: every example parses, renders a valid view, and every button returns valid data',
+		(_label, { entry, version }) => {
+			const manifest = readManifest(entry.id, version.version);
+			const sandbox = createPluginSandbox(
+				QuickJS,
+				publicFile(entry.id, version.version, manifest.main)
+			);
+			try {
+				for (const kind of manifest.nodeKinds) {
+					expect(kind.examples.length).toBeGreaterThan(0);
+					for (const example of kind.examples) {
+						const parsed = parsePluginFieldInput(example, kind);
+						expect(parsed.errors).toEqual([]);
+						// As when the node editor saves: list rows get ids.
+						const data = assignListRowIds(kind, parsed.data);
+
+						const output = sandbox.render(kind.kind, data, TODAY);
+						const tree = validatePluginTree(output.tree);
+						expect(tree.ok).toBe(true);
+						expect(String(output.summary).trim()).not.toBe('');
+						if (!tree.ok) continue;
+
+						for (const { action, payload } of actionsIn(tree.tree)) {
+							const next = sandbox.action(kind.kind, action, data, payload, TODAY);
+							expect(validatePluginData(kind, next).ok).toBe(true);
+						}
+
+						const viewOnly = validatePluginTree(
+							sandbox.render(kind.kind, data, { ...TODAY, canEdit: false }).tree
+						);
+						expect(viewOnly.ok).toBe(true);
+					}
+				}
+			} finally {
+				sandbox.dispose();
+			}
+		}
+	);
+
+	it.each(
+		allVersions
+			.filter((item) => item.previous)
+			.map((item) => [item.label, item])
+	)('%s reads the data its previous version saved', (_label, { entry, version, previous }) => {
+		const before = readManifest(entry.id, previous!.version);
+		const after = readManifest(entry.id, version.version);
+		for (const oldKind of before.nodeKinds) {
+			const newKind = after.nodeKinds.find((kind) => kind.kind === oldKind.kind);
+			expect(newKind).toBeDefined();
+			for (const example of oldKind.examples) {
+				const saved = parsePluginFieldInput(example, oldKind).data;
+				expect(validatePluginData(newKind!, saved).ok).toBe(true);
+			}
+		}
+	});
+});
+
+describe('catalog version helpers', () => {
+	it('compares x.y.z versions numerically', () => {
+		expect(compareVersions('0.10.0', '0.9.0')).toBeGreaterThan(0);
+		expect(compareVersions('1.0.0', '1.0.0')).toBe(0);
+		expect(compareVersions('0.1.0', '0.2.0')).toBeLessThan(0);
+	});
+
+	it('lists newer versions newest first', () => {
+		const entry: PluginCatalogEntry = {
+			id: 'test.plugin',
+			versions: ['0.1.0', '0.2.0', '0.3.0'].map((version) => ({
+				version,
+				sha256: '',
+				permissions: ['node:own'],
+				notes: version,
+			})),
+		};
+
+		expect(newerCatalogVersions(entry, '0.1.0').map((v) => v.version)).toEqual([
+			'0.3.0',
+			'0.2.0',
+		]);
+		expect(newerCatalogVersions(entry, '0.3.0')).toEqual([]);
+	});
+
+	it('reports added and dropped powers', () => {
+		expect(permissionChanges(['node:own'], ['node:own'])).toEqual({
+			added: [],
+			removed: [],
+		});
+	});
+});
+
+describe('approving powers', () => {
+	it('needs the exact powers for plugins beyond their own nodes', () => {
+		expect(powersConfirmed(['node:own'], undefined)).toBe(true);
+		expect(powersConfirmed(['node:own', 'branch:read'], undefined)).toBe(false);
+		expect(powersConfirmed(['node:own', 'branch:read'], ['node:own'])).toBe(false);
+		expect(
+			powersConfirmed(['node:own', 'network:api.github.com'], [
+				'network:api.github.com',
+				'node:own',
+			])
+		).toBe(true);
+	});
+
+	it('sends the powers of the version being turned on', () => {
+		const [url, init] = mapPluginRequest('map-1', 'shiko.metric', { enabled: true });
+		expect(url).toBe('/api/maps/map-1/plugins/shiko.metric');
+		expect(init.method).toBe('PUT');
+		expect(JSON.parse(String(init.body))).toEqual({ permissions: ['node:own'] });
+
+		const [, patch] = mapPluginRequest('map-1', 'shiko.metric', { version: '0.1.0' });
+		expect(JSON.parse(String(patch.body))).toEqual({
+			version: '0.1.0',
+			permissions: ['node:own'],
+		});
+		expect(mapPluginRequest('map-1', 'shiko.metric', { enabled: false })[1]).toEqual({
+			method: 'DELETE',
+		});
+	});
+});

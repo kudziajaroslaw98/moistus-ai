@@ -375,6 +375,25 @@ function getNodeType(
 	return node?.type ?? node?.data?.node_type;
 }
 
+/** A plugin node's kind label ("Metric"), read from its extension data. */
+function getNodeKindLabel(
+	nodeId: string,
+	change: HistoryPatchOp,
+	nodeMap: Map<string, AppNode>,
+	previousNodeMap: Map<string, AppNode>
+): string | undefined {
+	const node =
+		nodeMap.get(nodeId) ??
+		previousNodeMap.get(nodeId) ??
+		(change.value as Partial<AppNode> | undefined) ??
+		(change.removedValue as Partial<AppNode> | undefined);
+	const extension = node?.data?.metadata?.extension;
+	if (!extension) return undefined;
+	const label = extension.kindLabel?.trim() || extension.kind?.trim();
+	if (!label) return undefined;
+	return (label.charAt(0).toUpperCase() + label.slice(1)).slice(0, 30);
+}
+
 function getNodeLabel(
 	nodeId: string,
 	change: HistoryPatchOp,
@@ -573,6 +592,12 @@ export function deriveHistorySubjectHints(
 				type: 'node',
 				label: getNodeLabel(change.id, change, nodeMap, previousNodeMap),
 				nodeType: getNodeType(change.id, change, nodeMap, previousNodeMap),
+				nodeKindLabel: getNodeKindLabel(
+					change.id,
+					change,
+					nodeMap,
+					previousNodeMap
+				),
 				position: getNodePosition(change.id, change, nodeMap, previousNodeMap),
 				width: getNodeDimension(
 					change.id,
@@ -761,18 +786,47 @@ function routeChange(change: HistoryPatchOp): HistoryReadableChange | null {
 	};
 }
 
+/** A plugin node's data field (`metadata.extension.data.value` → `value`). */
+const EXTENSION_DATA_PATH = /(?:^|\.)metadata\.extension\.data\.([^.]+)/;
+/** Parts of a plugin node that follow from its data: saved view, version, label, width. */
+const EXTENSION_DERIVED_PATH =
+	/(?:^|\.)metadata\.extension\.(?:snapshot|version|kindLabel|width)(?:\.|$)/;
+/** When a refresh last fetched; only worth a row when the fetched data didn't change. */
+const EXTENSION_FETCHED_PATH = /(?:^|\.)metadata\.extension\.fetchedAt$/;
+
+function humanizeFieldName(name: string): string {
+	const spaced = name.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ');
+	return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
 function fieldChanges(change: HistoryPatchOp): HistoryReadableChange[] {
 	const patch = change.patch ?? {};
-	return Object.keys(patch)
+	const paths = Object.keys(patch);
+	const isPluginDataChange = paths.some((path) => EXTENSION_DATA_PATH.test(path));
+	return paths
 		.filter((path) => !isPositionPath(path) && !isRoutingPath(path))
+		// The plugin's summary (content) and saved view are derived from its data.
+		.filter(
+			(path) =>
+				!EXTENSION_DERIVED_PATH.test(path) &&
+				!(isPluginDataChange && EXTENSION_FETCHED_PATH.test(path)) &&
+				!(isPluginDataChange && fieldNameFromPath(path) === 'content')
+		)
 		.map((path) => {
 			const oldValue = change.reversePatch?.[path];
 			const newValue = patch[path];
-			const fieldKey = fieldNameFromPath(path);
-			const label = fieldLabel(path);
+			const pluginField = path.match(EXTENSION_DATA_PATH)?.[1];
+			const fieldKey = pluginField ? `plugin:${pluginField}` : fieldNameFromPath(path);
+			const label = pluginField
+				? humanizeFieldName(pluginField)
+				: EXTENSION_FETCHED_PATH.test(path)
+					? 'Last refresh'
+					: fieldLabel(path);
 			const isStyle = STYLE_FIELDS.has(fieldKey);
 			const cleared = isEmptyValue(newValue) && !isEmptyValue(oldValue);
-			const verb: HistoryReadableChange['verb'] = cleared ? 'cleared' : undefined;
+			const verb: HistoryReadableChange['verb'] = cleared
+				? 'cleared'
+				: undefined;
 
 			return {
 				id: `${change.id}:${path}`,
