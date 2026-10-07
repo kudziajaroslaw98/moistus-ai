@@ -27,6 +27,16 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Added
 
+- **templates/page**: Templates page restyled to match the dashboard (underline category tabs, segmented grid/list toggle, `#0e0f12` cards, header search, card skeletons, always-visible "Use template" button) with new `TemplateCover` icon covers (dot grid, accent tint, four trailing outline echoes of the template's icon, sunk so the bottom is cut off)
+
+### Fixed
+
+- **templates/performance**: Removed the per-card staggered entry animation, `backdrop-blur` layers, `transition-all`, the no-op `AnimatePresence` and per-card hover state; cards use `content-visibility: auto`
+  - Why: All cards mounted and animated at once (stutter), blur layers made scrolling slow, and cards below the fold were still fading in when scrolled to
+- **templates/header**: The top bar now says "Templates" instead of the default "Home"
+
+### Added
+
 - **dashboard/join-code**: The "Have a room code?" box (previously first-run only) now also sits under the map grid, so joining a shared map by code works from the main dashboard
 - **dashboard/covers**: Map, list-row and template cards get an outline-echo cover: the title's first letter as thin outlines trailing up and to the right (bleeding off the right edge) over the dot grid, in one of six accents picked from the map id (`src/helpers/dashboard/map-cover.ts`, `src/components/dashboard/map-cover.tsx`)
   - Why: Cards were too empty without a preview, and a real layout preview never matched the canvas

@@ -425,6 +425,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `src/app/dashboard/dashboard-content.tsx`: "Your maps" (quick-create bar, template chips, filter tabs, sort menu, grid/list, selection toolbar) or `DashboardFirstRun` when the user has no maps (big first-map input, template cards, room-code join to `/join?code=`)
 - `src/components/dashboard/use-dashboard-data.ts`: shared SWR hooks (`useDashboardMaps`, `useDashboardTemplates`)
 - `src/components/dashboard/map-cover.tsx` + `src/helpers/dashboard/map-cover.ts`: outline-echo letter cover (first letter of the title, accent hue from the id) used by map cards, list swatches and first-run template cards (no layout previews; see CLAUDE.md dashboard contract)
+- `src/components/dashboard/template-cover.tsx`: icon variant of the cover (4 trailing outline echoes of the template's Lucide icon, sunk 24 units so the bottom is clipped) used by `src/app/dashboard/templates/templates-content.tsx`
 - `GET /api/maps` adds `collaborators`/`collaboratorCount` via `src/helpers/dashboard/map-collaborators.ts`
 
 **Dashboard Progressive Loading:**
