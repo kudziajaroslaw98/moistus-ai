@@ -1,25 +1,25 @@
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/utils/cn';
+import type { DashboardViewMode } from '@/types/dashboard-map';
 
 interface DashboardMapsLoadingSkeletonProps {
-	viewMode: 'grid' | 'list';
+	viewMode: DashboardViewMode;
 	cardCount?: number;
 }
 
-function GridMapSkeleton({ index }: { index: number }) {
+function GridMapSkeleton() {
 	return (
 		<div
+			className='overflow-hidden rounded-2xl border border-[#1d1f24] bg-[#0e0f12]'
 			data-testid='dashboard-grid-map-skeleton'
-			className={cn(
-				'relative h-56 sm:h-52 md:h-56 w-full rounded-lg overflow-hidden border border-zinc-800/90 bg-zinc-900/65 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]',
-				index === 0 && 'border-zinc-700/80'
-			)}
 		>
-			<div className='absolute inset-0 bg-[linear-gradient(180deg,rgba(24,24,27,0.32)_0%,rgba(9,9,11,0.74)_70%,rgba(9,9,11,0.88)_100%)]' />
-			<div className='absolute inset-0 bg-[radial-gradient(44%_62%_at_50%_0%,rgba(56,189,248,0.07),transparent_78%)]' />
-			<div className='absolute inset-x-0 bottom-0 p-4 space-y-2'>
-				<Skeleton className='h-4 w-2/3 bg-zinc-600/45' />
-				<Skeleton className='h-3 w-1/2 bg-zinc-700/40' />
+			<div className='h-[112px] border-b border-[#1d1f24] bg-zinc-900/60' />
+
+			<div className='space-y-2.5 px-4 pb-4 pt-3.5'>
+				<Skeleton className='h-4 w-2/3 bg-zinc-700/40' />
+
+				<Skeleton className='h-3 w-4/5 bg-zinc-800/60' />
+
+				<Skeleton className='mt-4 h-3 w-1/3 bg-zinc-800/60' />
 			</div>
 		</div>
 	);
@@ -28,19 +28,21 @@ function GridMapSkeleton({ index }: { index: number }) {
 function ListMapSkeleton() {
 	return (
 		<div
-			className='flex items-center gap-4 rounded-lg border border-zinc-800/90 bg-zinc-900/60 p-4'
+			className='flex items-center gap-4 rounded-xl border border-[#1d1f24] bg-[#0e0f12] p-3 pr-4'
 			data-testid='dashboard-list-map-skeleton'
 		>
-			<Skeleton className='h-10 w-10 rounded-md bg-zinc-700/45' />
+			<Skeleton className='h-12 w-16 shrink-0 rounded-lg bg-zinc-900/60' />
+
 			<div className='grow space-y-2'>
-				<Skeleton className='h-4 w-1/3 bg-zinc-600/45' />
-				<Skeleton className='h-3 w-1/5 bg-zinc-700/40' />
+				<Skeleton className='h-4 w-1/3 bg-zinc-700/40' />
+
+				<Skeleton className='h-3 w-1/5 bg-zinc-800/60' />
 			</div>
-			<Skeleton className='h-8 w-8 rounded-md bg-zinc-700/40' />
 		</div>
 	);
 }
 
+/** Placeholder cards while the map list loads. */
 export function DashboardMapsLoadingSkeleton({
 	viewMode,
 	cardCount = 8,
@@ -49,7 +51,7 @@ export function DashboardMapsLoadingSkeleton({
 		<>
 			{Array.from({ length: cardCount }).map((_, index) =>
 				viewMode === 'grid' ? (
-					<GridMapSkeleton index={index} key={`dashboard-grid-skeleton-${index}`} />
+					<GridMapSkeleton key={`dashboard-grid-skeleton-${index}`} />
 				) : (
 					<ListMapSkeleton key={`dashboard-list-skeleton-${index}`} />
 				)
@@ -58,66 +60,55 @@ export function DashboardMapsLoadingSkeleton({
 	);
 }
 
+/** Route-level fallback that mirrors the dashboard shell (sidebar, top bar, grid). */
 export function DashboardRouteLoadingSkeleton() {
 	return (
 		<div
-			className='flex h-screen w-full bg-zinc-950'
+			className='fixed inset-0 flex w-full bg-zinc-950'
 			data-testid='dashboard-route-loading-skeleton'
 		>
-			<aside className='hidden md:flex md:w-64 md:flex-col border-r border-zinc-800 bg-zinc-950'>
-				<div className='h-14 border-b border-zinc-800 px-4 flex items-center justify-between'>
-					<Skeleton className='h-5 w-20 bg-zinc-700/70' />
-					<Skeleton className='h-8 w-8 rounded-md bg-zinc-800/80' />
+			<aside className='hidden w-64 flex-col gap-5 border-r border-[#16171b] bg-[#0b0b0d] px-3.5 py-4 md:flex'>
+				<div className='flex h-8 items-center justify-between px-1'>
+					<Skeleton className='h-5 w-20 bg-zinc-700/50' />
+
+					<Skeleton className='size-8 rounded-lg bg-zinc-800/60' />
 				</div>
-				<div className='p-3 space-y-2'>
-					<Skeleton className='h-9 w-full bg-zinc-800/75' />
-					<Skeleton className='h-9 w-full bg-zinc-900/80' />
-					<Skeleton className='h-9 w-full bg-zinc-900/80' />
-					<Skeleton className='h-9 w-full bg-zinc-900/80' />
+
+				<Skeleton className='h-10 w-full rounded-[10px] bg-[#005bc7]/40' />
+
+				<div className='space-y-1'>
+					{Array.from({ length: 4 }).map((_, index) => (
+						<Skeleton
+							className='h-[38px] w-full rounded-[9px] bg-zinc-900/80'
+							key={index}
+						/>
+					))}
 				</div>
+
+				<Skeleton className='mt-auto h-[132px] w-full rounded-[14px] bg-zinc-900/80' />
 			</aside>
 
-			<main className='grow flex flex-col h-screen overflow-hidden'>
-				<header className='h-14 border-b border-zinc-800 bg-zinc-900/50 px-6 flex items-center justify-between'>
-					<Skeleton className='h-6 w-32 bg-zinc-700/70' />
-					<div className='flex items-center gap-3'>
-						<Skeleton className='h-8 w-8 rounded-full bg-zinc-800/80' />
-						<Skeleton className='h-8 w-24 rounded-full bg-zinc-700/70' />
-					</div>
+			<main className='flex min-h-0 grow flex-col overflow-hidden'>
+				<header className='flex min-h-16 items-center justify-between gap-6 border-b border-[#16171b] px-4 sm:px-8'>
+					<Skeleton className='h-4 w-12 bg-zinc-800/80' />
+
+					<Skeleton className='hidden h-10 max-w-[440px] flex-1 rounded-[10px] bg-zinc-900/80 sm:block' />
+
+					<Skeleton className='size-10 rounded-[10px] bg-zinc-900/80' />
 				</header>
 
 				<div className='flex-1 overflow-y-auto'>
-					<div className='p-6 md:p-8'>
-						<div className='mx-auto max-w-7xl'>
-							<div className='mb-10'>
-								<div className='mb-8 flex items-center justify-between'>
-									<Skeleton className='h-9 w-44 bg-zinc-700/70' />
-								</div>
+					<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
+						<Skeleton className='h-8 w-40 bg-zinc-700/50' />
 
-								<div className='mb-6 hidden gap-4 lg:flex'>
-									<Skeleton className='h-5 w-24 bg-zinc-800/80' />
-									<Skeleton className='h-5 w-20 bg-zinc-800/80' />
-									<Skeleton className='h-5 w-24 bg-zinc-800/80' />
-									<Skeleton className='h-5 w-24 bg-zinc-800/80' />
-								</div>
+						<Skeleton className='mt-3 h-4 w-72 bg-zinc-800/60' />
 
-								<div className='flex flex-col gap-6 rounded-xl border border-zinc-800/50 bg-zinc-950 p-2 shadow-lg sm:flex-row sm:items-center sm:justify-between'>
-									<Skeleton className='h-10 w-full max-w-md bg-zinc-800/75' />
-									<div className='flex items-center gap-2'>
-										<Skeleton className='h-10 w-32 bg-zinc-800/75' />
-										<Skeleton className='h-10 w-36 bg-zinc-800/75' />
-										<Skeleton className='h-10 w-24 bg-zinc-800/75' />
-									</div>
-								</div>
-							</div>
+						<Skeleton className='mt-7 h-[86px] w-full rounded-[18px] bg-zinc-900/70' />
 
-							<div className='mb-4 flex h-9 items-center'>
-								<Skeleton className='h-5 w-44 bg-zinc-800/80' />
-							</div>
+						<div className='mt-9 h-11 border-b border-[#1d1f24]' />
 
-							<div className='grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-								<DashboardMapsLoadingSkeleton viewMode='grid' />
-							</div>
+						<div className='mt-6 grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5'>
+							<DashboardMapsLoadingSkeleton viewMode='grid' />
 						</div>
 					</div>
 				</div>

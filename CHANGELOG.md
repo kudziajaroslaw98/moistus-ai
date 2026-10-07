@@ -5,6 +5,100 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-07]
+
+### Removed
+
+- **dashboard/previews**: Removed the map card mini-map previews and `POST /api/maps/previews`
+  - Why: A layout guess from stored positions never matched the canvas, and an editor-captured snapshot still looked wrong
+
+### Removed
+
+- **dashboard/select-all**: Removed select all (Ctrl+A, the toolbar button and the shortcut hint); maps are still selected one by one for bulk delete
+
+### Fixed
+
+- **dashboard/width**: Dashboard content now spans up to 1760px instead of stopping at 1240px
+  - Why: It left a wide empty strip on the right of large screens
+- **dashboard/mobile-height**: The dashboard shell (and its loading skeleton) is pinned to the visible viewport (`fixed inset-0`) instead of `h-screen` (100vh)
+  - Why: On phones 100vh doesn't match the visible screen, which could leave blank space below the scrolling map list
+- **dashboard/descriptions**: Map descriptions wrap to two lines (one in list view) with a Show more / Show less toggle that appears only when text is cut off
+  - Why: Long descriptions were truncated with no way to read them
+- **landing/story-rail**: Chapter rail dots are now centered on the divider line under each step name
+  - Why: They sat on the label line and looked misaligned with the steps
+
+### Added
+
+- **templates/page**: Templates page restyled to match the dashboard (underline category tabs, segmented grid/list toggle, `#0e0f12` cards, header search, card skeletons, always-visible "Use template" button) with new `TemplateCover` icon covers (dot grid, per-category accent color, four trailing outline echoes of the category's icon, sunk so the bottom is cut off)
+
+### Fixed
+
+- **templates/performance**: Removed the per-card staggered entry animation, `backdrop-blur` layers, `transition-all`, the no-op `AnimatePresence` and per-card hover state; cards use `content-visibility: auto`
+  - Why: All cards mounted and animated at once (stutter), blur layers made scrolling slow, and cards below the fold were still fading in when scrolled to
+- **templates/header**: The top bar now says "Templates" instead of the default "Home"
+
+### Added
+
+- **dashboard/join-code**: The "Have a room code?" box (previously first-run only) now also sits under the map grid, so joining a shared map by code works from the main dashboard
+- **dashboard/covers**: Map, list-row and template cards get an outline-echo cover: the title's first letter as thin outlines trailing up and to the right (bleeding off the right edge) over the dot grid, in one of six accents picked from the map id (`src/helpers/dashboard/map-cover.ts`, `src/components/dashboard/map-cover.tsx`)
+  - Why: Cards were too empty without a preview, and a real layout preview never matched the canvas
+
+## [2026-10-06]
+
+### Added
+
+- **dashboard/collaborators**: `GET /api/maps` now returns up to 3 collaborators per map plus a total count for card avatars
+- **dashboard/first-run**: New users get a first-map input, keyboard hints, template cards and a room-code join box
+
+### Changed
+
+- **dashboard/redesign**: Rebuilt the dashboard per the design canvas: sidebar with New map, Recent maps, plan card (maps used on Free, AI suggestions on Pro) and account row; top bar with search and notifications; quick-create bar with template chips; filter tabs with counts; sort menu; new map cards and list rows (no mini-map previews)
+  - Why: Faster path from opening the app to a new map, and cards that show what each map actually looks like
+- **dashboard/plan-card**: Reset date is hidden when the usage billing period has already ended
+  - Why: Stale usage rows would otherwise promise a reset in the past
+
+### Removed
+
+- **ui/unused**: Deleted `sidebar-item.tsx`, `sidebar-section.tsx` and `search-input.tsx`
+  - Why: The dashboard redesign was their last user
+
+### Fixed
+
+- **dashboard/templates-cache**: Dashboard template chips cache `/api/templates` in the same raw shape as the Templates page and template picker
+  - Why: A different shape under the same SWR key made the other screens read zero templates
+
+## [2026-10-05]
+
+### Changed
+
+- **landing/redesign**: Rebuilt the landing page as one scroll story (hero, Capture, Grow, Share, Clarity, use cases, pricing with trust strip, FAQ, closing CTA)
+  - Why: Show what a map becomes instead of listing features; every product frame uses the app's real node, edge, ghost and toolbar styling
+- **landing/quick-input-demo**: The Capture chapter plays a pre-scripted typing timeline once when scrolled into view (typed text mirrors into the task preview, progress eases, strike-through draws), then stops with a Replay button
+  - Why: A looping state-swap flashed; the script is static data so the real parser and CodeMirror stay out of the landing bundle
+- **landing/copy**: Removed the offline claim and the app-menu inventory (layout presets, AI action grid, editor hints)
+  - Why: Offline editing is only partly true today and the page should stay outcome-led
+
+- **landing/quick-input-examples**: The Capture demo now shows three real quick-input examples (Tasks, Question, Note) with example tabs; it plays Tasks on scroll, then advances once through the other two, then stops (Replay restarts)
+  - Why: Show that one typing flow covers different node types, with only verified real syntax
+- **landing/quick-input-accuracy**: The task preview now shows the app's always-present amber `pending` chip and a relative `Tomorrow` date chip (`^tomorrow`) instead of a fixed past date
+  - Why: A fixed 2026-03-12 date would render as red "Overdue" in the real app today
+- **landing/story-rail**: Chapter rail dots are anchored to each chapter's label row, so they line up with the step labels; the final chapter shows the inverted (filled) dot instead of an invisible one
+- **landing/faq**: FAQ matches the design: no card box, "Straight answers." heading, plus/close icon, first answer open, tighter answer copy
+  - Why: The FAQ and the closing CTA were both boxed back to back; only the CTA keeps its box
+- **landing/final-cta**: Removed the decorative "What are you planning?" node from the closing CTA
+  - Why: It looked like a text field people could type into
+
+### Removed
+
+- **landing/legacy-sections**: Deleted the unused problem/solution, features, hero demo, hero scene, hero background and grain overlay components plus the three old screenshot PNGs
+  - Why: Replaced by the scroll story; nothing imports them
+- **landing/noise-texture**: Deleted `public/images/noise-blue.png`, whose only user was the removed grain overlay
+
+### Added
+
+- **landing/product-frames**: Shared static mocks under `src/components/landing/product/` (canvas surface, node card, task node, AI ghost card, edge layer, cursor, editor chrome)
+- **landing/mobile**: Phone layouts for the hero, Grow (root plus AI card) and Clarity frames, plus a menu button in the nav
+
 ## [2026-10-04]
 
 ### Fixed

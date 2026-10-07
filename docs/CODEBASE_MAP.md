@@ -47,6 +47,7 @@ total_tokens: 707972
 <!-- Updated: 2026-04-01 - Noted the mobile-centered landing pass with simplified mobile hero/section chrome and the desktop feature-width regression fix -->
 <!-- Updated: 2026-04-01 - Noted the parser-driven landing hero editor demo across breakpoints -->
 <!-- Updated: 2026-04-01 - Noted the follow-up removal of mobile-only highlight stacks in support/pricing sections -->
+<!-- Updated: 2026-10-05 - Landing rebuilt as a scroll story with static product frames and a scripted quick-input demo -->
 <!-- Updated: 2026-04-07 - Documented shared landing CTA pending-feedback link (Start Mapping/Get Started/Go Pro) and dashboard route loading boundary -->
 <!-- Updated: 2026-04-07 - Documented mind-map route loading skeleton and map-scoped runtime reset safeguards -->
 <!-- Updated: 2026-04-07 - Documented MindMapCanvas fetch bootstrap to avoid skeleton readiness deadlocks -->
@@ -196,11 +197,11 @@ shiko/
 │   │   ├── ai-chat/            # AI chat panel
 │   │   ├── auth/               # Auth UI (banner, upgrade, sign-up wizard)
 │   │   ├── context-menu/       # Right-click menus
-│   │   ├── dashboard/          # Map cards, settings, and loading skeleton shells
+│   │   ├── dashboard/          # Dashboard shell, map cards, first run, settings, loading skeletons
 │   │   ├── edges/              # 6 edge types (floating, waypoint, ghost)
 │   │   ├── guided-tour/        # Prezi-style presentations
 │   │   ├── history/            # History sidebar: grouped rows, filter chips, one-line diffs, restore confirm, timeline model
-│   │   ├── landing/            # Marketing flow + shared CTA link feedback (Start Mapping/Get Started/Go Pro with next/link pending + optimistic click hint + top progress bar)
+│   │   ├── landing/            # Scroll-story landing (hero, story chapters, use cases, pricing + trust strip, FAQ, CTA); product/ holds static mocks of real node/edge/ghost UI; quick-input-script.ts drives the animated Capture demo; shared CTA link feedback (Start Mapping/Get Started/Go Pro)
 │   │   ├── mind-map/           # React Flow integration + mobile top bar/drawer chrome
 │   │   ├── modals/             # Dialogs (edge edit, upgrade, etc.)
 │   │   ├── node-editor/        # Command system, CodeMirror, mobile autocomplete tray
@@ -336,7 +337,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
 **Maps (4):**
 
-- `GET/POST /api/maps` - List/create maps
+- `GET/POST /api/maps` - List/create maps (GET includes up to 3 collaborators per map)
 - `GET/PUT/DELETE /api/maps/[id]` - Individual map
 - `GET /api/maps/[id]/check-access` - Permission check
 - `GET /api/maps/[id]/mentionable-users` - Mention resolution roster
@@ -416,6 +417,16 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `src/components/mind-map/mind-map-loading-skeleton.tsx` is the shared skeleton surface used during map-route transitions
 - `src/components/mind-map-canvas.tsx` bootstraps route map loading (`setMapId` + `fetchMindMapData`), gates canvas rendering on requested-route readiness (`state.mapId === params.id` and `state.mindMap?.id === params.id`), and clears map-scoped runtime state on unmount with a Strict Mode-safe replay guard
 - `src/store/slices/core-slice.ts` exposes `clearMindMapRuntimeState()` and stale-guards `fetchMindMapData` writes so late responses cannot repopulate stale map data after route exit/switch
+
+**Dashboard Home (redesign):**
+<!-- Updated: 2026-10-07 - Dashboard redesign: sidebar, quick create, collaborators, first run; mini-map previews removed -->
+
+- `src/components/dashboard/dashboard-layout.tsx`: sidebar (New map, nav, Recent from the `/api/maps` SWR cache, `DashboardPlanCard`, user row whose settings icon opens `UserMenu` via its `trigger` prop) + `DashboardHeader` (page label, Home-only search slot, notification bell, mobile sidebar trigger)
+- `src/app/dashboard/dashboard-content.tsx`: "Your maps" (quick-create bar, template chips, filter tabs, sort menu, grid/list, selection toolbar) or `DashboardFirstRun` when the user has no maps (big first-map input, template cards, room-code join to `/join?code=`)
+- `src/components/dashboard/use-dashboard-data.ts`: shared SWR hooks (`useDashboardMaps`, `useDashboardTemplates`)
+- `src/components/dashboard/map-cover.tsx` + `src/helpers/dashboard/map-cover.ts`: outline-echo letter cover (first letter of the title, accent hue from the id) used by map cards, list swatches and first-run template cards (no layout previews; see CLAUDE.md dashboard contract)
+- `src/components/dashboard/template-cover.tsx`: icon variant of the cover (4 trailing outline echoes of the category's Lucide icon in the category's hue, sunk 24 units so the bottom is clipped) used by `src/app/dashboard/templates/templates-content.tsx`
+- `GET /api/maps` adds `collaborators`/`collaboratorCount` via `src/helpers/dashboard/map-collaborators.ts`
 
 **Dashboard Progressive Loading:**
 

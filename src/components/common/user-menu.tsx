@@ -23,18 +23,25 @@ import {
 	Sparkles,
 	User,
 } from 'lucide-react';
+import type { ReactElement } from 'react';
 
 interface UserMenuProps {
 	user: AccountMenuUser;
 	showBackToDashboard?: boolean;
 	showRestartWalkthrough?: boolean;
 	onOpenSettings?: (tab: 'account' | 'billing') => void;
+	/** Replaces the default avatar + name button (e.g. the dashboard sidebar row). */
+	trigger?: ReactElement;
+	/** Popup placement relative to the trigger. */
+	side?: 'top' | 'bottom';
 }
 
 export function UserMenu({
 	user,
 	showRestartWalkthrough = false,
 	onOpenSettings,
+	trigger,
+	side,
 }: UserMenuProps) {
 	const {
 		name,
@@ -56,28 +63,30 @@ export function UserMenu({
 		<DropdownMenu>
 			<DropdownMenuTrigger
 				render={
-					<Button
-						className='flex items-center space-x-3 hover:bg-elevated focus:bg-elevated'
-						disabled={isLoggingOut}
-						variant='ghost'
-					>
-						{/* User Avatar */}
-						<UserAvatar className='size-6' size='md' user={user} />
+					trigger ?? (
+						<Button
+							className='flex items-center space-x-3 hover:bg-elevated focus:bg-elevated'
+							disabled={isLoggingOut}
+							variant='ghost'
+						>
+							{/* User Avatar */}
+							<UserAvatar className='size-6' size='md' user={user} />
 
-						{/* User Info - Hidden on mobile, visible on larger screens if not in compact mode */}
-						<div className='hidden sm:block text-left'>
-							<div className='text-sm font-medium text-text-primary'>
-								{name}
+							{/* User Info - Hidden on mobile, visible on larger screens if not in compact mode */}
+							<div className='hidden sm:block text-left'>
+								<div className='text-sm font-medium text-text-primary'>
+									{name}
+								</div>
 							</div>
-						</div>
 
-						{/* Chevron */}
-						<ChevronDown className='h-4 w-4 text-text-tertiary' />
-					</Button>
+							{/* Chevron */}
+							<ChevronDown className='h-4 w-4 text-text-tertiary' />
+						</Button>
+					)
 				}
 			/>
 
-			<DropdownMenuContent align='end' className='w-56'>
+			<DropdownMenuContent align='end' className='w-56' side={side}>
 				{/* User Info Header */}
 				<div className='flex gap-4 items-center px-3 py-2'>
 					<UserAvatar className='size-10' size='md' user={user} />
