@@ -2,6 +2,8 @@
 
 import { cn } from '@/utils/cn';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import type { ReactNode } from 'react';
 
 const TABS = [
 	{ id: 'library', label: 'Library', href: '/dashboard/plugins' },
@@ -9,12 +11,22 @@ const TABS = [
 	{ id: 'build', label: 'Build a plugin', href: '/dashboard/plugins/build' },
 ] as const;
 
+type PluginsTab = (typeof TABS)[number]['id'];
+
+/** The deepest tab whose href starts the path (Library is the parent of the others). */
+function tabForPath(pathname: string): PluginsTab {
+	const match = [...TABS]
+		.reverse()
+		.find(
+			(tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`)
+		);
+	return match?.id ?? 'library';
+}
+
 /** Library / My plugins / Build a plugin, under the dashboard Plugins title. */
-export function PluginsPageTabs({
-	current,
-}: {
-	current: (typeof TABS)[number]['id'];
-}) {
+export function PluginsPageTabs() {
+	const current = tabForPath(usePathname());
+
 	return (
 		<nav aria-label='Plugins' className='flex gap-1 border-b border-zinc-800'>
 			{TABS.map((tab) => (
@@ -33,5 +45,34 @@ export function PluginsPageTabs({
 				</Link>
 			))}
 		</nav>
+	);
+}
+
+/**
+ * Plugins title and tabs around the current tab. The plugins layout renders it, so it
+ * stays in place while the tab content changes. The guide is wider for its contents list.
+ */
+export function PluginsPageFrame({ children }: { children: ReactNode }) {
+	const isGuide = tabForPath(usePathname()) === 'build';
+
+	return (
+		<div className='p-6 md:p-8'>
+			<div
+				className={cn(
+					'mx-auto flex flex-col',
+					isGuide ? 'max-w-5xl' : 'max-w-3xl'
+				)}
+			>
+				<div className='flex flex-col gap-4'>
+					<h1 className='text-3xl font-bold tracking-tight text-white'>
+						Plugins
+					</h1>
+
+					<PluginsPageTabs />
+				</div>
+
+				{children}
+			</div>
+		</div>
 	);
 }

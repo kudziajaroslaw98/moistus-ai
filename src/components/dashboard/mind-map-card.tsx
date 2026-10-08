@@ -1,7 +1,6 @@
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -29,8 +28,6 @@ const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
 interface MindMapCardProps {
 	map: DashboardMap;
-	selected?: boolean;
-	onSelect?: (id: string, isSelected: boolean) => void;
 	onDelete?: (id: string) => void;
 	onDuplicate?: (id: string) => void;
 	viewMode?: DashboardViewMode;
@@ -88,22 +85,29 @@ function CollaboratorAvatars({ map }: { map: DashboardMap }) {
 	);
 }
 
+const DESCRIPTION_TOGGLE_CLASS =
+	'z-10 rounded-sm text-xs leading-5 text-sky-400 transition-colors duration-200 ease hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500';
+
 /**
- * Clamped description with a "Show more" toggle that appears only when the
- * text is actually cut off. The button sits above the card's full-card link.
+ * Clamped description, or a muted "No description available", so every card has
+ * the same text block. When the text is cut off, "Show more" sits over the end of
+ * the last visible line (fading the text under it) instead of adding a row, so the
+ * card keeps its height until someone expands it. The buttons sit above the
+ * card's full-card link.
  */
 function CardDescription({
 	text,
 	clampClassName,
 	className,
 }: {
-	text: string;
+	text: string | null;
 	clampClassName: string;
 	className?: string;
 }) {
 	const ref = useRef<HTMLParagraphElement>(null);
 	const [expanded, setExpanded] = useState(false);
 	const [isClamped, setIsClamped] = useState(false);
+	const description = text?.trim() ?? '';
 
 	useEffect(() => {
 		const el = ref.current;
@@ -117,25 +121,49 @@ function CardDescription({
 		const observer = new ResizeObserver(measure);
 		observer.observe(el);
 		return () => observer.disconnect();
-	}, [text, expanded]);
+	}, [description, expanded]);
+
+	if (!description) {
+		return (
+			<div className={className}>
+				<p className='truncate text-[13px] leading-5 text-zinc-600'>
+					No description available
+				</p>
+			</div>
+		);
+	}
 
 	return (
-		<div className={className}>
+		<div className={cn('relative', className)}>
 			<p
 				className={cn('text-[13px] leading-5 text-zinc-400', !expanded && clampClassName)}
 				ref={ref}
 			>
-				{text}
+				{description}
 			</p>
 
-			{(isClamped || expanded) && (
+			{isClamped && !expanded && (
 				<button
-					aria-expanded={expanded}
-					className='relative z-10 mt-0.5 rounded-sm text-xs text-sky-400 transition-colors duration-200 ease hover:text-sky-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
-					onClick={() => setExpanded((value) => !value)}
+					aria-expanded={false}
+					onClick={() => setExpanded(true)}
+					type='button'
+					className={cn(
+						DESCRIPTION_TOGGLE_CLASS,
+						'absolute bottom-0 right-0 bg-linear-to-r from-transparent to-[#0e0f12] to-35% pl-8'
+					)}
+				>
+					Show more
+				</button>
+			)}
+
+			{expanded && (
+				<button
+					aria-expanded
+					className={cn(DESCRIPTION_TOGGLE_CLASS, 'relative mt-0.5')}
+					onClick={() => setExpanded(false)}
 					type='button'
 				>
-					{expanded ? 'Show less' : 'Show more'}
+					Show less
 				</button>
 			)}
 		</div>
@@ -201,14 +229,16 @@ function CardMenu({
 	);
 }
 
-// Reveal-on-hover controls stay visible on touch, while focused or selected.
+// Reveal-on-hover controls stay visible on touch and while focused.
+//
+// The whole card opens the map: the title link's ::after covers the card at z-[1],
+// above the cover, description and avatars; only real controls (the card menu, Show
+// more / less) sit above it at z-10.
 const revealClass =
 	'[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/card:opacity-100 group-focus-within/card:opacity-100 data-[popup-open]:opacity-100';
 
 const MindMapCardComponent = ({
 	map,
-	selected = false,
-	onSelect,
 	onDelete,
 	onDuplicate,
 	viewMode = 'grid',
@@ -220,16 +250,13 @@ const MindMapCardComponent = ({
 	const meta = `${formatUpdatedAt(map.updated_at)} · ${nodeCount} ${nodeCount === 1 ? 'node' : 'nodes'}`;
 	const href = `/mind-map/${map.id}`;
 
-	// Keys while the card's link is focused: Space selects, Delete removes,
-	// Ctrl/Cmd+D duplicates, arrows move between cards.
+	// Keys while the card's link is focused: Delete removes, Ctrl/Cmd+D duplicates,
+	// arrows move between cards.
 	const handleKeyDown = useCallback(
 		(e: KeyboardEvent<HTMLElement>) => {
 			if (e.target !== e.currentTarget.querySelector('[data-card-link]')) return;
 
-			if (e.key === ' ' && onSelect) {
-				e.preventDefault();
-				onSelect(map.id, !selected);
-			} else if ((e.key === 'Delete' || e.key === 'Backspace') && onDelete) {
+			if ((e.key === 'Delete' || e.key === 'Backspace') && onDelete) {
 				e.preventDefault();
 				e.stopPropagation();
 				onDelete(map.id);
@@ -249,7 +276,7 @@ const MindMapCardComponent = ({
 				}
 			}
 		},
-		[map.id, selected, onSelect, onDelete, onDuplicate]
+		[map.id, onDelete, onDuplicate]
 	);
 
 	const entry = {
@@ -263,23 +290,6 @@ const MindMapCardComponent = ({
 		},
 	} as const;
 
-	const selectBox = onSelect && (
-		<div
-			className={cn(
-				'relative z-10 flex size-8 items-center justify-center',
-				!selected && revealClass
-			)}
-		>
-			<Checkbox
-				aria-label={`Select ${map.title}`}
-				checked={selected}
-				onChange={(checked) => onSelect(map.id, checked)}
-				size='sm'
-				variant='card'
-			/>
-		</div>
-	);
-
 	if (viewMode === 'list') {
 		return (
 			<motion.article
@@ -289,13 +299,9 @@ const MindMapCardComponent = ({
 				className={cn(
 					'group/card relative flex items-center gap-4 rounded-xl border bg-[#0e0f12] p-3 pr-4',
 					'transition-colors duration-200 ease',
-					selected
-						? 'border-sky-500/60'
-						: 'border-[#1d1f24] [@media(hover:hover)]:hover:border-[#34363e]'
+					'border-[#1d1f24] [@media(hover:hover)]:hover:border-[#34363e]'
 				)}
 			>
-				{selectBox}
-
 				<MapCover
 					compact
 					className='h-12 w-16 shrink-0 rounded-lg border border-[#1d1f24]'
@@ -306,7 +312,7 @@ const MindMapCardComponent = ({
 				<div className='min-w-0 grow'>
 					<h3 className='truncate text-[15px] font-semibold text-white'>
 						<Link
-							className='rounded-sm after:absolute after:inset-0 after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-sky-500'
+							className='rounded-sm after:absolute after:inset-0 after:z-[1] after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-sky-500'
 							data-card-link=''
 							href={href}
 						>
@@ -314,19 +320,15 @@ const MindMapCardComponent = ({
 						</Link>
 					</h3>
 
-					{map.description ? (
-						<CardDescription
-							className='mt-0.5'
-							clampClassName='line-clamp-1'
-							text={map.description}
-						/>
-					) : (
-						<p className='mt-0.5 truncate text-[13px] text-zinc-400'>{meta}</p>
-					)}
+					<CardDescription
+						className='mt-0.5'
+						clampClassName='line-clamp-1'
+						text={map.description}
+					/>
 				</div>
 
 				<span className='hidden shrink-0 text-xs text-zinc-500 sm:block'>
-					{map.description ? meta : null}
+					{meta}
 				</span>
 
 				{isShared && (
@@ -353,11 +355,9 @@ const MindMapCardComponent = ({
 			layout={shouldReduceMotion ? false : 'position'}
 			onKeyDown={handleKeyDown}
 			className={cn(
-				'group/card relative overflow-hidden rounded-2xl border bg-[#0e0f12]',
+				'group/card relative flex flex-col overflow-hidden rounded-2xl border bg-[#0e0f12]',
 				'transition-[border-color,box-shadow] duration-200 ease',
-				selected
-					? 'border-sky-500/60 shadow-[0_0_0_1px_rgba(14,165,233,0.35)]'
-					: 'border-[#1d1f24] [@media(hover:hover)]:hover:border-[#34363e] [@media(hover:hover)]:hover:shadow-[0_16px_40px_rgba(0,0,0,0.4)]'
+				'border-[#1d1f24] [@media(hover:hover)]:hover:border-[#34363e] [@media(hover:hover)]:hover:shadow-[0_16px_40px_rgba(0,0,0,0.4)]'
 			)}
 		>
 			<MapCover
@@ -374,8 +374,6 @@ const MindMapCardComponent = ({
 				)}
 
 				<div className='absolute right-2 top-2 flex items-center gap-1'>
-					{selectBox}
-
 					<CardMenu
 						className={revealClass}
 						map={map}
@@ -385,10 +383,13 @@ const MindMapCardComponent = ({
 				</div>
 			</div>
 
-			<div className='px-4 pb-4 pt-3.5'>
-				<h3 className='truncate text-[15px] font-semibold text-white'>
+			{/* Fixed rows (title, two description lines, a 20px footer) keep every card the
+			    same height; the footer sits at the bottom if a neighbour in the row is
+			    taller (an expanded description). GridMapSkeleton mirrors these sizes. */}
+			<div className='flex flex-1 flex-col px-4 pb-4 pt-3.5'>
+				<h3 className='truncate text-[15px] font-semibold leading-[22px] text-white'>
 					<Link
-						className='after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-sky-500'
+						className='after:absolute after:inset-0 after:z-[1] after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-sky-500'
 						data-card-link=''
 						href={href}
 					>
@@ -396,18 +397,18 @@ const MindMapCardComponent = ({
 					</Link>
 				</h3>
 
-				{map.description && (
-					<CardDescription
-						className='mt-1'
-						clampClassName='line-clamp-2'
-						text={map.description}
-					/>
-				)}
+				<CardDescription
+					className='mt-1 min-h-10'
+					clampClassName='line-clamp-2'
+					text={map.description}
+				/>
 
-				<div className='mt-3 flex items-center justify-between gap-2 text-xs text-zinc-500'>
-					<span className='truncate'>{meta}</span>
+				<div className='mt-auto pt-3.5'>
+					<div className='flex h-5 items-center justify-between gap-2 text-xs text-zinc-500'>
+						<span className='truncate'>{meta}</span>
 
-					<CollaboratorAvatars map={map} />
+						<CollaboratorAvatars map={map} />
+					</div>
 				</div>
 			</div>
 		</motion.article>

@@ -1,8 +1,7 @@
 'use client';
 
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
+import { useDashboardSearch } from '@/components/dashboard/dashboard-shell-context';
 import { TemplateCover } from '@/components/dashboard/template-cover';
-import { SidebarProvider } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
@@ -20,7 +19,6 @@ import {
 	List,
 	Search,
 	User,
-	X,
 	Zap,
 	type LucideIcon,
 } from 'lucide-react';
@@ -276,43 +274,24 @@ function TemplatesSkeleton({ viewMode }: { viewMode: DashboardViewMode }) {
 	);
 }
 
-interface TemplatesSearchFieldProps {
-	value: string;
-	onChange: (value: string) => void;
-}
+const TEMPLATES_INTRO =
+	'Start from a ready-made structure. Pick one and it becomes your own map.';
 
-function TemplatesSearchField({ value, onChange }: TemplatesSearchFieldProps) {
+/** The page before it mounts (templates/loading.tsx): same heading, empty tabs, card skeletons. */
+export function TemplatesPageSkeleton() {
 	return (
-		<div className='relative'>
-			<label className='sr-only' htmlFor='templates-search'>
-				Search templates
-			</label>
+		<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
+			<h1 className='text-3xl font-bold leading-tight tracking-[-0.02em] text-white'>
+				Templates
+			</h1>
 
-			<Search
-				aria-hidden='true'
-				className='pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-500'
-			/>
+			<p className='mt-2 text-sm text-zinc-400'>{TEMPLATES_INTRO}</p>
 
-			<input
-				autoComplete='off'
-				className='h-10 w-full rounded-[10px] border border-[#1d1f24] bg-[#0e0f12] pl-[38px] pr-10 text-sm text-white placeholder:text-zinc-500 transition-colors duration-200 ease focus:border-[#2f3139] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40 [&::-webkit-search-cancel-button]:hidden'
-				id='templates-search'
-				onChange={(e) => onChange(e.target.value)}
-				placeholder='Search templates'
-				type='search'
-				value={value}
-			/>
+			<div className='mt-9 h-11 border-b border-[#1d1f24]' />
 
-			{value && (
-				<button
-					aria-label='Clear search'
-					className='absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-zinc-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
-					onClick={() => onChange('')}
-					type='button'
-				>
-					<X aria-hidden='true' className='size-3.5' />
-				</button>
-			)}
+			<div className='mt-6 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4'>
+				<TemplatesSkeleton viewMode='grid' />
+			</div>
 		</div>
 	);
 }
@@ -324,7 +303,8 @@ export function TemplatesContent() {
 	const [selectedCategory, setSelectedCategory] = useState<
 		TemplateCategory | 'all'
 	>('all');
-	const [searchQuery, setSearchQuery] = useState('');
+	// The field sits in the shell's top bar.
+	const { query: searchQuery, setQuery: setSearchQuery } = useDashboardSearch();
 	const [isCreating, setIsCreating] = useState(false);
 
 	// Subscription limits for map creation
@@ -452,7 +432,7 @@ export function TemplatesContent() {
 	const clearFilters = useCallback(() => {
 		setSelectedCategory('all');
 		setSearchQuery('');
-	}, []);
+	}, [setSearchQuery]);
 
 	const tabs: ReadonlyArray<readonly [TemplateCategory | 'all', string, number]> =
 		[
@@ -469,142 +449,131 @@ export function TemplatesContent() {
 				),
 		];
 
-	const headerSearch = (
-		<TemplatesSearchField onChange={setSearchQuery} value={searchQuery} />
-	);
-
 	const showSkeleton = isLoading && !error;
 	const showEmpty = !isLoading && !error && filteredTemplates.length === 0;
 
 	return (
-		<SidebarProvider>
-			<DashboardLayout headerSearch={headerSearch} title='Templates'>
-				<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
-					<h1 className='text-3xl font-bold leading-tight tracking-[-0.02em] text-white'>
-						Templates
-					</h1>
+		<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
+			<h1 className='text-3xl font-bold leading-tight tracking-[-0.02em] text-white'>
+				Templates
+			</h1>
 
-					<p className='mt-2 text-sm text-zinc-400'>
-						Start from a ready-made structure. Pick one and it becomes your own
-						map.
-					</p>
+			<p className='mt-2 text-sm text-zinc-400'>{TEMPLATES_INTRO}</p>
 
-					<Tabs
-						className='mt-9 gap-0'
-						value={selectedCategory}
-						onValueChange={(value) =>
-							setSelectedCategory(value as TemplateCategory | 'all')
-						}
+			<Tabs
+				className='mt-9 gap-0'
+				value={selectedCategory}
+				onValueChange={(value) =>
+					setSelectedCategory(value as TemplateCategory | 'all')
+				}
+			>
+				<div className='flex flex-wrap items-center justify-between gap-3 border-b border-[#1d1f24]'>
+					<TabsList
+						aria-label='Filter templates by category'
+						className='h-11 gap-1 overflow-x-auto p-0'
 					>
-						<div className='flex flex-wrap items-center justify-between gap-3 border-b border-[#1d1f24]'>
-							<TabsList
-								aria-label='Filter templates by category'
-								className='h-11 gap-1 overflow-x-auto p-0'
+						{tabs.map(([value, label, count]) => (
+							<TabsTrigger
+								className='h-11 flex-none rounded-none border-0 px-3 font-normal text-zinc-400 data-[active]:border-0 data-[active]:bg-transparent data-[active]:font-medium data-[active]:text-white data-[active]:shadow-[inset_0_-2px_0_#fafafa] [@media(hover:hover)]:hover:bg-transparent'
+								key={value}
+								value={value}
 							>
-								{tabs.map(([value, label, count]) => (
-									<TabsTrigger
-										className='h-11 flex-none rounded-none border-0 px-3 font-normal text-zinc-400 data-[active]:border-0 data-[active]:bg-transparent data-[active]:font-medium data-[active]:text-white data-[active]:shadow-[inset_0_-2px_0_#fafafa] [@media(hover:hover)]:hover:bg-transparent'
-										key={value}
-										value={value}
-									>
-										{label}
+								{label}
 
-										<span className='font-mono text-xs text-zinc-500'>
-											{count}
-										</span>
-									</TabsTrigger>
-								))}
-							</TabsList>
+								<span className='font-mono text-xs text-zinc-500'>
+									{count}
+								</span>
+							</TabsTrigger>
+						))}
+					</TabsList>
 
-							<div
-								aria-label='View mode'
-								className='mb-1.5 flex rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] p-0.5'
-								role='group'
-							>
-								{(
-									[
-										['grid', 'Grid view', LayoutGrid],
-										['list', 'List view', List],
-									] as const
-								).map(([mode, label, ViewIcon]) => (
-									<button
-										aria-label={label}
-										aria-pressed={viewMode === mode}
-										key={mode}
-										onClick={() => setViewMode(mode)}
-										type='button'
-										className={cn(
-											'flex h-[30px] w-8 items-center justify-center rounded-[7px] transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
-											viewMode === mode
-												? 'bg-[#1c1d22] text-white'
-												: 'text-zinc-500 hover:text-white'
-										)}
-									>
-										<ViewIcon aria-hidden='true' className='size-3.5' />
-									</button>
-								))}
-							</div>
-						</div>
-					</Tabs>
-
-					{error && (
-						<div className='flex h-64 items-center justify-center text-zinc-500'>
-							<p>Failed to load templates. Please try again.</p>
-						</div>
-					)}
-
-					{!error && !showEmpty && (
-						<div
-							className={cn(
-								'mt-6',
-								viewMode === 'grid'
-									? 'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4'
-									: 'flex flex-col gap-2'
-							)}
-						>
-							{showSkeleton ? (
-								<TemplatesSkeleton viewMode={viewMode} />
-							) : (
-								filteredTemplates.map((template) => (
-									<TemplateCard
-										isAtMapLimit={isAtMapLimit}
-										isCreating={isCreating}
-										key={template.templateId}
-										onUse={handleUseTemplate}
-										onView={handleViewTemplate}
-										template={template}
-										viewMode={viewMode}
-									/>
-								))
-							)}
-						</div>
-					)}
-
-					{showEmpty && (
-						<div className='flex flex-col items-center py-20 text-center'>
-							<span className='flex size-11 items-center justify-center rounded-full border border-[#2a2c33] bg-[#0e0f12]'>
-								<Search aria-hidden='true' className='size-4 text-zinc-400' />
-							</span>
-
-							<h2 className='mt-4 text-base font-semibold text-white'>
-								No templates found
-							</h2>
-
-							<p className='mt-1 text-sm text-zinc-400'>
-								Try another category or search term.
-							</p>
-
+					<div
+						aria-label='View mode'
+						className='mb-1.5 flex rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] p-0.5'
+						role='group'
+					>
+						{(
+							[
+								['grid', 'Grid view', LayoutGrid],
+								['list', 'List view', List],
+							] as const
+						).map(([mode, label, ViewIcon]) => (
 							<button
-								className='mt-5 h-9 rounded-[9px] border border-[#2a2c33] bg-[#131418] px-4 text-sm text-white transition-colors duration-200 ease hover:bg-[#1a1b20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
-								onClick={clearFilters}
+								aria-label={label}
+								aria-pressed={viewMode === mode}
+								key={mode}
+								onClick={() => setViewMode(mode)}
 								type='button'
+								className={cn(
+									'flex h-[30px] w-8 items-center justify-center rounded-[7px] transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
+									viewMode === mode
+										? 'bg-[#1c1d22] text-white'
+										: 'text-zinc-500 hover:text-white'
+								)}
 							>
-								Show all templates
+								<ViewIcon aria-hidden='true' className='size-3.5' />
 							</button>
-						</div>
+						))}
+					</div>
+				</div>
+			</Tabs>
+
+			{error && (
+				<div className='flex h-64 items-center justify-center text-zinc-500'>
+					<p>Failed to load templates. Please try again.</p>
+				</div>
+			)}
+
+			{!error && !showEmpty && (
+				<div
+					className={cn(
+						'mt-6',
+						viewMode === 'grid'
+							? 'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4'
+							: 'flex flex-col gap-2'
+					)}
+				>
+					{showSkeleton ? (
+						<TemplatesSkeleton viewMode={viewMode} />
+					) : (
+						filteredTemplates.map((template) => (
+							<TemplateCard
+								isAtMapLimit={isAtMapLimit}
+								isCreating={isCreating}
+								key={template.templateId}
+								onUse={handleUseTemplate}
+								onView={handleViewTemplate}
+								template={template}
+								viewMode={viewMode}
+							/>
+						))
 					)}
 				</div>
-			</DashboardLayout>
-		</SidebarProvider>
+			)}
+
+			{showEmpty && (
+				<div className='flex flex-col items-center py-20 text-center'>
+					<span className='flex size-11 items-center justify-center rounded-full border border-[#2a2c33] bg-[#0e0f12]'>
+						<Search aria-hidden='true' className='size-4 text-zinc-400' />
+					</span>
+
+					<h2 className='mt-4 text-base font-semibold text-white'>
+						No templates found
+					</h2>
+
+					<p className='mt-1 text-sm text-zinc-400'>
+						Try another category or search term.
+					</p>
+
+					<button
+						className='mt-5 h-9 rounded-[9px] border border-[#2a2c33] bg-[#131418] px-4 text-sm text-white transition-colors duration-200 ease hover:bg-[#1a1b20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+						onClick={clearFilters}
+						type='button'
+					>
+						Show all templates
+					</button>
+				</div>
+			)}
+		</div>
 	);
 }

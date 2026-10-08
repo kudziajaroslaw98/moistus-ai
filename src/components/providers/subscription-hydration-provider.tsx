@@ -35,20 +35,17 @@ const useHydrationSyncEffect =
 		? useEffect
 		: useLayoutEffect;
 
-export function SubscriptionHydrationProvider({
-	children,
-	initialSubscriptionState,
-}: {
-	children: ReactNode;
-	initialSubscriptionState: SubscriptionHydrationState;
-}) {
+/** Copies a server snapshot into the store once per distinct snapshot; returns its key. */
+function useApplySubscriptionSnapshot(
+	subscriptionState: SubscriptionHydrationState
+): string {
 	const hydrateSubscriptionState = useAppStore(
 		(state) => state.hydrateSubscriptionState
 	);
 	const appliedStateKeyRef = useRef<string | null>(null);
 	const nextStateKey = useMemo(
-		() => JSON.stringify(initialSubscriptionState),
-		[initialSubscriptionState]
+		() => JSON.stringify(subscriptionState),
+		[subscriptionState]
 	);
 
 	useHydrationSyncEffect(() => {
@@ -56,9 +53,21 @@ export function SubscriptionHydrationProvider({
 			return;
 		}
 
-		hydrateSubscriptionState(initialSubscriptionState, nextStateKey);
+		hydrateSubscriptionState(subscriptionState, nextStateKey);
 		appliedStateKeyRef.current = nextStateKey;
-	}, [hydrateSubscriptionState, initialSubscriptionState, nextStateKey]);
+	}, [hydrateSubscriptionState, subscriptionState, nextStateKey]);
+
+	return nextStateKey;
+}
+
+export function SubscriptionHydrationProvider({
+	children,
+	initialSubscriptionState,
+}: {
+	children: ReactNode;
+	initialSubscriptionState: SubscriptionHydrationState;
+}) {
+	const nextStateKey = useApplySubscriptionSnapshot(initialSubscriptionState);
 
 	return (
 		<SubscriptionHydrationContext.Provider
@@ -70,6 +79,20 @@ export function SubscriptionHydrationProvider({
 			{children}
 		</SubscriptionHydrationContext.Provider>
 	);
+}
+
+/**
+ * Store-only variant for a snapshot that streams in after the UI has rendered (the
+ * dashboard layout renders it inside Suspense). Until it arrives, readers see the
+ * store's unresolved state, which every subscription consumer already handles.
+ */
+export function SubscriptionStateHydrator({
+	subscriptionState,
+}: {
+	subscriptionState: SubscriptionHydrationState;
+}) {
+	useApplySubscriptionSnapshot(subscriptionState);
+	return null;
 }
 
 export function useEffectiveSubscriptionState(): EffectiveSubscriptionState {

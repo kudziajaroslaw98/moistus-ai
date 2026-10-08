@@ -5,6 +5,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-08]
+
+### Fixed
+
+- **plugins/runtime**: Plugins failed to load in production builds ("Upcoming couldn't load: … Octal escape sequences are not allowed in template strings") as soon as a map turned one on. The plugin engine now loads its WebAssembly as a separate file instead of a string embedded in the script, which the production minifier was corrupting
+  - Why: development builds aren't minified, so the bug only showed up in production
+
 ## [2026-10-07]
 
 ### Changed
@@ -15,6 +22,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **lint**: `react/no-danger` is an error; the one existing use (AI chat, sanitized with `sanitize-html`) carries a disable comment saying so
 - **plugins/guide**: "Build a plugin" is now the third tab of the dashboard Plugins page and covers the whole flow: Powers (refresh with `ctx.request`, `ctx.branch`, why a plugin can't have both) with a GitHub issue example that tests run through both refresh passes, request and branch limits, versions and updates, publishing to the library, what happens when a plugin is reported, and what plugins can't do. The out-of-date "Sharing a plugin" section is gone
 - **plugins/guide**: The "On this page" list highlights the last heading scrolled past, keeps a clicked entry while the page can't scroll it to the top, and reaches the last sections at the bottom of the page
+- **dashboard/navigation**: Moving between Home, Templates, Recipes and Plugins keeps the sidebar and the top bar (search, notifications) in place; only the page content changes, with a skeleton shaped like the page while it loads. The sign-in check and plan lookup run once when you open the dashboard, not on every click
+  - Why: Every click rebuilt the whole dashboard, refetched notifications and flashed a full-page skeleton
+- **dashboard/plan**: The plan card and Free/Pro label load in after the rest of the dashboard instead of holding it back
+- **dashboard/plugins**: The Plugins title and tabs stay in place when you switch between Library, My plugins and Build a plugin
+- **dashboard/home-loading**: While Home loads, the "Your maps" heading and the "Start a map from a thought" bar show right away; the map count line and the map list show skeletons until your maps arrive
+- **templates/search**: Ctrl+F (Cmd+F) jumps to the Templates search too, and its field shows the shortcut like Home's
+- **dashboard/map-cards**: Map cards are all the same height, like template cards: maps without a description say "No description available" in dark grey (dimmer than the date line), and "Show more" sits at the end of the second line instead of adding a row. List rows show the description (or the same note) under the title and the date and node count on the right
+- **dashboard/skeletons**: The loading screens also show placeholders for the "Have a room code?" box and the keyboard shortcut hints, and the card placeholders match the real card size, so nothing shifts when your maps arrive
 
 ### Fixed
 
@@ -33,12 +48,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **recipes/sanitize**: Recipe results are cleaned until nothing more changes, so text like `!<b>[x]<i>(url)` can no longer turn back into an image (or `<<b>script>` into a tag) after one pass
   - Why: Images in approved nodes load their URL right away and could send map text to another site (CodeQL incomplete multi-character sanitization)
 - **plugins/tests**: The sandbox's eval/Function lockdown test builds its probes as plain closures instead of a `JSON.stringify` switch (CodeQL improper code sanitization)
+- **dashboard/sidebar**: A collapsed sidebar stays collapsed when you move between dashboard pages or reload
+- **dashboard/top-bar**: The search field stays in the same place and size on every dashboard page instead of shifting with the page name
+- **dashboard/map-cards**: Clicking anywhere on a map card opens the map; clicks on the description and collaborator avatars used to do nothing
 
 ### Removed
 
 - **dashboard/previews**: Removed the map card mini-map previews and `POST /api/maps/previews`
   - Why: A layout guess from stored positions never matched the canvas, and an editor-captured snapshot still looked wrong
-- **dashboard/select-all**: Removed select all (Ctrl+A, the toolbar button and the shortcut hint); maps are still selected one by one for bulk delete
+- **dashboard/selection**: Removed selecting maps on Home (the card checkboxes, Space to select, select all and the bulk-delete bar). Delete a map from its "…" menu, or press Delete on a focused card
 
 ### Added
 

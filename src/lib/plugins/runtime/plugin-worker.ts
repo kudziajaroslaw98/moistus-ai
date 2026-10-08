@@ -3,13 +3,18 @@ import {
 	type PluginWorkerRequest,
 	type PluginWorkerResponse,
 } from '@/lib/plugins/runtime/worker-protocol';
-import variant from '@jitl/quickjs-singlefile-browser-release-sync';
+import variant from '@jitl/quickjs-wasmfile-release-sync';
 import {
 	memoizePromiseFactory,
 	newQuickJSWASMModuleFromVariant,
 } from 'quickjs-emscripten-core';
 
-// Plugin worker entry. The single-file build embeds the WASM, so nothing else is fetched.
+// Plugin worker entry. The WASM is a separate file: the variant loads it with
+// `new URL('emscripten-module.wasm', import.meta.url)`, which the bundler emits as a
+// static asset. Don't go back to the single-file build: it embeds the binary in a
+// template string, and the production minifier rewrites a NUL byte followed by a digit
+// as `\00`, which browsers reject ("Octal escape sequences are not allowed in template
+// strings"), so the whole worker chunk fails to load and no plugin can run.
 const getModule = memoizePromiseFactory(() =>
 	newQuickJSWASMModuleFromVariant(variant)
 );

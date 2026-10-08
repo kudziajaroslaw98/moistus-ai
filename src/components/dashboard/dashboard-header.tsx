@@ -11,13 +11,17 @@ interface DashboardHeaderProps {
 	search?: ReactNode;
 }
 
-/** Dashboard top bar: page label, optional search, notifications. */
+/**
+ * Dashboard top bar: page label, optional search, notifications. From md up it's a
+ * three-column grid with equal side columns, so the search stays centered at the
+ * same size whatever the page title; below md the search gets its own row.
+ */
 export function DashboardHeader({ title, search }: DashboardHeaderProps) {
 	const { isMobile, toggleSidebar } = useSidebar();
 
 	return (
-		<header className='flex min-h-16 flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-[#16171b] px-4 py-3 sm:px-8'>
-			<div className='flex items-center gap-2'>
+		<header className='flex min-h-16 flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-[#16171b] px-4 py-3 sm:px-8 md:grid md:grid-cols-[minmax(6rem,1fr)_minmax(0,440px)_minmax(6rem,1fr)]'>
+			<div className='flex min-w-0 items-center gap-2 md:col-start-1'>
 				{isMobile && (
 					<button
 						aria-label='Open sidebar'
@@ -29,16 +33,18 @@ export function DashboardHeader({ title, search }: DashboardHeaderProps) {
 					</button>
 				)}
 
-				<span className='text-sm text-zinc-400'>{title}</span>
+				<span className='truncate text-sm text-zinc-400'>{title}</span>
 			</div>
 
 			{search && (
-				<div className='order-last w-full sm:order-none sm:w-auto sm:max-w-[440px] sm:flex-[1_1_280px]'>
+				<div className='order-last w-full md:order-none md:col-start-2'>
 					{search}
 				</div>
 			)}
 
-			<NotificationBell className='size-10 rounded-[10px] border-[#1d1f24] bg-[#0e0f12] text-zinc-300' />
+			<div className='flex justify-end md:col-start-3'>
+				<NotificationBell className='size-10 rounded-[10px] border-[#1d1f24] bg-[#0e0f12] text-zinc-300' />
+			</div>
 		</header>
 	);
 }

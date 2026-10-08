@@ -1,10 +1,3 @@
-jest.mock('@/components/dashboard/dashboard-layout', () => ({
-	DashboardLayout: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-jest.mock('@/components/ui/sidebar', () => ({
-	SidebarProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
-}));
-
 const mockGetCurrentUser = jest.fn();
 let mockCurrentUser: { id: string } | null = null;
 jest.mock('@/store/mind-map-store', () => ({
@@ -36,7 +29,6 @@ jest.mock('@/components/recipes/recipe-editor', () => ({
 
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode } from 'react';
 import { RecipesContent } from './recipes-content';
 
 beforeEach(() => {

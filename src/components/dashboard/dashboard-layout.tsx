@@ -24,7 +24,14 @@ import {
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+	type ReactNode,
+} from 'react';
 import useSWR from 'swr';
 import { useShallow } from 'zustand/shallow';
 import { UpgradeModal } from '../modals/upgrade-modal';
@@ -32,17 +39,19 @@ import { Sidebar, useSidebar } from '../ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/Tooltip';
 import { DashboardHeader } from './dashboard-header';
 import { DashboardPlanCard } from './dashboard-plan-card';
+import { DashboardSearchField } from './dashboard-search-field';
+import {
+	DASHBOARD_HEADER_SEARCH,
+	DashboardShellProvider,
+	useDashboardShell,
+} from './dashboard-shell-context';
 import { SettingsPanel } from './settings-panel';
 import { useDashboardMaps } from './use-dashboard-data';
 
 interface DashboardLayoutProps {
 	children: ReactNode;
-	/** Breadcrumb label in the top bar. */
+	/** Breadcrumb label in the top bar; defaults to the active sidebar item. */
 	title?: string;
-	/** Top-bar search field (Home only). */
-	headerSearch?: ReactNode;
-	/** Sidebar "New map" action; without it the button links to the dashboard's create flow. */
-	onNewMap?: () => void;
 }
 
 interface NavItem {
@@ -203,12 +212,20 @@ function SidebarNavItem({
 	);
 }
 
-export function DashboardLayout({
-	children,
-	title = 'Home',
-	headerSearch,
-	onNewMap,
-}: DashboardLayoutProps) {
+/**
+ * Dashboard chrome: sidebar, top bar and account dialogs around the page. The
+ * `/dashboard` route layout mounts it once, so it stays put while pages change. Pages
+ * reach its top-bar search and "New map" button through `dashboard-shell-context`.
+ */
+export function DashboardLayout(props: DashboardLayoutProps) {
+	return (
+		<DashboardShellProvider>
+			<DashboardShell {...props} />
+		</DashboardShellProvider>
+	);
+}
+
+function DashboardShell({ children, title }: DashboardLayoutProps) {
 	const pathname = usePathname();
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -216,6 +233,15 @@ export function DashboardLayout({
 	// The mobile sheet always shows the full sidebar.
 	const collapsed = sidebarState === 'collapsed' && !isMobile;
 	const isTouchFirst = useTouchFirst();
+	const {
+		query: searchQuery,
+		setQuery: setSearchQuery,
+		searchInputRef,
+		searchHidden,
+		newMapAction: onNewMap,
+	} = useDashboardShell();
+	const scrollerRef = useRef<HTMLDivElement>(null);
+	const scrolledPathRef = useRef(pathname);
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 	const [settingsTab, setSettingsTab] = useState<'account' | 'billing'>(
 		'account'
@@ -310,6 +336,48 @@ export function DashboardLayout({
 
 	const isItemActive = (href: string) =>
 		href === '/dashboard' ? pathname === href : pathname.startsWith(href);
+
+	// The page scrolls inside <main>, which now outlives the page: start each new page
+	// at the top, as a fresh mount did. Links to an anchor keep Next's scroll.
+	useLayoutEffect(() => {
+		if (scrolledPathRef.current === pathname) return;
+		scrolledPathRef.current = pathname;
+		const scroller = scrollerRef.current;
+		if (scroller && !window.location.hash) scroller.scrollTop = 0;
+	}, [pathname]);
+
+	const pageTitle =
+		title ??
+		navItems.find((item) => !item.comingSoon && isItemActive(item.href))
+			?.label ??
+		'Home';
+	const searchConfig = searchHidden
+		? undefined
+		: DASHBOARD_HEADER_SEARCH[pathname];
+	const headerSearch = searchConfig ? (
+		<DashboardSearchField
+			id={searchConfig.id}
+			label={searchConfig.label}
+			onChange={setSearchQuery}
+			ref={searchInputRef}
+			shortcut={isTouchFirst ? undefined : 'Ctrl F'}
+			value={searchQuery}
+		/>
+	) : undefined;
+
+	// Ctrl/Cmd+F jumps to the top-bar search wherever one is shown; elsewhere the
+	// browser's own find still works.
+	useEffect(() => {
+		if (!searchConfig) return;
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+				event.preventDefault();
+				searchInputRef.current?.focus();
+			}
+		};
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [searchConfig, searchInputRef]);
 
 	const displayName =
 		userProfile?.display_name || userProfile?.full_name || 'Account';
@@ -504,11 +572,13 @@ export function DashboardLayout({
 			</Sidebar>
 
 			<main className='flex min-h-0 grow flex-col overflow-hidden'>
-				<DashboardHeader search={headerSearch} title={title} />
+				<DashboardHeader search={headerSearch} title={pageTitle} />
 
 				<AnonymousUserBanner />
 
-				<div className='flex-1 overflow-y-auto'>{children}</div>
+				<div className='flex-1 overflow-y-auto' ref={scrollerRef}>
+					{children}
+				</div>
 			</main>
 
 			<SettingsPanel
