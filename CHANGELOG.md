@@ -5,6 +5,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-08]
+
+### Fixed
+
+- **plugins/runtime**: Plugins failed to load in production builds ("Upcoming couldn't load: … Octal escape sequences are not allowed in template strings") as soon as a map turned one on. The plugin engine now loads its WebAssembly as a separate file instead of a string embedded in the script, which the production minifier was corrupting
+  - Why: development builds aren't minified, so the bug only showed up in production
+
 ## [2026-10-07]
 
 ### Changed

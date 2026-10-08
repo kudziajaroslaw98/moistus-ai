@@ -44,7 +44,7 @@ importers:
       '@hookform/resolvers':
         specifier: 5.9.1
         version: 5.9.1(@sinclair/typebox@0.34.52)(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.89.0(@types/react@19.3.0)(react@19.3.0))(zod@4.6.5)
-      '@jitl/quickjs-singlefile-browser-release-sync':
+      '@jitl/quickjs-wasmfile-release-sync':
         specifier: 0.32.0
         version: 0.32.0
       '@polar-sh/nextjs':
@@ -153,9 +153,6 @@ importers:
       '@eslint/eslintrc':
         specifier: 3.3.7
         version: 3.3.7
-      '@jitl/quickjs-wasmfile-release-sync':
-        specifier: 0.32.0
-        version: 0.32.0
       '@playwright/test':
         specifier: 1.63.0
         version: 1.63.0
@@ -1329,9 +1326,6 @@ packages:
 
   '@jitl/quickjs-ffi-types@0.32.0':
     resolution: {integrity: sha512-v9T+GQpmk43VDJ7d72sf0Nexhk+ArvtUihW27dy7lqAl0zBObFKtSBBIm5RBjwIhE8VwsPPm9PNuvPvNqLWUEg==}
-
-  '@jitl/quickjs-singlefile-browser-release-sync@0.32.0':
-    resolution: {integrity: sha512-Hfdl7rh8dzxNWFRiYAYNbhn0RMF1/tO6SMH2mUW0aTibqwaAtqPRbi4WkwaIDlhNz8Z4dksJi1Zjl1R54Jsc/Q==}
 
   '@jitl/quickjs-wasmfile-release-sync@0.32.0':
     resolution: {integrity: sha512-BKNDI/TPBfGlLNGYpLrhcDGXmIk4xHm4MRAisOBnOzpXVn9HZWsfmMAc9WMBrAHjvvds6HOikKeaOBKdPdpVrg==}
@@ -6237,10 +6231,6 @@ snapshots:
       chalk: 4.1.2
 
   '@jitl/quickjs-ffi-types@0.32.0': {}
-
-  '@jitl/quickjs-singlefile-browser-release-sync@0.32.0':
-    dependencies:
-      '@jitl/quickjs-ffi-types': 0.32.0
 
   '@jitl/quickjs-wasmfile-release-sync@0.32.0':
     dependencies:
