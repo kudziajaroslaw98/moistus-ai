@@ -5,6 +5,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-09]
+
+### Docs
+
+- **mcp**: Exploration of a Shiko MCP server (`docs/MCP_EXPLORATION.md`), with creative writing (manuscript → story map) as the lead use case: tools, auth through Supabase's OAuth 2.1 server, how the plan works around live sync (new maps first, then changes as proposals approved in the app), layout, limits, security and a phased plan. Nothing is built yet
+
 ## [2026-10-08]
 
 ### Fixed
