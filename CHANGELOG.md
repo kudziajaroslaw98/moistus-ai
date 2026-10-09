@@ -10,6 +10,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Docs
 
 - **mcp**: Exploration of a Shiko MCP server (`docs/MCP_EXPLORATION.md`), with creative writing (manuscript → story map) as the lead use case: tools, auth through Supabase's OAuth 2.1 server, how the plan works around live sync (new maps first, then changes as proposals approved in the app), layout, limits, security and a phased plan. Nothing is built yet
+- **mcp**: Revised the exploration so the MVP edits existing maps directly: writes go to the database as the user, then into the live PartyKit room under an `mcp:<client>` actor (open tabs ignore changes stamped with their own user id), with revision checks against concurrent edits and one history entry per call. Tools redesigned for clients that defer MCP tools behind tool search: six workflow-shaped tools, additive and destructive split, short node refs, token budgets, server instructions and prompts
+  - Also corrected the live-sync explanation: PartyKit's database projection is never called, not merely gated
 
 ## [2026-10-08]
 
