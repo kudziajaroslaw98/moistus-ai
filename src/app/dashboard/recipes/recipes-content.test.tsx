@@ -3,12 +3,19 @@ let mockCurrentUser: { id: string } | null = null;
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
 	default: (
-		selector: (state: { currentUser: unknown; getCurrentUser: () => void }) => unknown
-	) => selector({ currentUser: mockCurrentUser, getCurrentUser: mockGetCurrentUser }),
+		selector: (state: {
+			currentUser: unknown;
+			getCurrentUser: () => void;
+		}) => unknown
+	) =>
+		selector({
+			currentUser: mockCurrentUser,
+			getCurrentUser: mockGetCurrentUser,
+		}),
 }));
 
-jest.mock('@/components/recipes/recipe-list', () => ({
-	RecipeList: ({ onCreate }: { onCreate: (initial: null) => void }) => (
+jest.mock('./recipes-grid', () => ({
+	RecipesGrid: ({ onCreate }: { onCreate: (initial: null) => void }) => (
 		<button onClick={() => onCreate(null)} type='button'>
 			Start a recipe
 		</button>
@@ -17,7 +24,10 @@ jest.mock('@/components/recipes/recipe-list', () => ({
 
 const mockEditorProps = jest.fn();
 jest.mock('@/components/recipes/recipe-editor', () => ({
-	RecipeEditor: (props: { onDirtyChange: (isDirty: boolean) => void; showTry?: boolean }) => {
+	RecipeEditor: (props: {
+		onDirtyChange: (isDirty: boolean) => void;
+		showTry?: boolean;
+	}) => {
 		mockEditorProps(props);
 		return (
 			<button onClick={() => props.onDirtyChange(true)} type='button'>
@@ -42,7 +52,9 @@ describe('RecipesContent', () => {
 
 		expect(mockGetCurrentUser).toHaveBeenCalledTimes(1);
 		expect(screen.getByTestId('recipes-page-loading')).toBeInTheDocument();
-		expect(screen.queryByRole('button', { name: 'Start a recipe' })).not.toBeInTheDocument();
+		expect(
+			screen.queryByRole('button', { name: 'Start a recipe' })
+		).not.toBeInTheDocument();
 	});
 
 	it('does not reload a user the store already has', () => {
@@ -57,16 +69,25 @@ describe('RecipesContent', () => {
 		const user = userEvent.setup();
 		render(<RecipesContent />);
 
-		expect(screen.getByRole('heading', { name: 'Recipes' })).toBeInTheDocument();
+		expect(
+			screen.getByRole('heading', { name: 'Recipes' })
+		).toBeInTheDocument();
 		await user.click(screen.getByRole('button', { name: 'Start a recipe' }));
 
-		expect(screen.getByRole('heading', { name: 'New recipe' })).toBeInTheDocument();
+		expect(
+			screen.getByRole('heading', { name: 'New recipe' })
+		).toBeInTheDocument();
 		expect(mockEditorProps).toHaveBeenLastCalledWith(
 			expect.not.objectContaining({ showTry: true })
 		);
+		expect(mockEditorProps).toHaveBeenLastCalledWith(
+			expect.objectContaining({ layout: 'page' })
+		);
 		await user.click(screen.getByRole('button', { name: /all recipes/i }));
 
-		expect(await screen.findByRole('heading', { name: 'Recipes' })).toBeInTheDocument();
+		expect(
+			await screen.findByRole('heading', { name: 'Recipes' })
+		).toBeInTheDocument();
 	});
 
 	it('asks before throwing away unsaved edits', async () => {
@@ -80,9 +101,13 @@ describe('RecipesContent', () => {
 
 		expect(screen.getByText('Discard unsaved changes?')).toBeInTheDocument();
 		// The modal hides the page from the accessibility tree while it's open.
-		expect(screen.getByRole('heading', { name: 'New recipe', hidden: true })).toBeInTheDocument();
+		expect(
+			screen.getByRole('heading', { name: 'New recipe', hidden: true })
+		).toBeInTheDocument();
 		await user.click(screen.getByRole('button', { name: 'Discard changes' }));
 
-		expect(await screen.findByRole('heading', { name: 'Recipes' })).toBeInTheDocument();
+		expect(
+			await screen.findByRole('heading', { name: 'Recipes' })
+		).toBeInTheDocument();
 	});
 });

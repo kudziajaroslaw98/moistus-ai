@@ -74,6 +74,13 @@ export const RECIPE_SCOPE_INFO: Record<
 	},
 };
 
+/** Cover accent per scope (HSL hue): one idea blue, a branch green, the whole map violet. */
+export const RECIPE_SCOPE_HUES: Record<RecipeScope, number> = {
+	node: 214,
+	branch: 152,
+	map: 270,
+};
+
 /** One-line summary for lists, e.g. "One idea · up to 4 · Note, Task". */
 export function describeRecipe(definition: {
 	scope: RecipeScope;
