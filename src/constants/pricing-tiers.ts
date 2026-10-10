@@ -3,6 +3,12 @@
  * Used as fallback when database is unavailable and for UI consistency
  */
 
+import {
+	FREE_PLAN_LIMITS,
+	PRO_PLAN_LIMITS,
+	type PlanLimits,
+} from '@/constants/plan-limits';
+
 export interface PricingTier {
 	id: 'free' | 'pro';
 	name: string;
@@ -14,12 +20,8 @@ export interface PricingTier {
 	limitations?: string[];
 	recommended?: boolean;
 	ctaText: string;
-	limits: {
-		mindMaps: number; // -1 = unlimited
-		nodesPerMap: number; // -1 = unlimited
-		aiSuggestions: number; // -1 = unlimited, per month
-		collaboratorsPerMap: number; // -1 = unlimited
-	};
+	/** -1 = unlimited; `aiSuggestions` is per billing period. */
+	limits: PlanLimits;
 }
 
 export const PRICING_TIERS: PricingTier[] = [
@@ -30,20 +32,15 @@ export const PRICING_TIERS: PricingTier[] = [
 		monthlyPrice: 0,
 		yearlyPrice: 0,
 		features: [
-			'3 mind maps',
-			'50 nodes per map',
-			'Up to 3 collaborators per map',
+			`${FREE_PLAN_LIMITS.mindMaps} mind maps`,
+			`${FREE_PLAN_LIMITS.nodesPerMap} nodes per map`,
+			`Up to ${FREE_PLAN_LIMITS.collaboratorsPerMap} collaborators per map`,
 			'Basic export',
 			'Community support',
 		],
 		limitations: ['No AI features'],
 		ctaText: 'Get Started',
-		limits: {
-			mindMaps: 3,
-			nodesPerMap: 50,
-			aiSuggestions: 0,
-			collaboratorsPerMap: 3,
-		},
+		limits: FREE_PLAN_LIMITS,
 	},
 	{
 		id: 'pro',
@@ -56,19 +53,14 @@ export const PRICING_TIERS: PricingTier[] = [
 			'Unlimited mind maps',
 			'Unlimited nodes',
 			'Unlimited collaborators',
-			'100 AI suggestions per month',
+			`${PRO_PLAN_LIMITS.aiSuggestions} AI suggestions per month`,
 			'Real-time collaboration',
 			'Priority support',
 			'Advanced export options',
 		],
 		recommended: true,
 		ctaText: 'Go Pro',
-		limits: {
-			mindMaps: -1,
-			nodesPerMap: -1,
-			aiSuggestions: 100,
-			collaboratorsPerMap: -1,
-		},
+		limits: PRO_PLAN_LIMITS,
 	},
 ];
 
@@ -96,15 +88,7 @@ export function getPrice(
  * Get limits for the free tier
  */
 export function getFreeTierLimits() {
-	const freeTier = getPricingTier('free');
-	return (
-		freeTier?.limits ?? {
-			mindMaps: 3,
-			nodesPerMap: 50,
-			aiSuggestions: 0,
-			collaboratorsPerMap: 3,
-		}
-	);
+	return getPricingTier('free')?.limits ?? FREE_PLAN_LIMITS;
 }
 
 /**

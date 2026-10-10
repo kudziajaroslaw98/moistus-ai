@@ -369,6 +369,22 @@ export const POST = withApiValidation(
 				.single();
 
 			if (insertError) {
+				// The database trigger is the backstop for two requests passing the
+				// count above at the same time.
+				if (insertError.message?.includes('MAP_LIMIT_REACHED')) {
+					return respondError(
+						'Mind map limit reached. Upgrade to Pro for unlimited maps.',
+						402,
+						'LIMIT_REACHED',
+						{
+							currentUsage: currentMapsCount,
+							limit,
+							remaining: 0,
+							upgradeUrl: BILLING_SETTINGS_URL,
+						}
+					);
+				}
+
 				console.error('Error creating new mind map:', insertError);
 				return respondError(
 					'Error creating new mind map.',
