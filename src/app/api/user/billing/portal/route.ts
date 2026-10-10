@@ -1,10 +1,6 @@
 import { createClient } from '@/helpers/supabase/server';
 import { BILLING_SETTINGS_URL } from '@/lib/billing-urls';
-import {
-	createPolarClient,
-	getAppUrl,
-	getPolarEnvironment,
-} from '@/lib/polar';
+import { createPolarClient, getAppUrl, getPolarEnvironment } from '@/lib/polar';
 import { NextResponse } from 'next/server';
 
 /**
@@ -38,20 +34,16 @@ async function createPortalUrl(): Promise<
 		.limit(1)
 		.maybeSingle();
 
-	if (!subscription?.polar_customer_id) {
-		return {
-			error: 'No billing account found. Subscribe to a plan first.',
-			status: 404,
-		};
-	}
-
 	const polar = createPolarClient();
 	const return_url = `${getAppUrl()}${BILLING_SETTINGS_URL}`;
+	const storedCustomerId = subscription?.polar_customer_id;
 	const attempts = [
 		// The customer Polar sent us in the subscription webhook.
-		{ customer_id: subscription.polar_customer_id, return_url },
+		...(storedCustomerId
+			? [{ customer_id: storedCustomerId, return_url }]
+			: []),
 		// Checkout links every customer to the app user, so this also works when the
-		// stored id is stale or from another Polar environment.
+		// stored id is missing, stale or from another Polar environment.
 		{ external_customer_id: user.id, return_url },
 	] as const;
 
@@ -70,6 +62,16 @@ async function createPortalUrl(): Promise<
 				environment: getPolarEnvironment(),
 			});
 		}
+	}
+
+	// Polar doesn't know this person: the plan wasn't bought through checkout (a trial or
+	// a plan set up by hand), so there is no portal to open.
+	if (!storedCustomerId) {
+		return {
+			error:
+				'There is no billing account for this plan. It was not bought through Shiko checkout (for example a trial), so there is no billing portal to open.',
+			status: 404,
+		};
 	}
 
 	return {

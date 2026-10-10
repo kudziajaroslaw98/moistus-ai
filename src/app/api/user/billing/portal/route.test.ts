@@ -63,14 +63,32 @@ describe('/api/user/billing/portal', () => {
 		expect(mockSessionsCreate).not.toHaveBeenCalled();
 	});
 
-	it('explains when there is no billing account yet', async () => {
+	it('explains when Polar has no customer for this plan', async () => {
 		mockSupabase({ id: 'user-1' }, null);
+		mockSessionsCreate.mockRejectedValue(new Error('customer not found'));
+		jest.spyOn(console, 'error').mockImplementation(() => undefined);
 
 		const response = await POST();
 
 		expect(response.status).toBe(404);
+		expect(mockSessionsCreate).toHaveBeenCalledTimes(1);
+		expect(mockSessionsCreate).toHaveBeenCalledWith({
+			external_customer_id: 'user-1',
+			return_url: 'https://app.test/dashboard?settings=billing',
+		});
+		expect((await response.json()).error).toMatch(/no billing account/i);
+	});
+
+	it('finds the Polar customer by app user when no id is stored', async () => {
+		mockSupabase({ id: 'user-1' }, null);
+		mockSessionsCreate.mockResolvedValue({
+			customer_portal_url: 'https://polar.sh/shiko/portal?token=abc',
+		});
+
+		const response = await POST();
+
 		expect(await response.json()).toEqual({
-			error: 'No billing account found. Subscribe to a plan first.',
+			url: 'https://polar.sh/shiko/portal?token=abc',
 		});
 	});
 
