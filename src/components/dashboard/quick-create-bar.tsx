@@ -125,7 +125,7 @@ export function QuickCreateBar({
 
 			{/* Phones: one link instead of a row of chips that doesn't fit. */}
 			<Link
-				className='group/start inline-flex items-center gap-1.5 self-start rounded-sm py-1 text-[13px] text-zinc-400 transition-colors duration-200 ease hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 sm:hidden'
+				className='group/start inline-flex items-center gap-1.5 self-center rounded-sm py-1 text-[13px] text-zinc-400 transition-colors duration-200 ease hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 sm:hidden'
 				href='/dashboard/templates'
 			>
 				or start with a template
