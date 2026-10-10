@@ -14,6 +14,13 @@ import {
 	CARD_BUTTON_CLASS,
 	PRIMARY_BUTTON_CLASS,
 } from '@/components/dashboard/dashboard-page';
+import { useDeveloperMode } from '@/components/plugins/developer-mode-switch';
+import {
+	PluginDraftsSection,
+	playgroundHref,
+} from '@/components/plugins/playground/plugin-drafts-section';
+import { PluginStartDialog } from '@/components/plugins/playground/plugin-start-dialog';
+import { QUIET_BUTTON_CLASS } from '@/components/plugins/playground/playground-styles';
 import { PluginSubmitSheet } from '@/components/plugins/plugin-submit-sheet';
 import { PluginVersionsSheet } from '@/components/plugins/plugin-versions-sheet';
 import { PluginsSlot } from '@/components/plugins/plugins-page-tabs';
@@ -33,6 +40,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { compareVersions, isLocalDevPluginUrl } from '@/lib/plugins/catalog';
+import { createDraftFromPublished } from '@/lib/plugins/drafts-client';
 import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
 import {
 	describePowerKind,
@@ -40,8 +48,10 @@ import {
 	powerKindOfPermissions,
 } from '@/lib/plugins/powers';
 import type { MyPlugin } from '@/types/plugin-library';
-import { History, Plus, Puzzle, Send } from 'lucide-react';
+import { Code2, History, Plus, Puzzle, Send } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import useSWR from 'swr';
 
 const MINE_KEY = '/api/plugins/mine';
@@ -177,20 +187,71 @@ export function MyPluginsContent() {
 	const [submitOpen, setSubmitOpen] = useState(false);
 	const [openId, setOpenId] = useState<string | null>(null);
 	const openPlugin = plugins?.find((plugin) => plugin.id === openId) ?? null;
+	const router = useRouter();
+	const searchParams = useSearchParams();
+	const { enabled: developerMode } = useDeveloperMode();
+	// `?write=1` opens "Write a plugin" (the map's Plugins panel and ⌘K link here).
+	const [writeOpen, setWriteOpen] = useState(
+		() => searchParams?.get('write') === '1'
+	);
+
+	const closeWrite = () => {
+		setWriteOpen(false);
+		if (searchParams?.has('write')) router.replace('/dashboard/plugins/mine');
+	};
+
+	const editAsDraft = async (version: string) => {
+		if (!openPlugin) return;
+		try {
+			const draft = await createDraftFromPublished(openPlugin.id, version);
+			router.push(playgroundHref(draft.id));
+		} catch (reason) {
+			toast.error(
+				reason instanceof Error ? reason.message : 'Could not start the draft'
+			);
+		}
+	};
 
 	// Title, tabs and the page width come from the plugins layout (PluginsPageFrame).
 	return (
 		<>
 			<PluginsSlot slot='heading'>
-				<button
-					className={PRIMARY_BUTTON_CLASS}
-					onClick={() => setSubmitOpen(true)}
-					type='button'
-				>
-					<Send aria-hidden className='size-3.5' />
-					Submit a version
-				</button>
+				<div className='flex flex-wrap gap-2'>
+					<button
+						className={QUIET_BUTTON_CLASS}
+						onClick={() => setSubmitOpen(true)}
+						type='button'
+					>
+						<Send aria-hidden className='size-3.5' />
+						Submit a version
+					</button>
+
+					<button
+						className={PRIMARY_BUTTON_CLASS}
+						onClick={() => setWriteOpen(true)}
+						type='button'
+					>
+						<Code2 aria-hidden className='size-3.5' />
+						Write a plugin
+					</button>
+				</div>
 			</PluginsSlot>
+
+			<PluginDraftsSection onWrite={() => setWriteOpen(true)} />
+
+			{developerMode && (
+				<div className='mt-8 flex flex-wrap items-baseline gap-x-2 gap-y-1'>
+					<h2 className='text-[15px] font-semibold text-white'>Submitted</h2>
+
+					<span className='font-mono text-xs text-zinc-500'>
+						{plugins?.length ?? 0}
+					</span>
+
+					<span className='text-[13px] text-zinc-500'>
+						Versions in the library, or waiting on review.
+					</span>
+				</div>
+			)}
 
 			{error && (
 				<div
@@ -204,7 +265,7 @@ export function MyPluginsContent() {
 				</div>
 			)}
 
-			<CatalogGrid className='mt-6' viewMode='grid'>
+			<CatalogGrid className={developerMode ? 'mt-3.5' : 'mt-6'} viewMode='grid'>
 				{isLoading && <CatalogCardSkeleton count={3} viewMode='grid' />}
 
 				{plugins?.map((plugin) => {
@@ -292,10 +353,15 @@ export function MyPluginsContent() {
 			)}
 
 			<PluginVersionsSheet
+				onEditAsDraft={editAsDraft}
 				onOpenChange={(open) => !open && setOpenId(null)}
 				onSubmitVersion={() => setSubmitOpen(true)}
 				plugin={openPlugin}
 			/>
+
+			{writeOpen && (
+				<PluginStartDialog open onOpenChange={(open) => !open && closeWrite()} />
+			)}
 
 			<SubmitDialog
 				onOpenChange={(open) => {

@@ -27,7 +27,7 @@ const formatBytes = (bytes: number) =>
 	bytes >= 1024 * 1024 ? `${bytes / (1024 * 1024)} MB` : `${bytes / 1024} KB`;
 
 export const MANIFEST_ROWS: GuideRow[] = [
-	{ name: 'id', description: 'Reverse-DNS and lowercase, like dev.yourname.counter' },
+	{ name: 'id', description: 'Reverse-DNS and lowercase, like dev.yourname.counter. In the playground Shiko sets it for you' },
 	{ name: 'name, description', description: 'Shown in the Plugins panel (up to 40 and 140 characters)' },
 	{ name: 'version', description: 'Three numbers, like 1.0.0' },
 	{ name: 'apiVersion', description: `Always ${PLUGIN_API_VERSION}` },

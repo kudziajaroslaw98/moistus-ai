@@ -263,6 +263,21 @@ describe('PluginsPanel for the owner', () => {
 		);
 	});
 
+	it('offers Write a plugin in the Developer section, opening the start dialog in a new tab', async () => {
+		setup();
+
+		const link = await screen.findByRole('link', { name: /Write a plugin/ });
+		expect(link).toHaveAttribute('href', '/dashboard/plugins/mine?write=1');
+		expect(link).toHaveAttribute('target', '_blank');
+	});
+
+	it('puts the Developer mode switch in the panel while it is off, so no trip to settings', async () => {
+		setup({ userProfile: { preferences: {} } });
+
+		expect(await screen.findByRole('switch', { name: 'Developer mode' })).not.toBeChecked();
+		expect(screen.queryByRole('link', { name: /Write a plugin/ })).not.toBeInTheDocument();
+	});
+
 	it('closes', async () => {
 		const user = setup();
 

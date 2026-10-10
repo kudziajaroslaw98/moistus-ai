@@ -86,3 +86,20 @@ describe('plugins command', () => {
 		expect(openPluginsPanel).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe('write plugin command', () => {
+	it('is offered to signed-in accounts on a ready map, not to guests', () => {
+		const when = command('write-plugin').when;
+		expect(when?.(context({ currentUser: { is_anonymous: false } }))).toBe(true);
+		expect(when?.(context({ currentUser: { is_anonymous: true } }))).toBe(false);
+		expect(when?.(context({ currentUser: null }))).toBe(false);
+		expect(when?.(context({ currentUser: { is_anonymous: false } }, false))).toBe(false);
+	});
+
+	it('opens the start dialog in a new tab, leaving the map as it is', () => {
+		const open = jest.spyOn(window, 'open').mockImplementation(() => null);
+		command('write-plugin').run(context({ currentUser: { is_anonymous: false } }));
+		expect(open).toHaveBeenCalledWith('/dashboard/plugins/mine?write=1', '_blank', 'noopener');
+		open.mockRestore();
+	});
+});

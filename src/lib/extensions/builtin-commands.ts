@@ -1,10 +1,17 @@
 import { availableCatalogUpdate } from '@/lib/plugins/catalog';
 import type { Contribution, ContributionContext } from '@/types/extensions';
-import { ChefHat, History, Plus, Puzzle, Search, Settings } from 'lucide-react';
+import { ChefHat, Code2, History, Plus, Puzzle, Search, Settings } from 'lucide-react';
 
 /** Recipes are saved per account, so guests (anonymous sessions) can't manage them. */
 const canSaveRecipes = (ctx: ContributionContext) =>
 	ctx.isMapReady && ctx.getState().currentUser?.is_anonymous === false;
+
+/** Anything that lives on the account (drafts, recipes) is for signed-in accounts, not guests. */
+const hasAccount = (ctx: ContributionContext) =>
+	ctx.isMapReady && ctx.getState().currentUser?.is_anonymous === false;
+
+/** Where "Write a plugin" starts: My plugins with its start dialog open. */
+export const WRITE_PLUGIN_URL = '/dashboard/plugins/mine?write=1';
 
 /** Built-in non-AI commands available in the command palette. */
 export const BUILTIN_COMMANDS: Contribution[] = [
@@ -73,6 +80,21 @@ export const BUILTIN_COMMANDS: Contribution[] = [
 		placements: ['commandPalette'],
 		when: (ctx) => ctx.isMapReady,
 		run: (ctx) => ctx.getState().openPluginsPanel(),
+	},
+	{
+		id: 'write-plugin',
+		title: 'Write a plugin',
+		description: 'Open the plugin editor with a template',
+		icon: Code2,
+		keywords: ['plugin', 'build', 'develop', 'playground', 'write', 'code'],
+		owner: 'builtin',
+		scopes: ['map'],
+		placements: ['commandPalette'],
+		when: hasAccount,
+		// A new tab: the map stays open as it is.
+		run: () => {
+			window.open(WRITE_PLUGIN_URL, '_blank', 'noopener');
+		},
 	},
 	{
 		id: 'create-recipe',

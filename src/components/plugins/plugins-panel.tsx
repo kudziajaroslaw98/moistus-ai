@@ -1,5 +1,6 @@
 'use client';
 
+import { DeveloperModeSetting } from '@/components/plugins/developer-mode-switch';
 import { SidePanel } from '@/components/side-panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +19,7 @@ import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import type { NodeExtensionData } from '@/types/extensions';
 import type { LoadedPlugin, MapPluginRecord } from '@/types/plugins';
-import { ArrowUpRight, Ban, Loader2, Lock, RefreshCw, X } from 'lucide-react';
+import { ArrowUpRight, Ban, Code2, Loader2, Lock, RefreshCw, X } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
 import { Fragment, useMemo, useState } from 'react';
@@ -372,9 +373,19 @@ function DeveloperSection({ onSubmit }: { onSubmit: (manifestUrl: string) => voi
 			<GroupHeader label='Developer' />
 
 			<p className='text-xs text-text-secondary'>
-				Load a plugin you&apos;re building from localhost. Only you see it, in
-				this browser.
+				Write a plugin in Shiko, or load one you&apos;re building from localhost.
+				Only you see them.
 			</p>
+
+			<Link
+				className='inline-flex h-8 items-center gap-1.5 self-start rounded-sm bg-primary-600 px-3 text-xs font-medium text-white transition-colors duration-200 hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400'
+				href='/dashboard/plugins/mine?write=1'
+				rel='noopener'
+				target='_blank'
+			>
+				<Code2 aria-hidden className='size-3.5' />
+				Write a plugin
+			</Link>
 
 			<Link
 				className={`${subtleLinkClass} self-start text-[13px] font-medium text-primary-400 hover:text-primary-300`}
@@ -765,18 +776,24 @@ export function PluginsPanel() {
 					{isOwner && developerMode && <DeveloperSection onSubmit={setSubmitUrl} />}
 
 					{isOwner && !developerMode && (
-						<p className='text-xs leading-[17px] text-text-secondary'>
-							Building a plugin? Turn on Developer mode in Map Settings › Editor
-							Preferences to load it from localhost.{' '}
+						<div className='flex flex-col gap-2.5'>
+							<p className='text-xs leading-[17px] text-text-secondary'>
+								Building a plugin? Turn on Developer mode in Map Settings › Editor
+								Preferences to write it in Shiko or load it from localhost.{' '}
 
-							<Link
-								className={`${subtleLinkClass} font-medium text-primary-400 hover:text-primary-300`}
-								href='/dashboard/plugins/build'
-							>
-								How to build a plugin
-								<ArrowUpRight aria-hidden className='size-3.5' />
-							</Link>
-						</p>
+								<Link
+									className={`${subtleLinkClass} font-medium text-primary-400 hover:text-primary-300`}
+									href='/dashboard/plugins/build'
+								>
+									How to build a plugin
+									<ArrowUpRight aria-hidden className='size-3.5' />
+								</Link>
+							</p>
+
+							<div className='rounded-[10px] border border-[#262626] bg-[#0b0b0b] p-3'>
+								<DeveloperModeSetting id='plugins-panel-developer-mode' />
+							</div>
+						</div>
 					)}
 				</div>
 			)}

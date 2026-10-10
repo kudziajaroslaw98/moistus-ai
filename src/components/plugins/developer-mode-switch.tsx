@@ -26,8 +26,9 @@ export function DeveloperModeSwitch({
 				</label>
 
 				<p className='text-xs leading-[17px] text-text-secondary' id={`${id}-description`}>
-					Shows the Developer section in the Plugins panel, for loading plugins
-					you&apos;re building from localhost. Only you see those plugins.
+					Lets you write plugins in Shiko, and shows the Developer section in the
+					Plugins panel for loading ones you&apos;re building from localhost. Only
+					you see those plugins.
 				</p>
 			</div>
 

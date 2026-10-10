@@ -13,7 +13,7 @@ import {
 	STARTER_PLUGIN_JS,
 } from '@/lib/plugins/starter-plugin';
 import { cn } from '@/utils/cn';
-import { Check, Copy, Download } from 'lucide-react';
+import { Check, Code2, Copy, Download } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
@@ -325,12 +325,33 @@ export function BuildGuideContent() {
 		<div className='mt-8 flex items-start gap-12'>
 			<article className='flex min-w-0 max-w-3xl flex-1 flex-col gap-12'>
 				<Section id='quick-start' title='Quick start'>
+					<Link
+						className='flex flex-wrap items-center gap-3.5 rounded-2xl border-[1.5px] border-dashed border-[#2a2c33] p-4 transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 [@media(hover:hover)]:hover:border-[#3a3d46]'
+						href='/dashboard/plugins/mine?write=1'
+					>
+						<span className='flex size-10 shrink-0 items-center justify-center rounded-full border border-[#2a2c33] bg-[#0e0f12] text-white'>
+							<Code2 aria-hidden className='size-4' />
+						</span>
+
+						<span className='flex min-w-0 flex-1 basis-56 flex-col gap-0.5'>
+							<span className='text-sm font-medium text-white'>Write it right here</span>
+
+							<span className='text-[13px] leading-[19px] text-zinc-500'>
+								Skip the setup: write the two files, watch the node draw, then submit
+								it. Prefer your own editor? The localhost steps are below.
+							</span>
+						</span>
+
+						<span className='text-sm text-white'>Open the playground →</span>
+					</Link>
+
 					<ol className='flex flex-col gap-6'>
 						<Step number={1} title='Turn on Developer mode'>
 							<p className={bodyClass}>
-								It adds a Developer section to the Plugins panel of maps you
-								own. Plugins you load there run only for you. The switch is also
-								in Map Settings › Editor Preferences and in Settings › Editor.
+								It lets you write plugins in Shiko and adds a Developer section
+								to the Plugins panel of maps you own. Plugins you load there run
+								only for you. The switch is also in Map Settings › Editor
+								Preferences and in Settings › Editor.
 							</p>
 
 							<div className='rounded-[10px] border border-zinc-800 bg-[#0b0b0b] p-3.5'>

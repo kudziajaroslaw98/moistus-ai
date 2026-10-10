@@ -2,6 +2,10 @@
 
 import { PRIMARY_BUTTON_CLASS } from '@/components/dashboard/dashboard-page';
 import { SideSheet } from '@/components/dashboard/side-sheet';
+import {
+	DeveloperModeSetting,
+	useDeveloperMode,
+} from '@/components/plugins/developer-mode-switch';
 import { formatTimeAgo } from '@/components/plugins/plugin-update-details';
 import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
 import {
@@ -10,7 +14,8 @@ import {
 } from '@/lib/plugins/powers';
 import type { MyPlugin, MyPluginVersion } from '@/types/plugin-library';
 import { cn } from '@/utils/cn';
-import { Ban, Puzzle } from 'lucide-react';
+import { Ban, Pencil, Puzzle } from 'lucide-react';
+import { useState } from 'react';
 
 export const VERSION_STATUS: Record<
 	MyPluginVersion['status'],
@@ -38,7 +43,14 @@ function when(version: MyPluginVersion): string {
 	return `Submitted ${formatTimeAgo(version.submittedAt)}`;
 }
 
-function VersionRow({ version }: { version: MyPluginVersion }) {
+function VersionRow({
+	version,
+	editAsDraft,
+}: {
+	version: MyPluginVersion;
+	/** Absent when drafts aren't offered here. */
+	editAsDraft?: { disabled: boolean; busy: boolean; onClick: () => void };
+}) {
 	const status = VERSION_STATUS[version.status];
 	return (
 		<li className='flex flex-col gap-2 border-t border-[#16171b] px-4 py-3 first:border-t-0'>
@@ -78,6 +90,21 @@ function VersionRow({ version }: { version: MyPluginVersion }) {
 					{`Turned off by Shiko: ${version.disabledReason}`}
 				</p>
 			)}
+
+			{editAsDraft && (
+				<div>
+					<button
+						className='inline-flex h-7 items-center gap-1.5 rounded-[9px] border border-[#2a2c33] bg-[#131418] px-2.5 text-xs text-white transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-50 [@media(hover:hover)]:hover:bg-[#1a1b20]'
+						disabled={editAsDraft.disabled}
+						onClick={editAsDraft.onClick}
+						type='button'
+					>
+						<Pencil aria-hidden className='size-3' />
+
+						{editAsDraft.busy ? 'Opening…' : 'Edit as new draft'}
+					</button>
+				</div>
+			)}
 		</li>
 	);
 }
@@ -86,6 +113,8 @@ interface PluginVersionsSheetProps {
 	plugin: MyPlugin | null;
 	onOpenChange: (open: boolean) => void;
 	onSubmitVersion: () => void;
+	/** Copies that version into a draft in the playground. Leave out to hide the buttons. */
+	onEditAsDraft?: (version: string) => Promise<void>;
 }
 
 /** Side sheet of one of your plugins: how it's doing, and every version with Shiko's messages. */
@@ -93,7 +122,10 @@ export function PluginVersionsSheet({
 	plugin,
 	onOpenChange,
 	onSubmitVersion,
+	onEditAsDraft,
 }: PluginVersionsSheetProps) {
+	const { enabled: developerMode } = useDeveloperMode();
+	const [opening, setOpening] = useState<string | null>(null);
 	const live = plugin?.versions.find(
 		(version) => version.status === 'published'
 	);
@@ -171,9 +203,36 @@ export function PluginVersionsSheet({
 					<section className='flex flex-col gap-2'>
 						<h3 className='text-[13px] font-semibold text-white'>Versions</h3>
 
+						{onEditAsDraft && !developerMode && (
+							<div className='flex flex-col gap-2.5 rounded-xl border border-[#1d1f24] bg-[#0b0b0d] px-3.5 py-3'>
+								<p className='text-[13px] leading-5 text-zinc-300'>
+									Turn on Developer mode to edit a version here as a draft.
+								</p>
+
+								<DeveloperModeSetting id='versions-sheet-developer-mode' />
+							</div>
+						)}
+
 						<ul className='overflow-hidden rounded-xl border border-[#1d1f24]'>
 							{plugin.versions.map((version) => (
-								<VersionRow key={version.version} version={version} />
+								<VersionRow
+									key={version.version}
+									version={version}
+									editAsDraft={
+										onEditAsDraft
+											? {
+													disabled: !developerMode || opening !== null,
+													busy: opening === version.version,
+													onClick: () => {
+														setOpening(version.version);
+														void onEditAsDraft(version.version).finally(() =>
+															setOpening(null)
+														);
+													},
+												}
+											: undefined
+									}
+								/>
 							))}
 						</ul>
 					</section>
