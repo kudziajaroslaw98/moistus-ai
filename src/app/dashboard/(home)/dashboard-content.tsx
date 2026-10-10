@@ -552,7 +552,7 @@ export function DashboardContent() {
 									))}
 								</UnderlineTabsList>
 
-								<div className='flex items-center gap-2 pb-1.5'>
+								<div className='flex w-full items-center justify-between gap-2 pb-1.5 sm:w-auto sm:justify-start'>
 									<DropdownMenu>
 										<DropdownMenuTrigger className='flex h-9 items-center gap-2 rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] px-3 text-[13px] text-zinc-300 transition-colors duration-200 ease hover:border-[#2a2c33] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'>
 											<span className='text-zinc-500'>Sort</span>
