@@ -1,14 +1,40 @@
 'use client';
 
-import { cn } from '@/utils/cn';
-import Link from 'next/link';
+import {
+	DashboardPage,
+	PageHeading,
+} from '@/components/dashboard/dashboard-page';
+import {
+	UnderlineTabLink,
+	UnderlineTabNav,
+	UnderlineTabsBar,
+} from '@/components/dashboard/underline-tabs';
 import { usePathname } from 'next/navigation';
-import type { ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 const TABS = [
-	{ id: 'library', label: 'Library', href: '/dashboard/plugins' },
-	{ id: 'mine', label: 'My plugins', href: '/dashboard/plugins/mine' },
-	{ id: 'build', label: 'Build a plugin', href: '/dashboard/plugins/build' },
+	{
+		id: 'library',
+		label: 'Library',
+		href: '/dashboard/plugins',
+		intro:
+			'New kinds of nodes for your maps. Turn a plugin on for a map and everyone who can edit it can add those nodes.',
+	},
+	{
+		id: 'mine',
+		label: 'My plugins',
+		href: '/dashboard/plugins/mine',
+		intro:
+			'Plugins you submitted to the library. Shiko reviews every version before map owners can turn it on.',
+	},
+	{
+		id: 'build',
+		label: 'Build a plugin',
+		href: '/dashboard/plugins/build',
+		intro:
+			'A plugin adds a new kind of node. List its fields in manifest.json, draw it in plugin.js, try it on your own maps, then submit it to the library.',
+	},
 ] as const;
 
 type PluginsTab = (typeof TABS)[number]['id'];
@@ -28,51 +54,74 @@ export function PluginsPageTabs() {
 	const current = tabForPath(usePathname());
 
 	return (
-		<nav aria-label='Plugins' className='flex gap-1 border-b border-zinc-800'>
+		<UnderlineTabNav label='Plugins'>
 			{TABS.map((tab) => (
-				<Link
-					aria-current={tab.id === current ? 'page' : undefined}
+				<UnderlineTabLink
+					active={tab.id === current}
 					href={tab.href}
 					key={tab.id}
-					className={cn(
-						'-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60',
-						tab.id === current
-							? 'border-primary-500 text-white'
-							: 'border-transparent text-zinc-400 hover:text-zinc-100'
-					)}
 				>
 					{tab.label}
-				</Link>
+				</UnderlineTabLink>
 			))}
-		</nav>
+		</UnderlineTabNav>
 	);
 }
 
+interface PluginsSlots {
+	/** Right of the title (the page's main button). */
+	heading: HTMLElement | null;
+	/** Right of the tabs (view toggle). */
+	controls: HTMLElement | null;
+}
+
+const PluginsSlotsContext = createContext<PluginsSlots>({
+	heading: null,
+	controls: null,
+});
+
 /**
- * Plugins title and tabs around the current tab. The plugins layout renders it, so it
- * stays in place while the tab content changes. The guide is wider for its contents list.
+ * Puts a tab's own buttons into the frame's title row or tab row, which the layout
+ * renders once and keeps while the tab content changes.
+ */
+export function PluginsSlot({
+	slot,
+	children,
+}: {
+	slot: keyof PluginsSlots;
+	children: ReactNode;
+}) {
+	const element = useContext(PluginsSlotsContext)[slot];
+	return element ? createPortal(children, element) : null;
+}
+
+/**
+ * Plugins title and tabs around the current tab, in the dashboard page width. The
+ * plugins layout renders it, so it stays in place while the tab content changes.
  */
 export function PluginsPageFrame({ children }: { children: ReactNode }) {
-	const isGuide = tabForPath(usePathname()) === 'build';
+	const current = tabForPath(usePathname());
+	const intro = TABS.find((tab) => tab.id === current)?.intro;
+	const [heading, setHeading] = useState<HTMLElement | null>(null);
+	const [controls, setControls] = useState<HTMLElement | null>(null);
 
 	return (
-		<div className='p-6 md:p-8'>
-			<div
-				className={cn(
-					'mx-auto flex flex-col',
-					isGuide ? 'max-w-5xl' : 'max-w-3xl'
-				)}
-			>
-				<div className='flex flex-col gap-4'>
-					<h1 className='text-3xl font-bold tracking-tight text-white'>
-						Plugins
-					</h1>
+		<PluginsSlotsContext.Provider value={{ heading, controls }}>
+			<DashboardPage>
+				<PageHeading
+					action={<div className='contents' ref={setHeading} />}
+					intro={intro}
+					title='Plugins'
+				/>
 
+				<UnderlineTabsBar className='mt-9'>
 					<PluginsPageTabs />
-				</div>
+
+					<div className='mb-1.5 flex items-center gap-2' ref={setControls} />
+				</UnderlineTabsBar>
 
 				{children}
-			</div>
-		</div>
+			</DashboardPage>
+		</PluginsSlotsContext.Provider>
 	);
 }

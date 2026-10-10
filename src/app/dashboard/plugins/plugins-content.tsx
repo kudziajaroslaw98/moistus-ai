@@ -2,52 +2,49 @@
 
 import type { PluginMapSummary } from '@/app/api/plugins/maps/route';
 import {
-	needsPowerApproval,
-	PluginPowersConfirm,
-	PluginPowersLine,
-} from '@/components/plugins/plugin-powers';
-import { PluginUpdateDetails } from '@/components/plugins/plugin-update-details';
-import { useCatalogManifests } from '@/components/plugins/use-catalog-manifests';
-import { PluginCardMenu } from '@/components/plugins/plugin-card-menu';
-import { usePluginLibrary } from '@/components/plugins/use-plugin-library';
-import { Button, buttonVariants } from '@/components/ui/button';
+	CARD_MENU_TRIGGER_CLASS,
+	CatalogCard,
+	CatalogCardSkeleton,
+	CatalogEmptyState,
+	CatalogGrid,
+	OFF_HUE,
+	type CatalogChip,
+} from '@/components/dashboard/catalog-card';
+import { CreateTile } from '@/components/dashboard/create-tile';
+import { useDashboardSearch } from '@/components/dashboard/dashboard-shell-context';
+import { ViewToggle } from '@/components/dashboard/view-toggle';
 import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from '@/components/ui/popover';
-import { Skeleton } from '@/components/ui/skeleton';
+	ChooseMapsPopover,
+	pinnedVersion,
+} from '@/components/plugins/choose-maps-popover';
+import { PluginCardMenu } from '@/components/plugins/plugin-card-menu';
+import { PluginUpdateDetails } from '@/components/plugins/plugin-update-details';
+import { PluginsSlot } from '@/components/plugins/plugins-page-tabs';
+import { useCatalogManifests } from '@/components/plugins/use-catalog-manifests';
+import { usePluginLibrary } from '@/components/plugins/use-plugin-library';
+import { Button } from '@/components/ui/button';
 import {
 	compareVersions,
 	disabledReason,
 	findCatalogPlugin,
-	findCatalogVersion,
 	latestCatalogVersion,
 	mapPluginRequest,
 	type PluginCatalogEntry,
 } from '@/lib/plugins/catalog';
 import type { PluginManifest } from '@/lib/plugins/manifest-schema';
 import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
-import { cn } from '@/utils/cn';
 import {
-	ArrowRight,
-	Ban,
-	Check,
-	ChevronDown,
-	Code2,
-	Loader2,
-} from 'lucide-react';
-import { motion, useReducedMotion } from 'motion/react';
-import Link from 'next/link';
-import { useState, type ReactNode } from 'react';
+	describePowerKind,
+	PLUGIN_POWER_HUES,
+	powerKindOfPermissions,
+} from '@/lib/plugins/powers';
+import type { DashboardViewMode } from '@/types/dashboard-map';
+import { Globe, ListTree, Loader2, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
 const MAPS_KEY = '/api/plugins/maps';
-
-/** The version a map has this plugin on at, or undefined when it's off. */
-const pinnedVersion = (map: PluginMapSummary, pluginId: string) =>
-	map.plugins.find((plugin) => plugin.pluginId === pluginId)?.version;
 
 const fetchMaps = async (url: string): Promise<PluginMapSummary[]> => {
 	const response = await fetch(url);
@@ -60,157 +57,46 @@ const fetchMaps = async (url: string): Promise<PluginMapSummary[]> => {
 
 function GroupHeader({ label, count }: { label: string; count: number }) {
 	return (
-		<div className='flex items-center gap-2.5 px-1 pt-1'>
-			<h2 className='text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55'>
-				{label}
-			</h2>
+		<div className='mb-4 mt-8 flex items-center gap-3 first:mt-6'>
+			<h2 className='text-sm font-semibold text-white'>{label}</h2>
 
-			<span aria-hidden className='h-px flex-1 bg-white/[0.08]' />
+			<span className='font-mono text-xs text-zinc-500'>{count}</span>
 
-			<span className='text-[12px] tabular-nums text-white/55'>{count}</span>
+			<span aria-hidden className='h-px flex-1 bg-[#1d1f24]' />
 		</div>
 	);
 }
 
-interface MapPickerProps {
-	name: string;
-	pluginId: string;
-	/** Plugins with powers ask before they're turned on for a map. */
-	manifest: PluginManifest | null | undefined;
-	/** Turned off by Shiko: maps can turn it off but not on. */
-	offReason: string | null;
-	maps: PluginMapSummary[] | undefined;
-	isLoading: boolean;
-	busyMapIds: string[];
-	onToggle: (map: PluginMapSummary, enabled: boolean) => void;
-}
+const POWER_ICONS = {
+	own: ShieldCheck,
+	branch: ListTree,
+	network: Globe,
+} as const;
 
-/** "On in 2 maps" button with the user's own maps as checkboxes. */
-function MapPicker({
-	name,
-	pluginId,
-	manifest,
-	offReason,
-	maps,
-	isLoading,
-	busyMapIds,
-	onToggle,
-}: MapPickerProps) {
-	const [pendingMap, setPendingMap] = useState<PluginMapSummary | null>(null);
-	const count =
-		maps?.filter((map) => pinnedVersion(map, pluginId) !== undefined).length ?? 0;
-	const label = isLoading
-		? 'Loading maps…'
-		: count === 0
-			? 'Turn on for a map'
-			: `On in ${count} ${count === 1 ? 'map' : 'maps'}`;
+/** Detail row of a plugin card: its `$kind` words and what it can reach. */
+function PluginDetail({ manifest }: { manifest: PluginManifest }) {
+	const kind = powerKindOfPermissions(manifest.permissions);
+	const PowerIcon = POWER_ICONS[kind];
 
 	return (
-		<Popover onOpenChange={(open) => !open && setPendingMap(null)}>
-			<PopoverTrigger
-				render={
-					<Button
-						className='shrink-0 gap-1.5'
-						disabled={isLoading || !maps}
-						variant='outline'
-					/>
-				}
-			>
-				{label}
+		<>
+			{manifest.nodeKinds.slice(0, 2).map((nodeKind) => (
+				<code
+					className='shrink-0 rounded bg-teal-500/15 px-1.5 py-px font-mono text-[11.5px] text-teal-300'
+					key={nodeKind.kind}
+				>
+					${nodeKind.kind}
+				</code>
+			))}
 
-				<ChevronDown aria-hidden className='size-3.5 text-zinc-400' />
-			</PopoverTrigger>
+			<span className='flex min-w-0 items-center gap-1.5'>
+				<PowerIcon aria-hidden className='size-3.5 shrink-0' />
 
-			<PopoverContent
-				align='end'
-				aria-label={`Maps with ${name} on`}
-				className='w-72 p-1.5'
-				side='bottom'
-			>
-				<p className='px-2.5 pb-1.5 pt-2 text-xs text-text-secondary'>
-					Turn {name} on for
-				</p>
-
-				{maps && maps.length > 0 ? (
-					<ul className='max-h-72 overflow-y-auto'>
-						{maps.map((map) => {
-							const version = pinnedVersion(map, pluginId);
-							const isOn = version !== undefined;
-							const isBusy = busyMapIds.includes(map.id);
-							return (
-								<li key={map.id}>
-									<button
-										aria-checked={isOn}
-										className='flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-left text-sm text-text-primary transition-colors duration-200 ease hover:bg-white/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 disabled:cursor-wait'
-										disabled={isBusy || (Boolean(offReason) && !isOn)}
-										role='checkbox'
-										type='button'
-										onClick={() =>
-											!isOn && manifest && needsPowerApproval(manifest)
-												? setPendingMap(map)
-												: onToggle(map, !isOn)
-										}
-									>
-										<span
-											aria-hidden
-											className={cn(
-												'flex size-4 shrink-0 items-center justify-center rounded border transition-colors duration-200 ease',
-												isOn
-													? 'border-primary-500 bg-primary-500 text-white'
-													: 'border-zinc-600 bg-zinc-800'
-											)}
-										>
-											{isBusy ? (
-												<Loader2 className='size-3 animate-spin' />
-											) : isOn ? (
-												<Check className='size-3' />
-											) : null}
-										</span>
-
-										<span className='min-w-0 flex-1 truncate'>
-											{map.title || 'Untitled map'}
-										</span>
-
-										{version && (
-											<span className='shrink-0 text-xs tabular-nums text-zinc-500'>
-												v{version}
-											</span>
-										)}
-									</button>
-								</li>
-							);
-						})}
-					</ul>
-				) : (
-					<p className='px-2.5 py-2 text-sm text-text-secondary'>
-						You don&apos;t own any maps yet.
-					</p>
-				)}
-
-				{pendingMap && manifest && (
-					<div className='px-1 pt-1.5'>
-						<PluginPowersConfirm
-							fromCatalog
-							manifest={manifest}
-							onCancel={() => setPendingMap(null)}
-							authorHosts={
-								findCatalogVersion(pluginId, manifest.version)?.authorHosts
-							}
-							onConfirm={() => {
-								onToggle(pendingMap, true);
-								setPendingMap(null);
-							}}
-						/>
-					</div>
-				)}
-
-				<div aria-hidden className='mx-1 my-1.5 h-px bg-zinc-800' />
-
-				<p className='px-2.5 pb-2 pt-1 text-xs leading-4 text-zinc-500'>
-					Only maps you own are listed. Changes save right away.
-				</p>
-			</PopoverContent>
-		</Popover>
+				<span className='truncate'>
+					{describePowerKind(manifest.permissions)}
+				</span>
+			</span>
+		</>
 	);
 }
 
@@ -233,11 +119,11 @@ function UpdateBox({ entry, outdated, isUpdating, onUpdate }: UpdateBoxProps) {
 
 	return (
 		<div
-			className='space-y-2 rounded-lg border border-primary-500/30 bg-primary-500/[0.07] p-3'
+			className='space-y-2 rounded-2xl border border-[#1d1f24] bg-[#0e0f12] p-4'
 			data-testid='plugin-update'
 		>
 			<p className='flex items-center gap-2 text-[13px] font-semibold text-text-primary'>
-				<span aria-hidden className='size-1.5 rounded-full bg-primary-500' />
+				<span aria-hidden className='size-1.5 rounded-full bg-sky-400' />
 
 				{`${latest} ready for ${count} of your maps`}
 			</p>
@@ -245,8 +131,8 @@ function UpdateBox({ entry, outdated, isUpdating, onUpdate }: UpdateBoxProps) {
 			<PluginUpdateDetails entry={entry} fromVersion={oldest} />
 
 			<p className='text-xs leading-[17px] text-text-secondary'>
-				Nodes with data the new version doesn&apos;t accept keep their last saved
-				view. You can roll back from each map&apos;s Plugins panel.
+				Nodes with data the new version doesn&apos;t accept keep their last
+				saved view. You can roll back from each map&apos;s Plugins panel.
 			</p>
 
 			<div className='flex justify-end'>
@@ -262,107 +148,24 @@ function UpdateBox({ entry, outdated, isUpdating, onUpdate }: UpdateBoxProps) {
 	);
 }
 
-interface PluginCardProps {
-	entry: PluginCatalogEntry;
-	manifest: PluginManifest | null | undefined;
-	index: number;
-	/** Map picker, beside the name. */
-	children: ReactNode;
-	/** "Update available" box, under the description. */
-	update?: ReactNode;
-	offReason?: string | null;
-}
-
-function PluginCard({ entry, manifest, index, children, update, offReason }: PluginCardProps) {
-	const shouldReduceMotion = useReducedMotion();
-	const Icon = manifest ? PLUGIN_ICONS[manifest.icon] : null;
-
-	return (
-		<motion.article
-			animate={{ opacity: 1, y: 0 }}
-			className='flex scroll-mt-24 flex-col gap-3 rounded-lg border border-zinc-800 bg-base p-3.5'
-			id={`plugin-${entry.id}`}
-			initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
-			transition={
-				shouldReduceMotion
-					? { duration: 0 }
-					: { delay: Math.min(index, 8) * 0.03, duration: 0.2, ease: 'easeOut' }
-			}
-		>
-			<div className='flex flex-wrap items-start gap-3 sm:flex-nowrap'>
-				<span className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-500/15 text-primary-400'>
-					{Icon ? <Icon aria-hidden className='size-[18px]' /> : null}
-				</span>
-
-				<div className='flex min-w-0 flex-1 flex-col gap-0.5'>
-					<h3 className='text-[15px] font-medium leading-5 text-text-primary'>
-						{manifest?.name ?? entry.id}
-					</h3>
-
-					<span className='text-xs text-text-secondary'>
-						{manifest
-							? `by ${manifest.author} · v${manifest.version}`
-							: `v${latestCatalogVersion(entry).version}`}
-					</span>
-
-					{manifest?.description && (
-						<p className='mt-1 text-[13px] leading-[18px] text-zinc-300'>
-							{manifest.description}
-						</p>
-					)}
-
-					{manifest && (
-						<p className='mt-1.5 text-xs text-text-secondary'>
-							Adds{' '}
-
-							{manifest.nodeKinds.map((kind, kindIndex) => (
-								<span key={kind.kind}>
-									{kindIndex > 0 && ', '}
-
-									<code className='rounded bg-teal-500/15 px-1.5 py-px font-mono text-[11.5px] text-teal-300'>
-										${kind.kind}
-									</code>
-								</span>
-							))}{' '}
-							to the node editor
-						</p>
-					)}
-				</div>
-
-				{children}
-
-				<PluginCardMenu
-					pluginId={entry.id}
-					pluginName={manifest?.name ?? entry.name ?? entry.id}
-					showAbout={false}
-					version={latestCatalogVersion(entry).version}
-				/>
-			</div>
-
-			{update}
-
-			{manifest && <PluginPowersLine manifest={manifest} />}
-
-			{offReason && (
-				<p
-					className='flex items-start gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1.5 text-xs leading-4 text-red-300'
-					role='status'
-				>
-					<Ban aria-hidden className='mt-px size-3.5 shrink-0' />
-
-					{`Turned off by Shiko: ${offReason}`}
-				</p>
-			)}
-		</motion.article>
-	);
-}
-
-/** Dashboard Plugins page: Shiko plugins, which of your maps use them, and how to build one. */
+/** Dashboard Plugins › Library: Shiko and community plugins, and which of your maps use them. */
 export function PluginsContent() {
 	const library = usePluginLibrary();
 	const manifests = useCatalogManifests(library.plugins, true);
-	const shikoEntries = library.plugins.filter((entry) => entry.source !== 'community');
-	const libraryEntries = library.plugins.filter((entry) => entry.source === 'community');
+	const { query, setQuery } = useDashboardSearch();
+	const [viewMode, setViewMode] = useState<DashboardViewMode>('grid');
+	const needle = query.trim().toLowerCase();
+	const filtered = library.plugins.filter((entry) => {
+		if (!needle) return true;
+		const manifest = manifests[entry.id];
+		return `${manifest?.name ?? entry.id} ${manifest?.description ?? ''}`
+			.toLowerCase()
+			.includes(needle);
+	});
+	const shikoEntries = filtered.filter((entry) => entry.source !== 'community');
+	const libraryEntries = filtered.filter(
+		(entry) => entry.source === 'community'
+	);
 	const { data: maps, error, isLoading, mutate } = useSWR(MAPS_KEY, fetchMaps);
 	const [busy, setBusy] = useState<string[]>([]);
 	const [updating, setUpdating] = useState<string[]>([]);
@@ -384,7 +187,9 @@ export function PluginsContent() {
 				);
 				return {
 					...candidate,
-					plugins: enabled ? [...others, { pluginId, version: latest }] : others,
+					plugins: enabled
+						? [...others, { pluginId, version: latest }]
+						: others,
 				};
 			});
 		try {
@@ -458,125 +263,175 @@ export function PluginsContent() {
 		}
 	};
 
-	const renderEntry = (entry: PluginCatalogEntry, index: number) => {
+	const renderEntry = (entry: PluginCatalogEntry) => {
 		const manifest = manifests[entry.id];
 		const name = manifest?.name ?? entry.id;
 		const latest = latestCatalogVersion(entry).version;
 		const offReason = disabledReason(entry.id, latest);
-		const outdated = (maps ?? []).filter((map) => {
+		const onCount = (maps ?? []).filter(
+			(map) => pinnedVersion(map, entry.id) !== undefined
+		).length;
+		const hasUpdate = (maps ?? []).some((map) => {
 			const version = pinnedVersion(map, entry.id);
 			return version !== undefined && compareVersions(version, latest) < 0;
 		});
+
+		if (!manifest) {
+			// Still loading its manifest (or it failed): keep the card's place in the grid.
+			return (
+				<CatalogCardSkeleton count={1} key={entry.id} viewMode={viewMode} />
+			);
+		}
+
+		const chips: CatalogChip[] = [
+			...(offReason ? [{ label: 'Turned off', tone: 'red' as const }] : []),
+			...(hasUpdate
+				? [{ label: `Update ${latest}`, tone: 'amber' as const }]
+				: []),
+			{ label: entry.source === 'community' ? 'Community' : 'Shiko' },
+		];
+		const mapsText = isLoading
+			? 'Loading maps…'
+			: onCount === 0
+				? 'Not on a map'
+				: `On in ${onCount} ${onCount === 1 ? 'map' : 'maps'}`;
+
 		return (
-			<PluginCard
-				entry={entry}
-				index={index}
-				key={entry.id}
-				manifest={manifest}
-				offReason={offReason}
-				update={
-					outdated.length > 0 ? (
-						<UpdateBox
-							entry={entry}
-							isUpdating={updating.includes(entry.id)}
-							outdated={outdated}
-							onUpdate={() =>
-								void updatePluginOnMaps(entry, name, outdated)
-							}
-						/>
-					) : null
+			<CatalogCard
+				anchorId={`plugin-${entry.id}`}
+				chips={chips}
+				detail={<PluginDetail manifest={manifest} />}
+				hue={
+					offReason
+						? OFF_HUE
+						: PLUGIN_POWER_HUES[powerKindOfPermissions(manifest.permissions)]
 				}
-			>
-				{manifest === undefined ? (
-					<Skeleton className='h-9 w-36 rounded-md' />
-				) : (
-					<MapPicker
-						isLoading={isLoading}
-						manifest={manifests[entry.id]}
-						offReason={offReason}
-						maps={maps}
-						name={name}
-						pluginId={entry.id}
+				icon={PLUGIN_ICONS[manifest.icon]}
+				key={entry.id}
+				meta={`v${manifest.version} · ${mapsText}`}
+				title={name}
+				viewMode={viewMode}
+				description={
+					offReason
+						? `Turned off by Shiko: ${offReason}`
+						: (manifest.description ?? '')
+				}
+				action={
+					<ChooseMapsPopover
 						busyMapIds={busy
 							.filter((key) => key.startsWith(`${entry.id}:`))
 							.map((key) => key.slice(entry.id.length + 1))}
+						isLoading={isLoading}
+						manifest={manifest}
+						maps={maps}
+						name={name}
+						offReason={offReason}
+						pluginId={entry.id}
 						onToggle={(map, enabled) =>
 							void setPluginOnMap(entry.id, name, map, enabled)
 						}
 					/>
-				)}
-			</PluginCard>
+				}
+				menu={
+					<PluginCardMenu
+						pluginId={entry.id}
+						pluginName={name}
+						showAbout={false}
+						triggerClassName={CARD_MENU_TRIGGER_CLASS}
+						version={latest}
+					/>
+				}
+			/>
 		);
 	};
 
-	// Title and tabs come from the plugins layout (PluginsPageFrame).
+	const updates = filtered.flatMap((entry) => {
+		const latest = latestCatalogVersion(entry).version;
+		const outdated = (maps ?? []).filter((map) => {
+			const version = pinnedVersion(map, entry.id);
+			return version !== undefined && compareVersions(version, latest) < 0;
+		});
+		return outdated.length > 0 ? [{ entry, outdated }] : [];
+	});
+
+	// Title, tabs and the page width come from the plugins layout (PluginsPageFrame).
 	return (
-		<div className='mt-4 flex flex-col gap-6'>
-			<p className='text-zinc-400'>
-				New kinds of nodes for your maps. Turn a plugin on for a map and
-				everyone who can edit it can add those nodes.
-			</p>
+		<>
+			<PluginsSlot slot='controls'>
+				<ViewToggle onChange={setViewMode} value={viewMode} />
+			</PluginsSlot>
 
-			<section
-				aria-label='Shiko plugins'
-				className='flex flex-col gap-3 rounded-xl border border-zinc-800 bg-base p-4'
-			>
-				<GroupHeader count={shikoEntries.length} label='Shiko plugins' />
-
-				{error && (
-					<div
-						className='flex items-center justify-between gap-3 rounded-lg border border-error-500/30 bg-error-500/10 px-3 py-2 text-sm text-error-200'
-						role='alert'
-					>
-						Couldn&apos;t load your maps.
-						<Button onClick={() => void mutate()} size='sm' variant='outline'>
-							Try again
-						</Button>
-					</div>
-				)}
-
-				{shikoEntries.map(renderEntry)}
-			</section>
-
-			{libraryEntries.length > 0 && (
-				<section
-					aria-label='Library'
-					className='flex flex-col gap-3 rounded-xl border border-zinc-800 bg-base p-4'
+			{error && (
+				<div
+					className='mt-6 flex items-center justify-between gap-3 rounded-xl border border-error-500/30 bg-error-500/10 px-3 py-2 text-sm text-error-200'
+					role='alert'
 				>
-					<GroupHeader count={libraryEntries.length} label='Library' />
-
-					<p className='text-sm text-zinc-400'>
-						Made by other people and reviewed by Shiko before they&apos;re
-						listed.
-					</p>
-
-					{libraryEntries.map(renderEntry)}
-				</section>
+					Couldn&apos;t load your maps.
+					<Button onClick={() => void mutate()} size='sm' variant='outline'>
+						Try again
+					</Button>
+				</div>
 			)}
 
-			<section className='flex flex-wrap items-center gap-4 rounded-xl border border-zinc-800 bg-base p-5'>
-				<span className='flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-white/6 text-zinc-300'>
-					<Code2 aria-hidden className='size-5' />
-				</span>
-
-				<div className='flex min-w-60 flex-1 flex-col gap-1'>
-					<h2 className='text-base font-semibold text-white'>Build a plugin</h2>
-
-					<p className='text-sm text-zinc-400'>
-						Write one in plain JavaScript and load it from localhost while
-						you work on it. Only you see it until you submit it and Shiko
-						publishes it in the library.
-					</p>
+			{updates.length > 0 && (
+				<div className='mt-6 flex flex-col gap-3'>
+					{updates.map(({ entry, outdated }) => (
+						<UpdateBox
+							entry={entry}
+							isUpdating={updating.includes(entry.id)}
+							key={entry.id}
+							outdated={outdated}
+							onUpdate={() =>
+								void updatePluginOnMaps(
+									entry,
+									manifests[entry.id]?.name ?? entry.id,
+									outdated
+								)
+							}
+						/>
+					))}
 				</div>
+			)}
 
-				<Link
-					className={cn(buttonVariants({ variant: 'outline' }), 'gap-1.5')}
+			{filtered.length === 0 ? (
+				<CatalogEmptyState
+					actionLabel='Show all plugins'
+					hint='Try another search term.'
+					onAction={() => setQuery('')}
+					title='No plugins found'
+				/>
+			) : (
+				<>
+					{shikoEntries.length > 0 && (
+						<section aria-label='Shiko plugins'>
+							<GroupHeader count={shikoEntries.length} label='Shiko plugins' />
+
+							<CatalogGrid viewMode={viewMode}>
+								{shikoEntries.map(renderEntry)}
+							</CatalogGrid>
+						</section>
+					)}
+
+					{libraryEntries.length > 0 && (
+						<section aria-label='Community'>
+							<GroupHeader count={libraryEntries.length} label='Community' />
+
+							<CatalogGrid viewMode={viewMode}>
+								{libraryEntries.map(renderEntry)}
+							</CatalogGrid>
+						</section>
+					)}
+				</>
+			)}
+
+			<div className='mt-8'>
+				<CreateTile
+					hint='Write one in plain JavaScript, try it from localhost, then submit it.'
 					href='/dashboard/plugins/build'
-				>
-					Read the guide
-					<ArrowRight aria-hidden className='size-3.5' />
-				</Link>
-			</section>
-		</div>
+					title='Build a plugin'
+					viewMode='list'
+				/>
+			</div>
+		</>
 	);
 }

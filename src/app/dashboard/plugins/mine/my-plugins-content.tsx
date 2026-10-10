@@ -1,7 +1,22 @@
 'use client';
 
+import {
+	CARD_MENU_TRIGGER_CLASS,
+	CardMenuIcon,
+	CatalogCard,
+	CatalogCardSkeleton,
+	CatalogGrid,
+	OFF_HUE,
+	type CatalogChip,
+} from '@/components/dashboard/catalog-card';
+import { CreateTile } from '@/components/dashboard/create-tile';
+import {
+	CARD_BUTTON_CLASS,
+	PRIMARY_BUTTON_CLASS,
+} from '@/components/dashboard/dashboard-page';
 import { PluginSubmitSheet } from '@/components/plugins/plugin-submit-sheet';
-import { formatTimeAgo } from '@/components/plugins/plugin-update-details';
+import { PluginVersionsSheet } from '@/components/plugins/plugin-versions-sheet';
+import { PluginsSlot } from '@/components/plugins/plugins-page-tabs';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -10,13 +25,22 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { isLocalDevPluginUrl } from '@/lib/plugins/catalog';
-import type { MyPlugin, MyPluginVersion } from '@/types/plugin-library';
-import { cn } from '@/utils/cn';
-import { Ban } from 'lucide-react';
-import Link from 'next/link';
+import { compareVersions, isLocalDevPluginUrl } from '@/lib/plugins/catalog';
+import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
+import {
+	describePowerKind,
+	PLUGIN_POWER_HUES,
+	powerKindOfPermissions,
+} from '@/lib/plugins/powers';
+import type { MyPlugin } from '@/types/plugin-library';
+import { History, Plus, Puzzle, Send } from 'lucide-react';
 import { useState } from 'react';
 import useSWR from 'swr';
 
@@ -33,72 +57,45 @@ async function fetchMine(url: string): Promise<MyPlugin[]> {
 	return body.data.plugins;
 }
 
-const STATUS: Record<
-	MyPluginVersion['status'],
-	{ label: string; className: string }
-> = {
-	in_review: {
-		label: 'In review',
-		className: 'border-amber-400/20 bg-amber-400/10 text-amber-300',
-	},
-	published: {
-		label: 'Published',
-		className: 'border-emerald-400/20 bg-emerald-400/10 text-emerald-300',
-	},
-	changes_requested: {
-		label: 'Changes requested',
-		className: 'border-red-500/20 bg-red-500/10 text-red-300',
-	},
-};
-
-function when(version: MyPluginVersion): string {
-	if (version.status === 'published' && version.publishedAt)
-		return `Approved ${formatTimeAgo(version.publishedAt)}`;
-	if (version.status === 'changes_requested' && version.reviewedAt)
-		return `Reviewed ${formatTimeAgo(version.reviewedAt)}`;
-	return `Submitted ${formatTimeAgo(version.submittedAt)}`;
+/** Status chips on the cover: what is live, what is waiting, what needs changes. */
+function statusChips(plugin: MyPlugin): CatalogChip[] {
+	const live = plugin.versions.find(
+		(version) => version.status === 'published'
+	);
+	const waiting = plugin.versions.find(
+		(version) => version.status === 'in_review'
+	);
+	const changes = plugin.versions.find(
+		(version) => version.status === 'changes_requested'
+	);
+	// A request for changes only matters while nothing newer is in review.
+	const showChanges =
+		changes &&
+		(!waiting || compareVersions(changes.version, waiting.version) > 0)
+			? changes
+			: null;
+	return [
+		...(plugin.disabledReason
+			? [{ label: 'Turned off', tone: 'red' as const }]
+			: []),
+		...(live
+			? [{ label: `Published ${live.version}`, tone: 'green' as const }]
+			: []),
+		...(waiting
+			? [{ label: `${waiting.version} in review`, tone: 'amber' as const }]
+			: []),
+		...(showChanges
+			? [{ label: 'Changes requested', tone: 'red' as const }]
+			: []),
+	];
 }
 
-function VersionRow({ version }: { version: MyPluginVersion }) {
-	const status = STATUS[version.status];
-	return (
-		<li className='flex flex-col gap-1.5 border-t border-zinc-800 pt-2.5 first:border-t-0 first:pt-0'>
-			<div className='flex flex-wrap items-center gap-2'>
-				<span className='w-12 text-sm font-medium tabular-nums text-text-primary'>
-					{version.version}
-				</span>
-
-				<span
-					className={cn(
-						'rounded-lg border px-1.5 py-0.5 text-[11px] font-medium leading-4',
-						status.className
-					)}
-				>
-					{status.label}
-				</span>
-
-				<span className='text-xs text-text-secondary'>{when(version)}</span>
-			</div>
-
-			{version.reviewMessage && version.status !== 'published' && (
-				<blockquote className='ml-14 border-l-2 border-zinc-700 pl-3 text-[13px] leading-[19px] text-zinc-300'>
-					{`“${version.reviewMessage}”`}
-
-					<span className='block text-xs text-text-secondary'>
-						Shiko review
-					</span>
-				</blockquote>
-			)}
-
-			{version.disabledReason && (
-				<p className='ml-14 flex items-start gap-1.5 text-xs text-red-300'>
-					<Ban aria-hidden className='mt-px size-3.5 shrink-0' />
-
-					{`Turned off by Shiko: ${version.disabledReason}`}
-				</p>
-			)}
-		</li>
-	);
+/** Shiko's message when changes were requested, else the plugin's own description. */
+function cardDescription(plugin: MyPlugin): string {
+	const newest = plugin.versions[0];
+	if (newest?.status === 'changes_requested' && newest.reviewMessage)
+		return `Shiko: “${newest.reviewMessage}”`;
+	return plugin.description || 'Not published yet.';
 }
 
 /** Asks for the developer plugin's localhost manifest URL, then shows the submit sheet. */
@@ -169,7 +166,7 @@ function SubmitDialog({
 	);
 }
 
-/** Dashboard › Plugins › My plugins: what you submitted and what Shiko said. */
+/** Dashboard › Plugins › My plugins: your plugins as cards, and their versions in a side sheet. */
 export function MyPluginsContent() {
 	const {
 		data: plugins,
@@ -178,110 +175,134 @@ export function MyPluginsContent() {
 		mutate,
 	} = useSWR(MINE_KEY, fetchMine);
 	const [submitOpen, setSubmitOpen] = useState(false);
+	const [openId, setOpenId] = useState<string | null>(null);
+	const openPlugin = plugins?.find((plugin) => plugin.id === openId) ?? null;
 
-	// Title and tabs come from the plugins layout (PluginsPageFrame).
+	// Title, tabs and the page width come from the plugins layout (PluginsPageFrame).
 	return (
 		<>
-			<div className='mt-6 flex flex-col gap-6'>
-				<div className='flex flex-wrap items-center justify-between gap-3'>
-					<p className='text-sm text-zinc-400'>
-						Plugins you submitted to the library. Shiko reviews every
-						version before map owners can turn it on.
-					</p>
+			<PluginsSlot slot='heading'>
+				<button
+					className={PRIMARY_BUTTON_CLASS}
+					onClick={() => setSubmitOpen(true)}
+					type='button'
+				>
+					<Send aria-hidden className='size-3.5' />
+					Submit a version
+				</button>
+			</PluginsSlot>
 
-					<Button onClick={() => setSubmitOpen(true)} variant='outline'>
-						Submit a version
+			{error && (
+				<div
+					className='mt-6 flex items-center justify-between gap-3 rounded-xl border border-error-500/30 bg-error-500/10 px-3 py-2 text-sm text-error-200'
+					role='alert'
+				>
+					Couldn&apos;t load your plugins.
+					<Button onClick={() => void mutate()} size='sm' variant='outline'>
+						Try again
 					</Button>
 				</div>
+			)}
 
-				{error && (
-					<div
-						className='flex items-center justify-between gap-3 rounded-lg border border-error-500/30 bg-error-500/10 px-3 py-2 text-sm text-error-200'
-						role='alert'
-					>
-						Couldn&apos;t load your plugins.
-						<Button
-							onClick={() => void mutate()}
-							size='sm'
-							variant='outline'
-						>
-							Try again
-						</Button>
-					</div>
-				)}
-
-				{isLoading && <Skeleton className='h-32 w-full rounded-xl' />}
-
-				{plugins && plugins.length === 0 && (
-					<p className='rounded-xl border border-zinc-800 bg-base p-5 text-sm text-zinc-400'>
-						You haven&apos;t submitted a plugin yet. Build one, load it in
-						Developer mode, then choose Submit to the library in a
-						map&apos;s Plugins panel.{' '}
-
-						<Link
-							className='font-medium text-primary-400 hover:text-primary-300'
-							href='/dashboard/plugins/build'
-						>
-							How to build a plugin
-						</Link>
-					</p>
-				)}
+			<CatalogGrid className='mt-6' viewMode='grid'>
+				{isLoading && <CatalogCardSkeleton count={3} viewMode='grid' />}
 
 				{plugins?.map((plugin) => {
 					const published = plugin.versions.some(
 						(version) => version.status === 'published'
 					);
 					return (
-						<article
-							className='flex flex-col gap-3 rounded-xl border border-zinc-800 bg-base p-4'
-							data-testid={`my-plugin-${plugin.id}`}
+						<CatalogCard
+							chips={statusChips(plugin)}
+							description={cardDescription(plugin)}
+							icon={
+								PLUGIN_ICONS[plugin.icon as keyof typeof PLUGIN_ICONS] ?? Puzzle
+							}
 							key={plugin.id}
-						>
-							<div className='flex items-start gap-3'>
-								<span
-									aria-hidden
-									className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-500/15 text-sm font-semibold text-primary-300'
-								>
-									{plugin.name.charAt(0).toUpperCase()}
+							onOpen={() => setOpenId(plugin.id)}
+							title={plugin.name}
+							viewMode='grid'
+							detail={
+								<span className='truncate font-mono text-[11.5px]'>
+									{plugin.id}
 								</span>
+							}
+							hue={
+								plugin.disabledReason
+									? OFF_HUE
+									: PLUGIN_POWER_HUES[
+											powerKindOfPermissions(plugin.permissions)
+										]
+							}
+							meta={
+								published
+									? `On in ${plugin.mapCount} ${plugin.mapCount === 1 ? 'map' : 'maps'} · ${plugin.openReports} ${plugin.openReports === 1 ? 'report' : 'reports'}`
+									: `Not published yet · ${describePowerKind(plugin.permissions)}`
+							}
+							action={
+								<button
+									className={CARD_BUTTON_CLASS}
+									onClick={() => setOpenId(plugin.id)}
+									type='button'
+								>
+									Versions
+								</button>
+							}
+							menu={
+								<DropdownMenu>
+									<DropdownMenuTrigger
+										aria-label={`Options for ${plugin.name}`}
+										className={CARD_MENU_TRIGGER_CLASS}
+									>
+										<CardMenuIcon />
+									</DropdownMenuTrigger>
 
-								<div className='flex min-w-0 flex-col gap-0.5'>
-									<h2 className='text-[15px] font-medium leading-5 text-text-primary'>
-										{plugin.name}
-									</h2>
+									<DropdownMenuContent align='end'>
+										<DropdownMenuItem onClick={() => setOpenId(plugin.id)}>
+											<History />
+											Versions
+										</DropdownMenuItem>
 
-									<span className='text-xs text-text-secondary'>
-										{published
-											? `${plugin.id} · on in ${plugin.mapCount} ${plugin.mapCount === 1 ? 'map' : 'maps'} · ${plugin.openReports} ${plugin.openReports === 1 ? 'report' : 'reports'}`
-											: `${plugin.id} · not published yet`}
-									</span>
-								</div>
-							</div>
-
-							{plugin.disabledReason && (
-								<p className='flex items-start gap-1.5 rounded-md border border-red-500/20 bg-red-500/10 px-2 py-1.5 text-xs leading-4 text-red-300'>
-									<Ban aria-hidden className='mt-px size-3.5 shrink-0' />
-
-									{`Turned off everywhere by Shiko: ${plugin.disabledReason}`}
-								</p>
-							)}
-
-							<ul className='flex flex-col gap-2.5'>
-								{plugin.versions.map((version) => (
-									<VersionRow key={version.version} version={version} />
-								))}
-							</ul>
-						</article>
+										<DropdownMenuItem onClick={() => setSubmitOpen(true)}>
+											<Plus />
+											Submit a version
+										</DropdownMenuItem>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							}
+						/>
 					);
 				})}
-			</div>
+
+				{!isLoading && (
+					<CreateTile
+						hint='Load it from localhost, then submit it for review.'
+						onClick={() => setSubmitOpen(true)}
+						title='Submit a new plugin'
+						viewMode='grid'
+					/>
+				)}
+			</CatalogGrid>
+
+			{plugins && plugins.length === 0 && (
+				<p className='mt-4 text-sm text-zinc-400'>
+					You haven&apos;t submitted a plugin yet. Build one, load it in
+					Developer mode, then submit it here.
+				</p>
+			)}
+
+			<PluginVersionsSheet
+				onOpenChange={(open) => !open && setOpenId(null)}
+				onSubmitVersion={() => setSubmitOpen(true)}
+				plugin={openPlugin}
+			/>
 
 			<SubmitDialog
-				open={submitOpen}
 				onOpenChange={(open) => {
 					setSubmitOpen(open);
 					if (!open) void mutate();
 				}}
+				open={submitOpen}
 			/>
 		</>
 	);

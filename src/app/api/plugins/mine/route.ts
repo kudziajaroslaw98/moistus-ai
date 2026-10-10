@@ -47,21 +47,28 @@ export const GET = withApiValidation<unknown, { plugins: MyPlugin[] }>(
 		const count = (list: Array<{ plugin_id: string }> | null, id: string) =>
 			(list ?? []).filter((row) => row.plugin_id === id).length;
 
-		const result: MyPlugin[] = rows.map((row) => ({
-			id: row.id,
-			name: row.name,
-			mapCount: count(maps as Array<{ plugin_id: string }> | null, row.id),
-			openReports: count(
-				reports as Array<{ plugin_id: string }> | null,
-				row.id
-			),
-			disabledReason: row.disabled_at
-				? (row.disabled_reason ?? 'Turned off by Shiko')
-				: null,
-			versions: ((versions ?? []) as PluginVersionRow[])
+		const result: MyPlugin[] = rows.map((row) => {
+			const ownVersions = ((versions ?? []) as PluginVersionRow[])
 				.filter((version) => version.plugin_id === row.id)
-				.sort((a, b) => compareVersions(b.version, a.version))
-				.map((version) => ({
+				.sort((a, b) => compareVersions(b.version, a.version));
+			const newest = ownVersions[0];
+			const icon = newest?.manifest?.icon;
+			const description = newest?.manifest?.description;
+			return {
+				id: row.id,
+				name: row.name,
+				icon: typeof icon === 'string' ? icon : 'puzzle',
+				description: typeof description === 'string' ? description : '',
+				permissions: newest?.permissions ?? [],
+				mapCount: count(maps as Array<{ plugin_id: string }> | null, row.id),
+				openReports: count(
+					reports as Array<{ plugin_id: string }> | null,
+					row.id
+				),
+				disabledReason: row.disabled_at
+					? (row.disabled_reason ?? 'Turned off by Shiko')
+					: null,
+				versions: ownVersions.map((version) => ({
 					version: version.version,
 					status: version.status,
 					notes: version.notes,
@@ -73,7 +80,8 @@ export const GET = withApiValidation<unknown, { plugins: MyPlugin[] }>(
 						? (version.disabled_reason ?? 'Turned off by Shiko')
 						: null,
 				})),
-		}));
+			};
+		});
 		return respondSuccess({ plugins: result });
 	}
 );

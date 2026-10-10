@@ -4,7 +4,11 @@ jest.mock('next/navigation', () => ({
 }));
 
 import { render, screen } from '@testing-library/react';
-import { PluginsPageFrame, PluginsPageTabs } from './plugins-page-tabs';
+import {
+	PluginsPageFrame,
+	PluginsPageTabs,
+	PluginsSlot,
+} from './plugins-page-tabs';
 
 describe('PluginsPageTabs', () => {
 	it.each([
@@ -20,30 +24,49 @@ describe('PluginsPageTabs', () => {
 			'page'
 		);
 		expect(
-			screen.getAllByRole('link').filter((link) => link.hasAttribute('aria-current'))
+			screen
+				.getAllByRole('link')
+				.filter((link) => link.hasAttribute('aria-current'))
 		).toHaveLength(1);
 	});
 });
 
 describe('PluginsPageFrame', () => {
-	it('keeps the title and tabs around the tab content, wider for the guide', () => {
-		mockPathname = '/dashboard/plugins/build';
+	it('keeps the title, the tab-specific intro and the tabs around the tab content', () => {
+		mockPathname = '/dashboard/plugins/mine';
 		const view = render(
 			<PluginsPageFrame>
-				<p>Guide body</p>
+				<p>Tab body</p>
 			</PluginsPageFrame>
 		);
 
-		expect(screen.getByRole('heading', { name: 'Plugins' })).toBeInTheDocument();
-		expect(screen.getByText('Guide body')).toBeInTheDocument();
-		expect(screen.getByText('Guide body').parentElement).toHaveClass('max-w-5xl');
+		expect(
+			screen.getByRole('heading', { name: 'Plugins' })
+		).toBeInTheDocument();
+		expect(screen.getByText('Tab body')).toBeInTheDocument();
+		expect(screen.getByText(/Plugins you submitted/)).toBeInTheDocument();
 
-		mockPathname = '/dashboard/plugins/mine';
+		mockPathname = '/dashboard/plugins';
 		view.rerender(
 			<PluginsPageFrame>
-				<p>Guide body</p>
+				<p>Tab body</p>
 			</PluginsPageFrame>
 		);
-		expect(screen.getByText('Guide body').parentElement).toHaveClass('max-w-3xl');
+		expect(screen.getByText(/New kinds of nodes/)).toBeInTheDocument();
+	});
+
+	it('lets a tab put its button next to the title', () => {
+		mockPathname = '/dashboard/plugins/mine';
+		render(
+			<PluginsPageFrame>
+				<PluginsSlot slot='heading'>
+					<button type='button'>Submit a version</button>
+				</PluginsSlot>
+			</PluginsPageFrame>
+		);
+
+		expect(
+			screen.getByRole('button', { name: 'Submit a version' })
+		).toBeInTheDocument();
 	});
 });

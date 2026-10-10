@@ -76,6 +76,8 @@ interface CatalogCardProps {
 	menu?: ReactNode;
 	/** Makes the title a button covering the card. */
 	onOpen?: () => void;
+	/** DOM id, so links like /dashboard/plugins#plugin-<id> land on the card. */
+	anchorId?: string;
 	viewMode: DashboardViewMode;
 }
 
@@ -95,6 +97,7 @@ export const CatalogCard = memo(function CatalogCard({
 	action,
 	menu,
 	onOpen,
+	anchorId,
 	viewMode,
 }: CatalogCardProps) {
 	const isOff = hue === OFF_HUE;
@@ -119,8 +122,9 @@ export const CatalogCard = memo(function CatalogCard({
 	if (viewMode === 'list') {
 		return (
 			<article
+				id={anchorId}
 				className={cn(
-					'relative flex items-center gap-4 rounded-xl border border-[#1d1f24] bg-[#0e0f12] p-3 pr-4',
+					'relative flex scroll-mt-24 items-center gap-4 rounded-xl border border-[#1d1f24] bg-[#0e0f12] p-3 pr-4',
 					'transition-[border-color] duration-200 ease [@media(hover:hover)]:hover:border-[#34363e]',
 					CARD_VISIBILITY.list
 				)}
@@ -161,8 +165,9 @@ export const CatalogCard = memo(function CatalogCard({
 
 	return (
 		<article
+			id={anchorId}
 			className={cn(
-				'relative flex flex-col overflow-hidden rounded-2xl border border-[#1d1f24] bg-[#0e0f12]',
+				'relative flex scroll-mt-24 flex-col overflow-hidden rounded-2xl border border-[#1d1f24] bg-[#0e0f12]',
 				'transition-[border-color,box-shadow] duration-200 ease',
 				'[@media(hover:hover)]:hover:border-[#34363e] [@media(hover:hover)]:hover:shadow-[0_16px_40px_rgba(0,0,0,0.4)]',
 				CARD_VISIBILITY.grid

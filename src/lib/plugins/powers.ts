@@ -59,3 +59,31 @@ export function listHosts(sites: readonly PluginSite[]): string {
 		? (hosts[0] ?? '')
 		: `${hosts.slice(0, -1).join(', ')} and ${hosts[hosts.length - 1]}`;
 }
+
+/** Cover accent per kind of power (HSL hue): none green, reads its branch violet, sends to a site blue. */
+export const PLUGIN_POWER_HUES: Record<PluginPowers['kind'], number> = {
+	own: 152,
+	branch: 270,
+	network: 214,
+};
+
+/** The kind of power in a permission list (as stored with a published version). */
+export function powerKindOfPermissions(
+	permissions: readonly string[]
+): PluginPowers['kind'] {
+	if (permissions.some((permission) => networkHostOf(permission)))
+		return 'network';
+	if (permissions.includes('branch:read')) return 'branch';
+	return 'own';
+}
+
+/** One short line for a card's detail row: "No powers", "Reads its branch", "Sends to api.github.com". */
+export function describePowerKind(permissions: readonly string[]): string {
+	const kind = powerKindOfPermissions(permissions);
+	if (kind === 'branch') return 'Reads its branch';
+	if (kind === 'own') return 'No powers';
+	const hosts = permissions
+		.map((permission) => networkHostOf(permission))
+		.filter((host): host is string => Boolean(host));
+	return `Sends to ${hosts.join(', ')}`;
+}

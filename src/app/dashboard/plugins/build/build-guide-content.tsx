@@ -324,12 +324,6 @@ export function BuildGuideContent() {
 	return (
 		<div className='mt-8 flex items-start gap-12'>
 			<article className='flex min-w-0 max-w-3xl flex-1 flex-col gap-12'>
-				<p className='text-zinc-400'>
-					A plugin adds a new kind of node. You list its fields in
-					manifest.json and draw it in plugin.js, in plain JavaScript. Try it
-					on your own maps, then submit it to the library so anyone can use it.
-				</p>
-
 				<Section id='quick-start' title='Quick start'>
 					<ol className='flex flex-col gap-6'>
 						<Step number={1} title='Turn on Developer mode'>
