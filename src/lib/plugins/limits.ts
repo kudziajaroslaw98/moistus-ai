@@ -13,6 +13,11 @@ export const SANDBOX_LIMITS = {
 /** Largest plugin.js the loader accepts. */
 export const MAX_PLUGIN_CODE_BYTES = 256 * 1024;
 
+/** Plugin playground drafts: what one person can keep and how big a draft's parts can be. */
+export const MAX_PLUGIN_DRAFTS = 20;
+export const MAX_DRAFT_MANIFEST_BYTES = 64 * 1024;
+export const MAX_DRAFT_SAMPLE_BYTES = 16 * 1024;
+
 /** Requests a plugin's `refresh` can make (fetched by Shiko, see network.ts). */
 export const PLUGIN_REQUEST_LIMITS = {
 	/** Requests one refresh can make. */
