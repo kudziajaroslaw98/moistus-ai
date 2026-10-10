@@ -5,6 +5,23 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-10]
+
+### Changed
+
+- **recipes/dashboard**: The Recipes page shows your recipes and the starters as the same cards as Templates (cover with the icon picked when the recipe was created, scope and "Shared" chips, "Edit" or "Duplicate", a "…" menu, a dashed "New recipe · n of 50 saved" tile), with All / Your recipes / Starters tabs, the top-bar search and a grid/list switch. The editor is full width in two columns with a preview of the recipe's card. The recipes side panel inside a map is unchanged
+- **plugins/dashboard**: Library, My plugins and the guide use the Templates page frame (title, tabs, full width). Every Library card has the same single "Choose maps" button; how many maps use the plugin sits in the card's footer ("v0.2.0 · On in 2 maps") and the map switches (with a search) are in a popover. Cover icon and colour come from the plugin's manifest icon and its powers. "Update N maps" boxes stay above the cards, and "Build a plugin" ends the page as a dashed row
+- **plugins/my-plugins**: Your plugins are cards with status chips (Published, in review, Changes requested, Turned off) and Shiko's message when changes were requested; "Versions" opens a side sheet with live version, map and report counts, and every version's notes and review messages. "Submit a version" sits next to the title and a dashed tile submits a new plugin
+- **plugin-review**: Plugin review uses the dashboard page frame, tabs and card grid. "Review" opens a wide side sheet for a submission (checks, previews, code changes, approve or request changes) or for a plugin's reports (reasons, each report, dismiss or turn off). A "New power" chip flags submissions that ask for more
+- **dashboard/shared**: Templates, Recipes, Plugins and Plugin review share one card (`CatalogCard`), tab strip, view toggle, create tile and side sheet
+
+### Fixed
+
+- **billing/portal**: "Manage billing" opened `/api/user/billing/portal` in the browser and ended on a page that doesn't exist when the Polar call failed. The settings panel now asks the server for the portal link and goes to polar.sh, shows an error toast if it can't, and the server falls back to the app user as the Polar customer when the stored customer id fails. API errors that told clients to upgrade at `/dashboard/settings/billing` (no such page) now point to `/dashboard?settings=billing`
+  - Why: the Polar adapter answers a failed call with an empty error response, which the browser showed as a missing page
+- **dashboard/mobile**: The Templates category tabs scroll from the first tab (the first entry was cut off), map list rows keep their menu button and avatars when the description is long, the "new map" panel stacks (input, full-width button, scrolling template chips), and the mobile sidebar closes after you pick a page, open Settings/Billing or press New map
+- **pwa**: Page navigations to `/api/*` routes bypass the service worker
+
 ## [2026-10-08]
 
 ### Fixed

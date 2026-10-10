@@ -344,6 +344,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `POST /api/recipes/[id]/install` - Copy a shared recipe into the caller's recipes
 - `PUT/DELETE /api/maps/[id]/plugins/[pluginId]` - Turn a first-party plugin on (pinned to its latest version) or off for a map (owner only, catalog plugins only; plugins with powers need `{ permissions }` matching the version)
 - `PATCH /api/maps/[id]/plugins/[pluginId]` - Move a map to another catalog version of a plugin that's on: Update or Roll back (owner only; keeps `previous_version`)
+- `POST /api/user/billing/portal` - `{ url }` of the Polar customer portal (GET still redirects)
 - `GET /api/plugins/maps` - The caller's own maps with the plugins each has on and their pinned versions (dashboard Plugins page)
 - `GET /api/plugins/catalog` - Published library plugins (no code) and every turned-off plugin or version
 - `GET /api/plugins/files/[pluginId]/[version]/[...file]` - A library plugin's manifest or code, as plain text (published: anyone signed in; otherwise the author or an admin)
@@ -436,7 +437,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `src/store/slices/core-slice.ts` exposes `clearMindMapRuntimeState()` and stale-guards `fetchMindMapData` writes so late responses cannot repopulate stale map data after route exit/switch
 
 **Dashboard Home (redesign):**
-<!-- Updated: 2026-10-07 - Dashboard redesign plus shared dashboard layout (persistent shell, shell context, plugins frame) -->
+<!-- Updated: 2026-10-10 - Shared catalog card/tabs/sheet pieces for Templates, Recipes, Plugins and Plugin review -->
 
 - `src/app/dashboard/layout.tsx`: shared shell for every `/dashboard` page. Shows `DashboardRouteLoadingSkeleton` in Suspense while it checks the session (redirects signed-out visitors, using the `x-dashboard-path` header from `src/proxy.ts`), then renders `SidebarProvider` (collapsed state from the `sidebar_state` cookie, `src/components/ui/sidebar-cookie.ts`) + `DashboardLayout`, and streams the plan in through `SubscriptionStateHydrator`. Pages (`(home)/page.tsx`, `templates/`, `recipes/`, `plugins/`) render only their content
 - `src/components/dashboard/dashboard-shell-context.tsx`: per-page shell state keyed by pathname: `useDashboardSearch()` (top-bar query, `DASHBOARD_HEADER_SEARCH` paths; the shell focuses the field on Ctrl/Cmd+F), `useDashboardNewMapAction()` (Home's New map dialog); `dashboard-search-field.tsx` is the shared top-bar field
@@ -446,6 +447,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `src/components/dashboard/mind-map-card.tsx`: grid card (fixed title / two-line description or "No description available" / footer rows, so all cards match; "Show more" overlays the last line) and list row; the whole card is one link (the title link's `::after` at `z-[1]`, only the menu and Show more/less above it); `GridMapSkeleton` in `dashboard-loading-skeleton.tsx` mirrors its sizes, next to `RoomCodeJoinSkeleton` and `ShortcutsSkeleton`
 - `src/components/dashboard/use-dashboard-data.ts`: shared SWR hooks (`useDashboardMaps`, `useDashboardTemplates`)
 - `src/components/dashboard/map-cover.tsx` + `src/helpers/dashboard/map-cover.ts`: outline-echo letter cover (first letter of the title, accent hue from the id) used by map cards, list swatches and first-run template cards (no layout previews; see CLAUDE.md dashboard contract)
+- Shared catalog pieces (`src/components/dashboard/`): `catalog-card.tsx` (`CatalogCard`: icon cover with chips and a "…" menu, title, two description lines, optional fixed-height detail row, footer with meta left and ONE constant button right; `CatalogCardSkeleton`, `CatalogGrid`, `CatalogEmptyState`, `OFF_HUE`), `dashboard-page.tsx` (`DashboardPage` 1760px container, `PageHeading`, button classes), `underline-tabs.tsx` (state tabs and link tabs; the list is left-aligned so a phone strip scrolls from its first tab), `view-toggle.tsx`, `create-tile.tsx` (dashed tile), `side-sheet.tsx` (right sheet for versions / submissions / reports). Used by Templates, Recipes (`src/app/dashboard/recipes/recipes-grid.tsx`; the in-map `recipe-list.tsx` stays compact), Plugins (`plugins-content.tsx`, `mine/my-plugins-content.tsx`, `src/components/plugins/choose-maps-popover.tsx`, `plugin-versions-sheet.tsx`) and `src/app/admin/plugins/` (cards; `review/submission-review.tsx` and `review/reports-review.tsx` render as sheets). `PluginsPageFrame` exposes `PluginsSlot` (title row / tab row) so a tab can place its own buttons
 - `src/components/dashboard/template-cover.tsx`: icon variant of the cover (4 trailing outline echoes of the category's Lucide icon in the category's hue, sunk 24 units so the bottom is clipped) used by `src/app/dashboard/templates/templates-content.tsx`
 - `GET /api/maps` adds `collaborators`/`collaboratorCount` via `src/helpers/dashboard/map-collaborators.ts`
 
