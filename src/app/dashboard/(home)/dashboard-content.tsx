@@ -17,11 +17,17 @@ import { MindMapCard } from '@/components/dashboard/mind-map-card';
 import { QuickCreateBar } from '@/components/dashboard/quick-create-bar';
 import { RoomCodeJoin } from '@/components/dashboard/room-code-join';
 import {
+	UnderlineTab,
+	UnderlineTabsBar,
+	UnderlineTabsList,
+} from '@/components/dashboard/underline-tabs';
+import {
 	DASHBOARD_MAPS_KEY,
 	useDashboardMaps,
 	useDashboardTemplates,
 	type DashboardTemplate,
 } from '@/components/dashboard/use-dashboard-data';
+import { ViewToggle } from '@/components/dashboard/view-toggle';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -30,7 +36,7 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { formatUpdatedAt } from '@/helpers/dashboard/format-updated-at';
 import { waitForSubscriptionActivation } from '@/helpers/subscription/wait-for-subscription-activation';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
@@ -38,7 +44,7 @@ import { useTouchFirst } from '@/hooks/use-touch-first';
 import useAppStore from '@/store/mind-map-store';
 import type { DashboardMap, DashboardViewMode } from '@/types/dashboard-map';
 import { cn } from '@/utils/cn';
-import { ChevronDown, LayoutGrid, List, Search } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -84,7 +90,10 @@ const noop = () => {};
 /** The "N maps · last edit …" line while maps load; same height as the text line. */
 function StatsLineSkeleton() {
 	return (
-		<div className='mt-2 flex h-5 items-center' data-testid='maps-stats-skeleton'>
+		<div
+			className='mt-2 flex h-5 items-center'
+			data-testid='maps-stats-skeleton'
+		>
 			<Skeleton className='h-4 w-72 max-w-full bg-zinc-800/60' />
 		</div>
 	);
@@ -203,9 +212,8 @@ export function DashboardContent() {
 	const [filterBy, setFilterBy] = useState<FilterType>('all');
 	const [isCreatingMap, setIsCreatingMap] = useState(false);
 	const [showCreateDialog, setShowCreateDialog] = useState(false);
-	const [dialogTemplate, setDialogTemplate] = useState<DashboardTemplate | null>(
-		null
-	);
+	const [dialogTemplate, setDialogTemplate] =
+		useState<DashboardTemplate | null>(null);
 	const [showAnonymousUpgrade, setShowAnonymousUpgrade] = useState(false);
 
 	const { maps, isLoading: mapsLoading } = useDashboardMaps();
@@ -285,7 +293,12 @@ export function DashboardContent() {
 		}
 
 		return true;
-	}, [userProfile?.is_anonymous, isAtMapLimit, mapLimitInfo?.max, showLimitToast]);
+	}, [
+		userProfile?.is_anonymous,
+		isAtMapLimit,
+		mapLimitInfo?.max,
+		showLimitToast,
+	]);
 
 	const handleRequestCreateMap = useCallback(() => {
 		if (!canCreateMap()) return;
@@ -348,11 +361,7 @@ export function DashboardContent() {
 
 			const { data: responseData } = await response.json();
 
-			mutate(
-				DASHBOARD_MAPS_KEY,
-				{ maps: [responseData.map, ...maps] },
-				false
-			);
+			mutate(DASHBOARD_MAPS_KEY, { maps: [responseData.map, ...maps] }, false);
 
 			refreshUsageData();
 
@@ -379,39 +388,36 @@ export function DashboardContent() {
 		}
 	};
 
-	const handleDeleteMap = useCallback(
-		async (mapId: string) => {
-			if (!confirm('Delete this mind map? This action cannot be undone.')) {
-				return;
+	const handleDeleteMap = useCallback(async (mapId: string) => {
+		if (!confirm('Delete this mind map? This action cannot be undone.')) {
+			return;
+		}
+
+		try {
+			const response = await fetch(`/api/maps/${mapId}`, {
+				method: 'DELETE',
+			});
+
+			if (!response.ok) {
+				throw new Error('Failed to delete mind map.');
 			}
 
-			try {
-				const response = await fetch(`/api/maps/${mapId}`, {
-					method: 'DELETE',
-				});
+			mutate(
+				DASHBOARD_MAPS_KEY,
+				(current?: { maps: DashboardMap[] }) => ({
+					maps: (current?.maps ?? []).filter((map) => map.id !== mapId),
+				}),
+				false
+			);
 
-				if (!response.ok) {
-					throw new Error('Failed to delete mind map.');
-				}
-
-				mutate(
-					DASHBOARD_MAPS_KEY,
-					(current?: { maps: DashboardMap[] }) => ({
-						maps: (current?.maps ?? []).filter((map) => map.id !== mapId),
-					}),
-					false
-				);
-
-				refreshUsageData();
-				toast.success('Map deleted successfully');
-			} catch (err: unknown) {
-				console.error('Error deleting map:', err);
-				toast.error('Failed to delete map');
-				mutate(DASHBOARD_MAPS_KEY);
-			}
-		},
-		[]
-	);
+			refreshUsageData();
+			toast.success('Map deleted successfully');
+		} catch (err: unknown) {
+			console.error('Error deleting map:', err);
+			toast.error('Failed to delete map');
+			mutate(DASHBOARD_MAPS_KEY);
+		}
+	}, []);
 
 	const handleDuplicateMap = useCallback(async (mapId: string) => {
 		try {
@@ -489,9 +495,7 @@ export function DashboardContent() {
 							{`Pro trial: ${trialDays} ${trialDays === 1 ? 'day' : 'days'} left`}
 						</span>
 
-						<span className='text-xs text-zinc-400'>
-							Your trial ends soon.
-						</span>
+						<span className='text-xs text-zinc-400'>Your trial ends soon.</span>
 					</div>
 				)}
 
@@ -529,11 +533,8 @@ export function DashboardContent() {
 							onValueChange={(value) => setFilterBy(value as FilterType)}
 							value={filterBy}
 						>
-							<div className='flex flex-wrap items-center justify-between gap-3 border-b border-[#1d1f24]'>
-								<TabsList
-									aria-label='Filter maps'
-									className='h-11 gap-1 overflow-x-auto p-0'
-								>
+							<UnderlineTabsBar>
+								<UnderlineTabsList aria-label='Filter maps'>
 									{(
 										[
 											['all', 'All maps'],
@@ -541,19 +542,15 @@ export function DashboardContent() {
 											['shared', 'Shared with me'],
 										] as const
 									).map(([value, label]) => (
-										<TabsTrigger
-											className='h-11 flex-none rounded-none border-0 px-3 font-normal text-zinc-400 data-[active]:border-0 data-[active]:bg-transparent data-[active]:font-medium data-[active]:text-white data-[active]:shadow-[inset_0_-2px_0_#fafafa] [@media(hover:hover)]:hover:bg-transparent'
+										<UnderlineTab
+											count={filterCounts[value]}
 											key={value}
 											value={value}
 										>
 											{label}
-
-											<span className='font-mono text-xs text-zinc-500'>
-												{filterCounts[value]}
-											</span>
-										</TabsTrigger>
+										</UnderlineTab>
 									))}
-								</TabsList>
+								</UnderlineTabsList>
 
 								<div className='flex items-center gap-2 pb-1.5'>
 									<DropdownMenu>
@@ -562,67 +559,54 @@ export function DashboardContent() {
 
 											{SORT_LABELS[sortBy]}
 
-											<ChevronDown aria-hidden='true' className='size-3 text-zinc-500' />
+											<ChevronDown
+												aria-hidden='true'
+												className='size-3 text-zinc-500'
+											/>
 										</DropdownMenuTrigger>
 
 										<DropdownMenuContent align='end' className='w-44'>
 											<DropdownMenuRadioGroup
-												onValueChange={(value) => setSortBy(value as SortByType)}
+												onValueChange={(value) =>
+													setSortBy(value as SortByType)
+												}
 												value={sortBy}
 											>
-												{(Object.keys(SORT_LABELS) as SortByType[]).map((key) => (
-													<DropdownMenuRadioItem key={key} value={key}>
-														{SORT_LABELS[key]}
-													</DropdownMenuRadioItem>
-												))}
+												{(Object.keys(SORT_LABELS) as SortByType[]).map(
+													(key) => (
+														<DropdownMenuRadioItem key={key} value={key}>
+															{SORT_LABELS[key]}
+														</DropdownMenuRadioItem>
+													)
+												)}
 											</DropdownMenuRadioGroup>
 										</DropdownMenuContent>
 									</DropdownMenu>
 
-									<div
-										aria-label='View mode'
-										className='flex rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] p-0.5'
-										role='group'
-									>
-										{(
-											[
-												['grid', 'Grid view', LayoutGrid],
-												['list', 'List view', List],
-											] as const
-										).map(([mode, label, Icon]) => (
-											<button
-												aria-label={label}
-												aria-pressed={viewMode === mode}
-												key={mode}
-												onClick={() => setViewMode(mode)}
-												type='button'
-												className={cn(
-													'flex h-[30px] w-8 items-center justify-center rounded-[7px] transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
-													viewMode === mode
-														? 'bg-[#1c1d22] text-white'
-														: 'text-zinc-500 hover:text-white'
-												)}
-											>
-												<Icon aria-hidden='true' className='size-3.5' />
-											</button>
-										))}
-									</div>
+									<ViewToggle onChange={setViewMode} value={viewMode} />
 								</div>
-							</div>
+							</UnderlineTabsBar>
 
 							<TabsContent value={filterBy}>
 								{!showMapsSkeleton && filteredMaps.length === 0 ? (
 									<motion.div
 										animate={{ opacity: 1, y: 0 }}
 										className='flex flex-col items-center py-20 text-center'
-										initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+										initial={
+											prefersReducedMotion ? false : { opacity: 0, y: 8 }
+										}
 										transition={{ duration: 0.3, ease: EASE_OUT_QUART }}
 									>
 										<span className='flex size-11 items-center justify-center rounded-full border border-[#2a2c33] bg-[#0e0f12]'>
-											<Search aria-hidden='true' className='size-4 text-zinc-400' />
+											<Search
+												aria-hidden='true'
+												className='size-4 text-zinc-400'
+											/>
 										</span>
 
-										<h2 className='mt-4 text-base font-semibold'>No maps found</h2>
+										<h2 className='mt-4 text-base font-semibold'>
+											No maps found
+										</h2>
 
 										<p className='mt-1 text-sm text-zinc-400'>
 											{searchQuery
@@ -722,9 +706,7 @@ export function DashboardContent() {
 					isAnonymous={true}
 					onDismiss={() => setShowAnonymousUpgrade(false)}
 					onUpgradeSuccess={() => router.refresh()}
-					userDisplayName={
-						userProfile?.display_name || userProfile?.full_name
-					}
+					userDisplayName={userProfile?.display_name || userProfile?.full_name}
 				/>
 			)}
 		</>

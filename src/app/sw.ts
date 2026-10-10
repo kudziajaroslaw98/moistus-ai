@@ -50,6 +50,9 @@ const serwist = new Serwist({
 //   with its own policy.
 // - Plugin refresh requests (`src/lib/plugins/network.ts`): cross-origin with
 //   `cache: 'no-store'`. A cached answer would be saved into the node as fresh data.
+// - Page navigations to /api routes (billing portal, invoices, exports). They answer
+//   with redirects or files, never pages, and a redirect through the worker's offline
+//   fallback shows a page that doesn't exist instead of where the route sends you.
 self.addEventListener('fetch', (event) => {
 	const { request } = event;
 	const isWorkerScript =
@@ -57,7 +60,10 @@ self.addEventListener('fetch', (event) => {
 	const isUncachedCrossOrigin =
 		request.cache === 'no-store' &&
 		new URL(request.url).origin !== self.location.origin;
-	if (isWorkerScript || isUncachedCrossOrigin) {
+	const isApiNavigation =
+		request.mode === 'navigate' &&
+		new URL(request.url).pathname.startsWith('/api/');
+	if (isWorkerScript || isUncachedCrossOrigin || isApiNavigation) {
 		event.stopImmediatePropagation();
 	}
 });

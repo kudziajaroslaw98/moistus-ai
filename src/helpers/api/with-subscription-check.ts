@@ -2,6 +2,7 @@ import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { SubscriptionPlan } from '@/store/slices/subscription-slice';
 import { SupabaseClient, User } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { BILLING_SETTINGS_URL } from '@/lib/billing-urls';
 
 const SAFE_PAID_COLLABORATOR_CAP = 10;
 const DEFAULT_FREE_NODES_PER_MAP_LIMIT = 50;
@@ -293,7 +294,7 @@ export async function checkAIQuota(
 					currentUsage: 0,
 					limit: 0,
 					remaining: 0,
-					upgradeUrl: '/dashboard/settings/billing',
+					upgradeUrl: BILLING_SETTINGS_URL,
 				},
 				{ status: 402 }
 			),
@@ -314,7 +315,7 @@ export async function checkAIQuota(
 				{
 					error: 'AI usage counter unavailable',
 					code: 'USAGE_COUNTER_UNAVAILABLE',
-					upgradeUrl: '/dashboard/settings/billing',
+					upgradeUrl: BILLING_SETTINGS_URL,
 				},
 				{ status: 503 }
 			),
@@ -337,7 +338,7 @@ export async function checkAIQuota(
 					currentUsage,
 					limit,
 					remaining: 0,
-					upgradeUrl: '/dashboard/settings/billing',
+					upgradeUrl: BILLING_SETTINGS_URL,
 				},
 				{ status: 402 }
 			),

@@ -272,7 +272,7 @@ describe('with-subscription-check', () => {
 			code: 'LIMIT_REACHED',
 			limit: 0,
 			remaining: 0,
-			upgradeUrl: '/dashboard/settings/billing',
+			upgradeUrl: '/dashboard?settings=billing',
 		});
 
 		expect(

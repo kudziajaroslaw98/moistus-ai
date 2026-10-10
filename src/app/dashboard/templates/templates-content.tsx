@@ -2,8 +2,14 @@
 
 import { useDashboardSearch } from '@/components/dashboard/dashboard-shell-context';
 import { TemplateCover } from '@/components/dashboard/template-cover';
+import {
+	UnderlineTab,
+	UnderlineTabsBar,
+	UnderlineTabsList,
+} from '@/components/dashboard/underline-tabs';
+import { ViewToggle } from '@/components/dashboard/view-toggle';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs } from '@/components/ui/tabs';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import type { DashboardViewMode } from '@/types/dashboard-map';
 import { cn } from '@/utils/cn';
@@ -14,9 +20,7 @@ import {
 	Code,
 	FileText,
 	GraduationCap,
-	LayoutGrid,
 	Lightbulb,
-	List,
 	Search,
 	User,
 	Zap,
@@ -434,20 +438,21 @@ export function TemplatesContent() {
 		setSearchQuery('');
 	}, [setSearchQuery]);
 
-	const tabs: ReadonlyArray<readonly [TemplateCategory | 'all', string, number]> =
-		[
-			['all', 'All', templates.length],
-			...(Object.keys(TEMPLATE_CATEGORIES) as TemplateCategory[])
-				.filter((category) => categoryCounts.has(category))
-				.map(
-					(category) =>
-						[
-							category,
-							TEMPLATE_CATEGORIES[category],
-							categoryCounts.get(category) ?? 0,
-						] as const
-				),
-		];
+	const tabs: ReadonlyArray<
+		readonly [TemplateCategory | 'all', string, number]
+	> = [
+		['all', 'All', templates.length],
+		...(Object.keys(TEMPLATE_CATEGORIES) as TemplateCategory[])
+			.filter((category) => categoryCounts.has(category))
+			.map(
+				(category) =>
+					[
+						category,
+						TEMPLATE_CATEGORIES[category],
+						categoryCounts.get(category) ?? 0,
+					] as const
+			),
+	];
 
 	const showSkeleton = isLoading && !error;
 	const showEmpty = !isLoading && !error && filteredTemplates.length === 0;
@@ -467,55 +472,21 @@ export function TemplatesContent() {
 					setSelectedCategory(value as TemplateCategory | 'all')
 				}
 			>
-				<div className='flex flex-wrap items-center justify-between gap-3 border-b border-[#1d1f24]'>
-					<TabsList
-						aria-label='Filter templates by category'
-						className='h-11 gap-1 overflow-x-auto p-0'
-					>
+				<UnderlineTabsBar>
+					<UnderlineTabsList aria-label='Filter templates by category'>
 						{tabs.map(([value, label, count]) => (
-							<TabsTrigger
-								className='h-11 flex-none rounded-none border-0 px-3 font-normal text-zinc-400 data-[active]:border-0 data-[active]:bg-transparent data-[active]:font-medium data-[active]:text-white data-[active]:shadow-[inset_0_-2px_0_#fafafa] [@media(hover:hover)]:hover:bg-transparent'
-								key={value}
-								value={value}
-							>
+							<UnderlineTab count={count} key={value} value={value}>
 								{label}
-
-								<span className='font-mono text-xs text-zinc-500'>
-									{count}
-								</span>
-							</TabsTrigger>
+							</UnderlineTab>
 						))}
-					</TabsList>
+					</UnderlineTabsList>
 
-					<div
-						aria-label='View mode'
-						className='mb-1.5 flex rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] p-0.5'
-						role='group'
-					>
-						{(
-							[
-								['grid', 'Grid view', LayoutGrid],
-								['list', 'List view', List],
-							] as const
-						).map(([mode, label, ViewIcon]) => (
-							<button
-								aria-label={label}
-								aria-pressed={viewMode === mode}
-								key={mode}
-								onClick={() => setViewMode(mode)}
-								type='button'
-								className={cn(
-									'flex h-[30px] w-8 items-center justify-center rounded-[7px] transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
-									viewMode === mode
-										? 'bg-[#1c1d22] text-white'
-										: 'text-zinc-500 hover:text-white'
-								)}
-							>
-								<ViewIcon aria-hidden='true' className='size-3.5' />
-							</button>
-						))}
-					</div>
-				</div>
+					<ViewToggle
+						className='mb-1.5'
+						onChange={setViewMode}
+						value={viewMode}
+					/>
+				</UnderlineTabsBar>
 			</Tabs>
 
 			{error && (

@@ -194,7 +194,7 @@ function CardMenu({
 			<DropdownMenuTrigger
 				aria-label={`More options for ${map.title}`}
 				className={cn(
-					'relative z-10 flex size-8 items-center justify-center rounded-lg border border-[#2a2c33] bg-[#16171b] text-zinc-300',
+					'relative z-10 flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#2a2c33] bg-[#16171b] text-zinc-300',
 					'transition-[opacity,color,background-color] duration-200 ease hover:bg-[#1c1d22] hover:text-white',
 					'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
 					className
@@ -309,7 +309,7 @@ const MindMapCardComponent = ({
 					title={map.title}
 				/>
 
-				<div className='min-w-0 grow'>
+				<div className='min-w-0 flex-1 basis-0'>
 					<h3 className='truncate text-[15px] font-semibold text-white'>
 						<Link
 							className='rounded-sm after:absolute after:inset-0 after:z-[1] after:rounded-xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-sky-500'

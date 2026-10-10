@@ -139,10 +139,13 @@ function SidebarNavItem({
 	item,
 	isActive,
 	collapsed,
+	onNavigate,
 }: {
 	item: NavItem;
 	isActive: boolean;
 	collapsed: boolean;
+	/** Runs on click, so the mobile sidebar closes even when the link goes nowhere new. */
+	onNavigate?: () => void;
 }) {
 	const Icon = item.icon;
 	const base = cn(
@@ -187,6 +190,7 @@ function SidebarNavItem({
 				aria-current={isActive ? 'page' : undefined}
 				aria-label={collapsed || item.badge ? badgeLabel : undefined}
 				href={item.href}
+				onClick={onNavigate}
 				className={cn(
 					base,
 					'transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
@@ -229,7 +233,7 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 	const pathname = usePathname();
 	const router = useRouter();
 	const searchParams = useSearchParams();
-	const { state: sidebarState, isMobile } = useSidebar();
+	const { state: sidebarState, isMobile, setOpenMobile } = useSidebar();
 	// The mobile sheet always shows the full sidebar.
 	const collapsed = sidebarState === 'collapsed' && !isMobile;
 	const isTouchFirst = useTouchFirst();
@@ -296,12 +300,24 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 		}
 	}, [userProfile, isLoadingProfile, profileError, loadUserProfile, isLoggingOut]);
 
+	// The mobile sidebar is a sheet: close it after anything picked inside it, and on
+	// every route change (the shell outlives the page, so it never remounts by itself).
+	const closeMobileSidebar = useCallback(
+		() => setOpenMobile(false),
+		[setOpenMobile]
+	);
+
+	useEffect(() => {
+		setOpenMobile(false);
+	}, [pathname, searchParams, setOpenMobile]);
+
 	const handleOpenSettings = useCallback(
 		(tab: 'account' | 'billing' = 'account') => {
 			setSettingsTab(tab);
 			setIsSettingsOpen(true);
+			setOpenMobile(false);
 		},
-		[]
+		[setOpenMobile]
 	);
 
 	// Handle URL param to open settings panel (e.g., /dashboard?settings=billing)
@@ -326,6 +342,8 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 	}, [showAnonymousUpgrade, setPopoverOpen]);
 
 	const handleUpgrade = () => {
+		setOpenMobile(false);
+
 		if (userProfile?.is_anonymous) {
 			setShowAnonymousUpgrade(true);
 			return;
@@ -432,6 +450,7 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 							<Link
 								className='flex items-center gap-2.5 rounded-sm text-base font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
 								href='/dashboard'
+								onClick={closeMobileSidebar}
 							>
 								<Image
 									alt=''
@@ -451,7 +470,10 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 							<button
 								aria-label={collapsed ? 'New map' : undefined}
 								className={newMapClassName}
-								onClick={onNewMap}
+								onClick={() => {
+									closeMobileSidebar();
+									onNewMap();
+								}}
 								type='button'
 							>
 								{newMapContent}
@@ -461,6 +483,7 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 								aria-label={collapsed ? 'New map' : undefined}
 								className={newMapClassName}
 								href='/dashboard?create=1'
+								onClick={closeMobileSidebar}
 							>
 								{newMapContent}
 							</Link>
@@ -474,6 +497,7 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 								isActive={isItemActive(item.href)}
 								item={item}
 								key={item.id}
+								onNavigate={closeMobileSidebar}
 							/>
 						))}
 					</nav>
@@ -490,6 +514,7 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 										<Link
 											className='flex h-[34px] items-center gap-2.5 rounded-lg px-2.5 text-zinc-400 transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 [@media(hover:hover)]:hover:bg-white/[0.03] [@media(hover:hover)]:hover:text-white'
 											href={`/mind-map/${map.id}`}
+											onClick={closeMobileSidebar}
 										>
 											<span
 												aria-hidden='true'

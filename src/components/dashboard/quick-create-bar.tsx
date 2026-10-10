@@ -47,7 +47,10 @@ export function QuickCreateForm({
 
 	return (
 		<form
-			className={cn('flex flex-wrap', isLarge ? 'gap-3' : 'gap-2.5')}
+			className={cn(
+				'flex flex-col sm:flex-row sm:flex-wrap',
+				isLarge ? 'gap-3' : 'gap-2.5'
+			)}
 			onSubmit={handleSubmit}
 		>
 			<label className='sr-only' htmlFor={inputId}>
@@ -66,8 +69,8 @@ export function QuickCreateForm({
 				type='text'
 				value={title}
 				className={cn(
-					'min-w-0 flex-[1_1_260px] border border-[rgba(96,165,250,0.3)] bg-[#1e1e1e] text-white placeholder:text-zinc-500',
-					'transition-[border-color,box-shadow] duration-200 ease focus:border-[rgba(96,165,250,0.6)] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] focus:outline-none',
+					'w-full min-w-0 border border-[rgba(96,165,250,0.3)] bg-[#1e1e1e] text-white placeholder:text-zinc-500',
+					'sm:w-auto sm:flex-[1_1_260px] transition-[border-color,box-shadow] duration-200 ease focus:border-[rgba(96,165,250,0.6)] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)] focus:outline-none',
 					'disabled:opacity-60',
 					isLarge
 						? 'h-16 rounded-2xl px-[22px] text-xl font-medium'
@@ -79,7 +82,7 @@ export function QuickCreateForm({
 				disabled={isCreating}
 				type='submit'
 				className={cn(
-					'inline-flex shrink-0 items-center justify-center gap-2 bg-[#005bc7] font-semibold text-white',
+					'inline-flex w-full shrink-0 items-center justify-center gap-2 bg-[#005bc7] sm:w-auto font-semibold text-white',
 					'transition-colors duration-200 ease [@media(hover:hover)]:hover:bg-[#0a68d6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950',
 					'disabled:cursor-wait disabled:opacity-80',
 					isLarge
@@ -109,8 +112,8 @@ export function QuickCreateBar({
 	...formProps
 }: QuickCreateBarProps) {
 	return (
-		<div className='mt-7 flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-[18px] border border-[#1d1f24] bg-[#0c0d10] bg-[radial-gradient(rgba(255,255,255,0.07)_1px,transparent_1.3px)] bg-[size:18px_18px] p-[18px]'>
-			<div className='flex-[1_1_420px]'>
+		<div className='mt-7 flex flex-col gap-4 rounded-[18px] border border-[#1d1f24] bg-[#0c0d10] bg-[radial-gradient(rgba(255,255,255,0.07)_1px,transparent_1.3px)] bg-[size:18px_18px] p-[18px] lg:flex-row lg:flex-wrap lg:items-center lg:justify-between lg:gap-x-6'>
+			<div className='w-full lg:w-auto lg:flex-[1_1_420px]'>
 				<QuickCreateForm
 					{...formProps}
 					label='New map from a thought'
@@ -119,12 +122,12 @@ export function QuickCreateBar({
 			</div>
 
 			{templates.length > 0 && (
-				<div className='flex flex-wrap items-center gap-2 text-[13px] text-zinc-500'>
-					<span>or start from</span>
+				<div className='-mx-[18px] flex items-center gap-2 overflow-x-auto px-[18px] text-[13px] text-zinc-500 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden'>
+					<span className='shrink-0 whitespace-nowrap'>or start from</span>
 
 					{templates.slice(0, 3).map((template) => (
 						<button
-							className='rounded-full border border-[#2a2c33] bg-[#0e0f12] px-3 py-1.5 text-zinc-300 transition-colors duration-200 ease [@media(hover:hover)]:hover:border-[#3a3d46] [@media(hover:hover)]:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+							className='shrink-0 whitespace-nowrap rounded-full border border-[#2a2c33] bg-[#0e0f12] px-3 py-1.5 text-zinc-300 transition-colors duration-200 ease [@media(hover:hover)]:hover:border-[#3a3d46] [@media(hover:hover)]:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
 							key={template.id}
 							onClick={() => onPickTemplate(template)}
 							type='button'
@@ -134,7 +137,7 @@ export function QuickCreateBar({
 					))}
 
 					<Link
-						className='group/all inline-flex items-center gap-1.5 rounded-sm px-1 py-1.5 text-zinc-400 transition-colors duration-200 ease hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+						className='group/all inline-flex shrink-0 items-center whitespace-nowrap gap-1.5 rounded-sm px-1 py-1.5 text-zinc-400 transition-colors duration-200 ease hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
 						href='/dashboard/templates'
 					>
 						All templates
