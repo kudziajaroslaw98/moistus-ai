@@ -59,7 +59,7 @@ export function QuickCreateForm({
 
 			<input
 				autoComplete='off'
-				 
+
 				autoFocus={autoFocus}
 				disabled={isCreating}
 				id={inputId}
@@ -99,8 +99,10 @@ export function QuickCreateForm({
 	);
 }
 
-interface QuickCreateBarProps
-	extends Omit<QuickCreateFormProps, 'label' | 'placeholder' | 'size'> {
+interface QuickCreateBarProps extends Omit<
+	QuickCreateFormProps,
+	'label' | 'placeholder' | 'size'
+> {
 	templates: DashboardTemplate[];
 	onPickTemplate: (template: DashboardTemplate) => void;
 }
@@ -121,13 +123,25 @@ export function QuickCreateBar({
 				/>
 			</div>
 
+			{/* Phones: one link instead of a row of chips that doesn't fit. */}
+			<Link
+				className='group/start inline-flex items-center gap-1.5 self-start rounded-sm py-1 text-[13px] text-zinc-400 transition-colors duration-200 ease hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 sm:hidden'
+				href='/dashboard/templates'
+			>
+				or start with a template
+				<ArrowRight
+					aria-hidden='true'
+					className='size-3 transition-transform duration-200 ease-out motion-safe:group-hover/start:translate-x-0.5'
+				/>
+			</Link>
+
 			{templates.length > 0 && (
-				<div className='-mx-[18px] flex items-center gap-2 overflow-x-auto px-[18px] text-[13px] text-zinc-500 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden'>
-					<span className='shrink-0 whitespace-nowrap'>or start from</span>
+				<div className='hidden flex-wrap items-center gap-2 text-[13px] text-zinc-500 sm:flex'>
+					<span>or start from</span>
 
 					{templates.slice(0, 3).map((template) => (
 						<button
-							className='shrink-0 whitespace-nowrap rounded-full border border-[#2a2c33] bg-[#0e0f12] px-3 py-1.5 text-zinc-300 transition-colors duration-200 ease [@media(hover:hover)]:hover:border-[#3a3d46] [@media(hover:hover)]:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+							className='rounded-full border border-[#2a2c33] bg-[#0e0f12] px-3 py-1.5 text-zinc-300 transition-colors duration-200 ease [@media(hover:hover)]:hover:border-[#3a3d46] [@media(hover:hover)]:hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
 							key={template.id}
 							onClick={() => onPickTemplate(template)}
 							type='button'
@@ -137,7 +151,7 @@ export function QuickCreateBar({
 					))}
 
 					<Link
-						className='group/all inline-flex shrink-0 items-center whitespace-nowrap gap-1.5 rounded-sm px-1 py-1.5 text-zinc-400 transition-colors duration-200 ease hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+						className='group/all inline-flex items-center gap-1.5 rounded-sm px-1 py-1.5 text-zinc-400 transition-colors duration-200 ease hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
 						href='/dashboard/templates'
 					>
 						All templates
