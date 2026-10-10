@@ -695,9 +695,33 @@ export function SettingsPanel({
 		setPopoverOpen({ upgradeUser: true });
 	};
 
-	const handleOpenBillingPortal = () => {
+	// Asks the server for the Polar portal link and goes there. Navigating straight to
+	// the API route could land on a page that doesn't exist; this shows the error instead.
+	const handleOpenBillingPortal = async () => {
 		setIsOpeningPortal(true);
-		window.location.href = '/api/user/billing/portal';
+
+		try {
+			const response = await fetch('/api/user/billing/portal', {
+				method: 'POST',
+			});
+			const result = (await response.json().catch(() => null)) as {
+				url?: string;
+				error?: string;
+			} | null;
+
+			if (!response.ok || !result?.url) {
+				throw new Error(result?.error ?? 'Could not open the billing portal.');
+			}
+
+			window.location.assign(result.url);
+		} catch (error) {
+			toast.error(
+				error instanceof Error
+					? error.message
+					: 'Could not open the billing portal.'
+			);
+			setIsOpeningPortal(false);
+		}
 	};
 
 	const handleOpenDeleteDialog = async () => {

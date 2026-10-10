@@ -1,14 +1,21 @@
 'use client';
 
+import {
+	CatalogCardSkeleton,
+	CatalogGrid,
+} from '@/components/dashboard/catalog-card';
+import {
+	DashboardPage,
+	PageHeading,
+	PRIMARY_BUTTON_CLASS,
+} from '@/components/dashboard/dashboard-page';
 import { RecipeConfirmDialog } from '@/components/recipes/recipe-confirm-dialog';
 import { RecipeEditor } from '@/components/recipes/recipe-editor';
-import { RecipeList } from '@/components/recipes/recipe-list';
-import { Skeleton } from '@/components/ui/skeleton';
-import type { RecipeDefinition } from '@/lib/extensions/recipe-schema';
+import { type RecipeDefinition } from '@/lib/extensions/recipe-schema';
 import useAppStore from '@/store/mind-map-store';
-import { ChevronLeft } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { ChevronLeft, Plus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { RecipesGrid } from './recipes-grid';
 
 type PageView =
 	| { mode: 'list' }
@@ -22,45 +29,26 @@ type PageView =
 
 const RECIPES_INTRO =
 	'AI actions you write once and run on any map. Every result is a suggestion you accept or reject.';
-const RECIPES_BOX_CLASS =
-	'flex h-[calc(100dvh-16rem)] min-h-[520px] flex-col overflow-hidden rounded-xl border border-zinc-800 bg-base';
 
-function RecipeListSkeleton() {
-	return (
-		<div aria-busy className='space-y-2 p-4' data-testid='recipes-page-loading'>
-			<Skeleton className='h-9 w-full rounded-lg' />
-
-			<Skeleton className='h-11 w-full rounded-lg' />
-
-			<Skeleton className='h-11 w-full rounded-lg' />
-		</div>
-	);
-}
-
-/** The page before it mounts (recipes/loading.tsx): same heading, list skeleton. */
+/** The page before it mounts (recipes/loading.tsx): same heading, empty tabs, card skeletons. */
 export function RecipesPageSkeleton() {
 	return (
-		<div className='p-6 md:p-8'>
-			<div className='mx-auto flex max-w-3xl flex-col gap-6'>
-				<div className='space-y-2'>
-					<h1 className='text-3xl font-bold tracking-tight text-white'>
-						Recipes
-					</h1>
+		<DashboardPage>
+			<PageHeading intro={RECIPES_INTRO} title='Recipes' />
 
-					<p className='text-zinc-400'>{RECIPES_INTRO}</p>
-				</div>
+			<div className='mt-9 h-11 border-b border-[#1d1f24]' />
 
-				<div className={RECIPES_BOX_CLASS}>
-					<RecipeListSkeleton />
-				</div>
+			<div aria-busy data-testid='recipes-page-loading'>
+				<CatalogGrid className='mt-6' viewMode='grid'>
+					<CatalogCardSkeleton viewMode='grid' />
+				</CatalogGrid>
 			</div>
-		</div>
+		</DashboardPage>
 	);
 }
 
-/** Dashboard Recipes page: the recipes panel's list and editor, without a map. */
+/** Dashboard Recipes page: cards for your recipes and the starters, and the full-width editor. */
 export function RecipesContent() {
-	const shouldReduceMotion = useReducedMotion();
 	const hasUser = useAppStore((state) => Boolean(state.currentUser));
 	const getCurrentUser = useAppStore((state) => state.getCurrentUser);
 	const [view, setView] = useState<PageView>({ mode: 'list' });
@@ -100,82 +88,73 @@ export function RecipesContent() {
 		showList();
 	};
 
-	const isEditing = view.mode === 'edit';
-	const slide = shouldReduceMotion ? 0 : 16;
+	if (!hasUser) {
+		// Until the user loads, the list would say "Create an account to save recipes".
+		return <RecipesPageSkeleton />;
+	}
 
 	return (
 		<>
-			<div className='p-6 md:p-8'>
-				<div className='mx-auto flex max-w-3xl flex-col gap-6'>
-					<div className='space-y-2'>
-						{isEditing ? (
-							<button
-								className='inline-flex items-center gap-0.5 rounded-sm text-sm text-zinc-400 transition-colors duration-200 ease hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60'
-								onClick={requestList}
-								type='button'
-							>
-								<ChevronLeft aria-hidden className='size-4' />
-								All recipes
-							</button>
-						) : null}
+			<DashboardPage>
+				{view.mode === 'edit' ? (
+					<>
+						<button
+							className='mb-3 inline-flex items-center gap-0.5 rounded-sm text-sm text-zinc-400 transition-colors duration-200 ease hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
+							onClick={requestList}
+							type='button'
+						>
+							<ChevronLeft aria-hidden className='size-4' />
+							All recipes
+						</button>
 
-						<h1 className='text-3xl font-bold tracking-tight text-white'>
-							{!isEditing
-								? 'Recipes'
-								: view.recipeId
-									? 'Edit recipe'
-									: 'New recipe'}
-						</h1>
+						<PageHeading
+							intro={RECIPES_INTRO}
+							title={view.recipeId ? 'Edit recipe' : 'New recipe'}
+						/>
 
-						<p className='text-zinc-400'>{RECIPES_INTRO}</p>
-					</div>
-
-					<div className={RECIPES_BOX_CLASS}>
-						{!hasUser ? (
-							// Until the user loads, the list would say "Create an account to save recipes".
-							<RecipeListSkeleton />
-						) : (
-							<AnimatePresence initial={false} mode='wait'>
-								<motion.div
-									animate={{ opacity: 1, x: 0 }}
-									className='flex min-h-0 flex-1 flex-col'
-									exit={{ opacity: 0, x: isEditing ? slide : -slide }}
-									initial={{ opacity: 0, x: isEditing ? slide : -slide }}
-									key={view.mode === 'edit' ? `editor-${view.key}` : 'list'}
-									transition={{
-										duration: shouldReduceMotion ? 0 : 0.2,
-										ease: 'easeOut',
-									}}
+						<div className='mt-6'>
+							<RecipeEditor
+								initial={view.initial}
+								key={view.key}
+								layout='page'
+								onClose={requestList}
+								onDirtyChange={handleDirtyChange}
+								recipeId={view.recipeId}
+								onSaved={(recipe) =>
+									setView({
+										mode: 'edit',
+										recipeId: recipe.id,
+										initial: recipe.definition,
+										key: view.key,
+									})
+								}
+							/>
+						</div>
+					</>
+				) : (
+					<>
+						<PageHeading
+							intro={RECIPES_INTRO}
+							title='Recipes'
+							action={
+								<button
+									className={PRIMARY_BUTTON_CLASS}
+									onClick={() => openEditor(null, null)}
+									type='button'
 								>
-									{view.mode === 'edit' ? (
-										<RecipeEditor
-											initial={view.initial}
-											onClose={requestList}
-											onDirtyChange={handleDirtyChange}
-											recipeId={view.recipeId}
-											onSaved={(recipe) =>
-												setView({
-													mode: 'edit',
-													recipeId: recipe.id,
-													initial: recipe.definition,
-													key: view.key,
-												})
-											}
-										/>
-									) : (
-										<RecipeList
-											onCreate={(initial) => openEditor(null, initial)}
-											onEdit={(recipe) =>
-												openEditor(recipe.id, recipe.definition)
-											}
-										/>
-									)}
-								</motion.div>
-							</AnimatePresence>
-						)}
-					</div>
-				</div>
-			</div>
+									<Plus aria-hidden className='size-4' />
+									New recipe
+								</button>
+							}
+						/>
+
+						<RecipesGrid
+							onCreate={(initial) => openEditor(null, initial)}
+							onEdit={(recipe) => openEditor(recipe.id, recipe.definition)}
+						/>
+					</>
+				)}
+			</DashboardPage>
 
 			<RecipeConfirmDialog
 				cancelLabel='Keep editing'

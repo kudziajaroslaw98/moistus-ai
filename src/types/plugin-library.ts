@@ -14,6 +14,11 @@ export interface MyPluginVersion {
 export interface MyPlugin {
 	id: string;
 	name: string;
+	/** Icon from the newest version's manifest (a `PLUGIN_ICONS` key). */
+	icon: string;
+	description: string;
+	/** Powers of the newest version, e.g. `node:own`, `branch:read`, `network:host`. */
+	permissions: string[];
 	/** Maps with it on. */
 	mapCount: number;
 	/** Reports Shiko hasn't closed yet. */

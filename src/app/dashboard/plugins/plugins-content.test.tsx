@@ -7,6 +7,10 @@ jest.mock('sonner', () => ({
 	},
 }));
 
+jest.mock('@/components/dashboard/dashboard-shell-context', () => ({
+	useDashboardSearch: () => ({ query: '', setQuery: jest.fn() }),
+}));
+
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { readFileSync } from 'node:fs';
@@ -51,14 +55,21 @@ beforeEach(() => {
 	];
 });
 
+/** The Metric card; every card has the same "Choose maps" button. */
+async function metricCard() {
+	const title = await screen.findByText('Metric');
+	return title.closest('article') as HTMLElement;
+}
+
 describe('PluginsContent', () => {
 	it('lists Shiko plugins with how many of your maps use them', async () => {
 		setup();
 
-		expect(await screen.findByText('by Shiko · v0.2.0')).toBeInTheDocument();
-		expect(await screen.findByRole('button', { name: /On in 1 map/ })).toBeInTheDocument();
+		const card = await metricCard();
+		expect(await within(card).findByText('v0.2.0 · On in 1 map')).toBeInTheDocument();
+		expect(within(card).getByRole('button', { name: 'Choose maps' })).toBeInTheDocument();
 		expect(screen.queryByTestId('plugin-update')).not.toBeInTheDocument();
-		expect(screen.getByRole('link', { name: /Read the guide/ })).toHaveAttribute(
+		expect(screen.getByRole('link', { name: /Build a plugin/ })).toHaveAttribute(
 			'href',
 			'/dashboard/plugins/build'
 		);
@@ -67,9 +78,10 @@ describe('PluginsContent', () => {
 	it('turns a plugin on for another map', async () => {
 		const user = setup();
 
-		await user.click(await screen.findByRole('button', { name: /On in 1 map/ }));
+		const card = await metricCard();
+		await user.click(await within(card).findByRole('button', { name: 'Choose maps' }));
 		const dialog = await screen.findByRole('dialog');
-		await user.click(within(dialog).getByRole('checkbox', { name: 'Notes' }));
+		await user.click(within(dialog).getByRole('switch', { name: 'Notes' }));
 
 		await waitFor(() =>
 			expect(mockFetch).toHaveBeenCalledWith('/api/maps/map-2/plugins/shiko.metric', {
@@ -78,7 +90,7 @@ describe('PluginsContent', () => {
 				body: '{"permissions":["node:own"]}',
 			})
 		);
-		expect(await screen.findByRole('button', { name: /On in 2 maps/ })).toBeInTheDocument();
+		expect(await within(card).findByText('v0.2.0 · On in 2 maps')).toBeInTheDocument();
 	});
 
 	it('updates every map on an older version after showing what changes', async () => {
@@ -108,14 +120,15 @@ describe('PluginsContent', () => {
 		toggleOk = false;
 		const user = setup();
 
-		await user.click(await screen.findByRole('button', { name: /On in 1 map/ }));
+		const card = await metricCard();
+		await user.click(await within(card).findByRole('button', { name: 'Choose maps' }));
 		const dialog = await screen.findByRole('dialog');
-		await user.click(within(dialog).getByRole('checkbox', { name: 'Roadmap v0.2.0' }));
+		await user.click(within(dialog).getByRole('switch', { name: 'Roadmap 0.2.0' }));
 
 		await waitFor(() =>
 			expect(mockToastError).toHaveBeenCalledWith('Couldn’t turn Metric off for “Roadmap”')
 		);
-		expect(within(dialog).getByRole('checkbox', { name: 'Roadmap v0.2.0' })).toHaveAttribute(
+		expect(within(dialog).getByRole('switch', { name: 'Roadmap 0.2.0' })).toHaveAttribute(
 			'aria-checked',
 			'true'
 		);

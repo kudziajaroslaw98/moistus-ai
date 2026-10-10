@@ -1,5 +1,7 @@
 'use client';
 
+import { CatalogCard } from '@/components/dashboard/catalog-card';
+import { CARD_BUTTON_CLASS } from '@/components/dashboard/dashboard-page';
 import { RecipeChoiceChip } from '@/components/recipes/recipe-choice-chip';
 import { RecipeIconPicker } from '@/components/recipes/recipe-icon-picker';
 import { Button } from '@/components/ui/button';
@@ -15,9 +17,12 @@ import {
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import { recipeToContribution } from '@/lib/extensions/recipe-contributions';
 import {
+	RECIPE_ICONS,
 	RECIPE_NODE_TYPE_INFO,
 	RECIPE_NODE_TYPE_ORDER,
+	RECIPE_SCOPE_HUES,
 	RECIPE_SCOPE_INFO,
+	describeRecipe,
 } from '@/lib/extensions/recipe-icons';
 import {
 	RECIPE_LIMITS,
@@ -43,7 +48,10 @@ export const BLANK_RECIPE: RecipeDefinition = {
 };
 
 type FieldErrors = Partial<
-	Record<'title' | 'description' | 'instruction' | 'nodeTypes' | 'labels', string>
+	Record<
+		'title' | 'description' | 'instruction' | 'nodeTypes' | 'labels',
+		string
+	>
 >;
 
 /** Field-level messages in plain words; the schema stays the final gate on save. */
@@ -60,7 +68,11 @@ function validateDraft(draft: RecipeDefinition): FieldErrors {
 		errors.instruction = `Instructions can be up to ${RECIPE_LIMITS.instruction} characters.`;
 	if (draft.output.nodeTypes.length === 0)
 		errors.nodeTypes = 'Pick at least one node type.';
-	if (draft.output.labels.some((label) => label.length > RECIPE_LIMITS.labelLength))
+	if (
+		draft.output.labels.some(
+			(label) => label.length > RECIPE_LIMITS.labelLength
+		)
+	)
 		errors.labels = `Labels can be up to ${RECIPE_LIMITS.labelLength} characters.`;
 	return errors;
 }
@@ -70,20 +82,27 @@ function Section({
 	description,
 	delay,
 	children,
+	className,
 }: {
 	title: string;
 	description: string;
 	delay: number;
 	children: ReactNode;
+	className?: string;
 }) {
 	const shouldReduceMotion = useReducedMotion();
 	return (
 		<motion.section
 			animate={{ opacity: 1, y: 0 }}
-			className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
+			className={cn(
+				'space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4',
+				className
+			)}
 			initial={shouldReduceMotion ? false : { opacity: 0, y: 10 }}
 			transition={
-				shouldReduceMotion ? { duration: 0 } : { delay, duration: 0.25, ease: 'easeOut' }
+				shouldReduceMotion
+					? { duration: 0 }
+					: { delay, duration: 0.25, ease: 'easeOut' }
 			}
 		>
 			<div className='space-y-1'>
@@ -128,7 +147,12 @@ interface RecipeTrySectionProps {
 }
 
 /** Runs the unsaved draft on the open map. Only rendered inside a map. */
-function RecipeTrySection({ draft, recipeId, isValid, onAttempt }: RecipeTrySectionProps) {
+function RecipeTrySection({
+	draft,
+	recipeId,
+	isValid,
+	onAttempt,
+}: RecipeTrySectionProps) {
 	const { createContext, runContribution } = useContributions();
 	const { isAtLimit } = useSubscriptionLimits();
 	const setPopoverOpen = useAppStore((state) => state.setPopoverOpen);
@@ -157,13 +181,18 @@ function RecipeTrySection({ draft, recipeId, isValid, onAttempt }: RecipeTrySect
 		);
 		runContribution(
 			contribution,
-			createContext(needsNode ? 'node' : 'map', needsNode ? (selectedNode?.id ?? null) : null)
+			createContext(
+				needsNode ? 'node' : 'map',
+				needsNode ? (selectedNode?.id ?? null) : null
+			)
 		);
 	};
 
 	const selectedNodeText =
-		(typeof selectedNode?.data?.content === 'string' && selectedNode.data.content.trim()) ||
-		(typeof selectedNode?.data?.metadata?.title === 'string' && selectedNode.data.metadata.title) ||
+		(typeof selectedNode?.data?.content === 'string' &&
+			selectedNode.data.content.trim()) ||
+		(typeof selectedNode?.data?.metadata?.title === 'string' &&
+			selectedNode.data.metadata.title) ||
 		'Untitled node';
 	const isAIBlocked = isAtLimit('aiSuggestions');
 
@@ -182,13 +211,18 @@ function RecipeTrySection({ draft, recipeId, isValid, onAttempt }: RecipeTrySect
 							: 'border-dashed border-border-default text-text-secondary'
 					)}
 				>
-					<FileText aria-hidden className='size-3.5 shrink-0 text-text-secondary' />
+					<FileText
+						aria-hidden
+						className='size-3.5 shrink-0 text-text-secondary'
+					/>
 
 					<span className='min-w-0 flex-1 truncate'>
 						{selectedNode ? selectedNodeText : 'No node selected'}
 					</span>
 
-					{selectedNode && <span className='text-xs text-text-secondary'>Selected</span>}
+					{selectedNode && (
+						<span className='text-xs text-text-secondary'>Selected</span>
+					)}
 				</div>
 			)}
 
@@ -245,6 +279,11 @@ interface RecipeEditorProps {
 	onDirtyChange: (isDirty: boolean) => void;
 	/** Show "Try it" (needs an open map). Off on the dashboard Recipes page. */
 	showTry?: boolean;
+	/**
+	 * `panel` fits the in-map side panel (one column, buttons at the bottom). `page` is the
+	 * dashboard Recipes page: two columns, buttons above, a preview of the recipe's card.
+	 */
+	layout?: 'panel' | 'page';
 }
 
 export function RecipeEditor({
@@ -254,10 +293,15 @@ export function RecipeEditor({
 	onClose,
 	onDirtyChange,
 	showTry = false,
+	layout = 'panel',
 }: RecipeEditorProps) {
-	const [baseline, setBaseline] = useState<RecipeDefinition>(initial ?? BLANK_RECIPE);
+	const [baseline, setBaseline] = useState<RecipeDefinition>(
+		initial ?? BLANK_RECIPE
+	);
 	const [draft, setDraft] = useState<RecipeDefinition>(initial ?? BLANK_RECIPE);
-	const [touched, setTouched] = useState<Partial<Record<keyof FieldErrors, boolean>>>({});
+	const [touched, setTouched] = useState<
+		Partial<Record<keyof FieldErrors, boolean>>
+	>({});
 	const [showAllErrors, setShowAllErrors] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 
@@ -276,11 +320,16 @@ export function RecipeEditor({
 	const update = (patch: Partial<RecipeDefinition>) =>
 		setDraft((current) => ({ ...current, ...patch }));
 	const updateOutput = (patch: Partial<RecipeDefinition['output']>) =>
-		setDraft((current) => ({ ...current, output: { ...current.output, ...patch } }));
+		setDraft((current) => ({
+			...current,
+			output: { ...current.output, ...patch },
+		}));
 	const touch = (field: keyof FieldErrors) =>
 		setTouched((current) => ({ ...current, [field]: true }));
 
-	const toggleNodeType = (type: RecipeDefinition['output']['nodeTypes'][number]) => {
+	const toggleNodeType = (
+		type: RecipeDefinition['output']['nodeTypes'][number]
+	) => {
 		touch('nodeTypes');
 		const nodeTypes = draft.output.nodeTypes.includes(type)
 			? draft.output.nodeTypes.filter((existing) => existing !== type)
@@ -306,7 +355,9 @@ export function RecipeEditor({
 			onSaved(saved);
 		} catch (error) {
 			toast.error(
-				error instanceof RecipeRequestError ? error.message : 'Could not save the recipe.'
+				error instanceof RecipeRequestError
+					? error.message
+					: 'Could not save the recipe.'
 			);
 		} finally {
 			setIsSaving(false);
@@ -323,281 +374,370 @@ export function RecipeEditor({
 				? 'All changes are saved'
 				: 'New recipe';
 
+	const sectionClass =
+		layout === 'page'
+			? 'rounded-2xl border-[#1d1f24] bg-[#0e0f12] p-5'
+			: undefined;
+
+	const generalSection = (
+		<Section
+			className={sectionClass}
+			delay={0}
+			description='Name it so you can find it in the AI menu.'
+			title='General'
+		>
+			<div className='space-y-2'>
+				<div className='flex items-center justify-between gap-3'>
+					<Label className='text-text-primary' htmlFor='recipe-title'>
+						Name <span className='text-error-500'>*</span>
+					</Label>
+
+					<CharCount count={draft.title.length} max={RECIPE_LIMITS.title} />
+				</div>
+
+				<Input
+					aria-describedby={
+						visibleError('title') ? 'recipe-title-error' : undefined
+					}
+					aria-invalid={Boolean(visibleError('title'))}
+					disabled={isSaving}
+					error={Boolean(visibleError('title'))}
+					id='recipe-title'
+					onBlur={() => touch('title')}
+					onChange={(event) => update({ title: event.target.value })}
+					placeholder='Pre-mortem'
+					value={draft.title}
+				/>
+
+				<FieldError id='recipe-title-error' message={visibleError('title')} />
+			</div>
+
+			<div className='space-y-2'>
+				<Label className='text-text-primary' id='recipe-icon-label'>
+					Icon
+				</Label>
+
+				<RecipeIconPicker
+					disabled={isSaving}
+					labelledBy='recipe-icon-label'
+					onChange={(icon) => update({ icon })}
+					value={draft.icon}
+				/>
+			</div>
+
+			<div className='space-y-2'>
+				<div className='flex items-center justify-between gap-3'>
+					<Label className='text-text-primary' htmlFor='recipe-description'>
+						Description
+					</Label>
+
+					<CharCount
+						count={draft.description.length}
+						max={RECIPE_LIMITS.description}
+					/>
+				</div>
+
+				<Input
+					aria-invalid={Boolean(visibleError('description'))}
+					disabled={isSaving}
+					error={Boolean(visibleError('description'))}
+					id='recipe-description'
+					onBlur={() => touch('description')}
+					onChange={(event) => update({ description: event.target.value })}
+					placeholder='Imagine this failed: list likely causes'
+					value={draft.description}
+				/>
+
+				<p className='text-xs text-text-secondary'>
+					Shown under the name in menus.
+				</p>
+
+				<FieldError
+					id='recipe-description-error'
+					message={visibleError('description')}
+				/>
+			</div>
+		</Section>
+	);
+
+	const instructionSection = (
+		<Section
+			className={sectionClass}
+			delay={0.05}
+			description='Tell the AI what to do. The nodes it runs on are sent along with it.'
+			title='Instruction'
+		>
+			<div className='space-y-2'>
+				<Label className='text-text-primary' id='recipe-scope-label'>
+					Runs on
+				</Label>
+
+				<div
+					aria-labelledby='recipe-scope-label'
+					className='flex flex-wrap gap-1.5'
+					role='radiogroup'
+				>
+					{RECIPE_SCOPES.map((scope) => (
+						<RecipeChoiceChip
+							disabled={isSaving}
+							key={scope}
+							mode='radio'
+							onClick={() => update({ scope })}
+							selected={draft.scope === scope}
+						>
+							{RECIPE_SCOPE_INFO[scope].label}
+						</RecipeChoiceChip>
+					))}
+				</div>
+
+				<p className='text-xs text-text-secondary'>
+					{RECIPE_SCOPE_INFO[draft.scope].hint}
+				</p>
+			</div>
+
+			<div className='space-y-2'>
+				<div className='flex items-center justify-between gap-3'>
+					<Label className='text-text-primary' htmlFor='recipe-instruction'>
+						Instruction <span className='text-error-500'>*</span>
+					</Label>
+
+					<CharCount
+						count={draft.instruction.length}
+						max={RECIPE_LIMITS.instruction}
+					/>
+				</div>
+
+				<Textarea
+					aria-invalid={Boolean(visibleError('instruction'))}
+					className='resize-y'
+					disabled={isSaving}
+					error={Boolean(visibleError('instruction'))}
+					id='recipe-instruction'
+					onBlur={() => touch('instruction')}
+					onChange={(event) => update({ instruction: event.target.value })}
+					placeholder='Imagine this idea failed a year from now. List the most likely causes, each as one specific risk.'
+					rows={5}
+					value={draft.instruction}
+					aria-describedby={
+						visibleError('instruction') ? 'recipe-instruction-error' : undefined
+					}
+				/>
+
+				<p className='text-xs text-text-secondary'>
+					Write it as a task, like “List the 4 most likely reasons this fails.”
+				</p>
+
+				<FieldError
+					id='recipe-instruction-error'
+					message={visibleError('instruction')}
+				/>
+			</div>
+		</Section>
+	);
+
+	const resultsSection = (
+		<Section
+			className={sectionClass}
+			delay={0.1}
+			description='Every result is a suggestion you accept or reject.'
+			title='Results'
+		>
+			<div className='space-y-2'>
+				<Label className='text-text-primary' id='recipe-count-label'>
+					Up to
+				</Label>
+
+				<div
+					aria-labelledby='recipe-count-label'
+					className='flex flex-wrap gap-1.5'
+					role='radiogroup'
+				>
+					{Array.from(
+						{ length: RECIPE_LIMITS.maxItems },
+						(_, index) => index + 1
+					).map((count) => (
+						<RecipeChoiceChip
+							aria-label={`${count} ${count === 1 ? 'suggestion' : 'suggestions'}`}
+							className='w-9 justify-center px-0'
+							disabled={isSaving}
+							key={count}
+							mode='radio'
+							onClick={() => updateOutput({ maxItems: count })}
+							selected={draft.output.maxItems === count}
+						>
+							{count}
+						</RecipeChoiceChip>
+					))}
+				</div>
+			</div>
+
+			<div className='space-y-2'>
+				<Label className='text-text-primary' id='recipe-types-label'>
+					Node types
+				</Label>
+
+				<div
+					aria-labelledby='recipe-types-label'
+					className='flex flex-wrap gap-1.5'
+					role='group'
+				>
+					{RECIPE_NODE_TYPE_ORDER.map((type) => (
+						<RecipeChoiceChip
+							disabled={isSaving}
+							icon={RECIPE_NODE_TYPE_INFO[type].icon}
+							key={type}
+							mode='toggle'
+							onClick={() => toggleNodeType(type)}
+							selected={draft.output.nodeTypes.includes(type)}
+						>
+							{RECIPE_NODE_TYPE_INFO[type].label}
+						</RecipeChoiceChip>
+					))}
+				</div>
+
+				<FieldError
+					id='recipe-types-error'
+					message={visibleError('nodeTypes')}
+				/>
+			</div>
+
+			<div className='space-y-2'>
+				<Label className='text-text-primary' htmlFor='recipe-labels'>
+					Connection labels
+				</Label>
+
+				<TagInput
+					className={isSaving ? 'pointer-events-none opacity-60' : ''}
+					error={Boolean(visibleError('labels'))}
+					id='recipe-labels'
+					maxTags={RECIPE_LIMITS.labels}
+					placeholder='risk, mitigates…'
+					value={draft.output.labels}
+					onChange={(labels) => {
+						touch('labels');
+						updateOutput({ labels });
+					}}
+				/>
+
+				<p className='text-xs text-text-secondary'>
+					Press Enter or comma to add labels. Leave empty to let AI choose.
+				</p>
+
+				<FieldError id='recipe-labels-error' message={visibleError('labels')} />
+			</div>
+		</Section>
+	);
+
+	const tryBlock = showTry ? (
+		<RecipeTrySection
+			draft={draft}
+			isValid={isValid}
+			onAttempt={() => setShowAllErrors(true)}
+			recipeId={recipeId}
+		/>
+	) : (
+		<p className='px-1 text-xs text-text-secondary'>
+			To try a recipe, open a map and choose Manage under Recipes in the AI
+			menu.
+		</p>
+	);
+
+	const actions = (
+		<>
+			<p className='text-sm text-text-secondary'>{footerStatus}</p>
+
+			<div className='flex gap-2'>
+				<Button disabled={isSaving} onClick={onClose} variant='ghost'>
+					Close
+				</Button>
+
+				<Button
+					className='min-w-25'
+					disabled={
+						!canSaveRecipes || isSaving || (Boolean(recipeId) && !isDirty)
+					}
+					onClick={handleSave}
+				>
+					{isSaving ? (
+						<>
+							<Loader2 className='mr-2 h-4 w-4 animate-spin' />
+							Saving...
+						</>
+					) : (
+						<>
+							<Save className='mr-2 h-4 w-4' />
+							Save recipe
+						</>
+					)}
+				</Button>
+			</div>
+		</>
+	);
+
+	if (layout === 'page') {
+		const Icon = RECIPE_ICONS[draft.icon].icon;
+
+		return (
+			<div className='flex flex-col gap-5'>
+				<div className='flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-2xl border border-[#1d1f24] bg-[#0e0f12] px-5 py-3'>
+					{actions}
+				</div>
+
+				<div className='grid items-start gap-5 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]'>
+					<div className='space-y-5'>
+						{generalSection}
+
+						{instructionSection}
+					</div>
+
+					<div className='space-y-5'>
+						{resultsSection}
+
+						<section className='space-y-3 rounded-2xl border border-[#1d1f24] bg-[#0e0f12] p-5'>
+							<h3 className='text-sm font-semibold text-white'>
+								Card on your Recipes page
+							</h3>
+
+							<div className='pointer-events-none max-w-[320px]' inert>
+								<CatalogCard
+									description={
+										draft.description || 'Shown under the name in menus.'
+									}
+									hue={RECIPE_SCOPE_HUES[draft.scope]}
+									icon={Icon}
+									meta={describeRecipe(draft)}
+									title={draft.title || 'Untitled recipe'}
+									viewMode='grid'
+									action={
+										<button className={CARD_BUTTON_CLASS} type='button'>
+											Edit
+										</button>
+									}
+								/>
+							</div>
+						</section>
+
+						{tryBlock}
+					</div>
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className='flex min-h-0 flex-1 flex-col'>
 			<div className='min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-6'>
-				<Section
-					delay={0}
-					description='Name it so you can find it in the AI menu.'
-					title='General'
-				>
-					<div className='space-y-2'>
-						<div className='flex items-center justify-between gap-3'>
-							<Label className='text-text-primary' htmlFor='recipe-title'>
-								Name <span className='text-error-500'>*</span>
-							</Label>
+				{generalSection}
 
-							<CharCount count={draft.title.length} max={RECIPE_LIMITS.title} />
-						</div>
+				{instructionSection}
 
-						<Input
-							aria-describedby={visibleError('title') ? 'recipe-title-error' : undefined}
-							aria-invalid={Boolean(visibleError('title'))}
-							disabled={isSaving}
-							error={Boolean(visibleError('title'))}
-							id='recipe-title'
-							onBlur={() => touch('title')}
-							onChange={(event) => update({ title: event.target.value })}
-							placeholder='Pre-mortem'
-							value={draft.title}
-						/>
+				{resultsSection}
 
-						<FieldError id='recipe-title-error' message={visibleError('title')} />
-					</div>
-
-					<div className='space-y-2'>
-						<Label className='text-text-primary' id='recipe-icon-label'>
-							Icon
-						</Label>
-
-						<RecipeIconPicker
-							disabled={isSaving}
-							labelledBy='recipe-icon-label'
-							onChange={(icon) => update({ icon })}
-							value={draft.icon}
-						/>
-					</div>
-
-					<div className='space-y-2'>
-						<div className='flex items-center justify-between gap-3'>
-							<Label className='text-text-primary' htmlFor='recipe-description'>
-								Description
-							</Label>
-
-							<CharCount
-								count={draft.description.length}
-								max={RECIPE_LIMITS.description}
-							/>
-						</div>
-
-						<Input
-							aria-invalid={Boolean(visibleError('description'))}
-							disabled={isSaving}
-							error={Boolean(visibleError('description'))}
-							id='recipe-description'
-							onBlur={() => touch('description')}
-							onChange={(event) => update({ description: event.target.value })}
-							placeholder='Imagine this failed: list likely causes'
-							value={draft.description}
-						/>
-
-						<p className='text-xs text-text-secondary'>Shown under the name in menus.</p>
-
-						<FieldError
-							id='recipe-description-error'
-							message={visibleError('description')}
-						/>
-					</div>
-				</Section>
-
-				<Section
-					delay={0.05}
-					description='Tell the AI what to do. The nodes it runs on are sent along with it.'
-					title='Instruction'
-				>
-					<div className='space-y-2'>
-						<Label className='text-text-primary' id='recipe-scope-label'>
-							Runs on
-						</Label>
-
-						<div
-							aria-labelledby='recipe-scope-label'
-							className='flex flex-wrap gap-1.5'
-							role='radiogroup'
-						>
-							{RECIPE_SCOPES.map((scope) => (
-								<RecipeChoiceChip
-									disabled={isSaving}
-									key={scope}
-									mode='radio'
-									onClick={() => update({ scope })}
-									selected={draft.scope === scope}
-								>
-									{RECIPE_SCOPE_INFO[scope].label}
-								</RecipeChoiceChip>
-							))}
-						</div>
-
-						<p className='text-xs text-text-secondary'>
-							{RECIPE_SCOPE_INFO[draft.scope].hint}
-						</p>
-					</div>
-
-					<div className='space-y-2'>
-						<div className='flex items-center justify-between gap-3'>
-							<Label className='text-text-primary' htmlFor='recipe-instruction'>
-								Instruction <span className='text-error-500'>*</span>
-							</Label>
-
-							<CharCount
-								count={draft.instruction.length}
-								max={RECIPE_LIMITS.instruction}
-							/>
-						</div>
-
-						<Textarea
-							aria-invalid={Boolean(visibleError('instruction'))}
-							className='resize-y'
-							disabled={isSaving}
-							error={Boolean(visibleError('instruction'))}
-							id='recipe-instruction'
-							onBlur={() => touch('instruction')}
-							onChange={(event) => update({ instruction: event.target.value })}
-							placeholder='Imagine this idea failed a year from now. List the most likely causes, each as one specific risk.'
-							rows={5}
-							value={draft.instruction}
-							aria-describedby={
-								visibleError('instruction') ? 'recipe-instruction-error' : undefined
-							}
-						/>
-
-						<p className='text-xs text-text-secondary'>
-							Write it as a task, like “List the 4 most likely reasons this fails.”
-						</p>
-
-						<FieldError
-							id='recipe-instruction-error'
-							message={visibleError('instruction')}
-						/>
-					</div>
-				</Section>
-
-				<Section
-					delay={0.1}
-					description='Every result is a suggestion you accept or reject.'
-					title='Results'
-				>
-					<div className='space-y-2'>
-						<Label className='text-text-primary' id='recipe-count-label'>
-							Up to
-						</Label>
-
-						<div
-							aria-labelledby='recipe-count-label'
-							className='flex flex-wrap gap-1.5'
-							role='radiogroup'
-						>
-							{Array.from({ length: RECIPE_LIMITS.maxItems }, (_, index) => index + 1).map(
-								(count) => (
-									<RecipeChoiceChip
-										aria-label={`${count} ${count === 1 ? 'suggestion' : 'suggestions'}`}
-										className='w-9 justify-center px-0'
-										disabled={isSaving}
-										key={count}
-										mode='radio'
-										onClick={() => updateOutput({ maxItems: count })}
-										selected={draft.output.maxItems === count}
-									>
-										{count}
-									</RecipeChoiceChip>
-								)
-							)}
-						</div>
-					</div>
-
-					<div className='space-y-2'>
-						<Label className='text-text-primary' id='recipe-types-label'>
-							Node types
-						</Label>
-
-						<div
-							aria-labelledby='recipe-types-label'
-							className='flex flex-wrap gap-1.5'
-							role='group'
-						>
-							{RECIPE_NODE_TYPE_ORDER.map((type) => (
-								<RecipeChoiceChip
-									disabled={isSaving}
-									icon={RECIPE_NODE_TYPE_INFO[type].icon}
-									key={type}
-									mode='toggle'
-									onClick={() => toggleNodeType(type)}
-									selected={draft.output.nodeTypes.includes(type)}
-								>
-									{RECIPE_NODE_TYPE_INFO[type].label}
-								</RecipeChoiceChip>
-							))}
-						</div>
-
-						<FieldError id='recipe-types-error' message={visibleError('nodeTypes')} />
-					</div>
-
-					<div className='space-y-2'>
-						<Label className='text-text-primary' htmlFor='recipe-labels'>
-							Connection labels
-						</Label>
-
-						<TagInput
-							className={isSaving ? 'pointer-events-none opacity-60' : ''}
-							error={Boolean(visibleError('labels'))}
-							id='recipe-labels'
-							maxTags={RECIPE_LIMITS.labels}
-							placeholder='risk, mitigates…'
-							value={draft.output.labels}
-							onChange={(labels) => {
-								touch('labels');
-								updateOutput({ labels });
-							}}
-						/>
-
-						<p className='text-xs text-text-secondary'>
-							Press Enter or comma to add labels. Leave empty to let AI choose.
-						</p>
-
-						<FieldError id='recipe-labels-error' message={visibleError('labels')} />
-					</div>
-				</Section>
-
-				{showTry ? (
-					<RecipeTrySection
-						draft={draft}
-						isValid={isValid}
-						onAttempt={() => setShowAllErrors(true)}
-						recipeId={recipeId}
-					/>
-				) : (
-					<p className='px-1 text-xs text-text-secondary'>
-						To try a recipe, open a map and choose Manage under Recipes in the AI menu.
-					</p>
-				)}
+				{tryBlock}
 			</div>
 
 			<div className='flex h-fit shrink-0 items-center justify-between gap-3 border-t border-zinc-800 bg-base p-4 pb-[max(1rem,env(safe-area-inset-bottom))]'>
-				<p className='text-sm text-text-secondary'>{footerStatus}</p>
-
-				<div className='flex gap-2'>
-					<Button disabled={isSaving} onClick={onClose} variant='ghost'>
-						Close
-					</Button>
-
-					<Button
-						className='min-w-25'
-						disabled={!canSaveRecipes || isSaving || (Boolean(recipeId) && !isDirty)}
-						onClick={handleSave}
-					>
-						{isSaving ? (
-							<>
-								<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-								Saving...
-							</>
-						) : (
-							<>
-								<Save className='mr-2 h-4 w-4' />
-								Save recipe
-							</>
-						)}
-					</Button>
-				</div>
+				{actions}
 			</div>
 		</div>
 	);

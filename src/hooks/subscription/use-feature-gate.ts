@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffectiveSubscriptionState } from '@/components/providers/subscription-hydration-provider';
+import { FREE_PLAN_LIMITS, resolvePlanLimits } from '@/constants/plan-limits';
 import { isProSubscription } from '@/helpers/subscription/subscription-hydration';
 import useAppStore from '@/store/mind-map-store';
 import { useCallback, useEffect, useMemo } from 'react';
@@ -92,58 +93,24 @@ export function useFeatureGate(feature: FeatureKey): FeatureGateResult {
 export function useSubscriptionLimits() {
 	const { currentSubscription, hasResolvedSubscription } =
 		useEffectiveSubscriptionState();
-	const { availablePlans, nodes, usageData, isLoadingUsage, usageError } =
-		useAppStore(
-			useShallow((state) => ({
-				availablePlans: state.availablePlans,
-				nodes: state.nodes,
-				usageData: state.usageData,
-				isLoadingUsage: state.isLoadingUsage,
-				usageError: state.usageError,
-			}))
-		);
+	const { nodes, usageData, isLoadingUsage, usageError } = useAppStore(
+		useShallow((state) => ({
+			nodes: state.nodes,
+			usageData: state.usageData,
+			isLoadingUsage: state.isLoadingUsage,
+			usageError: state.usageError,
+		}))
+	);
 	const isResolvingSubscription = !hasResolvedSubscription;
 
 	const limits = useMemo(() => {
+		// Free always uses the canonical limits, never a stale DB value.
 		if (currentSubscription?.plan) {
-			return {
-				...currentSubscription.plan.limits,
-				collaboratorsPerMap:
-					currentSubscription.plan.limits.collaboratorsPerMap ??
-					(currentSubscription.plan.name === 'free' ? 3 : -1),
-			};
+			return resolvePlanLimits(currentSubscription.plan);
 		}
 
-		if (isResolvingSubscription) {
-			return UNKNOWN_LIMITS;
-		}
-
-		const plan = availablePlans.find((p) => p.name === 'free');
-
-		// Canonical free tier limits (override any stale DB values)
-		const FREE_TIER_LIMITS = {
-			mindMaps: 3,
-			nodesPerMap: 50,
-			aiSuggestions: 0,
-			collaboratorsPerMap: 3,
-		};
-
-		if (!plan) {
-			return FREE_TIER_LIMITS;
-		}
-
-		// For free tier, always use canonical limits to prevent stale DB values
-		if (plan.name === 'free') {
-			return FREE_TIER_LIMITS;
-		}
-
-		return {
-			...plan.limits,
-			// If field is missing, infer from plan: free=3, pro/enterprise=unlimited
-			collaboratorsPerMap:
-				plan.limits.collaboratorsPerMap ?? (plan.name === 'free' ? 3 : -1),
-		};
-	}, [availablePlans, currentSubscription, isResolvingSubscription]);
+		return isResolvingSubscription ? UNKNOWN_LIMITS : FREE_PLAN_LIMITS;
+	}, [currentSubscription, isResolvingSubscription]);
 
 	const usage = useMemo(() => {
 		return {

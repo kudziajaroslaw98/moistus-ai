@@ -1,4 +1,4 @@
-import { PRO_PLAN_ID, type BillingInterval } from '@/types/subscription';
+import { resolvePlanLimits } from '@/constants/plan-limits';
 import {
 	deserializeUserSubscription,
 	serializeSubscriptionPlan,
@@ -8,6 +8,7 @@ import {
 	type UserSubscriptionRecord,
 } from '@/helpers/subscription/subscription-hydration';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
+import { PRO_PLAN_ID, type BillingInterval } from '@/types/subscription';
 import { StateCreator } from 'zustand';
 import { AppState } from '../app-state';
 
@@ -400,7 +401,8 @@ export const createSubscriptionSlice: StateCreator<
 			availablePlans.find((p) => p.name === 'free');
 		if (!plan) return null;
 
-		const limit = plan.limits[limitType];
+		// Free always uses the canonical limits, not a stale plan row.
+		const limit = resolvePlanLimits(plan)[limitType];
 		if (limit === undefined || limit === -1) return null; // Unlimited or not defined
 
 		// Map limit type to usage data field

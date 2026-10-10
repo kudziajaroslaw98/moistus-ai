@@ -1,12 +1,26 @@
 'use client';
 
+import {
+	CatalogCard,
+	CatalogCardSkeleton,
+	CatalogEmptyState,
+	CatalogGrid,
+} from '@/components/dashboard/catalog-card';
+import {
+	CARD_BUTTON_CLASS,
+	DashboardPage,
+	PageHeading,
+} from '@/components/dashboard/dashboard-page';
 import { useDashboardSearch } from '@/components/dashboard/dashboard-shell-context';
-import { TemplateCover } from '@/components/dashboard/template-cover';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+	UnderlineTab,
+	UnderlineTabsBar,
+	UnderlineTabsList,
+} from '@/components/dashboard/underline-tabs';
+import { ViewToggle } from '@/components/dashboard/view-toggle';
+import { Tabs } from '@/components/ui/tabs';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import type { DashboardViewMode } from '@/types/dashboard-map';
-import { cn } from '@/utils/cn';
 import {
 	BarChart,
 	Briefcase,
@@ -14,10 +28,7 @@ import {
 	Code,
 	FileText,
 	GraduationCap,
-	LayoutGrid,
 	Lightbulb,
-	List,
-	Search,
 	User,
 	Zap,
 	type LucideIcon,
@@ -97,19 +108,6 @@ const fetcher = async (url: string) => {
 	return res.json();
 };
 
-// Off-screen cards skip layout and paint; sizes keep the scrollbar stable.
-const CARD_VISIBILITY = {
-	grid: '[content-visibility:auto] [contain-intrinsic-size:auto_240px]',
-	list: '[content-visibility:auto] [contain-intrinsic-size:auto_72px]',
-} as const;
-
-const USE_BUTTON_CLASS =
-	'relative z-10 h-8 shrink-0 rounded-[9px] border border-[#2a2c33] bg-[#131418] px-3 text-[13px] text-white transition-colors duration-200 ease [@media(hover:hover)]:hover:bg-[#1a1b20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-50';
-
-// Stretches the title button over the whole card so the card is one target.
-const TITLE_BUTTON_CLASS =
-	'truncate text-left text-[15px] font-semibold text-white after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-sky-500';
-
 // Template Card Component
 interface TemplateCardProps {
 	template: TemplateFromAPI;
@@ -128,151 +126,29 @@ const TemplateCard = memo(function TemplateCard({
 	isAtMapLimit,
 	viewMode,
 }: TemplateCardProps) {
-	const Icon = CATEGORY_ICONS[template.category] ?? FileText;
-	const categoryLabel = TEMPLATE_CATEGORIES[template.category];
-	const meta = `${template.nodeCount} nodes · ${template.usageCount} uses`;
-
-	const useButton = (
-		<button
-			className={USE_BUTTON_CLASS}
-			disabled={isCreating || isAtMapLimit}
-			onClick={() => onUse(template.templateId)}
-			type='button'
-		>
-			{isAtMapLimit ? 'Limit reached' : 'Use template'}
-		</button>
-	);
-
-	if (viewMode === 'list') {
-		return (
-			<article
-				className={cn(
-					'relative flex items-center gap-4 rounded-xl border border-[#1d1f24] bg-[#0e0f12] p-3 pr-4',
-					'transition-[border-color] duration-200 ease [@media(hover:hover)]:hover:border-[#34363e]',
-					CARD_VISIBILITY.list
-				)}
-			>
-				<TemplateCover
-					compact
-					className='h-12 w-16 shrink-0 rounded-lg border border-[#1d1f24]'
-					icon={Icon}
-					hue={CATEGORY_HUES[template.category] ?? 214}
-				/>
-
-				<div className='min-w-0 grow'>
-					<div className='flex items-center gap-2'>
-						<h3 className='min-w-0 truncate'>
-							<button
-								className={cn(TITLE_BUTTON_CLASS, 'after:rounded-xl')}
-								onClick={() => onView(template.id)}
-								type='button'
-							>
-								{template.name}
-							</button>
-						</h3>
-
-						<span className='shrink-0 rounded-full border border-[#2a2c33] bg-[#0e0f12] px-2 py-px text-[11px] text-zinc-300'>
-							{categoryLabel}
-						</span>
-					</div>
-
-					<p className='mt-0.5 truncate text-[13px] text-zinc-400'>
-						{template.description}
-					</p>
-				</div>
-
-				<span className='hidden shrink-0 text-xs text-zinc-500 sm:block'>
-					{meta}
-				</span>
-
-				{useButton}
-			</article>
-		);
-	}
-
 	return (
-		<article
-			className={cn(
-				'relative overflow-hidden rounded-2xl border border-[#1d1f24] bg-[#0e0f12]',
-				'transition-[border-color,box-shadow] duration-200 ease',
-				'[@media(hover:hover)]:hover:border-[#34363e] [@media(hover:hover)]:hover:shadow-[0_16px_40px_rgba(0,0,0,0.4)]',
-				CARD_VISIBILITY.grid
-			)}
-		>
-			<div className='relative'>
-				<TemplateCover
-					className='h-[112px] border-b border-[#1d1f24]'
-					icon={Icon}
-					hue={CATEGORY_HUES[template.category] ?? 214}
-				/>
-
-				<span className='absolute left-2.5 top-2.5 rounded-full border border-[#2a2c33] bg-[#0e0f12] px-2 py-0.5 text-[11px] text-zinc-300'>
-					{categoryLabel}
-				</span>
-			</div>
-
-			<div className='px-4 pb-4 pt-3.5'>
-				<h3 className='flex'>
-					<button
-						className={TITLE_BUTTON_CLASS}
-						onClick={() => onView(template.id)}
-						type='button'
-					>
-						{template.name}
-					</button>
-				</h3>
-
-				<p className='mt-1 line-clamp-2 min-h-10 text-[13px] leading-5 text-zinc-400'>
-					{template.description}
-				</p>
-
-				<div className='mt-3.5 flex items-center justify-between gap-2'>
-					<span className='truncate text-xs text-zinc-500'>{meta}</span>
-
-					{useButton}
-				</div>
-			</div>
-		</article>
+		<CatalogCard
+			description={template.description}
+			hue={CATEGORY_HUES[template.category] ?? 214}
+			icon={CATEGORY_ICONS[template.category] ?? FileText}
+			meta={`${template.nodeCount} nodes · ${template.usageCount} uses`}
+			onOpen={() => onView(template.id)}
+			title={template.name}
+			viewMode={viewMode}
+			action={
+				<button
+					className={CARD_BUTTON_CLASS}
+					disabled={isCreating || isAtMapLimit}
+					onClick={() => onUse(template.templateId)}
+					type='button'
+				>
+					{isAtMapLimit ? 'Limit reached' : 'Use template'}
+				</button>
+			}
+			chips={[{ label: TEMPLATE_CATEGORIES[template.category] }]}
+		/>
 	);
 });
-
-function TemplatesSkeleton({ viewMode }: { viewMode: DashboardViewMode }) {
-	return (
-		<>
-			{Array.from({ length: 8 }).map((_, index) =>
-				viewMode === 'grid' ? (
-					<div
-						className='overflow-hidden rounded-2xl border border-[#1d1f24] bg-[#0e0f12]'
-						key={index}
-					>
-						<div className='h-[112px] border-b border-[#1d1f24] bg-zinc-900/60' />
-
-						<div className='space-y-2.5 px-4 pb-4 pt-3.5'>
-							<Skeleton className='h-4 w-2/3 bg-zinc-700/40' />
-
-							<Skeleton className='h-3 w-4/5 bg-zinc-800/60' />
-
-							<Skeleton className='mt-4 h-3 w-1/3 bg-zinc-800/60' />
-						</div>
-					</div>
-				) : (
-					<div
-						className='flex items-center gap-4 rounded-xl border border-[#1d1f24] bg-[#0e0f12] p-3 pr-4'
-						key={index}
-					>
-						<Skeleton className='h-12 w-16 shrink-0 rounded-lg bg-zinc-900/60' />
-
-						<div className='grow space-y-2'>
-							<Skeleton className='h-4 w-1/3 bg-zinc-700/40' />
-
-							<Skeleton className='h-3 w-1/2 bg-zinc-800/60' />
-						</div>
-					</div>
-				)
-			)}
-		</>
-	);
-}
 
 const TEMPLATES_INTRO =
 	'Start from a ready-made structure. Pick one and it becomes your own map.';
@@ -280,19 +156,15 @@ const TEMPLATES_INTRO =
 /** The page before it mounts (templates/loading.tsx): same heading, empty tabs, card skeletons. */
 export function TemplatesPageSkeleton() {
 	return (
-		<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
-			<h1 className='text-3xl font-bold leading-tight tracking-[-0.02em] text-white'>
-				Templates
-			</h1>
-
-			<p className='mt-2 text-sm text-zinc-400'>{TEMPLATES_INTRO}</p>
+		<DashboardPage>
+			<PageHeading intro={TEMPLATES_INTRO} title='Templates' />
 
 			<div className='mt-9 h-11 border-b border-[#1d1f24]' />
 
-			<div className='mt-6 grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4'>
-				<TemplatesSkeleton viewMode='grid' />
-			</div>
-		</div>
+			<CatalogGrid className='mt-6' viewMode='grid'>
+				<CatalogCardSkeleton viewMode='grid' />
+			</CatalogGrid>
+		</DashboardPage>
 	);
 }
 
@@ -434,31 +306,28 @@ export function TemplatesContent() {
 		setSearchQuery('');
 	}, [setSearchQuery]);
 
-	const tabs: ReadonlyArray<readonly [TemplateCategory | 'all', string, number]> =
-		[
-			['all', 'All', templates.length],
-			...(Object.keys(TEMPLATE_CATEGORIES) as TemplateCategory[])
-				.filter((category) => categoryCounts.has(category))
-				.map(
-					(category) =>
-						[
-							category,
-							TEMPLATE_CATEGORIES[category],
-							categoryCounts.get(category) ?? 0,
-						] as const
-				),
-		];
+	const tabs: ReadonlyArray<
+		readonly [TemplateCategory | 'all', string, number]
+	> = [
+		['all', 'All', templates.length],
+		...(Object.keys(TEMPLATE_CATEGORIES) as TemplateCategory[])
+			.filter((category) => categoryCounts.has(category))
+			.map(
+				(category) =>
+					[
+						category,
+						TEMPLATE_CATEGORIES[category],
+						categoryCounts.get(category) ?? 0,
+					] as const
+			),
+	];
 
 	const showSkeleton = isLoading && !error;
 	const showEmpty = !isLoading && !error && filteredTemplates.length === 0;
 
 	return (
-		<div className='w-full max-w-[1760px] px-4 pb-12 pt-10 sm:px-8'>
-			<h1 className='text-3xl font-bold leading-tight tracking-[-0.02em] text-white'>
-				Templates
-			</h1>
-
-			<p className='mt-2 text-sm text-zinc-400'>{TEMPLATES_INTRO}</p>
+		<DashboardPage>
+			<PageHeading intro={TEMPLATES_INTRO} title='Templates' />
 
 			<Tabs
 				className='mt-9 gap-0'
@@ -467,55 +336,21 @@ export function TemplatesContent() {
 					setSelectedCategory(value as TemplateCategory | 'all')
 				}
 			>
-				<div className='flex flex-wrap items-center justify-between gap-3 border-b border-[#1d1f24]'>
-					<TabsList
-						aria-label='Filter templates by category'
-						className='h-11 gap-1 overflow-x-auto p-0'
-					>
+				<UnderlineTabsBar>
+					<UnderlineTabsList aria-label='Filter templates by category'>
 						{tabs.map(([value, label, count]) => (
-							<TabsTrigger
-								className='h-11 flex-none rounded-none border-0 px-3 font-normal text-zinc-400 data-[active]:border-0 data-[active]:bg-transparent data-[active]:font-medium data-[active]:text-white data-[active]:shadow-[inset_0_-2px_0_#fafafa] [@media(hover:hover)]:hover:bg-transparent'
-								key={value}
-								value={value}
-							>
+							<UnderlineTab count={count} key={value} value={value}>
 								{label}
-
-								<span className='font-mono text-xs text-zinc-500'>
-									{count}
-								</span>
-							</TabsTrigger>
+							</UnderlineTab>
 						))}
-					</TabsList>
+					</UnderlineTabsList>
 
-					<div
-						aria-label='View mode'
-						className='mb-1.5 flex rounded-[9px] border border-[#1d1f24] bg-[#0e0f12] p-0.5'
-						role='group'
-					>
-						{(
-							[
-								['grid', 'Grid view', LayoutGrid],
-								['list', 'List view', List],
-							] as const
-						).map(([mode, label, ViewIcon]) => (
-							<button
-								aria-label={label}
-								aria-pressed={viewMode === mode}
-								key={mode}
-								onClick={() => setViewMode(mode)}
-								type='button'
-								className={cn(
-									'flex h-[30px] w-8 items-center justify-center rounded-[7px] transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
-									viewMode === mode
-										? 'bg-[#1c1d22] text-white'
-										: 'text-zinc-500 hover:text-white'
-								)}
-							>
-								<ViewIcon aria-hidden='true' className='size-3.5' />
-							</button>
-						))}
-					</div>
-				</div>
+					<ViewToggle
+						className='mb-1.5'
+						onChange={setViewMode}
+						value={viewMode}
+					/>
+				</UnderlineTabsBar>
 			</Tabs>
 
 			{error && (
@@ -525,16 +360,9 @@ export function TemplatesContent() {
 			)}
 
 			{!error && !showEmpty && (
-				<div
-					className={cn(
-						'mt-6',
-						viewMode === 'grid'
-							? 'grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4'
-							: 'flex flex-col gap-2'
-					)}
-				>
+				<CatalogGrid className='mt-6' viewMode={viewMode}>
 					{showSkeleton ? (
-						<TemplatesSkeleton viewMode={viewMode} />
+						<CatalogCardSkeleton viewMode={viewMode} />
 					) : (
 						filteredTemplates.map((template) => (
 							<TemplateCard
@@ -548,32 +376,17 @@ export function TemplatesContent() {
 							/>
 						))
 					)}
-				</div>
+				</CatalogGrid>
 			)}
 
 			{showEmpty && (
-				<div className='flex flex-col items-center py-20 text-center'>
-					<span className='flex size-11 items-center justify-center rounded-full border border-[#2a2c33] bg-[#0e0f12]'>
-						<Search aria-hidden='true' className='size-4 text-zinc-400' />
-					</span>
-
-					<h2 className='mt-4 text-base font-semibold text-white'>
-						No templates found
-					</h2>
-
-					<p className='mt-1 text-sm text-zinc-400'>
-						Try another category or search term.
-					</p>
-
-					<button
-						className='mt-5 h-9 rounded-[9px] border border-[#2a2c33] bg-[#131418] px-4 text-sm text-white transition-colors duration-200 ease hover:bg-[#1a1b20] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'
-						onClick={clearFilters}
-						type='button'
-					>
-						Show all templates
-					</button>
-				</div>
+				<CatalogEmptyState
+					actionLabel='Show all templates'
+					hint='Try another category or search term.'
+					onAction={clearFilters}
+					title='No templates found'
+				/>
 			)}
-		</div>
+		</DashboardPage>
 	);
 }

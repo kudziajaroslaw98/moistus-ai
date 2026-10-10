@@ -20,6 +20,8 @@ interface PluginCardMenuProps {
 	isOwner?: boolean;
 	/** Links to the plugin's card on the dashboard Plugins page (off there). */
 	showAbout?: boolean;
+	/** Replaces the compact "…" button look, e.g. for the dashboard card cover. */
+	triggerClassName?: string;
 }
 
 /** "…" on a plugin card: About this plugin and Report…, for everyone. */
@@ -31,6 +33,7 @@ export function PluginCardMenu({
 	nodeData,
 	isOwner,
 	showAbout = true,
+	triggerClassName,
 }: PluginCardMenuProps) {
 	const router = useRouter();
 	const [reporting, setReporting] = useState(false);
@@ -40,7 +43,10 @@ export function PluginCardMenu({
 			<DropdownMenu>
 				<DropdownMenuTrigger
 					aria-label={`More for ${pluginName}`}
-					className='nodrag flex size-7 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors duration-200 ease hover:bg-white/[0.06] hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60'
+					className={
+						triggerClassName ??
+						'nodrag flex size-7 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors duration-200 ease hover:bg-white/[0.06] hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60'
+					}
 				>
 					<MoreHorizontal aria-hidden className='size-4' />
 				</DropdownMenuTrigger>

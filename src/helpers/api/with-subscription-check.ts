@@ -1,10 +1,12 @@
+import { FREE_PLAN_LIMITS, resolvePlanLimits } from '@/constants/plan-limits';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
+import { BILLING_SETTINGS_URL } from '@/lib/billing-urls';
 import { SubscriptionPlan } from '@/store/slices/subscription-slice';
 import { SupabaseClient, User } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
 const SAFE_PAID_COLLABORATOR_CAP = 10;
-const DEFAULT_FREE_NODES_PER_MAP_LIMIT = 50;
+const DEFAULT_FREE_NODES_PER_MAP_LIMIT = FREE_PLAN_LIMITS.nodesPerMap;
 
 export interface SubscriptionValidation {
 	subscription: SubscriptionPlan;
@@ -87,10 +89,7 @@ export async function checkUsageLimit(
 	user: User,
 	supabase: SupabaseClient,
 	limitType:
-		| 'aiSuggestions'
-		| 'mindMaps'
-		| 'nodesPerMap'
-		| 'collaboratorsPerMap',
+		'aiSuggestions' | 'mindMaps' | 'nodesPerMap' | 'collaboratorsPerMap',
 	currentUsage: number
 ): Promise<{ allowed: boolean; limit: number; remaining: number }> {
 	// Get subscription with plan limits
@@ -104,18 +103,11 @@ export async function checkUsageLimit(
 		)
 		.eq('user_id', user.id)
 		.in('status', ['active', 'trialing'])
-		.single();
+		.order('created_at', { ascending: false })
+		.limit(1)
+		.maybeSingle();
 
-	// Default to free plan limits (matches pricing-tiers.ts)
-	const freePlanLimits = {
-		mindMaps: 3,
-		nodesPerMap: DEFAULT_FREE_NODES_PER_MAP_LIMIT,
-		aiSuggestions: 0,
-		collaboratorsPerMap: 3,
-	};
-
-	const limit =
-		subscription?.plan?.limits?.[limitType] ?? freePlanLimits[limitType];
+	const limit = resolvePlanLimits(subscription?.plan)[limitType];
 
 	// -1 means unlimited (Pro/Enterprise)
 	if (limit === -1) {
@@ -194,17 +186,22 @@ export async function getSubscriptionBillingPeriod(
 	};
 }
 
+function aiLimitMessage(isPro: boolean, limit: number): string {
+	return isPro
+		? `You've used all ${limit} AI actions for this billing period. They reset when it renews.`
+		: 'AI actions are part of Pro. Upgrade to get 100 AI actions per month.';
+}
+
 /**
- * Tracks AI feature usage by incrementing the atomic counter.
- * No-ops for Pro users (unlimited access).
+ * Tracks AI feature usage by incrementing the atomic counter. Every plan with a limit
+ * is counted, Pro included (its cap is per billing period).
  */
 export async function trackAIUsage(
 	user: User,
 	supabase: SupabaseClient,
-	isPro: boolean
+	// Kept so callers don't change; the quota check already skips unlimited plans.
+	_isPro?: boolean
 ): Promise<void> {
-	if (isPro) return;
-
 	const billingPeriod = await getSubscriptionBillingPeriod(user, supabase);
 	// service_role-only RPC: a user-callable version could pass a future period start to
 	// reset their own counter.
@@ -269,11 +266,14 @@ export async function checkAIQuota(
 		)
 		.eq('user_id', user.id)
 		.in('status', ['active', 'trialing'])
-		.single();
+		.order('created_at', { ascending: false })
+		.limit(1)
+		.maybeSingle();
 
 	const isPro =
 		!!subscription && ['pro', 'enterprise'].includes(subscription.plan?.name);
-	const limit = subscription?.plan?.limits?.aiSuggestions ?? 0;
+	// Free is always 0, whatever a stale plan row says; Pro is capped per billing period.
+	const limit = resolvePlanLimits(subscription?.plan).aiSuggestions;
 
 	// -1 means unlimited (Pro/Enterprise)
 	if (limit === -1) {
@@ -288,12 +288,12 @@ export async function checkAIQuota(
 			limit: 0,
 			error: NextResponse.json(
 				{
-					error: `AI feature limit reached (${limit} per month). Upgrade to Pro for unlimited AI features.`,
+					error: aiLimitMessage(isPro, limit),
 					code: 'LIMIT_REACHED',
 					currentUsage: 0,
 					limit: 0,
 					remaining: 0,
-					upgradeUrl: '/dashboard/settings/billing',
+					upgradeUrl: BILLING_SETTINGS_URL,
 				},
 				{ status: 402 }
 			),
@@ -314,7 +314,7 @@ export async function checkAIQuota(
 				{
 					error: 'AI usage counter unavailable',
 					code: 'USAGE_COUNTER_UNAVAILABLE',
-					upgradeUrl: '/dashboard/settings/billing',
+					upgradeUrl: BILLING_SETTINGS_URL,
 				},
 				{ status: 503 }
 			),
@@ -332,12 +332,12 @@ export async function checkAIQuota(
 			limit,
 			error: NextResponse.json(
 				{
-					error: `AI feature limit reached (${limit} per month). Upgrade to Pro for unlimited AI features.`,
+					error: aiLimitMessage(isPro, limit),
 					code: 'LIMIT_REACHED',
 					currentUsage,
 					limit,
 					remaining: 0,
-					upgradeUrl: '/dashboard/settings/billing',
+					upgradeUrl: BILLING_SETTINGS_URL,
 				},
 				{ status: 402 }
 			),
@@ -469,7 +469,10 @@ export async function checkMapNodeLimit(
 		.maybeSingle();
 
 	if (mapError) {
-		console.error('[Subscription] Failed to load map for node limit check:', mapError);
+		console.error(
+			'[Subscription] Failed to load map for node limit check:',
+			mapError
+		);
 		return {
 			ok: false,
 			status: 500,
@@ -547,18 +550,18 @@ export async function checkMapNodeLimit(
 
 	const { data: ownerSubscription, error: ownerSubscriptionError } =
 		await ownerSubscriptionClient
-		.from('user_subscriptions')
-		.select(
-			`
+			.from('user_subscriptions')
+			.select(
+				`
 			*,
 			plan:subscription_plans(*)
 		`
-		)
-		.eq('user_id', map.user_id)
-		.in('status', ['active', 'trialing'])
-		.order('created_at', { ascending: false })
-		.limit(1)
-		.maybeSingle();
+			)
+			.eq('user_id', map.user_id)
+			.in('status', ['active', 'trialing'])
+			.order('created_at', { ascending: false })
+			.limit(1)
+			.maybeSingle();
 
 	if (ownerSubscriptionError) {
 		console.error(

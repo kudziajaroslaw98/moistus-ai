@@ -9,6 +9,7 @@ import {
 import generateUuid from '@/helpers/generate-uuid';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
+import { BILLING_SETTINGS_URL } from '@/lib/billing-urls';
 
 // Define schema for creating a new map
 const requestBodySchema = z.object({
@@ -250,7 +251,7 @@ export const POST = withApiValidation(
 						currentUsage: currentMapsCount,
 						limit,
 						remaining: remaining,
-						upgradeUrl: '/dashboard/settings/billing',
+						upgradeUrl: BILLING_SETTINGS_URL,
 					}
 				);
 			}
@@ -342,7 +343,7 @@ export const POST = withApiValidation(
 							currentUsage: templateNodeCount,
 							limit: nodeLimit,
 							remaining: Math.max(0, nodeLimit - templateNodeCount),
-							upgradeUrl: '/dashboard/settings/billing',
+							upgradeUrl: BILLING_SETTINGS_URL,
 						}
 					);
 				}
@@ -368,6 +369,22 @@ export const POST = withApiValidation(
 				.single();
 
 			if (insertError) {
+				// The database trigger is the backstop for two requests passing the
+				// count above at the same time.
+				if (insertError.message?.includes('MAP_LIMIT_REACHED')) {
+					return respondError(
+						'Mind map limit reached. Upgrade to Pro for unlimited maps.',
+						402,
+						'LIMIT_REACHED',
+						{
+							currentUsage: currentMapsCount,
+							limit,
+							remaining: 0,
+							upgradeUrl: BILLING_SETTINGS_URL,
+						}
+					);
+				}
+
 				console.error('Error creating new mind map:', insertError);
 				return respondError(
 					'Error creating new mind map.',

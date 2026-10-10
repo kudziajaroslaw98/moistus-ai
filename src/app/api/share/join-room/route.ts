@@ -9,6 +9,7 @@ import { normalizeDisplayName } from '@/helpers/sharing/join-identity';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import { z } from 'zod';
+import { BILLING_SETTINGS_URL } from '@/lib/billing-urls';
 
 const JoinRoomSchema = z.object({
 	token: z
@@ -63,7 +64,7 @@ export const POST = withAuthValidation(
 					? {
 							currentCount: joinResult.collaborator_count,
 							limit: joinResult.collaborator_limit,
-							upgradeUrl: '/dashboard/settings/billing',
+							upgradeUrl: BILLING_SETTINGS_URL,
 						}
 					: undefined
 			);
