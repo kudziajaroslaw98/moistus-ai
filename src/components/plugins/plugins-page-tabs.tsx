@@ -39,6 +39,13 @@ const TABS = [
 
 type PluginsTab = (typeof TABS)[number]['id'];
 
+export const PLAYGROUND_PATH = '/dashboard/plugins/playground';
+
+/** The plugin playground's pages (no Plugins title or tabs around them). */
+export function isPlaygroundPath(pathname: string): boolean {
+	return pathname === PLAYGROUND_PATH || pathname.startsWith(`${PLAYGROUND_PATH}/`);
+}
+
 /** The deepest tab whose href starts the path (Library is the parent of the others). */
 function tabForPath(pathname: string): PluginsTab {
 	const match = [...TABS]
@@ -100,6 +107,12 @@ export function PluginsSlot({
  * plugins layout renders it, so it stays in place while the tab content changes.
  */
 export function PluginsPageFrame({ children }: { children: ReactNode }) {
+	// The playground is a full workspace with its own heading, not a tab.
+	if (isPlaygroundPath(usePathname())) return <>{children}</>;
+	return <PluginsTabsFrame>{children}</PluginsTabsFrame>;
+}
+
+function PluginsTabsFrame({ children }: { children: ReactNode }) {
 	const current = tabForPath(usePathname());
 	const intro = TABS.find((tab) => tab.id === current)?.intro;
 	const [heading, setHeading] = useState<HTMLElement | null>(null);

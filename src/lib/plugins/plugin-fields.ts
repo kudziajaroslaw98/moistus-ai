@@ -416,6 +416,23 @@ function applyDefaultsAndRequired(
 	}
 }
 
+/**
+ * What a new node of this kind starts with: each field's default, and an empty list for
+ * list fields. Required fields without a default stay out (the person has to fill them).
+ */
+export function defaultPluginData(kind: PluginNodeKind): PluginData {
+	const data: PluginData = {};
+	for (const [name, spec] of Object.entries(kind.fields)) {
+		if (spec.type === 'list') {
+			data[name] = [];
+			continue;
+		}
+		const fallback = defaultFor(spec);
+		if (fallback !== undefined) data[name] = fallback;
+	}
+	return data;
+}
+
 const toErrorList = (errors: FieldErrors): PluginFieldError[] =>
 	[...errors].map(([field, message]) => ({ field, message }));
 
