@@ -205,7 +205,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 			isPathEditMode: state.isPathEditMode,
 			addNodeToPath: state.addNodeToPath,
 			// A plugin is waiting for the person to click nodes (see PluginPickBar)
-			isPluginPicking: state.pluginPick !== null,
+			isPluginPicking: Boolean(state.pluginPick),
 			pickPluginNode: state.pickPluginNode,
 			// Comment mode - needed for visibility memoization
 			isCommentMode: state.isCommentMode,
