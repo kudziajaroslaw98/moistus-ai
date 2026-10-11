@@ -39,7 +39,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: every queued mutation (preferences, comments, nodes) goes through this call
 - **ids**: Same fix for the other browser call sites that used `crypto.randomUUID()` unguarded: default node ids in `node-factory`, new task ids in the task node, and the cursor session id (`use-realtime-cursor`)
 
-- **plugins/start**: The Developer mode switch on the Write a plugin tab got a stable id; without one `Switch` makes a random id, which broke hydration
+- **plugins/start**: The Developer mode switch on the Write a plugin tab did nothing when clicked: `Switch` is a hidden checkbox with a drawn track beside it, and the track only works inside a `<label>` for that id. It also got a stable id (without one `Switch` makes a random id, which broke hydration)
 
 ### Docs
 

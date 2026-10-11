@@ -35,6 +35,19 @@ function setup(developerMode = true) {
 	return { user: userEvent.setup() };
 }
 
+/**
+ * The switch is a hidden checkbox with a drawn track beside it. People click the track,
+ * so click that (it only reaches the checkbox through its label), not the checkbox.
+ */
+function drawnSwitch(): HTMLElement {
+	const track = screen
+		.getByRole('switch', { name: 'Developer mode' })
+		.closest('label')
+		?.querySelector('div');
+	if (!track) throw new Error('The switch has no label around its track');
+	return track as HTMLElement;
+}
+
 // jsdom's File has no text(); browsers do.
 beforeAll(() => {
 	if (!File.prototype.text) {
@@ -117,7 +130,7 @@ describe('PluginStartPanel', () => {
 			expect(button).toBeDisabled();
 		}
 
-		await user.click(screen.getByRole('switch', { name: 'Developer mode' }));
+		await user.click(drawnSwitch());
 		expect(updatePreferences).toHaveBeenCalledWith({ developerMode: true });
 	});
 
@@ -171,12 +184,14 @@ describe('PluginStartPanel', () => {
 
 	it('shows a status line with the switch once Developer mode is on, and no warning', async () => {
 		const { user } = setup(true);
-		expect(screen.getByRole('status')).toHaveTextContent('Developer mode is on.');
+		expect(screen.getByRole('status')).toHaveTextContent(
+			'Developer mode is on.'
+		);
 		expect(
 			screen.queryByText(/Writing plugins needs Developer mode/)
 		).not.toBeInTheDocument();
 
-		await user.click(screen.getByRole('switch', { name: 'Developer mode' }));
+		await user.click(drawnSwitch());
 		expect(updatePreferences).toHaveBeenCalledWith({ developerMode: false });
 	});
 });

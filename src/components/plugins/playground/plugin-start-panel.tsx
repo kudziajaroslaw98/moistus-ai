@@ -33,7 +33,8 @@ const messageOf = (error: unknown) =>
 function DeveloperModeStrip() {
 	const { enabled, available, setEnabled } = useDeveloperMode();
 	// `Switch` makes a random id when it gets none, which differs between the server
-	// render and the browser and breaks hydration.
+	// render and the browser and breaks hydration. It's a hidden checkbox with a drawn
+	// track beside it, so the track only works inside a label for that id.
 	const switchId = useId();
 
 	if (enabled) {
@@ -46,14 +47,16 @@ function DeveloperModeStrip() {
 
 				<span className='flex-1'>Developer mode is on.</span>
 
-				<Switch
-					checked
-					aria-label='Developer mode'
-					id={switchId}
-					disabled={!available}
-					onCheckedChange={(checked) => void setEnabled(checked)}
-					role='switch'
-				/>
+				<label className='shrink-0 cursor-pointer' htmlFor={switchId}>
+					<Switch
+						checked
+						aria-label='Developer mode'
+						id={switchId}
+						disabled={!available}
+						onCheckedChange={(checked) => void setEnabled(checked)}
+						role='switch'
+					/>
+				</label>
 			</div>
 		);
 	}
@@ -81,7 +84,7 @@ function DeveloperModeStrip() {
 				</p>
 			</div>
 
-			<div className='mt-0.5'>
+			<label className='mt-0.5 shrink-0 cursor-pointer' htmlFor={switchId}>
 				<Switch
 					aria-label='Developer mode'
 					checked={false}
@@ -90,7 +93,7 @@ function DeveloperModeStrip() {
 					onCheckedChange={(checked) => void setEnabled(checked)}
 					role='switch'
 				/>
-			</div>
+			</label>
 		</div>
 	);
 }
