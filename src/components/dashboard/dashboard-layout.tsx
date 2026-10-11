@@ -100,6 +100,14 @@ const mainNavItems: NavItem[] = [
 	},
 ];
 
+/** Only shown to Shiko's plugin reviewers (the summary route 404s for everyone else). */
+const REVIEW_NAV_ITEM: NavItem = {
+	id: 'plugin-review',
+	label: 'Plugin review',
+	icon: ShieldCheck,
+	href: '/dashboard/admin/plugins',
+};
+
 const RECENT_MAP_COUNT = 3;
 
 /** What's waiting for Shiko's plugin reviewers, or null for everyone else (the route 404s). */
@@ -283,10 +291,7 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 		? [
 				...mainNavItems,
 				{
-					id: 'plugin-review',
-					label: 'Plugin review',
-					icon: ShieldCheck,
-					href: '/admin/plugins',
+					...REVIEW_NAV_ITEM,
 					badge: review.submissions + review.reports || undefined,
 				},
 			]
@@ -364,10 +369,13 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 		if (scroller && !window.location.hash) scroller.scrollTop = 0;
 	}, [pathname]);
 
+	// The review entry is looked up even before its summary has loaded, so a direct
+	// visit to the page doesn't show "Home" in the top bar meanwhile.
 	const pageTitle =
 		title ??
-		navItems.find((item) => !item.comingSoon && isItemActive(item.href))
-			?.label ??
+		[...mainNavItems, REVIEW_NAV_ITEM].find(
+			(item) => !item.comingSoon && isItemActive(item.href)
+		)?.label ??
 		'Home';
 	const searchConfig = searchHidden
 		? undefined

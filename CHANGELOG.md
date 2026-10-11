@@ -45,6 +45,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **plugins/start**: The Developer mode switch on the Write a plugin tab did nothing when clicked: `Switch` is a hidden checkbox with a drawn track beside it, and the track only works inside a `<label>` for that id. It also got a stable id (without one `Switch` makes a random id, which broke hydration)
 
+- **dashboard/shell**: Leaving Plugin review for another dashboard page no longer reloads the whole layout (entry skeleton, sidebar, top bar). The page sat outside `/dashboard` with its own shell, so every way out mounted the dashboard layout from scratch. It now lives at `/dashboard/admin/plugins` inside the shell (sidebar entry, title and loading screen included); `/admin/plugins` redirects there
+  - Why: moving between dashboard pages keeps the shell mounted, and this was the one dashboard-looking page that didn't. Admin checks are unchanged (page `isPluginAdmin` → 404, `requirePluginAdmin` on the API routes)
+
 ### Docs
 
 - CLAUDE.md: "Plugin playground" gotcha; the migration note now says migrations stay local-only and are applied through the Supabase MCP (the old "must be force-added" was wrong)
