@@ -3,8 +3,10 @@
 import { Button } from '@/components/ui/button';
 import type { PluginManifest } from '@/lib/plugins/manifest-schema';
 import { authorReceivesNote, listHosts, pluginPowers } from '@/lib/plugins/powers';
-import { Globe, ListTree, ShieldCheck } from 'lucide-react';
+import { Code2, Globe, ListTree, ShieldCheck } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
+import { useState } from 'react';
+import { PluginCodeSheet } from './plugin-code-sheet';
 import { PluginSiteName, PluginSitesSentence } from './plugin-site-note';
 
 /** One line on a plugin card: what the plugin can reach beyond its own nodes. */
@@ -114,6 +116,7 @@ export function PluginPowersConfirm({
 	onConfirm,
 }: PluginPowersConfirmProps) {
 	const reduceMotion = useReducedMotion();
+	const [viewingCode, setViewingCode] = useState(false);
 	const powers = pluginPowers(manifest);
 	const operators =
 		powers.kind === 'network'
@@ -166,6 +169,27 @@ export function PluginPowersConfirm({
 					dates and tags) to draw its view. It can’t reach any site, so nothing
 					leaves the browser. You can turn it off any time.
 				</p>
+			)}
+
+			{fromCatalog && (
+				<>
+					<button
+						className='inline-flex items-center gap-1.5 self-start rounded-sm text-[13px] font-medium text-sky-300 transition-colors duration-200 ease hover:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60'
+						onClick={() => setViewingCode(true)}
+						type='button'
+					>
+						<Code2 aria-hidden className='size-3.5' />
+						View code
+					</button>
+
+					<PluginCodeSheet
+						onOpenChange={setViewingCode}
+						open={viewingCode}
+						pluginId={manifest.id}
+						pluginName={manifest.name}
+						version={manifest.version}
+					/>
+				</>
 			)}
 
 			<div className='flex justify-end gap-2'>

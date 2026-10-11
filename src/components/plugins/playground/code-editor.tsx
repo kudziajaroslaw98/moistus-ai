@@ -36,13 +36,41 @@ import {
 
 interface CodeEditorProps {
 	value: string;
-	onChange: (value: string) => void;
+	/** Not needed when `readOnly`. */
+	onChange?: (value: string) => void;
 	language: 'javascript' | 'json';
+	/**
+	 * Show the file without editing it (the library's code view): colors and line
+	 * numbers, but no history, completion, error markers or typing. It stays focusable,
+	 * so people can scroll with the keyboard and select to copy.
+	 */
+	readOnly?: boolean;
 	/** Read out by screen readers when the editor is focused. */
 	label: string;
 	/** Lines matching this can't be edited (the manifest's id line). */
 	lockedLine?: RegExp;
 	className?: string;
+}
+
+function readOnlyExtensions(
+	language: CodeEditorProps['language'],
+	label: string
+): Extension[] {
+	return [
+		lineNumbers(),
+		drawSelection(),
+		bracketMatching(),
+		keymap.of(defaultKeymap),
+		language === 'javascript' ? javascript() : json(),
+		pluginEditorTheme,
+		pluginHighlight,
+		EditorState.readOnly.of(true),
+		EditorView.contentAttributes.of({
+			'aria-label': label,
+			'aria-multiline': 'true',
+			'aria-readonly': 'true',
+		}),
+	];
 }
 
 function extensionsFor(
@@ -98,6 +126,7 @@ export function CodeEditor({
 	value,
 	onChange,
 	language,
+	readOnly = false,
 	label,
 	lockedLine,
 	className,
@@ -117,9 +146,11 @@ export function CodeEditor({
 			parent: container.current,
 			state: EditorState.create({
 				doc: initialValue.current,
-				extensions: extensionsFor(language, label, lockedLine, (doc) =>
-					onChangeRef.current(doc)
-				),
+				extensions: readOnly
+					? readOnlyExtensions(language, label)
+					: extensionsFor(language, label, lockedLine, (doc) =>
+							onChangeRef.current?.(doc)
+						),
 			}),
 		});
 		view.current = editor;
@@ -127,7 +158,7 @@ export function CodeEditor({
 			editor.destroy();
 			view.current = null;
 		};
-	}, [language, label, lockedLine]);
+	}, [language, label, lockedLine, readOnly]);
 
 	useEffect(() => {
 		const editor = view.current;

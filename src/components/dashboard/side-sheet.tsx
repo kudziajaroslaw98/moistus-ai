@@ -20,6 +20,8 @@ interface SideSheetProps {
 	/** Pinned under the scrolling body (buttons, a reason field). */
 	footer?: ReactNode;
 	width?: 'md' | 'lg';
+	/** Open above popovers and menus (z-[100]), e.g. a sheet opened from inside one. */
+	raised?: boolean;
 	children: ReactNode;
 }
 
@@ -41,14 +43,17 @@ export function SideSheet({
 	hue = 214,
 	footer,
 	width = 'md',
+	raised = false,
 	children,
 }: SideSheetProps) {
 	return (
 		<Sheet onOpenChange={onOpenChange} open={open}>
 			<SheetContent
+				overlayClassName={raised ? 'z-[110]' : undefined}
 				className={cn(
 					'w-full gap-0 border-l border-[#1d1f24] bg-[#0e0f12] p-0',
-					WIDTHS[width]
+					WIDTHS[width],
+					raised && 'z-[111]'
 				)}
 			>
 				<div className='flex items-center gap-3.5 border-b border-[#1d1f24] py-5 pl-6 pr-14'>

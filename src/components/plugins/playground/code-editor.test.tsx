@@ -8,6 +8,28 @@ const editorView = (container: HTMLElement) =>
 	) as EditorView;
 
 describe('CodeEditor', () => {
+	it('shows a file read-only: colored and numbered, with nothing to type into or fix', () => {
+		const { container } = render(
+			<CodeEditor
+				label='plugin.js'
+				language='javascript'
+				readOnly
+				value={'definePlugin({});\nconst x = 1;'}
+			/>
+		);
+
+		expect(container.querySelector('.cm-content')?.textContent).toContain(
+			'definePlugin({});'
+		);
+		expect(container.querySelector('.cm-lineNumbers')).not.toBeNull();
+		expect(editorView(container).state.readOnly).toBe(true);
+		expect(
+			container.querySelector('.cm-content')?.getAttribute('aria-readonly')
+		).toBe('true');
+		// No error markers or completion in a file you can't change.
+		expect(container.querySelector('.cm-gutter-lint')).toBeNull();
+	});
+
 	it('shows the value and reports typing', () => {
 		const onChange = jest.fn();
 		const { container } = render(
