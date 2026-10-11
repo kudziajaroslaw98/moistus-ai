@@ -207,13 +207,13 @@ export function PluginUiTree({
 							role='progressbar'
 						>
 							<div
+								style={{ width: `${percent}%` }}
 								className={cn(
 									'h-full rounded-full bg-gradient-to-r transition-[width] duration-300 ease-out',
 									node.tone === 'success'
 										? 'from-emerald-400/60 to-emerald-400/80'
 										: 'from-blue-400/60 to-blue-400/80'
 								)}
-								style={{ width: `${percent}%` }}
 							/>
 						</div>
 					</div>

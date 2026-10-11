@@ -15,6 +15,9 @@ import type { AppNode } from '@/types/app-node';
 export type PluginRefNode = PluginNodeInfo;
 export type PluginRefs = Record<string, PluginRefNode>;
 
+const isGhost = (node: AppNode) =>
+	(node.data.node_type ?? node.type) === 'ghostNode';
+
 export function buildPluginRefs(
 	ids: readonly string[],
 	nodes: readonly AppNode[]
@@ -23,7 +26,7 @@ export function buildPluginRefs(
 	const refs: PluginRefs = {};
 	for (const node of nodes) {
 		// Suggestions that haven't been accepted yet aren't part of the map.
-		if (!wanted.has(node.id) || node.type === 'ghostNode') continue;
+		if (!wanted.has(node.id) || isGhost(node)) continue;
 		refs[node.id] = describePluginNode(node);
 	}
 	return refs;

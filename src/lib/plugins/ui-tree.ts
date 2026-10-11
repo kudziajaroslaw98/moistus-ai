@@ -257,6 +257,41 @@ export const pluginUiNodeSchema: z.ZodType<PluginUiNode> = z.lazy(() =>
 	])
 );
 
+/**
+ * The `pick` request of the button or menu item that runs `action` with `payload`. Shiko
+ * looks it up in the view a plugin action just returned, to keep the pick bar and the
+ * numbered nodes in step with the plugin's data.
+ */
+export function findPluginPick(
+	tree: PluginUiNode,
+	action: string,
+	payload: unknown
+): PluginUiPick | null {
+	const wanted = JSON.stringify(payload ?? null);
+	const matches = (candidate: { action: string; payload?: unknown }) =>
+		candidate.action === action && JSON.stringify(candidate.payload ?? null) === wanted;
+
+	switch (tree.type) {
+		case 'button':
+			return tree.pick && matches(tree) ? tree.pick : null;
+		case 'menu':
+			for (const item of tree.items) {
+				if ('separator' in item) continue;
+				if (item.pick && matches(item)) return item.pick;
+			}
+			return null;
+		case 'stack':
+		case 'row':
+			for (const child of tree.children) {
+				const found = findPluginPick(child, action, payload);
+				if (found) return found;
+			}
+			return null;
+		default:
+			return null;
+	}
+}
+
 /** UTF-8 size of a JSON value (no TextEncoder: jsdom tests don't have it). */
 export function jsonBytes(value: unknown): number {
 	let json: string | undefined;

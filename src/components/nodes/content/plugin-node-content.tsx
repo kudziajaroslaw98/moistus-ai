@@ -5,13 +5,7 @@ import { PluginUiTree } from '@/components/plugins/plugin-ui-tree';
 import { usePluginBranch } from '@/components/plugins/use-plugin-branch';
 import { usePluginLibrary } from '@/components/plugins/use-plugin-library';
 import { usePluginRefs } from '@/components/plugins/use-plugin-refs';
-import {
-	pluginRenderKey,
-	rememberPluginRender,
-	usePluginRender,
-} from '@/components/plugins/use-plugin-render';
-import { applyGraphOps } from '@/lib/extensions/graph-ops';
-import { pluginCallContext } from '@/lib/plugins/call-context';
+import { usePluginRender } from '@/components/plugins/use-plugin-render';
 import {
 	findActivePluginKind,
 	humanizeKind,
@@ -23,14 +17,12 @@ import {
 	type PluginData,
 } from '@/lib/plugins/plugin-fields';
 import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
-import { loadPluginHost } from '@/lib/plugins/runtime/load-plugin-host';
-import { validatePluginTree } from '@/lib/plugins/ui-tree';
+import { validatePluginTree, type PluginUiPick } from '@/lib/plugins/ui-tree';
 import useAppStore from '@/store/mind-map-store';
 import type { NodeExtensionData } from '@/types/extensions';
 import { cn } from '@/utils/cn';
 import { Ban, Info, Loader2, Puzzle, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 
 /** "Reported for ads" → "Reported for ads." so it reads as a sentence. */
@@ -67,13 +59,21 @@ export function PluginNodeContent({
 	preview = false,
 	branchRootId = null,
 }: PluginNodeContentProps) {
-	const { loadedPlugins, mapPlugins, mapPluginsLoaded, refreshMapPluginsSoon } =
-		useAppStore(
+	const {
+		loadedPlugins,
+		mapPlugins,
+		mapPluginsLoaded,
+		refreshMapPluginsSoon,
+		runNodeAction,
+		startPluginPick,
+	} = useAppStore(
 			useShallow((state) => ({
 				loadedPlugins: state.loadedPlugins,
 				mapPlugins: state.mapPlugins,
 				mapPluginsLoaded: state.mapPluginsLoaded,
 				refreshMapPluginsSoon: state.refreshMapPluginsSoon,
+				runNodeAction: state.runNodeAction,
+				startPluginPick: state.startPluginPick,
 			}))
 		);
 	const [busy, setBusy] = useState(false);
@@ -166,61 +166,16 @@ export function PluginNodeContent({
 		if (!active || !data || !nodeId || busy) return;
 		setBusy(true);
 		try {
-			const host = await loadPluginHost();
-			const ctx = pluginCallContext(true, branch, refs);
-			const nextData = await host.action(
-				active.manifest.id,
-				active.kind,
-				action,
-				data,
-				payload,
-				ctx
-			);
-			const rendered = await host.render(
-				active.manifest.id,
-				active.kind,
-				nextData,
-				ctx
-			);
-			rememberPluginRender(
-				pluginRenderKey(active, nextData, true, branch, undefined, refs),
-				rendered
-			);
-
-			const result = await applyGraphOps(
-				useAppStore.getState,
-				[
-					{
-						type: 'updateNode',
-						nodeId,
-						data: {
-							content: rendered.summary,
-							metadata: {
-								extension: {
-									...extension,
-									kindLabel: active.kind.label,
-									width: active.kind.width,
-									version: active.manifest.version,
-									data: nextData,
-									snapshot: rendered.tree,
-								},
-							},
-						},
-					},
-				],
-				{ kind: 'plugin', id: active.manifest.id, label: active.manifest.name },
-				{ label: 'updateNode' }
-			);
-			if (!result.ok) toast.error(result.error);
-		} catch (error) {
-			toast.error(
-				error instanceof Error
-					? error.message
-					: `${pluginName} couldn't do that`
-			);
+			// Runs in the store: the pick bar (outside this node) uses the same path.
+			await runNodeAction(nodeId, action, payload);
 		} finally {
 			setBusy(false);
 		}
+	};
+
+	const handlePick = (pick: PluginUiPick, action: string, payload: unknown) => {
+		if (!active || !nodeId) return;
+		startPluginPick(nodeId, pick, action, payload);
 	};
 
 	const dimmed =
@@ -250,6 +205,7 @@ export function PluginNodeContent({
 					<PluginUiTree
 						disabled={busy || state !== 'live' || renderError !== null}
 						tree={tree}
+						onPick={nodeId && !preview ? handlePick : undefined}
 						onAction={
 							state === 'live' && canEdit && !preview && render.result
 								? handleAction

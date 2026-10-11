@@ -2,6 +2,7 @@ import type {
 	PluginManifest,
 	PluginNodeKind,
 } from '@/lib/plugins/manifest-schema';
+import type { PluginUiNode, PluginUiPick } from '@/lib/plugins/ui-tree';
 
 /** Identifies a plugin node kind: the plugin and one of its kinds. */
 export interface PluginKindRef {
@@ -61,6 +62,22 @@ export type PluginRefreshState =
 	| { status: 'running' }
 	| { status: 'error'; message: string };
 
+/** A plugin asked the person to click nodes on the canvas (see `PluginUiPick`). */
+export interface PluginPickState {
+	/** The plugin node whose action runs for every node clicked. */
+	nodeId: string;
+	action: string;
+	payload: unknown;
+	title: string;
+	hint?: string;
+	/** Nodes to number 1, 2, 3 (the ones picked so far). */
+	marked: string[];
+}
+
+export type PluginActionResult =
+	| { ok: true; tree: PluginUiNode }
+	| { ok: false };
+
 export interface PluginsSlice {
 	mapPlugins: MapPluginRecord[];
 	/** Whether `mapPlugins` reflects the server (false while loading or offline). */
@@ -95,6 +112,27 @@ export interface PluginsSlice {
 	 * Resolves false when nothing was saved or a request failed (see `pluginRefreshes`).
 	 */
 	refreshPluginNode: (nodeId: string) => Promise<boolean>;
+	/**
+	 * Editors: runs one of a plugin node's actions and saves the result as one History
+	 * entry credited to the plugin. Actions on the same node run one after the other, so
+	 * quick clicks never overwrite each other. Shows an error toast when it fails.
+	 */
+	runNodeAction: (
+		nodeId: string,
+		action: string,
+		payload?: unknown
+	) => Promise<PluginActionResult>;
+	/** Set while a plugin waits for the person to click a node on the canvas. */
+	pluginPick: PluginPickState | null;
+	startPluginPick: (
+		nodeId: string,
+		pick: PluginUiPick,
+		action: string,
+		payload: unknown
+	) => void;
+	stopPluginPick: () => void;
+	/** A node was clicked while picking: runs the plugin's action with `nodeId`. */
+	pickPluginNode: (pickedNodeId: string) => Promise<void>;
 	/** A ready plugin's kind, or null when it isn't loaded on this map. */
 	getActivePluginKind: (
 		pluginId: string,
