@@ -23,7 +23,16 @@ const threads = (id: string) => ({
 		id,
 		node_type: 'extensionNode',
 		content: 'Open threads',
-		metadata: { extension: { pluginId: 'shiko.threads', kind: 'threads', kindLabel: 'Threads', noCopy: true, version: '0.1.0', data: {} } },
+		metadata: {
+			extension: {
+				pluginId: 'shiko.threads',
+				kind: 'threads',
+				kindLabel: 'Threads',
+				noCopy: true,
+				version: '0.1.0',
+				data: {},
+			},
+		},
 	},
 });
 
@@ -47,8 +56,13 @@ describe('copySelectedNodes', () => {
 
 		store.getState().copySelectedNodes();
 
-		expect(store.getState().copiedNodes.map((node) => node.id)).toEqual(['a', 'b']);
-		expect(toast.success).toHaveBeenCalledWith('Nodes copied!', { id: 'toast-1' });
+		expect(store.getState().copiedNodes.map((node) => node.id)).toEqual([
+			'a',
+			'b',
+		]);
+		expect(toast.success).toHaveBeenCalledWith('Nodes copied!', {
+			id: 'toast-1',
+		});
 	});
 
 	it('leaves a Threads node alone and says why, when it is all that is selected', () => {
@@ -68,7 +82,10 @@ describe('copySelectedNodes', () => {
 
 		store.getState().copySelectedNodes();
 
-		expect(store.getState().copiedNodes.map((node) => node.id)).toEqual(['a', 'b']);
+		expect(store.getState().copiedNodes.map((node) => node.id)).toEqual([
+			'a',
+			'b',
+		]);
 		expect(toast.warning).toHaveBeenCalledWith(
 			'Copied 2 nodes. The Threads node stayed behind, because what it links to is in this map.',
 			{ id: 'toast-1' }

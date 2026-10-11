@@ -20,7 +20,9 @@ export function isNodeCopyBlocked(node: Pick<AppNode, 'data'>): boolean {
 }
 
 /** "Threads nodes", "Threads and Budget nodes": what a copy left behind, for the toast. */
-export function describeBlockedNodes(nodes: readonly Pick<AppNode, 'data'>[]): string {
+export function describeBlockedNodes(
+	nodes: readonly Pick<AppNode, 'data'>[]
+): string {
 	const labels = [
 		...new Set(
 			nodes.map((node) => node.data.metadata?.extension?.kindLabel ?? 'Plugin')

@@ -16,7 +16,10 @@ describe('buildPluginRefs', () => {
 			node('a', { content: 'Ch. 3\nA letter arrives' }),
 			node('b', {
 				node_type: 'taskNode',
-				metadata: { tasks: [{ isComplete: true }, { isComplete: false }], tags: ['beta'] },
+				metadata: {
+					tasks: [{ isComplete: true }, { isComplete: false }],
+					tags: ['beta'],
+				},
 			}),
 			node('c'),
 		];
@@ -24,8 +27,15 @@ describe('buildPluginRefs', () => {
 		const refs = buildPluginRefs(['a', 'b'], nodes);
 
 		expect(Object.keys(refs)).toEqual(['a', 'b']);
-		expect(refs.a).toMatchObject({ type: 'note', text: 'Ch. 3 A letter arrives' });
-		expect(refs.b).toMatchObject({ type: 'task', tasks: { done: 1, total: 2 }, tags: ['beta'] });
+		expect(refs.a).toMatchObject({
+			type: 'note',
+			text: 'Ch. 3 A letter arrives',
+		});
+		expect(refs.b).toMatchObject({
+			type: 'task',
+			tasks: { done: 1, total: 2 },
+			tags: ['beta'],
+		});
 	});
 
 	it('leaves out deleted nodes and unaccepted AI suggestions, so a plugin can tell', () => {
@@ -37,7 +47,11 @@ describe('buildPluginRefs', () => {
 	});
 
 	it('is part of what a plugin is called with, only when it has the power', () => {
-		expect(pluginCallContext(true, null, { a: buildPluginRefs(['a'], [node('a')]).a }).refs).toBeDefined();
+		expect(
+			pluginCallContext(true, null, {
+				a: buildPluginRefs(['a'], [node('a')]).a,
+			}).refs
+		).toBeDefined();
 		expect(pluginCallContext(true)).not.toHaveProperty('refs');
 	});
 });

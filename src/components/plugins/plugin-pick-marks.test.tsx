@@ -3,19 +3,30 @@ import { create } from 'zustand';
 import { PluginPickMarks } from './plugin-pick-marks';
 
 jest.mock('@xyflow/react', () => ({
-	ViewportPortal: ({ children }: { children: React.ReactNode }) => <div data-testid='viewport'>{children}</div>,
+	ViewportPortal: ({ children }: { children: React.ReactNode }) => (
+		<div data-testid='viewport'>{children}</div>
+	),
 }));
 
 const mockStore = create(() => ({
 	pluginPick: null as null | { marked: string[] },
 	nodes: [
-		{ id: 'a', position: { x: 100, y: 50 }, measured: { width: 230, height: 58 } },
+		{
+			id: 'a',
+			position: { x: 100, y: 50 },
+			measured: { width: 230, height: 58 },
+		},
 		{ id: 'b', position: { x: 400, y: 80 } },
-	] as Array<{ id: string; position: { x: number; y: number }; measured?: { width: number; height: number } }>,
+	] as Array<{
+		id: string;
+		position: { x: number; y: number };
+		measured?: { width: number; height: number };
+	}>,
 }));
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
-	default: (selector: (state: unknown) => unknown) => mockStore(selector as never),
+	default: (selector: (state: unknown) => unknown) =>
+		mockStore(selector as never),
 }));
 
 describe('PluginPickMarks', () => {
@@ -42,8 +53,12 @@ describe('PluginPickMarks', () => {
 		render(<PluginPickMarks />);
 		expect(screen.getAllByText(/^\d$/)).toHaveLength(1);
 
-		act(() => mockStore.setState({ pluginPick: { marked: ['a', 'gone', 'b'] } }));
+		act(() =>
+			mockStore.setState({ pluginPick: { marked: ['a', 'gone', 'b'] } })
+		);
 
-		expect(screen.getAllByText(/^\d$/).map((mark) => mark.textContent)).toEqual(['1', '3']);
+		expect(screen.getAllByText(/^\d$/).map((mark) => mark.textContent)).toEqual(
+			['1', '3']
+		);
 	});
 });

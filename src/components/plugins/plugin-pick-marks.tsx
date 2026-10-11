@@ -36,7 +36,11 @@ export function PluginPickMarks() {
 							<div
 								aria-hidden
 								className='pointer-events-none absolute top-0 left-0 z-[1100] rounded-[10px] border border-blue-400/50 shadow-[0_0_0_6px_rgba(96,165,250,0.12)]'
-								style={{ transform: `translate(${x}px, ${y}px)`, width, height }}
+								style={{
+									transform: `translate(${x}px, ${y}px)`,
+									width,
+									height,
+								}}
 							/>
 						) : null}
 

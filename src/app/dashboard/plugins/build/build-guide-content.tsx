@@ -584,6 +584,21 @@ export function BuildGuideContent() {
 								order. Shiko draws your node again when they change.
 							</dd>
 						</div>
+
+						<div className='flex flex-col gap-1'>
+							<dt className='font-mono text-[13px] text-zinc-200'>ctx.refs</dt>
+
+							<dd className={bodyClass}>
+								With nodes:refs, render and actions get the nodes your own data
+								links to, by id. A field or list column with ref: &quot;node&quot;
+								holds a node id (and setBy: &quot;action&quot;, so nobody types
+								it). A node that was deleted has no entry, which is how you know.
+								A button or menu item with pick lets the person click a node on
+								the canvas, then your action gets payload.nodeId. Nodes whose data
+								links to other nodes can&apos;t be copied, because the copy would
+								point at the originals.
+							</dd>
+						</div>
 					</dl>
 				</Section>
 

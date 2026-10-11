@@ -1,6 +1,9 @@
 import { pluginManifestSchema } from '@/lib/plugins/manifest-schema';
 import type { ActivePluginKind } from '@/types/plugins';
-import { buildPluginKindPatterns, buildPluginNodeSaveData } from './plugin-kind-editor';
+import {
+	buildPluginKindPatterns,
+	buildPluginNodeSaveData,
+} from './plugin-kind-editor';
 
 const manifest = pluginManifestSchema.parse({
 	id: 'dev.threads',
@@ -27,7 +30,12 @@ const manifest = pluginManifestSchema.parse({
 					syntax: 'checklist',
 					columns: [
 						{ name: 'text', type: 'string', title: 'Thread' },
-						{ name: 'status', type: 'enum', title: 'Status', options: ['open', 'resolved', 'dropped'] },
+						{
+							name: 'status',
+							type: 'enum',
+							title: 'Status',
+							options: ['open', 'resolved', 'dropped'],
+						},
 					],
 				},
 				stops: {
@@ -53,18 +61,30 @@ const manifest = pluginManifestSchema.parse({
 });
 
 const active = (index: number) =>
-	({ manifest, kind: manifest.nodeKinds[index], source: 'catalog', generation: 1 }) as unknown as ActivePluginKind;
+	({
+		manifest,
+		kind: manifest.nodeKinds[index],
+		source: 'catalog',
+		generation: 1,
+	}) as unknown as ActivePluginKind;
 
 describe('buildPluginKindPatterns for a checklist', () => {
 	it('lists the three markers, and no field for the checklist or for fields set by actions', () => {
-		const patterns = buildPluginKindPatterns(manifest.nodeKinds[0]).map((pattern) => pattern.pattern);
+		const patterns = buildPluginKindPatterns(manifest.nodeKinds[0]).map(
+			(pattern) => pattern.pattern
+		);
 
 		expect(patterns).toEqual(['$threads', '[ ] ', '[x] ', '[-] ', 'text']);
 	});
 });
 
 describe('buildPluginNodeSaveData', () => {
-	const parsed = { label: 'Open threads', data: { title: 'Open threads' }, errors: [], tokens: [] };
+	const parsed = {
+		label: 'Open threads',
+		data: { title: 'Open threads' },
+		errors: [],
+		tokens: [],
+	};
 
 	it('marks nodes whose data links to other nodes, so they are not copied', () => {
 		const saved = buildPluginNodeSaveData(active(0), parsed, null);
