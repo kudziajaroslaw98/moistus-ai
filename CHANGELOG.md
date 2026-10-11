@@ -13,6 +13,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: building a plugin meant a local server, an editor and the Developer mode loader before seeing anything
 - **plugins/drafts**: Drafts are saved to your account (autosave; a second tab that saved first offers "Load the newer version" or "Keep mine"), at most 20, only you see them. Shiko sets each plugin's id when the draft is created and locks that line in `manifest.json`. New `plugin_drafts` table (migration applied to the local database; not applied to prod yet) and `/api/plugins/drafts` routes
 - **plugins/entry**: My plugins has a Drafts group, a "Write a plugin" button and a "Write a plugin" tile; the start dialog offers Blank, Counter, Branch progress and GitHub issue templates or an import of your two files; "Edit as new draft" on any version of a plugin you published; "Write a plugin" in the map's Plugins panel and in Ctrl/Cmd+K; a callout at the top of the Build guide
+- **plugins/write-tab**: "Write a plugin" is now the second tab of the Plugins page (Library, Write a plugin, My plugins). Its top is a "Start a plugin" section with the four templates, the import link and the Developer mode switch right there (an amber box while it's off, a green status line with the switch once it's on); the localhost steps follow as "Use your own editor", then the guide. Ctrl/Cmd+K "Write a plugin", the map Plugins panel, the Library's last tile and the empty My plugins page all lead to it
+  - Why: the button lived on My plugins (a list of submissions), and with Developer mode off nothing on that page said how to start
+- **plugins/my-plugins**: My plugins is one list with one row per plugin: submitted plugins and their drafts together (a draft started with "Edit as new draft" shares the plugin's id, so it's one row with Published 0.1.0 and Draft chips), plus drafts that were never submitted. Plugins that need a look come first (changes requested, turned off, an open report, a draft failing its checks), then the most recently touched. Filter chips (All, Needs attention, Drafts, In review, Published, with counts), the top-bar search, and the grid/list switch (list by default). One "Open" button per row opens a side sheet with its Drafts (Open, Delete) above its Versions
+  - Why: Drafts and Submitted were two stacked card grids that got long fast, and the same plugin showed up in both
+
 - **plugins/threads**: Threads, a first-party plugin for open questions and the nodes where each one comes up. Type threads as `[ ] open`, `[x] resolved` and `[-] dropped` lines; "Add a stop" in a thread's ⋯ menu lets you click nodes on the map, numbered 1, 2, 3 while you pick; stops show the node's text, and a deleted node shows as "This node was deleted" with a "needs a look" count. Open threads are blue, resolved green, dropped struck through, warnings amber. Turning it on asks the owner first (it reads the nodes it links to; nothing leaves the browser)
   - Why: stories, research and product maps all have questions raised in one place and settled in another
 - **plugins/powers**: New power `nodes:refs`: render and actions get `ctx.refs` for only the nodes the plugin's own data links to (fields or list columns with `ref: "node"`, set by actions). It can't be combined with `network:<host>`, like `branch:read`. `/privacy` 5.3 says so
@@ -24,6 +29,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **plugins/actions**: Plugin actions now run from the store (`runNodeAction`), one after the other per node, so a pick bar outside the node can run them and quick clicks don't overwrite each other. `setBy` accepts `"action"` as well as `"refresh"` (`keepRefreshFields` is now `keepSetByFields`)
 - **copy**: Nodes whose data links to other nodes (Threads) can't be copied: Cmd/Ctrl+C leaves them behind with a toast, and map templates skip them. Pasted nodes get new ids, so a copy would have pointed at the originals
 - **plugins/developer-mode**: Developer mode now also covers writing plugins. While it's off, the playground, the start dialog, the panel and the versions sheet say so and hold the switch right there instead of sending you to settings. The switch's description says it
+- **plugins/entry**: The start dialog is gone: its templates live on the Write a plugin tab (`PluginStartPanel`), and `?write=1` no longer opens anything. Drafts need Developer mode, so with it off My plugins shows only submitted plugins and a line saying drafts are hidden
+- **dashboard/catalog-card**: `CatalogCard` takes `wrapChips`: in list view the chips stay visible and wrap under the title on a phone (the description hides there)
 - **plugins/api**: The Developer mode check for the developer network worker moved to `isDeveloperModeOn` (same behavior)
 
 ### Fixed
@@ -32,10 +39,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: every queued mutation (preferences, comments, nodes) goes through this call
 - **ids**: Same fix for the other browser call sites that used `crypto.randomUUID()` unguarded: default node ids in `node-factory`, new task ids in the task node, and the cursor session id (`use-realtime-cursor`)
 
+- **plugins/start**: The Developer mode switch on the Write a plugin tab got a stable id; without one `Switch` makes a random id, which broke hydration
+
 ### Docs
 
 - CLAUDE.md: "Plugin playground" gotcha; the migration note now says migrations stay local-only and are applied through the Supabase MCP (the old "must be force-added" was wrong)
-- CODEBASE_MAP.md: drafts routes, playground files, dashboard frame note
+- CODEBASE_MAP.md: drafts routes, playground files, dashboard frame note, Plugins tabs and My plugins rows
+- CLAUDE.md: Plugin playground entry paths now describe the Write a plugin tab and the one-list My plugins
 
 ---
 

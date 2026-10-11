@@ -96,10 +96,10 @@ describe('write plugin command', () => {
 		expect(when?.(context({ currentUser: { is_anonymous: false } }, false))).toBe(false);
 	});
 
-	it('opens the start dialog in a new tab, leaving the map as it is', () => {
+	it('opens the Write a plugin tab in a new tab, leaving the map as it is', () => {
 		const open = jest.spyOn(window, 'open').mockImplementation(() => null);
 		command('write-plugin').run(context({ currentUser: { is_anonymous: false } }));
-		expect(open).toHaveBeenCalledWith('/dashboard/plugins/mine?write=1', '_blank', 'noopener');
+		expect(open).toHaveBeenCalledWith('/dashboard/plugins/build', '_blank', 'noopener');
 		open.mockRestore();
 	});
 });

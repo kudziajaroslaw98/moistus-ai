@@ -10,8 +10,8 @@ const canSaveRecipes = (ctx: ContributionContext) =>
 const hasAccount = (ctx: ContributionContext) =>
 	ctx.isMapReady && ctx.getState().currentUser?.is_anonymous === false;
 
-/** Where "Write a plugin" starts: My plugins with its start dialog open. */
-export const WRITE_PLUGIN_URL = '/dashboard/plugins/mine?write=1';
+/** Where "Write a plugin" starts: the Write a plugin tab, with its templates at the top. */
+export const WRITE_PLUGIN_URL = '/dashboard/plugins/build';
 
 /** Built-in non-AI commands available in the command palette. */
 export const BUILTIN_COMMANDS: Contribution[] = [

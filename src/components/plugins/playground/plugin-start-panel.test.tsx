@@ -22,7 +22,7 @@ jest.mock('@/lib/plugins/drafts-client', () => ({
 	createDraftFromText: (...args: unknown[]) => mockCreate(...args),
 }));
 
-import { PluginStartDialog } from './plugin-start-dialog';
+import { PluginStartPanel } from './plugin-start-panel';
 
 const updatePreferences = jest.fn().mockResolvedValue(undefined);
 
@@ -31,9 +31,8 @@ function setup(developerMode = true) {
 		userProfile: { is_anonymous: false, preferences: { developerMode } },
 		updatePreferences,
 	};
-	const onOpenChange = jest.fn();
-	render(<PluginStartDialog open onOpenChange={onOpenChange} />);
-	return { onOpenChange, user: userEvent.setup() };
+	render(<PluginStartPanel />);
+	return { user: userEvent.setup() };
 }
 
 // jsdom's File has no text(); browsers do.
@@ -54,21 +53,21 @@ beforeEach(() => {
 	mockCreate.mockResolvedValue({ id: 'draft-9' });
 });
 
-describe('PluginStartDialog', () => {
+describe('PluginStartPanel', () => {
 	it('offers the four templates with what each can reach', () => {
 		setup();
-		const dialog = screen.getByRole('dialog', { name: 'Write a plugin' });
+		const panel = document.body;
 		for (const name of [
 			'Blank',
 			'Counter',
 			'Branch progress',
 			'GitHub issue',
 		]) {
-			expect(within(dialog).getByRole('heading', { name })).toBeInTheDocument();
+			expect(within(panel).getByRole('heading', { name })).toBeInTheDocument();
 		}
-		expect(within(dialog).getByText('Reads its branch')).toBeInTheDocument();
+		expect(within(panel).getByText('Reads its branch')).toBeInTheDocument();
 		expect(
-			within(dialog).getByText('Sends to api.github.com')
+			within(panel).getByText('Sends to api.github.com')
 		).toBeInTheDocument();
 	});
 
@@ -163,10 +162,21 @@ describe('PluginStartDialog', () => {
 		expect(mockCreate).not.toHaveBeenCalled();
 	});
 
-	it('links to the localhost way of building', () => {
+	it('points to the localhost way of building further down the page', () => {
 		setup();
 		expect(
 			screen.getByRole('link', { name: /my own editor/i })
-		).toHaveAttribute('href', '/dashboard/plugins/build');
+		).toHaveAttribute('href', '#own-editor');
+	});
+
+	it('shows a status line with the switch once Developer mode is on, and no warning', async () => {
+		const { user } = setup(true);
+		expect(screen.getByRole('status')).toHaveTextContent('Developer mode is on.');
+		expect(
+			screen.queryByText(/Writing plugins needs Developer mode/)
+		).not.toBeInTheDocument();
+
+		await user.click(screen.getByRole('switch', { name: 'Developer mode' }));
+		expect(updatePreferences).toHaveBeenCalledWith({ developerMode: false });
 	});
 });

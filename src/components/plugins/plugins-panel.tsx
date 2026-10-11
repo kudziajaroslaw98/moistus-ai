@@ -380,7 +380,7 @@ function DeveloperSection({ onSubmit }: { onSubmit: (manifestUrl: string) => voi
 
 			<Link
 				className='inline-flex h-8 items-center gap-1.5 self-start rounded-sm bg-primary-600 px-3 text-xs font-medium text-white transition-colors duration-200 hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400'
-				href='/dashboard/plugins/mine?write=1'
+				href='/dashboard/plugins/build'
 				rel='noopener'
 				target='_blank'
 			>
@@ -390,7 +390,7 @@ function DeveloperSection({ onSubmit }: { onSubmit: (manifestUrl: string) => voi
 
 			<Link
 				className={`${subtleLinkClass} self-start text-[13px] font-medium text-primary-400 hover:text-primary-300`}
-				href='/dashboard/plugins/build'
+				href='/dashboard/plugins/build#own-editor'
 			>
 				How to build a plugin
 				<ArrowUpRight aria-hidden className='size-3.5' />

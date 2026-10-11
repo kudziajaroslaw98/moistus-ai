@@ -22,18 +22,18 @@ const TABS = [
 			'New kinds of nodes for your maps. Turn a plugin on for a map and everyone who can edit it can add those nodes.',
 	},
 	{
+		id: 'write',
+		label: 'Write a plugin',
+		href: '/dashboard/plugins/build',
+		intro:
+			'A plugin adds a new kind of node. Start from a template, watch it draw, try it on your own maps, then submit it to the library.',
+	},
+	{
 		id: 'mine',
 		label: 'My plugins',
 		href: '/dashboard/plugins/mine',
 		intro:
-			'Plugins you submitted to the library. Shiko reviews every version before map owners can turn it on.',
-	},
-	{
-		id: 'build',
-		label: 'Build a plugin',
-		href: '/dashboard/plugins/build',
-		intro:
-			'A plugin adds a new kind of node. List its fields in manifest.json, draw it in plugin.js, try it on your own maps, then submit it to the library.',
+			'Plugins you’re writing and ones you submitted to the library. Shiko reviews every version before map owners can turn it on.',
 	},
 ] as const;
 
@@ -56,7 +56,7 @@ function tabForPath(pathname: string): PluginsTab {
 	return match?.id ?? 'library';
 }
 
-/** Library / My plugins / Build a plugin, under the dashboard Plugins title. */
+/** Library / Write a plugin / My plugins, under the dashboard Plugins title. */
 export function PluginsPageTabs() {
 	const current = tabForPath(usePathname());
 

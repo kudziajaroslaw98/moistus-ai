@@ -48,6 +48,10 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 /** A draft's manifest as this site serves it to its author; the developer loader reads it like a localhost one. */
+/** Where a draft is edited. */
+export const playgroundHref = (draftId: string) =>
+	`/dashboard/plugins/playground/${draftId}`;
+
 export const draftManifestUrl = (id: string) =>
 	`${window.location.origin}${PLUGIN_DRAFTS_KEY}/${id}/files/manifest.json`;
 

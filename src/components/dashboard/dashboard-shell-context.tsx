@@ -25,6 +25,7 @@ export const DASHBOARD_HEADER_SEARCH: Readonly<
 	'/dashboard/templates': { id: 'templates-search', label: 'Search templates' },
 	'/dashboard/recipes': { id: 'recipes-search', label: 'Search recipes' },
 	'/dashboard/plugins': { id: 'plugins-search', label: 'Search plugins' },
+	'/dashboard/plugins/mine': { id: 'my-plugins-search', label: 'Search my plugins' },
 };
 
 /** What the current page has told the shell. Keyed by path so nothing leaks to the next page. */

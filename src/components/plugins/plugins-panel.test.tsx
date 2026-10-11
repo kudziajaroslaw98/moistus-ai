@@ -242,7 +242,7 @@ describe('PluginsPanel for the owner', () => {
 
 		expect(screen.getByRole('link', { name: /How to build a plugin/ })).toHaveAttribute(
 			'href',
-			'/dashboard/plugins/build'
+			'/dashboard/plugins/build#own-editor'
 		);
 		await user.type(screen.getByLabelText('Plugin manifest URL'), 'https://evil.test/m.json');
 		await user.click(screen.getByRole('button', { name: 'Load' }));
@@ -263,11 +263,11 @@ describe('PluginsPanel for the owner', () => {
 		);
 	});
 
-	it('offers Write a plugin in the Developer section, opening the start dialog in a new tab', async () => {
+	it('offers Write a plugin in the Developer section, opening the Write a plugin tab in a new tab', async () => {
 		setup();
 
 		const link = await screen.findByRole('link', { name: /Write a plugin/ });
-		expect(link).toHaveAttribute('href', '/dashboard/plugins/mine?write=1');
+		expect(link).toHaveAttribute('href', '/dashboard/plugins/build');
 		expect(link).toHaveAttribute('target', '_blank');
 	});
 

@@ -427,9 +427,9 @@ export function PluginsContent() {
 
 			<div className='mt-8'>
 				<CreateTile
-					hint='Write one in plain JavaScript, try it from localhost, then submit it.'
+					hint='Start from a template, try it on your own maps, then submit it.'
 					href='/dashboard/plugins/build'
-					title='Build a plugin'
+					title='Write a plugin'
 					viewMode='list'
 				/>
 			</div>

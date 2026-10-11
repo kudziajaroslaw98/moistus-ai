@@ -13,8 +13,8 @@ import {
 describe('PluginsPageTabs', () => {
 	it.each([
 		['/dashboard/plugins', 'Library'],
+		['/dashboard/plugins/build', 'Write a plugin'],
 		['/dashboard/plugins/mine', 'My plugins'],
-		['/dashboard/plugins/build', 'Build a plugin'],
 	])('marks the tab for %s', (pathname, label) => {
 		mockPathname = pathname;
 		render(<PluginsPageTabs />);
@@ -31,6 +31,19 @@ describe('PluginsPageTabs', () => {
 	});
 });
 
+describe('PluginsPageTabs order', () => {
+	it('goes from browsing to writing to managing', () => {
+		mockPathname = '/dashboard/plugins';
+		render(<PluginsPageTabs />);
+
+		expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual([
+			'Library',
+			'Write a plugin',
+			'My plugins',
+		]);
+	});
+});
+
 describe('PluginsPageFrame', () => {
 	it('keeps the title, the tab-specific intro and the tabs around the tab content', () => {
 		mockPathname = '/dashboard/plugins/mine';
@@ -44,7 +57,7 @@ describe('PluginsPageFrame', () => {
 			screen.getByRole('heading', { name: 'Plugins' })
 		).toBeInTheDocument();
 		expect(screen.getByText('Tab body')).toBeInTheDocument();
-		expect(screen.getByText(/Plugins you submitted/)).toBeInTheDocument();
+		expect(screen.getByText(/Plugins you’re writing/)).toBeInTheDocument();
 
 		mockPathname = '/dashboard/plugins';
 		view.rerender(
