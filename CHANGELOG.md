@@ -48,6 +48,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **dashboard/shell**: Leaving Plugin review for another dashboard page no longer reloads the whole layout (entry skeleton, sidebar, top bar). The page sat outside `/dashboard` with its own shell, so every way out mounted the dashboard layout from scratch. It now lives at `/dashboard/admin/plugins` inside the shell (sidebar entry, title and loading screen included); `/admin/plugins` redirects there
   - Why: moving between dashboard pages keeps the shell mounted, and this was the one dashboard-looking page that didn't. Admin checks are unchanged (page `isPluginAdmin` → 404, `requirePluginAdmin` on the API routes)
 
+- **offline/service-worker**: A plugin draft's files (`/api/plugins/drafts/<id>/files/*`) are no longer served from the service worker's cache. Serwist answers any same-origin `.js` from Cache Storage first and ignores `no-store`, so "Try on a map" and "Submit for review" could read the code from the save before. The "leave to the browser" rules moved into `isLeftToBrowser` (`src/lib/offline/sw-browser-requests.ts`, tested) so they can be tested; the three existing rules are unchanged
+  - Why: production only (in development the caching is off), and found by reading Serwist's `defaultCache`, not seen in a browser
+
 ### Docs
 
 - CLAUDE.md: "Plugin playground" gotcha; the migration note now says migrations stay local-only and are applied through the Supabase MCP (the old "must be force-added" was wrong)
