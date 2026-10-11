@@ -51,6 +51,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **offline/service-worker**: A plugin draft's files (`/api/plugins/drafts/<id>/files/*`) are no longer served from the service worker's cache. Serwist answers any same-origin `.js` from Cache Storage first and ignores `no-store`, so "Try on a map" and "Submit for review" could read the code from the save before. The "leave to the browser" rules moved into `isLeftToBrowser` (`src/lib/offline/sw-browser-requests.ts`, tested) so they can be tested; the three existing rules are unchanged
   - Why: production only (in development the caching is off), and found by reading Serwist's `defaultCache`, not seen in a browser
 
+### Removed
+
+- **dashboard/sidebar**: The "Teams" and "Archive" entries marked Coming Soon. Neither had a page (`/dashboard/teams` and `/dashboard/archive` never existed) and neither is planned for now
+
 ### Docs
 
 - CLAUDE.md: "Plugin playground" gotcha; the migration note now says migrations stay local-only and are applied through the Supabase MCP (the old "must be force-added" was wrong)

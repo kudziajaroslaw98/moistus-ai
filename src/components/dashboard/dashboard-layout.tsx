@@ -10,7 +10,6 @@ import { useTouchFirst } from '@/hooks/use-touch-first';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import {
-	Archive,
 	ChefHat,
 	Home,
 	PanelLeft,
@@ -19,7 +18,6 @@ import {
 	ShieldCheck,
 	SlidersHorizontal,
 	Star,
-	Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -83,20 +81,6 @@ const mainNavItems: NavItem[] = [
 		label: 'Plugins',
 		icon: Puzzle,
 		href: '/dashboard/plugins',
-	},
-	{
-		id: 'teams',
-		label: 'Teams',
-		icon: Users,
-		href: '/dashboard/teams',
-		comingSoon: true,
-	},
-	{
-		id: 'archive',
-		label: 'Archive',
-		icon: Archive,
-		href: '/dashboard/archive',
-		comingSoon: true,
 	},
 ];
 
