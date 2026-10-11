@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { TextEncoder as NodeTextEncoder } from 'node:util';
 import { create } from 'zustand';
 import type { AppState } from '../app-state';
-import { createPluginsSlice } from './plugins-slice';
+import { createPluginsSlice, rememberDevPluginUrl } from './plugins-slice';
 
 const mockHost = {
 	load: jest.fn(),
@@ -653,5 +653,34 @@ describe('refreshPluginNode', () => {
 			status: 'error',
 			message: 'api.github.com answered 404',
 		});
+	});
+});
+
+describe('rememberDevPluginUrl', () => {
+	const key = 'shiko_dev_plugins_v1:owner-1:map-2';
+	const draftUrl = `${window.location.origin}/api/plugins/drafts/0d6f2f4e-8c1b-4a51-9d0e-2b7d3c1f5a01/files/manifest.json`;
+
+	beforeEach(() => window.localStorage.clear());
+
+	it('stores a draft’s address where that map reads its developer plugins', () => {
+		rememberDevPluginUrl('owner-1', 'map-2', draftUrl);
+		expect(JSON.parse(window.localStorage.getItem(key) as string)).toEqual([draftUrl]);
+	});
+
+	it('keeps what the map already had and does not add the same address twice', () => {
+		window.localStorage.setItem(key, JSON.stringify(['http://localhost:5173/manifest.json']));
+		rememberDevPluginUrl('owner-1', 'map-2', draftUrl);
+		rememberDevPluginUrl('owner-1', 'map-2', draftUrl);
+		expect(JSON.parse(window.localStorage.getItem(key) as string)).toEqual([
+			'http://localhost:5173/manifest.json',
+			draftUrl,
+		]);
+	});
+
+	it('is read back by a map the owner opens', async () => {
+		rememberDevPluginUrl('owner-1', 'map-1', draftUrl);
+		const store = createStore();
+		await store.getState().fetchMapPlugins('map-1');
+		expect(store.getState().devPluginUrls).toEqual([draftUrl]);
 	});
 });

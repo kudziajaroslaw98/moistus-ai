@@ -205,13 +205,77 @@ describe('useDraft', () => {
 		expect(mockSaveDraft).toHaveBeenCalledTimes(2);
 	});
 
-	it('flush saves right away', async () => {
-		mockSaveDraft.mockResolvedValue(draft({ revision: 2 }));
-		const { result } = await loaded();
-		act(() => result.current.setCode('now'));
-		await act(async () => {
-			await result.current.flush();
+	describe('flush', () => {
+		it('saves right away and says it worked', async () => {
+			mockSaveDraft.mockResolvedValue(draft({ revision: 2 }));
+			const { result } = await loaded();
+			act(() => result.current.setCode('now'));
+			let saved: boolean | undefined;
+			await act(async () => {
+				saved = await result.current.flush();
+			});
+			expect(saved).toBe(true);
+			expect(mockSaveDraft).toHaveBeenCalledWith('draft-1', 1, { code: 'now' });
 		});
-		expect(mockSaveDraft).toHaveBeenCalledWith('draft-1', 1, { code: 'now' });
+
+		it('says it worked when there is nothing to save', async () => {
+			const { result } = await loaded();
+			let saved: boolean | undefined;
+			await act(async () => {
+				saved = await result.current.flush();
+			});
+			expect(saved).toBe(true);
+			expect(mockSaveDraft).not.toHaveBeenCalled();
+		});
+
+		it('says it did not work when the save failed or the draft changed elsewhere', async () => {
+			mockSaveDraft.mockRejectedValueOnce(new DraftRequestError('boom', 500));
+			const { result } = await loaded();
+			act(() => result.current.setCode('x'));
+			let saved: boolean | undefined;
+			await act(async () => {
+				saved = await result.current.flush();
+			});
+			expect(saved).toBe(false);
+
+			mockSaveDraft.mockRejectedValueOnce(
+				new DraftRequestError(
+					'changed',
+					409,
+					'DRAFT_REVISION_CONFLICT',
+					draft({ revision: 5 })
+				)
+			);
+			await act(async () => {
+				saved = await result.current.flush();
+			});
+			expect(saved).toBe(false);
+			expect(result.current.conflict?.revision).toBe(5);
+		});
+
+		it('waits for a save already running, then saves what was typed meanwhile', async () => {
+			let release: (value: PluginDraft) => void = () => undefined;
+			mockSaveDraft
+				.mockImplementationOnce(
+					() => new Promise<PluginDraft>((resolve) => (release = resolve))
+				)
+				.mockResolvedValue(draft({ revision: 3 }));
+			const { result } = await loaded();
+			act(() => result.current.setCode('first'));
+			await wait(AUTOSAVE_MS); // the first save starts and hangs
+
+			act(() => result.current.setCode('second'));
+			let saved: boolean | undefined;
+			const flushing = act(async () => {
+				saved = await result.current.flush();
+			});
+			await act(async () => release(draft({ revision: 2 })));
+			await flushing;
+
+			expect(saved).toBe(true);
+			expect(mockSaveDraft).toHaveBeenLastCalledWith('draft-1', 2, {
+				code: 'second',
+			});
+		});
 	});
 });

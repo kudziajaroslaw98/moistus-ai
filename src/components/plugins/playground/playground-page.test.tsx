@@ -58,6 +58,31 @@ jest.mock('@/lib/plugins/network-client', () => ({
 	requestPluginJson: jest.fn(),
 }));
 
+const mockToastError = jest.fn();
+jest.mock('sonner', () => ({
+	toast: { error: (...args: unknown[]) => mockToastError(...args) },
+}));
+
+jest.mock('@/components/plugins/plugin-submit-sheet', () => ({
+	PluginSubmitSheet: ({ manifestUrl }: { manifestUrl: string }) => (
+		<p>Submit sheet for {manifestUrl}</p>
+	),
+}));
+
+jest.mock('./try-on-map-popover', () => ({
+	TryOnMapPopover: ({
+		draftId,
+		saveFirst,
+	}: {
+		draftId: string;
+		saveFirst: () => Promise<boolean>;
+	}) => (
+		<button onClick={() => void saveFirst()} type='button'>
+			Try on a map ({draftId})
+		</button>
+	),
+}));
+
 import { PlaygroundPage } from './playground-page';
 
 const counter = pluginManifestSchema.parse({
@@ -91,6 +116,7 @@ function setup({
 		setCheckSummary: jest.fn(),
 		loadNewer: jest.fn(),
 		keepMine: jest.fn(),
+		flush: jest.fn().mockResolvedValue(true),
 	};
 	mockUseDraft.mockReturnValue({
 		status: 'ready',
@@ -102,7 +128,6 @@ function setup({
 		checkSummary: null,
 		saveState: 'saved',
 		conflict: null,
-		flush: jest.fn(),
 		...actions,
 		...draft,
 	});
@@ -272,5 +297,43 @@ describe('PlaygroundPage', () => {
 			},
 		});
 		expect(screen.getByText('Something broke')).toBeInTheDocument();
+	});
+
+	describe('trying and submitting', () => {
+		it('hands the draft to Try on a map, with a way to save it first', async () => {
+			const { actions, user } = setup();
+			await user.click(
+				screen.getByRole('button', { name: /Try on a map \(draft-1\)/ })
+			);
+			expect(actions.flush).toHaveBeenCalled();
+		});
+
+		it('saves, then opens the submit sheet on the saved draft’s files', async () => {
+			const { actions, user } = setup();
+			await user.click(
+				screen.getByRole('button', { name: 'Submit for review' })
+			);
+
+			expect(actions.flush).toHaveBeenCalled();
+			expect(
+				await screen.findByText(
+					`Submit sheet for ${window.location.origin}/api/plugins/drafts/draft-1/files/manifest.json`
+				)
+			).toBeInTheDocument();
+			expect(screen.getByRole('dialog')).toHaveTextContent('Submit Counter');
+		});
+
+		it('does not open the sheet, and says why, when the draft could not be saved', async () => {
+			const { actions, user } = setup();
+			actions.flush.mockResolvedValue(false);
+			await user.click(
+				screen.getByRole('button', { name: 'Submit for review' })
+			);
+
+			expect(mockToastError).toHaveBeenCalledWith(
+				expect.stringMatching(/Couldn’t save the draft first/)
+			);
+			expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+		});
 	});
 });

@@ -1,7 +1,13 @@
 'use client';
 
-import { DashboardPage } from '@/components/dashboard/dashboard-page';
+import {
+	DashboardPage,
+	PRIMARY_BUTTON_CLASS,
+} from '@/components/dashboard/dashboard-page';
+import { SideSheet } from '@/components/dashboard/side-sheet';
+import { PluginSubmitSheet } from '@/components/plugins/plugin-submit-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { draftManifestUrl } from '@/lib/plugins/drafts-client';
 import {
 	MAX_DRAFT_SAMPLE_BYTES,
 	MAX_PLUGIN_CODE_BYTES,
@@ -19,12 +25,14 @@ import {
 	type PlaygroundSample,
 } from '@/lib/plugins/playground/sample-data';
 import { type PluginData } from '@/lib/plugins/plugin-fields';
+import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
 import { cn } from '@/utils/cn';
 import { downloadTextFile } from '@/utils/download-text-file';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ArrowLeft, Download, Puzzle, Send } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { ChecksPanel } from './checks-panel';
 import { DeveloperModeGate } from './developer-mode-gate';
 import { NetworkPanel } from './network-panel';
@@ -35,6 +43,7 @@ import {
 } from './playground-styles';
 import { PreviewPane } from './preview-pane';
 import { SampleDataForm } from './sample-data-form';
+import { TryOnMapPopover } from './try-on-map-popover';
 import { useDraft, type DraftSaveState } from './use-draft';
 import {
 	useDraftChecks,
@@ -114,6 +123,7 @@ function PlaygroundWorkspace({ draftId }: { draftId: string }) {
 	const [canEdit, setCanEdit] = useState(true);
 	const [kindName, setKindName] = useState<string | null>(null);
 	const [realRequests, setRealRequests] = useState(false);
+	const [submitOpen, setSubmitOpen] = useState(false);
 
 	const { setCheckSummary, checkSummary } = draft;
 	useEffect(() => {
@@ -220,6 +230,14 @@ function PlaygroundWorkspace({ draftId }: { draftId: string }) {
 		// Half-typed JSON: keep the name the server last saw.
 	}
 	const pluginBytes = byteLength(draft.code);
+	// The review copies what the server has, so save first and only then open the sheet.
+	const openSubmit = async () => {
+		if (!(await draft.flush())) {
+			toast.error('Couldn’t save the draft first. Try again.');
+			return;
+		}
+		setSubmitOpen(true);
+	};
 	const refresh =
 		node.canRefresh && hosts.length > 0
 			? { hosts, busy: node.refreshing, onRefresh: () => void node.refresh() }
@@ -271,6 +289,17 @@ function PlaygroundWorkspace({ draftId }: { draftId: string }) {
 					>
 						<Download aria-hidden className='size-3.5' />
 						Export files
+					</button>
+
+					<TryOnMapPopover draftId={draftId} saveFirst={draft.flush} />
+
+					<button
+						className={PRIMARY_BUTTON_CLASS}
+						onClick={() => void openSubmit()}
+						type='button'
+					>
+						<Send aria-hidden className='size-3.5' />
+						Submit for review
 					</button>
 				</div>
 			</div>
@@ -439,6 +468,21 @@ function PlaygroundWorkspace({ draftId }: { draftId: string }) {
 					)}
 				</div>
 			</div>
+
+			<SideSheet
+				icon={PLUGIN_ICONS[manifest?.icon ?? 'puzzle'] ?? Puzzle}
+				onOpenChange={setSubmitOpen}
+				open={submitOpen}
+				subtitle={draft.draft?.pluginId}
+				title={`Submit ${title}`}
+			>
+				{submitOpen && (
+					<PluginSubmitSheet
+						manifestUrl={draftManifestUrl(draftId)}
+						onClose={() => setSubmitOpen(false)}
+					/>
+				)}
+			</SideSheet>
 		</>
 	);
 }

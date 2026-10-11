@@ -10,6 +10,7 @@ import { useTouchFirst } from '@/hooks/use-touch-first';
 import {
 	availableCatalogUpdate,
 	disabledReason,
+	draftIdOfPluginUrl,
 	latestCatalogVersion,
 	type PluginCatalogEntry,
 } from '@/lib/plugins/catalog';
@@ -19,7 +20,7 @@ import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import type { NodeExtensionData } from '@/types/extensions';
 import type { LoadedPlugin, MapPluginRecord } from '@/types/plugins';
-import { ArrowUpRight, Ban, Code2, Loader2, Lock, RefreshCw, X } from 'lucide-react';
+import { ArrowUpRight, Ban, Code2, Loader2, Lock, Pencil, RefreshCw, X } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
 import { Fragment, useMemo, useState } from 'react';
@@ -440,6 +441,9 @@ function DeveloperSection({ onSubmit }: { onSubmit: (manifestUrl: string) => voi
 				} catch {
 					// Stored URLs are validated; keep the raw text if not.
 				}
+				// A playground draft is served by this site, so say that instead of its address.
+				const draftId = draftIdOfPluginUrl(url);
+				const where = draftId ? 'Draft in Shiko' : host;
 				return (
 					<div
 						className='flex flex-col gap-2 rounded-lg border border-zinc-800 bg-base p-2.5'
@@ -474,9 +478,21 @@ function DeveloperSection({ onSubmit }: { onSubmit: (manifestUrl: string) => voi
 								>
 									{loaded?.status === 'error'
 										? (loaded.error ?? 'Could not load')
-										: `${manifest?.id ?? 'loading…'} · ${host}`}
+										: `${manifest?.id ?? 'loading…'} · ${where}`}
 								</span>
 							</div>
+
+							{draftId && (
+								<Link
+									aria-label={`Edit ${manifest?.name ?? 'draft'} in the playground`}
+									className='inline-flex size-8 shrink-0 items-center justify-center rounded-sm text-text-secondary transition-colors duration-200 hover:bg-white/10 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60'
+									href={`/dashboard/plugins/playground/${draftId}`}
+									rel='noopener'
+									target='_blank'
+								>
+									<Pencil aria-hidden className='size-4' />
+								</Link>
+							)}
 
 							<Button
 								aria-label={`Reload ${manifest?.name ?? 'developer plugin'}`}

@@ -385,14 +385,36 @@ export function mapPluginRequest(
 	];
 }
 
-/** Developer plugins load only from the developer's own machine. */
+const DRAFT_MANIFEST_PATH =
+	/^\/api\/plugins\/drafts\/([0-9a-f-]{36})\/files\/manifest\.json$/;
+
+/**
+ * The draft id when `value` is a playground draft's manifest on this same site (the
+ * author's own session serves it), else null.
+ */
+export function draftIdOfPluginUrl(value: string): string | null {
+	if (typeof window === 'undefined') return null;
+	try {
+		const url = new URL(value);
+		if (url.origin !== window.location.origin) return null;
+		return DRAFT_MANIFEST_PATH.exec(url.pathname)?.[1] ?? null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Developer plugins load only from the developer's own machine, or from their own
+ * playground drafts on this site.
+ */
 export function isLocalDevPluginUrl(value: string): boolean {
 	try {
 		const url = new URL(value);
 		return (
-			url.protocol === 'http:' &&
-			(url.hostname === 'localhost' || url.hostname === '127.0.0.1') &&
-			url.pathname.endsWith('.json')
+			(url.protocol === 'http:' &&
+				(url.hostname === 'localhost' || url.hostname === '127.0.0.1') &&
+				url.pathname.endsWith('.json')) ||
+			draftIdOfPluginUrl(value) !== null
 		);
 	} catch {
 		return false;

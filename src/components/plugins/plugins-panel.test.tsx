@@ -278,6 +278,27 @@ describe('PluginsPanel for the owner', () => {
 		expect(screen.queryByRole('link', { name: /Write a plugin/ })).not.toBeInTheDocument();
 	});
 
+	it('shows a playground draft as a draft, with a way back to edit it', async () => {
+		const draftUrl = `${window.location.origin}/api/plugins/drafts/0d6f2f4e-8c1b-4a51-9d0e-2b7d3c1f5a01/files/manifest.json`;
+		setup({
+			devPluginUrls: [draftUrl],
+			loadedPlugins: {
+				[draftUrl]: {
+					status: 'ready',
+					manifest: { id: 'dev.counter-0d6f2f4e', name: 'Counter', icon: 'puzzle', permissions: ['node:own'] },
+				},
+			},
+		});
+
+		expect(await screen.findByText('dev.counter-0d6f2f4e · Draft in Shiko')).toBeInTheDocument();
+		const edit = screen.getByRole('link', { name: 'Edit Counter in the playground' });
+		expect(edit).toHaveAttribute(
+			'href',
+			'/dashboard/plugins/playground/0d6f2f4e-8c1b-4a51-9d0e-2b7d3c1f5a01'
+		);
+		expect(edit).toHaveAttribute('target', '_blank');
+	});
+
 	it('closes', async () => {
 		const user = setup();
 

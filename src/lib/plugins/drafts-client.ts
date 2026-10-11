@@ -47,6 +47,10 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 	return body?.data as T;
 }
 
+/** A draft's manifest as this site serves it to its author; the developer loader reads it like a localhost one. */
+export const draftManifestUrl = (id: string) =>
+	`${window.location.origin}${PLUGIN_DRAFTS_KEY}/${id}/files/manifest.json`;
+
 export const listDrafts = () =>
 	requestJson<PluginDraftSummary[]>(PLUGIN_DRAFTS_KEY);
 

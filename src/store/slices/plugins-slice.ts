@@ -67,6 +67,21 @@ function writeDevPluginUrls(userId: string, mapId: string, urls: string[]) {
 	}
 }
 
+/**
+ * Remembers a developer plugin for a map without that map being open: the playground's
+ * "Try on a map" writes the draft's address where the map reads it when it opens.
+ */
+export function rememberDevPluginUrl(
+	userId: string,
+	mapId: string,
+	manifestUrl: string
+) {
+	const urls = readDevPluginUrls(userId, mapId);
+	if (!urls.includes(manifestUrl)) {
+		writeDevPluginUrls(userId, mapId, [...urls, manifestUrl]);
+	}
+}
+
 async function fetchManifest(
 	manifestUrl: string,
 	source: PluginSource

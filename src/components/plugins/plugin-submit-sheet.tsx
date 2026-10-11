@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
 	catalogManifestUrl,
+	draftIdOfPluginUrl,
 	findCatalogPlugin,
 	latestCatalogVersion,
 } from '@/lib/plugins/catalog';
@@ -177,6 +178,8 @@ export function PluginSubmitSheet({
 	} catch {
 		// Keep the raw text.
 	}
+	// A playground draft is served by this site, so name it rather than the site.
+	if (draftIdOfPluginUrl(manifestUrl)) host = 'your draft';
 
 	const submit = async () => {
 		setSending(true);

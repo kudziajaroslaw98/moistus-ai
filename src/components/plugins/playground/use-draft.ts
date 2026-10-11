@@ -70,7 +70,7 @@ export function useDraft(draftId: string) {
 
 	const savedRef = useRef<Editable | null>(null);
 	const revisionRef = useRef(1);
-	const savingRef = useRef<Promise<void> | null>(null);
+	const savingRef = useRef<Promise<boolean> | null>(null);
 	const localRef = useRef<Editable | null>(null);
 	useEffect(() => {
 		localRef.current = local;
@@ -102,24 +102,26 @@ export function useDraft(draftId: string) {
 		};
 	}, [draftId]);
 
-	const save = useCallback((): Promise<void> => {
-		if (savingRef.current) return savingRef.current;
+	const save = useCallback(async (): Promise<boolean> => {
+		// Wait out a save in flight; whatever was typed meanwhile goes in the next one.
+		while (savingRef.current) await savingRef.current;
 		const now = localRef.current;
 		const saved = savedRef.current;
-		if (!now || !saved) return Promise.resolve();
+		if (!now || !saved) return true;
 		const patch = changesSince(now, saved);
-		if (!patch) return Promise.resolve();
+		if (!patch) return true;
 
 		setSaveState('saving');
-		const running = saveDraft(draftId, revisionRef.current, patch)
-			.then((next) => {
+		const running = (async () => {
+			try {
+				const next = await saveDraft(draftId, revisionRef.current, patch);
 				// Merge what was sent, not the current text: typing may have moved on.
 				savedRef.current = { ...(savedRef.current as Editable), ...patch };
 				revisionRef.current = next.revision;
 				setDraft(next);
 				setSaveState('saved');
-			})
-			.catch((reason: unknown) => {
+				return true;
+			} catch (reason) {
 				if (
 					reason instanceof DraftRequestError &&
 					reason.isConflict &&
@@ -127,15 +129,16 @@ export function useDraft(draftId: string) {
 				) {
 					setConflict(reason.draft);
 					setSaveState('unsaved');
-					return;
+				} else {
+					setSaveState('error');
+					setTimeout(() => setTick((value) => value + 1), RETRY_MS);
 				}
-				setSaveState('error');
-				setTimeout(() => setTick((value) => value + 1), RETRY_MS);
-			})
-			.finally(() => {
+				return false;
+			} finally {
 				savingRef.current = null;
 				setTick((value) => value + 1);
-			});
+			}
+		})();
 		savingRef.current = running;
 		return running;
 	}, [draftId]);
@@ -210,7 +213,7 @@ export function useDraft(draftId: string) {
 		conflict,
 		loadNewer,
 		keepMine,
-		/** Saves now; resolves when the save ended (for submit and "Try on a map"). */
+		/** Saves now; resolves to whether everything is saved (for submit and "Try on a map"). */
 		flush: save,
 	};
 }
