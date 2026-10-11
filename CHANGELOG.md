@@ -53,7 +53,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Removed
 
-- **dashboard/sidebar**: The "Teams" and "Archive" entries marked Coming Soon. Neither had a page (`/dashboard/teams` and `/dashboard/archive` never existed) and neither is planned for now
+- **dashboard/sidebar**: The "Teams" and "Archive" entries marked Coming Soon. Neither had a page (`/dashboard/teams` and `/dashboard/archive` never existed) and neither is planned for now; the entry loading skeleton draws four sidebar rows instead of six to match
 
 ### Docs
 
