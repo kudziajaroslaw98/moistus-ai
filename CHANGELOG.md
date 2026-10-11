@@ -20,6 +20,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **plugins/developer-mode**: Developer mode now also covers writing plugins. While it's off, the playground, the start dialog, the panel and the versions sheet say so and hold the switch right there instead of sending you to settings. The switch's description says it
 - **plugins/api**: The Developer mode check for the developer network worker moved to `isDeveloperModeOn` (same behavior)
 
+### Fixed
+
+- **offline**: `queueMutation` no longer throws "crypto.randomUUID is not a function" (seen when saving preferences). That function only exists in secure contexts, so it was missing on plain-http LAN dev (and old browsers); the operation id now comes from `generateUuid`, which falls back to `getRandomValues`
+  - Why: every queued mutation (preferences, comments, nodes) goes through this call
+- **ids**: Same fix for the other browser call sites that used `crypto.randomUUID()` unguarded: default node ids in `node-factory`, new task ids in the task node, and the cursor session id (`use-realtime-cursor`)
+
 ### Docs
 
 - CLAUDE.md: "Plugin playground" gotcha; the migration note now says migrations stay local-only and are applied through the Supabase MCP (the old "must be force-added" was wrong)
