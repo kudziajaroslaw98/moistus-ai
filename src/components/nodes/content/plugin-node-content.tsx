@@ -4,6 +4,7 @@ import { PluginRefreshBar } from '@/components/plugins/plugin-refresh-bar';
 import { PluginUiTree } from '@/components/plugins/plugin-ui-tree';
 import { usePluginBranch } from '@/components/plugins/use-plugin-branch';
 import { usePluginLibrary } from '@/components/plugins/use-plugin-library';
+import { usePluginRefs } from '@/components/plugins/use-plugin-refs';
 import {
 	pluginRenderKey,
 	rememberPluginRender,
@@ -17,6 +18,7 @@ import {
 } from '@/lib/plugins/active-plugins';
 import { compareVersions, findCatalogPlugin } from '@/lib/plugins/catalog';
 import {
+	collectNodeRefs,
 	validatePluginData,
 	type PluginData,
 } from '@/lib/plugins/plugin-fields';
@@ -128,11 +130,18 @@ export function PluginNodeContent({
 		nodeId ?? branchRootId,
 		Boolean(active?.readsBranch)
 	);
+	// The nodes this node's data links to (nodes:refs plugins only).
+	const refIds = useMemo(
+		() => (active?.readsRefs && data ? collectNodeRefs(active.kind, data) : []),
+		[active, data]
+	);
+	const refs = usePluginRefs(refIds, Boolean(active?.readsRefs));
 	const render = usePluginRender({
 		active,
 		data,
 		canEdit: canEdit && !preview,
 		branch,
+		refs,
 		debounceMs: preview ? 150 : 0,
 	});
 
@@ -158,7 +167,7 @@ export function PluginNodeContent({
 		setBusy(true);
 		try {
 			const host = await loadPluginHost();
-			const ctx = pluginCallContext(true, branch);
+			const ctx = pluginCallContext(true, branch, refs);
 			const nextData = await host.action(
 				active.manifest.id,
 				active.kind,
@@ -174,7 +183,7 @@ export function PluginNodeContent({
 				ctx
 			);
 			rememberPluginRender(
-				pluginRenderKey(active, nextData, true, branch),
+				pluginRenderKey(active, nextData, true, branch, undefined, refs),
 				rendered
 			);
 

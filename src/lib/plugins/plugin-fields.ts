@@ -48,6 +48,8 @@ const FIELD_TOKEN = /(^|\s)([a-z][a-zA-Z0-9]{0,23}):(?:"([^"\n]*)"|([^\s"]+))/g;
 /** The start of a list value: `name:[`. */
 const LIST_START = /(^|\s)([a-z][a-zA-Z0-9]{0,23}):\[/g;
 const ROW_ID = /^[a-z0-9]{1,16}$/;
+/** Node ids are v4 UUIDs (`generateUuid`). */
+const NODE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const TRUE_WORDS = new Set(['true', 'yes', 'on', '1']);
 const FALSE_WORDS = new Set(['false', 'no', 'off', '0']);
@@ -353,22 +355,23 @@ function parseListValue(spec: PluginListFieldSpec, span: ListSpan): Coerced<Plug
 }
 
 // ---------------------------------------------------------------------------
-// Fields only refresh fills
+// Fields only refresh or an action fills
 
 const editorKinds = new WeakMap<PluginNodeKind, PluginNodeKind>();
 
 /**
- * The kind as the node editor sees it: fields with `setBy: "refresh"` (data fetched from
- * a site) are left out, so they're never typed, suggested or listed in Syntax Help.
+ * The kind as the node editor sees it: fields with `setBy` (fetched by refresh, or set by
+ * an action such as a node link) are left out, so they're never typed, suggested or
+ * listed in Syntax Help.
  */
 export function editorKind(kind: PluginNodeKind): PluginNodeKind {
-	if (!Object.values(kind.fields).some((spec) => spec.setBy === 'refresh')) return kind;
+	if (!Object.values(kind.fields).some((spec) => spec.setBy)) return kind;
 	let typed = editorKinds.get(kind);
 	if (!typed) {
 		typed = {
 			...kind,
 			fields: Object.fromEntries(
-				Object.entries(kind.fields).filter(([, spec]) => spec.setBy !== 'refresh')
+				Object.entries(kind.fields).filter(([, spec]) => !spec.setBy)
 			),
 		};
 		editorKinds.set(kind, typed);
@@ -376,8 +379,8 @@ export function editorKind(kind: PluginNodeKind): PluginNodeKind {
 	return typed;
 }
 
-/** Typed editor data plus the refresh-only fields the node already had. */
-export function keepRefreshFields(
+/** Typed editor data plus the `setBy` fields (refresh or action) the node already had. */
+export function keepSetByFields(
 	kind: PluginNodeKind,
 	typed: PluginData,
 	existing: Record<string, unknown> | null | undefined
@@ -385,11 +388,31 @@ export function keepRefreshFields(
 	if (!existing) return typed;
 	const kept: PluginData = { ...typed };
 	for (const [name, spec] of Object.entries(kind.fields)) {
-		if (spec.setBy === 'refresh' && existing[name] !== undefined) {
+		if (spec.setBy && existing[name] !== undefined) {
 			kept[name] = existing[name] as PluginFieldValue;
 		}
 	}
 	return kept;
+}
+
+/** Ids of the nodes this data links to, once each, in the order they appear. */
+export function collectNodeRefs(kind: PluginNodeKind, data: PluginData): string[] {
+	const found = new Set<string>();
+	for (const [name, spec] of Object.entries(kind.fields)) {
+		const value = data[name];
+		if (spec.type === 'string' && spec.ref === 'node') {
+			if (typeof value === 'string' && NODE_ID.test(value)) found.add(value);
+		} else if (spec.type === 'list' && Array.isArray(value)) {
+			for (const column of spec.columns) {
+				if (column.type !== 'string' || column.ref !== 'node') continue;
+				for (const row of value) {
+					const id = row[column.name];
+					if (typeof id === 'string' && NODE_ID.test(id)) found.add(id);
+				}
+			}
+		}
+	}
+	return [...found];
 }
 
 // ---------------------------------------------------------------------------
@@ -669,6 +692,9 @@ function checkValue(
 			// Quoted field values can't contain `"`; the free-text label can.
 			if (!isLabel && value.includes('"')) {
 				return { ok: false, message: `${name} can't contain double quotes` };
+			}
+			if (spec.ref === 'node' && !NODE_ID.test(value)) {
+				return { ok: false, message: `${name} must be a node id` };
 			}
 			return coerceTyped(spec, value);
 		case 'number':

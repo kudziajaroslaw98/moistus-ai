@@ -57,6 +57,22 @@ export function PluginPowersLine({ manifest }: { manifest: PluginManifest }) {
 		);
 	}
 
+	if (powers.kind === 'refs') {
+		return (
+			<p
+				className='flex items-start gap-2 text-xs leading-[17px] text-text-secondary'
+				data-testid='plugin-powers'
+			>
+				<ListTree
+					aria-hidden
+					className='mt-px size-3.5 shrink-0 text-violet-300'
+				/>
+				Reads the nodes you link to its nodes, to show them. Nothing leaves your
+				browser.
+			</p>
+		);
+	}
+
 	return (
 		<p
 			className='flex items-start gap-2 text-xs text-text-secondary'
@@ -137,6 +153,13 @@ export function PluginPowersConfirm({
 						{`It contacts ${listHosts(powers.sites)} only when someone editing the map adds one or presses Refresh. Everyone else sees the saved result, and viewing the map never contacts ${operators}. You can turn it off any time.`}
 					</p>
 				</>
+			) : powers.kind === 'refs' ? (
+				<p className='text-[13px] leading-[18px] text-zinc-200'>
+					It reads the nodes you link to from its nodes (their text, tasks,
+					people, dates and tags) to show them. It can’t read the rest of the map
+					or reach any site, so nothing leaves the browser. You can turn it off
+					any time.
+				</p>
 			) : (
 				<p className='text-[13px] leading-[18px] text-zinc-200'>
 					It reads the nodes under each of its nodes (their text, tasks, people,

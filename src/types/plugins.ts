@@ -52,6 +52,8 @@ export interface ActivePluginKind {
 	canRefresh?: boolean;
 	/** The plugin has `branch:read`: render and actions get `ctx.branch`. */
 	readsBranch?: boolean;
+	/** The plugin has `nodes:refs`: render and actions get `ctx.refs`. */
+	readsRefs?: boolean;
 }
 
 /** A refresh running on a node, or why the last one failed (this browser only). */

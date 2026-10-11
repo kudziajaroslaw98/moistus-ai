@@ -10,9 +10,10 @@ import {
 	type DraftProgram,
 } from '@/lib/plugins/playground/draft-program';
 import type { FetchAll } from '@/lib/plugins/playground/mock-network';
-import { sampleBranch } from '@/lib/plugins/playground/sample-data';
+import { sampleBranch, sampleRefs } from '@/lib/plugins/playground/sample-data';
 import type { PluginCheck } from '@/lib/plugins/plugin-checks';
 import {
+	collectNodeRefs,
 	validatePluginData,
 	type PluginData,
 } from '@/lib/plugins/plugin-fields';
@@ -205,13 +206,15 @@ export function usePlaygroundNode({
 	const validated = useRef<PluginData | null>(null);
 
 	const readsBranch = manifest?.permissions.includes('branch:read') ?? false;
+	const readsRefs = manifest?.permissions.includes('nodes:refs') ?? false;
 	const context = useMemo(
 		() =>
 			pluginCallContext(
 				canEdit,
-				readsBranch ? sampleBranch(localDateString()) : null
+				readsBranch ? sampleBranch(localDateString()) : null,
+				readsRefs && kind ? sampleRefs(collectNodeRefs(kind, data)) : null
 			),
-		[canEdit, readsBranch]
+		[canEdit, readsBranch, readsRefs, kind, data]
 	);
 
 	useEffect(() => {

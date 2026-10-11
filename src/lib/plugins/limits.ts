@@ -29,3 +29,6 @@ export const PLUGIN_REQUEST_LIMITS = {
 
 /** What `ctx.branch` holds for plugins with `branch:read` (built in branch-context.ts). */
 export const PLUGIN_BRANCH_LIMITS = { nodes: 150, text: 500 } as const;
+
+/** What `ctx.refs` holds for plugins with `nodes:refs` (built in ref-context.ts). */
+export const PLUGIN_REF_LIMITS = { nodes: 150 } as const;

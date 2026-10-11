@@ -70,6 +70,7 @@ function GroupHeader({ label, count }: { label: string; count: number }) {
 const POWER_ICONS = {
 	own: ShieldCheck,
 	branch: ListTree,
+	refs: ListTree,
 	network: Globe,
 } as const;
 

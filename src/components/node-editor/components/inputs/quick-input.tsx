@@ -7,7 +7,8 @@ import { useTouchFirst } from '@/hooks/use-touch-first';
 import { findActivePluginKind } from '@/lib/plugins/active-plugins';
 import {
 	assignListRowIds,
-	keepRefreshFields,
+	collectNodeRefs,
+	keepSetByFields,
 	parsePluginFieldInput,
 	serializePluginFieldInput,
 	validatePluginData,
@@ -63,6 +64,7 @@ import { PluginEditorPreview } from '../preview/plugin-editor-preview';
 import { toPluginFieldSpecs } from '../../integrations/codemirror/plugin-fields';
 import { pluginCallContext } from '@/lib/plugins/call-context';
 import { buildPluginBranch } from '@/lib/plugins/branch-context';
+import { buildPluginRefs } from '@/lib/plugins/ref-context';
 import { markRefreshNoteSeen } from '@/components/plugins/refresh-note';
 import { buildPluginKindConfig, buildPluginNodeSaveData } from '../../plugin-kind-editor';
 import { EnhancedInput } from './enhanced-input';
@@ -729,7 +731,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 						: null;
 				const draft = {
 					...pluginDraft,
-					data: keepRefreshFields(
+					data: keepSetByFields(
 						activePluginKind.kind,
 						assignListRowIds(activePluginKind.kind, pluginDraft.data, previousData),
 						previousData
@@ -740,6 +742,12 @@ export const QuickInput: FC<QuickInputProps> = ({
 					activePluginKind.readsBranch && existingNode
 						? buildPluginBranch(existingNode.id, storeNodes, storeEdges)
 						: null;
+				const refs = activePluginKind.readsRefs
+					? buildPluginRefs(
+							collectNodeRefs(activePluginKind.kind, draft.data),
+							storeNodes
+						)
+					: null;
 				// Save the plugin's view too, so people without the plugin see it.
 				const rendered = await loadPluginHost()
 					.then((host) =>
@@ -747,7 +755,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 							activePluginKind.manifest.id,
 							activePluginKind.kind,
 							draft.data,
-							pluginCallContext(true, branch)
+							pluginCallContext(true, branch, refs)
 						)
 					)
 					.catch(() => null);

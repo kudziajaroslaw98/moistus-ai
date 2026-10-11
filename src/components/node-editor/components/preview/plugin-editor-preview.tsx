@@ -3,7 +3,7 @@
 import { PluginNodeContent } from '@/components/nodes/content/plugin-node-content';
 import { PluginSitesSentence } from '@/components/plugins/plugin-site-note';
 import {
-	keepRefreshFields,
+	keepSetByFields,
 	type ParsedPluginFields,
 } from '@/lib/plugins/plugin-fields';
 import { pluginPowers } from '@/lib/plugins/powers';
@@ -36,7 +36,7 @@ export function PluginEditorPreview({
 }: PluginEditorPreviewProps) {
 	const data = useMemo(
 		() =>
-			active && parsed ? keepRefreshFields(active.kind, parsed.data, savedData) : null,
+			active && parsed ? keepSetByFields(active.kind, parsed.data, savedData) : null,
 		[active, parsed, savedData]
 	);
 	const powers = active ? pluginPowers(active.manifest) : null;

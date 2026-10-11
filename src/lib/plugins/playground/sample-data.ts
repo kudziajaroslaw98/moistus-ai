@@ -1,5 +1,6 @@
 import type { PluginBranchNode } from '@/lib/plugins/branch-context';
 import type { PluginNodeKind } from '@/lib/plugins/manifest-schema';
+import type { PluginRefs } from '@/lib/plugins/ref-context';
 import {
 	defaultPluginData,
 	parsePluginFieldInput,
@@ -16,6 +17,25 @@ export function seedSampleData(kind: PluginNodeKind): PluginData {
 	return example
 		? parsePluginFieldInput(example, kind).data
 		: defaultPluginData(kind);
+}
+
+/** Stand-ins for the nodes a `nodes:refs` plugin's data links to, so its preview has text to show. */
+export function sampleRefs(ids: readonly string[]): PluginRefs {
+	return Object.fromEntries(
+		ids.map((id, index) => [
+			id,
+			{
+				type: 'note',
+				text: `Sample node ${index + 1}`,
+				tasks: null,
+				status: null,
+				priority: null,
+				assignees: [],
+				due: null,
+				tags: [],
+			},
+		])
+	);
 }
 
 /** A small branch for plugins with `branch:read`, so their preview has something to read. */

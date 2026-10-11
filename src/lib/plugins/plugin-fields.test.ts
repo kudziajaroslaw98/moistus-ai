@@ -3,8 +3,9 @@ import { pluginManifestSchema, pluginNodeKindSchema } from './manifest-schema';
 import { issueManifest } from './runtime/test-network-plugin';
 import {
 	assignListRowIds,
+	collectNodeRefs,
 	editorKind,
-	keepRefreshFields,
+	keepSetByFields,
 	parsePluginFieldInput,
 	scanPluginFieldTokens,
 	serializePluginFieldInput,
@@ -366,13 +367,82 @@ describe('fields set by refresh', () => {
 		expect(serializePluginFieldInput(issue, saved)).toBe('Login bug repo:shiko/app number:482');
 
 		const typed = parsePluginFieldInput('Login bug repo:shiko/app number:483', issue).data;
-		expect(keepRefreshFields(issue, typed, saved)).toEqual({
+		expect(keepSetByFields(issue, typed, saved)).toEqual({
 			label: 'Login bug',
 			repo: 'shiko/app',
 			number: 483,
 			title: 'Fix login',
 			state: 'open',
 		});
-		expect(validatePluginData(issue, keepRefreshFields(issue, typed, saved)).ok).toBe(true);
+		expect(validatePluginData(issue, keepSetByFields(issue, typed, saved)).ok).toBe(true);
+	});
+});
+
+describe('node links', () => {
+	const A = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+	const B = '3f2504e0-4f89-41d3-9a0c-0305e82c3302';
+
+	const kind = pluginNodeKindSchema.parse({
+		kind: 'threads',
+		label: 'Threads',
+		description: 'Open questions',
+		icon: 'puzzle',
+		labelField: 'title',
+		fields: {
+			title: { type: 'string', title: 'Title' },
+			pinned: { type: 'string', title: 'Pinned', setBy: 'action', ref: 'node' },
+			stops: {
+				type: 'list',
+				title: 'Stops',
+				setBy: 'action',
+				maxItems: 100,
+				columns: [
+					{ name: 'thread', type: 'string', title: 'Thread' },
+					{ name: 'node', type: 'string', title: 'Node', ref: 'node' },
+				],
+			},
+		},
+	});
+
+	it('are checked as node ids when a plugin returns them', () => {
+		expect(
+			validatePluginData(kind, { title: 'T', stops: [{ thread: 'a1', node: A }] }).ok
+		).toBe(true);
+
+		const bad = validatePluginData(kind, {
+			title: 'T',
+			stops: [{ thread: 'a1', node: 'not-a-node' }],
+		});
+		expect(bad.ok).toBe(false);
+		expect(!bad.ok && bad.errors[0].message).toContain('must be a node id');
+		expect(validatePluginData(kind, { title: 'T', pinned: 'x' }).ok).toBe(false);
+	});
+
+	it('are collected once each, from fields and list columns', () => {
+		expect(
+			collectNodeRefs(kind, {
+				title: 'T',
+				pinned: B,
+				stops: [
+					{ thread: 'a1', node: A },
+					{ thread: 'a2', node: A },
+					{ thread: 'a2', node: B },
+				],
+			})
+		).toEqual([B, A]);
+		expect(collectNodeRefs(kind, { title: 'T', stops: [{ thread: 'a1', node: 'nope' }] })).toEqual([]);
+	});
+
+	it('stay out of the editor text and are kept when it is saved', () => {
+		const saved = { title: 'Open threads', pinned: A, stops: [{ id: 'x1y2z3', thread: 'a1', node: B }] };
+		expect(Object.keys(editorKind(kind).fields)).toEqual(['title']);
+		expect(serializePluginFieldInput(kind, saved)).toBe('Open threads');
+
+		const typed = parsePluginFieldInput('Renamed', kind).data;
+		expect(keepSetByFields(kind, typed, saved)).toEqual({
+			title: 'Renamed',
+			pinned: A,
+			stops: saved.stops,
+		});
 	});
 });

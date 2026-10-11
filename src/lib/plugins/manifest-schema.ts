@@ -27,11 +27,16 @@ export type PluginIconKey = (typeof PLUGIN_ICON_KEYS)[number];
 
 /**
  * Powers a plugin can ask for. Every plugin has `node:own` (its own nodes). On top of it a
- * plugin may read the branch under its node (`branch:read`) or reach up to three sites
- * (`network:<host>`), never both: a plugin that can read other people's text can't send
+ * plugin may read the branch under its node (`branch:read`), read the nodes its own data
+ * links to (`nodes:refs`), or reach up to three sites (`network:<host>`). Reaching sites
+ * excludes both reading powers: a plugin that can read other people's text can't send
  * anything out, and one that reaches a site only ever sends what's typed into its node.
  */
-export type PluginPermission = 'node:own' | 'branch:read' | `network:${string}`;
+export type PluginPermission =
+	| 'node:own'
+	| 'branch:read'
+	| 'nodes:refs'
+	| `network:${string}`;
 
 export const PLUGIN_POWER_LIMITS = { networkHosts: 3 } as const;
 
@@ -89,11 +94,12 @@ const permissionSchema = z
 	.string()
 	.max(270)
 	.superRefine((value, ctx) => {
-		if (value === 'node:own' || value === 'branch:read') return;
+		if (value === 'node:own' || value === 'branch:read' || value === 'nodes:refs')
+			return;
 		const host = networkHostOf(value);
 		const problem = host
 			? networkHostProblem(host)
-			: `Unknown power "${value}" (use node:own, branch:read or network:<host>)`;
+			: `Unknown power "${value}" (use node:own, branch:read, nodes:refs or network:<host>)`;
 		if (problem) ctx.addIssue({ code: 'custom', message: problem });
 	})
 	.transform((value) => value as PluginPermission);
@@ -152,8 +158,10 @@ export const PLUGIN_LIMITS = {
 	defaultStringMaxLength: 200,
 	/** Max serialized size of a node's plugin data, and of its saved snapshot. */
 	dataBytes: 16 * 1024,
-	/** Rows in one list field (also the default when a list sets no maxItems). */
+	/** Rows in one list field when it sets no maxItems. */
 	listItems: 30,
+	/** The most `maxItems` a list field can ask for. */
+	listItemsMax: 100,
 	listColumns: 6,
 } as const;
 
@@ -180,11 +188,19 @@ const fieldBase = {
 	title: z.string().trim().min(1).max(40),
 	description: z.string().trim().max(140).optional(),
 	/**
-	 * `refresh`: only the plugin's refresh fills it (data fetched from a site). It's checked
-	 * like any field but isn't typed in the node editor, and can't be required.
+	 * `refresh`: only the plugin's refresh fills it (data fetched from a site).
+	 * `action`: only the plugin's actions fill it (links to nodes, set by clicking).
+	 * Either way it's checked like any field but isn't typed in the node editor, is kept
+	 * when the node is edited there, and can't be required.
 	 */
-	setBy: z.literal('refresh').optional(),
+	setBy: z.enum(['refresh', 'action']).optional(),
 };
+
+/**
+ * A string that holds the id of a node on this map. Checked as a node id, resolved into
+ * `ctx.refs` for plugins with `nodes:refs`, and the reason such nodes can't be copied.
+ */
+const nodeRef = { ref: z.literal('node').optional() };
 
 const columnBase = {
 	name: fieldNameSchema,
@@ -196,6 +212,7 @@ const columnBase = {
 export const pluginListColumnSchema = z.discriminatedUnion('type', [
 	z.strictObject({
 		...columnBase,
+		...nodeRef,
 		type: z.literal('string'),
 		required: z.boolean().optional(),
 		maxLength: z
@@ -228,6 +245,7 @@ export type PluginListColumn = z.infer<typeof pluginListColumnSchema>;
 export const pluginFieldSpecSchema = z.discriminatedUnion('type', [
 	z.strictObject({
 		...fieldBase,
+		...nodeRef,
 		type: z.literal('string'),
 		required: z.boolean().optional(),
 		default: z.string().optional(),
@@ -274,7 +292,7 @@ export const pluginFieldSpecSchema = z.discriminatedUnion('type', [
 			.array(pluginListColumnSchema)
 			.min(1)
 			.max(PLUGIN_LIMITS.listColumns),
-		maxItems: z.number().int().min(1).max(PLUGIN_LIMITS.listItems).optional(),
+		maxItems: z.number().int().min(1).max(PLUGIN_LIMITS.listItemsMax).optional(),
 	}),
 ]);
 export type PluginFieldSpec = z.infer<typeof pluginFieldSpecSchema>;
@@ -318,18 +336,25 @@ export const pluginNodeKindSchema = z
 			});
 		}
 		for (const [name, spec] of Object.entries(kind.fields)) {
-			if (spec.setBy === 'refresh' && 'required' in spec && spec.required) {
+			if (spec.setBy && 'required' in spec && spec.required) {
 				ctx.addIssue({
 					code: 'custom',
 					path: ['fields', name],
-					message: 'A field set by refresh can’t be required',
+					message: `A field set by ${spec.setBy} can’t be required`,
 				});
 			}
-			if (spec.setBy === 'refresh' && name === kind.labelField) {
+			if (spec.setBy && name === kind.labelField) {
 				ctx.addIssue({
 					code: 'custom',
 					path: ['fields', name],
-					message: 'The labelField is typed, so refresh can’t set it',
+					message: `The labelField is typed, so ${spec.setBy} can’t set it`,
+				});
+			}
+			if (spec.type === 'string' && spec.ref && !spec.setBy) {
+				ctx.addIssue({
+					code: 'custom',
+					path: ['fields', name],
+					message: 'A field that holds a node id is set by an action: add setBy: "action"',
 				});
 			}
 			if (
@@ -372,6 +397,13 @@ export const pluginNodeKindSchema = z
 					});
 				}
 				for (const column of spec.columns) {
+					if (column.type === 'string' && column.ref && !spec.setBy) {
+						ctx.addIssue({
+							code: 'custom',
+							path: ['fields', name, 'columns'],
+							message: `${column.name} holds node ids, so ${name} is set by an action: add setBy: "action"`,
+						});
+					}
 					if (
 						column.type === 'enum' &&
 						column.default &&
@@ -388,6 +420,16 @@ export const pluginNodeKindSchema = z
 		}
 	});
 export type PluginNodeKind = z.infer<typeof pluginNodeKindSchema>;
+
+/** Whether any field, or any column of a list field, holds node ids. */
+export function kindHasNodeRefs(kind: PluginNodeKind): boolean {
+	return Object.values(kind.fields).some((spec) =>
+		spec.type === 'string'
+			? spec.ref === 'node'
+			: spec.type === 'list' &&
+				spec.columns.some((column) => column.type === 'string' && column.ref === 'node')
+	);
+}
 
 export const pluginManifestSchema = z
 	.strictObject({
@@ -433,6 +475,11 @@ export const pluginManifestSchema = z
 				['permissions'],
 				'A plugin can reach sites or read the branch, not both'
 			);
+		if (hosts.length > 0 && permissions.includes('nodes:refs'))
+			issue(
+				['permissions'],
+				'A plugin can reach sites or read the nodes it links to, not both'
+			);
 		for (const host of hosts) {
 			if (!manifest.networkHosts?.[host])
 				issue(['networkHosts'], `Say who runs ${host}: networkHosts["${host}"]`);
@@ -446,6 +493,11 @@ export const pluginManifestSchema = z
 		);
 		if (setByRefresh && hosts.length === 0)
 			issue(['nodeKinds'], 'Fields set by refresh need a network:<host> power');
+		if (
+			manifest.nodeKinds.some((kind) => kindHasNodeRefs(kind)) &&
+			!permissions.includes('nodes:refs')
+		)
+			issue(['permissions'], 'Fields that hold node ids need the "nodes:refs" power');
 
 		const kinds = manifest.nodeKinds.map((kind) => kind.kind);
 		if (new Set(kinds).size !== kinds.length) {
