@@ -16,6 +16,7 @@ import {
 	type PluginData,
 } from './plugin-fields';
 import { createPluginSandbox, type PluginSandbox } from './runtime/sandbox';
+import { findPluginPick } from './ui-tree';
 import { nodeTestVariant } from './runtime/test-quickjs-variant';
 
 let QuickJS: QuickJSWASMModule;
@@ -477,6 +478,208 @@ describe('Wikipedia summary', () => {
 			expect(missing.error).toBe('Wikipedia has no article called “Mercury”.');
 		} finally {
 			sandbox.dispose();
+		}
+	});
+});
+
+describe('Threads', () => {
+	const A = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+	const B = '3f2504e0-4f89-41d3-9a0c-0305e82c3302';
+	const TEXT = [
+		'Open threads',
+		'[ ] Who sent the letter?',
+		'[ ] Where is the second chart?',
+		'[x] Who is the Cartographer working for?',
+		'[-] What happens to the second chart?',
+	].join('\n');
+	const node = (text: string) => ({
+		type: 'note',
+		text,
+		tasks: null,
+		status: null,
+		priority: null,
+		assignees: [],
+		due: null,
+		tags: [],
+	});
+	const rows = (data: PluginData, field: string) => data[field] as Array<Record<string, string>>;
+
+	function setup(text = TEXT) {
+		const loaded = load('shiko.threads', text);
+		const threadId = (index: number) => rows(loaded.data, 'threads')[index].id;
+		const act = (data: PluginData, action: string, payload: unknown) =>
+			assignListRowIds(loaded.kind, loaded.sandbox.action('threads', action, data, payload, ctx()) as PluginData, data);
+		const view = (data: PluginData, refs: Record<string, unknown> = {}, canEdit = true) =>
+			JSON.stringify(loaded.sandbox.render('threads', data, { ...ctx(undefined, canEdit), refs }).tree);
+		return { ...loaded, threadId, act, view };
+	}
+
+	it('draws the open threads first, with how many are resolved', () => {
+		const { sandbox, data, view } = setup();
+		try {
+			const drawn = view(data);
+			expect(drawn).toContain('Who sent the letter?');
+			expect(drawn).toContain('1 of 4 resolved');
+			expect(drawn).toContain('No stops yet');
+			expect(drawn).not.toContain('Who is the Cartographer working for?');
+			expect(drawn).toContain('Show 1 resolved, 1 dropped');
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
+	it('adds the clicked node as a stop, shows the thread, and removes it on a second click', () => {
+		const { sandbox, data, threadId, act, view } = setup();
+		try {
+			const one = act(data, 'addStop', { thread: threadId(0), nodeId: A });
+			expect(rows(one, 'stops')).toEqual([expect.objectContaining({ thread: threadId(0), node: A })]);
+			expect(one.current).toBe(threadId(0));
+			expect(validatePluginData(pluginManifestSchema.parse(JSON.parse(file('shiko.threads', 'manifest.json'))).nodeKinds[0], one).ok).toBe(true);
+
+			const two = act(one, 'addStop', { thread: threadId(0), nodeId: B });
+			expect(rows(two, 'stops').map((stop) => stop.node)).toEqual([A, B]);
+
+			const drawn = view(two, { [A]: node('Ch. 3 A letter arrives'), [B]: node('Ch. 6 The map') });
+			expect(drawn).toContain('Raised in Ch. 3 A letter arrives · 2 stops');
+			expect(drawn).toContain('"value":"1"');
+			expect(drawn).toContain('Ch. 6 The map');
+
+			const back = act(two, 'addStop', { thread: threadId(0), nodeId: A });
+			expect(rows(back, 'stops').map((stop) => stop.node)).toEqual([B]);
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
+	it('numbers the nodes the canvas should mark, in order, for the pick bar', () => {
+		const { sandbox, data, threadId, act, view } = setup();
+		try {
+			const next = act(act(data, 'addStop', { thread: threadId(0), nodeId: A }), 'addStop', {
+				thread: threadId(0),
+				nodeId: B,
+			});
+			const tree = JSON.parse(view(next, { [A]: node('a'), [B]: node('b') }));
+			const pick = findPluginPick(tree, 'addStop', { thread: threadId(0) });
+
+			expect(pick).toEqual({
+				title: 'Adding stops to “Who sent the letter?”',
+				hint: '2 stops so far. Click a node to add it, click a numbered one to remove it.',
+				marked: [A, B],
+			});
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
+	it('warns about a stop whose node was deleted, and counts the thread', () => {
+		const { sandbox, data, threadId, act, view } = setup();
+		try {
+			const next = act(act(data, 'addStop', { thread: threadId(0), nodeId: A }), 'addStop', {
+				thread: threadId(0),
+				nodeId: B,
+			});
+			const drawn = view(next, { [A]: node('Ch. 3 A letter arrives') });
+
+			expect(drawn).toContain('This node was deleted');
+			expect(drawn).toContain('1 needs a look');
+			expect(drawn).toContain('1 stop, 1 deleted');
+
+			const allGone = view(next, {});
+			expect(allGone).toContain('All stops were deleted');
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
+	it('keeps stops on their thread and drops them with it', () => {
+		const { sandbox, data, threadId, act } = setup();
+		try {
+			const one = act(act(data, 'addStop', { thread: threadId(0), nodeId: A }), 'addStop', {
+				thread: threadId(1),
+				nodeId: B,
+			});
+			const removed = act(one, 'remove', { id: threadId(0) });
+
+			expect(rows(removed, 'threads')).toHaveLength(3);
+			expect(rows(removed, 'stops').map((stop) => stop.node)).toEqual([B]);
+
+			const stopId = rows(one, 'stops')[1].id;
+			expect(rows(act(one, 'removeStop', { id: stopId }), 'stops').map((stop) => stop.node)).toEqual([A]);
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
+	it('changes status, toggles the stops and the closed threads', () => {
+		const { sandbox, data, threadId, act, view } = setup();
+		try {
+			const resolved = act(data, 'setStatus', { id: threadId(0), status: 'resolved' });
+			expect(rows(resolved, 'threads')[0].status).toBe('resolved');
+			expect(view(resolved)).toContain('2 of 4 resolved');
+			expect(act(data, 'setStatus', { id: threadId(0), status: 'nonsense' })).toEqual(data);
+
+			const open = act(data, 'toggleStops', { id: threadId(1) });
+			expect(open.current).toBe(threadId(1));
+			expect('current' in act(open, 'toggleStops', { id: threadId(1) })).toBe(false);
+			expect(act(data, 'toggleStops', { id: 'nope' })).toEqual(data);
+
+			const shown = act(data, 'toggleClosed', null);
+			expect(view(shown)).toContain('Who is the Cartographer working for?');
+			expect(view(shown)).toContain('Hide resolved and dropped');
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
+	it('ignores a pick that names no node, and stops at the caps', () => {
+		const { sandbox, data, threadId, act } = setup();
+		try {
+			expect(act(data, 'addStop', { thread: threadId(0) })).toEqual(data);
+			expect(act(data, 'addStop', { thread: 'nope', nodeId: A })).toEqual(data);
+
+			let next = data;
+			for (let index = 0; index < 13; index += 1) {
+				const id = `3f2504e0-4f89-41d3-9a0c-0305e82c33${String(index).padStart(2, '0')}`;
+				next = act(next, 'addStop', { thread: threadId(0), nodeId: id });
+			}
+			expect(rows(next, 'stops')).toHaveLength(12);
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
+	it('gives viewers the list without the menu or buttons', () => {
+		const { sandbox, data, view } = setup();
+		try {
+			const drawn = view(data, {}, false);
+
+			expect(drawn).toContain('Who sent the letter?');
+			expect(drawn).not.toContain('"type":"menu"');
+			expect(drawn).not.toContain('"type":"button"');
+			expect(drawn).toContain('1 resolved, 1 dropped hidden');
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
+	it('starts empty with a way to add the first thread, and turns green when none are open', () => {
+		const empty = setup('Open threads');
+		try {
+			const drawn = empty.view(empty.data);
+			expect(drawn).toContain('Track things that are raised');
+			expect(drawn).toContain('"edit":true');
+		} finally {
+			empty.sandbox.dispose();
+		}
+
+		const done = setup('Plot\n[x] One\n[x] Two');
+		try {
+			const drawn = done.view(done.data);
+			expect(drawn).toContain('None open');
+			expect(drawn).toContain('"tone":"success"');
+			expect(drawn).toContain('Nothing left open.');
+		} finally {
+			done.sandbox.dispose();
 		}
 	});
 });

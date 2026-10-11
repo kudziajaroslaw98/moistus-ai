@@ -174,6 +174,19 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 		],
 	},
 	{
+		id: 'shiko.threads',
+		name: 'Threads',
+		versions: [
+			{
+				version: '0.1.0',
+				sha256:
+					'4f8bb0929161a77bcf04813a68e077e011c59bd566eed1e1aab64c22b4c0c5f2',
+				permissions: ['node:own', 'nodes:refs'],
+				notes: 'Open questions, and the nodes where each one comes up.',
+			},
+		],
+	},
+	{
 		id: 'shiko.github-issue',
 		name: 'GitHub issue',
 		versions: [
