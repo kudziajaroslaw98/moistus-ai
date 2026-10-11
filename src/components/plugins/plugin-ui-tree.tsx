@@ -1,9 +1,16 @@
 'use client';
 
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { PLUGIN_UI_ICONS } from '@/lib/plugins/plugin-icons';
-import type { PluginUiNode } from '@/lib/plugins/ui-tree';
+import type { PluginUiNode, PluginUiPick } from '@/lib/plugins/ui-tree';
 import { cn } from '@/utils/cn';
-import { Check } from 'lucide-react';
+import { Check, Ellipsis } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 /**
@@ -27,6 +34,10 @@ const TEXT_TONE = {
 	default: 'text-white/87',
 	muted: 'text-white/60',
 	strong: 'text-zinc-100',
+	info: 'text-blue-400/90',
+	success: 'text-emerald-400/90',
+	warning: 'text-amber-400/90',
+	danger: 'text-red-500/90',
 } as const;
 
 const TEXT_WEIGHT = {
@@ -41,6 +52,15 @@ const BADGE_TONE: Record<Tone, string> = {
 	warning: 'border-amber-400/20 bg-amber-400/10 text-amber-400/90',
 	danger: 'border-red-500/20 bg-red-500/10 text-red-500/90',
 	info: 'border-blue-400/20 bg-blue-400/10 text-blue-400/90',
+};
+
+/** A tinted group (a `stack` or `row` with a tone): the badge colors, as a panel. */
+const PANEL_TONE: Record<Tone, string> = {
+	neutral: 'border-white/10 bg-white/5',
+	success: 'border-emerald-400/20 bg-emerald-400/10',
+	warning: 'border-amber-400/20 bg-amber-400/10',
+	danger: 'border-red-500/20 bg-red-500/10',
+	info: 'border-blue-400/20 bg-blue-400/10',
 };
 
 const ICON_TONE: Record<Tone, string> = {
@@ -68,17 +88,28 @@ const JUSTIFY = {
 
 export interface PluginUiTreeProps {
 	tree: PluginUiNode;
-	/** Called for buttons and checkboxes. Omit to render them disabled (previews, viewers). */
+	/** Called for buttons, menu items and checkboxes. Omit to render them disabled (previews, viewers). */
 	onAction?: (action: string, payload: unknown) => void;
+	/**
+	 * Called instead of `onAction` for a button or menu item that asks for a node to be
+	 * picked on the canvas. Without it (the playground has no map) the action runs as is.
+	 */
+	onPick?: (pick: PluginUiPick, action: string, payload: unknown) => void;
 	disabled?: boolean;
 }
 
 export function PluginUiTree({
 	tree,
 	onAction,
+	onPick,
 	disabled = false,
 }: PluginUiTreeProps) {
 	const interactive = Boolean(onAction) && !disabled;
+
+	const run = (action: string, payload: unknown, pick?: PluginUiPick) => {
+		if (pick && onPick) onPick(pick, action, payload);
+		else onAction?.(action, payload);
+	};
 
 	// A plugin's `key` (e.g. a list row id) keeps focus on the right row when rows move.
 	// Missing or repeated keys fall back to the position.
@@ -100,7 +131,8 @@ export function PluginUiTree({
 						className={cn(
 							'flex flex-col',
 							GAP[node.gap ?? 2],
-							ALIGN[node.align ?? 'stretch']
+							ALIGN[node.align ?? 'stretch'],
+							node.tone && cn('rounded-lg border p-2', PANEL_TONE[node.tone])
 						)}
 					>
 						{renderChildren(node.children)}
@@ -114,6 +146,7 @@ export function PluginUiTree({
 							'min-w-0',
 							GAP[node.gap ?? 2],
 							ALIGN[node.align ?? 'center'],
+							node.tone && cn('rounded-lg border p-2', PANEL_TONE[node.tone]),
 							node.equal
 								? 'grid grid-flow-col auto-cols-[minmax(0,1fr)]'
 								: cn('flex', JUSTIFY[node.justify ?? 'start'], node.wrap && 'flex-wrap')
@@ -132,7 +165,8 @@ export function PluginUiTree({
 							TEXT_TONE[node.tone ?? 'default'],
 							TEXT_WEIGHT[
 								node.weight ?? (node.tone === 'strong' ? 'medium' : 'normal')
-							]
+							],
+							node.strike && 'line-through'
 						)}
 					>
 						{node.value}
@@ -173,7 +207,12 @@ export function PluginUiTree({
 							role='progressbar'
 						>
 							<div
-								className='h-full rounded-full bg-gradient-to-r from-blue-400/60 to-blue-400/80 transition-[width] duration-300 ease-out'
+								className={cn(
+									'h-full rounded-full bg-gradient-to-r transition-[width] duration-300 ease-out',
+									node.tone === 'success'
+										? 'from-emerald-400/60 to-emerald-400/80'
+										: 'from-blue-400/60 to-blue-400/80'
+								)}
 								style={{ width: `${percent}%` }}
 							/>
 						</div>
@@ -193,7 +232,7 @@ export function PluginUiTree({
 						type='button'
 						onClick={(event) => {
 							event.stopPropagation();
-							onAction?.(node.action, node.payload);
+							run(node.action, node.payload, node.pick);
 						}}
 						className={cn(
 							'nodrag nopan inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-zinc-700 text-[13px] font-medium text-zinc-50',
@@ -209,6 +248,45 @@ export function PluginUiTree({
 					</button>
 				);
 			}
+			case 'menu':
+				return (
+					<DropdownMenu key={key}>
+						<DropdownMenuTrigger
+							aria-label={node.label}
+							disabled={!interactive}
+							title={node.label}
+							onClick={(event) => event.stopPropagation()}
+							className={cn(
+								'nodrag nopan nowheel inline-flex size-7 shrink-0 items-center justify-center rounded-md text-white/60',
+								'transition-colors duration-200 ease [@media(hover:hover)]:hover:bg-white/8 [@media(hover:hover)]:hover:text-zinc-50',
+								'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60',
+								'disabled:cursor-default disabled:opacity-50'
+							)}
+						>
+							<Ellipsis aria-hidden className='size-4' />
+						</DropdownMenuTrigger>
+
+						<DropdownMenuContent align='end' className='w-56'>
+							{node.items.map((item, index) => {
+								if ('separator' in item) {
+									return <DropdownMenuSeparator key={`s:${index}`} />;
+								}
+								const ItemIcon = item.icon ? PLUGIN_UI_ICONS[item.icon] : null;
+								return (
+									<DropdownMenuItem
+										key={`${item.action}:${index}`}
+										variant={item.danger ? 'destructive' : 'default'}
+										onClick={() => run(item.action, item.payload, item.pick)}
+									>
+										{ItemIcon && <ItemIcon aria-hidden />}
+
+										{item.label}
+									</DropdownMenuItem>
+								);
+							})}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				);
 			case 'checkbox':
 				return (
 					<button

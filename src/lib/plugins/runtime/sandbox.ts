@@ -115,6 +115,8 @@ const PRELUDE = `"use strict";
 		progress: (value, props) => Object.assign({}, props || {}, { type: 'progress', value }),
 		button: (label, action, props) =>
 			Object.assign({}, props || {}, { type: 'button', label: String(label), action }),
+		menu: (label, items, props) =>
+			Object.assign({}, props || {}, { type: 'menu', label: String(label), items: items || [] }),
 		checkbox: (label, checked, action, props) =>
 			Object.assign({}, props || {}, { type: 'checkbox', label: String(label), checked: !!checked, action }),
 		divider: (props) => Object.assign({}, props || {}, { type: 'divider' }),

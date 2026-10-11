@@ -22,6 +22,7 @@ export const PLUGIN_ICON_KEYS = [
 	'git',
 	'book',
 	'users',
+	'route',
 ] as const;
 export type PluginIconKey = (typeof PLUGIN_ICON_KEYS)[number];
 

@@ -119,3 +119,59 @@ describe('validatePluginTree', () => {
 		).toBe(false);
 	});
 });
+
+describe('status colors, menus and picking', () => {
+	const NODE_A = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+	const ok = (tree: unknown) => validatePluginTree(tree).ok;
+
+	it('accepts tones on text, panels and progress, and struck-through text', () => {
+		expect(ok({ type: 'text', value: 'No stops yet', tone: 'warning' })).toBe(true);
+		expect(ok({ type: 'text', value: 'Dropped', tone: 'muted', strike: true })).toBe(true);
+		expect(ok({ type: 'stack', tone: 'info', children: [] })).toBe(true);
+		expect(ok({ type: 'row', tone: 'warning', children: [] })).toBe(true);
+		expect(ok({ type: 'progress', value: 1, tone: 'success' })).toBe(true);
+		expect(ok({ type: 'text', value: 'x', tone: 'purple' })).toBe(false);
+		expect(ok({ type: 'progress', value: 1, tone: 'danger' })).toBe(false);
+	});
+
+	it('accepts a menu of actions with separators, icons and a danger item', () => {
+		expect(
+			ok({
+				type: 'menu',
+				label: 'Thread actions',
+				items: [
+					{ label: 'Show stops', action: 'show', payload: { id: 'a1' }, icon: 'list' },
+					{ separator: true },
+					{ label: 'Delete thread', action: 'remove', icon: 'trash', danger: true },
+				],
+			})
+		).toBe(true);
+	});
+
+	it('limits menu items and keeps their actions plain names', () => {
+		const many = Array.from({ length: 11 }, (_, index) => ({
+			label: `Item ${index}`,
+			action: 'go',
+		}));
+		expect(ok({ type: 'menu', label: 'Actions', items: many })).toBe(false);
+		expect(ok({ type: 'menu', label: 'Actions', items: [] })).toBe(false);
+		expect(
+			ok({ type: 'menu', label: 'Actions', items: [{ label: 'Go', action: 'not a name' }] })
+		).toBe(false);
+		expect(
+			ok({ type: 'menu', label: 'Actions', items: [{ label: 'Go', action: 'go', href: 'https://x.dev' }] })
+		).toBe(false);
+	});
+
+	it('accepts asking for a node to be picked, with the nodes to number', () => {
+		const pick = { title: 'Adding stops', hint: 'Click a node', marked: [NODE_A] };
+		expect(ok({ type: 'button', label: 'Add a stop', action: 'add', pick })).toBe(true);
+		expect(
+			ok({ type: 'menu', label: 'Actions', items: [{ label: 'Add a stop', action: 'add', pick }] })
+		).toBe(true);
+		expect(ok({ type: 'button', label: 'Add', action: 'add', pick: { title: '' } })).toBe(false);
+		expect(
+			ok({ type: 'button', label: 'Add', action: 'add', pick: { title: 'x', marked: ['not-an-id'] } })
+		).toBe(false);
+	});
+});

@@ -178,6 +178,11 @@ const CTX_OPTIONS: Completion[] = [
 		info: 'The nodes under yours (needs the branch:read power)',
 	},
 	{
+		label: 'ctx.refs',
+		type: 'property',
+		info: 'The nodes your data links to, by id (needs the nodes:refs power). A deleted node has no entry',
+	},
+	{
 		label: 'ctx.request',
 		type: 'function',
 		detail: '(url)',
