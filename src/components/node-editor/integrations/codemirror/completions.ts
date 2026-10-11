@@ -18,6 +18,7 @@ import {
 import type { EditorView } from '@codemirror/view';
 import { commandRegistry } from '../../core/commands/command-registry';
 import { localDateString } from '@/lib/plugins/call-context';
+import { CHECKLIST_MARKERS } from '@/lib/plugins/manifest-schema';
 import { readPluginFields, type PluginFieldSpecLite } from './plugin-fields';
 
 // ============================================================================
@@ -361,10 +362,30 @@ function completePluginFields(
 			: null;
 	}
 
+	// A checklist: `[ ]`, `[x]` and `[-]` start a line (open, then the other statuses in order).
+	const checklist = fields.find((field) => field.checklist)?.checklist;
+	if (checklist && word.text.startsWith('[')) {
+		const markers = checklist
+			.map((status, index) => ({ marker: CHECKLIST_MARKERS[index], status }))
+			.filter(({ marker }) => `[${marker}]`.startsWith(word.text));
+		return markers.length > 0
+			? {
+					from: word.from,
+					options: markers.map(({ marker, status }) => ({
+						label: `[${marker}]`,
+						type: 'enum',
+						detail: status,
+						apply: `[${marker}] `,
+					})),
+					validFor: /^\[[x -]?\]?$/,
+				}
+			: null;
+	}
+
 	const isFieldStart = /^[a-z][a-zA-Z0-9]*$/.test(word.text);
 	if (!isFieldStart && !(explicit && word.text === '')) return null;
 	const options = fields
-		.filter((field) => field.name.startsWith(word.text))
+		.filter((field) => !field.checklist && field.name.startsWith(word.text))
 		.map((field) => ({
 			label: `${field.name}:`,
 			type: 'property',

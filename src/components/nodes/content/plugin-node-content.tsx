@@ -12,6 +12,7 @@ import {
 } from '@/lib/plugins/active-plugins';
 import { compareVersions, findCatalogPlugin } from '@/lib/plugins/catalog';
 import {
+	checklistFieldOf,
 	collectNodeRefs,
 	validatePluginData,
 	type PluginData,
@@ -66,6 +67,7 @@ export function PluginNodeContent({
 		refreshMapPluginsSoon,
 		runNodeAction,
 		startPluginPick,
+		openNodeEditor,
 	} = useAppStore(
 			useShallow((state) => ({
 				loadedPlugins: state.loadedPlugins,
@@ -74,6 +76,7 @@ export function PluginNodeContent({
 				refreshMapPluginsSoon: state.refreshMapPluginsSoon,
 				runNodeAction: state.runNodeAction,
 				startPluginPick: state.startPluginPick,
+				openNodeEditor: state.openNodeEditor,
 			}))
 		);
 	const [busy, setBusy] = useState(false);
@@ -173,6 +176,20 @@ export function PluginNodeContent({
 		}
 	};
 
+	// "Add thread": the node editor, with the cursor on a new line when the kind is a checklist.
+	const handleEdit = () => {
+		if (!active || !nodeId) return;
+		const position =
+			useAppStore.getState().nodes.find((node) => node.id === nodeId)?.position ??
+			{ x: 0, y: 0 };
+		openNodeEditor({
+			mode: 'edit',
+			position,
+			existingNodeId: nodeId,
+			initialValue: checklistFieldOf(active.kind) ? '[ ] ' : null,
+		});
+	};
+
 	const handlePick = (pick: PluginUiPick, action: string, payload: unknown) => {
 		if (!active || !nodeId) return;
 		startPluginPick(nodeId, pick, action, payload);
@@ -205,6 +222,7 @@ export function PluginNodeContent({
 					<PluginUiTree
 						disabled={busy || state !== 'live' || renderError !== null}
 						tree={tree}
+						onEdit={nodeId && !preview ? handleEdit : undefined}
 						onPick={nodeId && !preview ? handlePick : undefined}
 						onAction={
 							state === 'live' && canEdit && !preview && render.result

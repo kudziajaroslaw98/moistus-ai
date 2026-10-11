@@ -62,6 +62,22 @@ describe('PluginUiTree', () => {
 		expect(onAction).toHaveBeenCalledWith('add', undefined);
 	});
 
+	it('opens the node editor for an edit button, and runs its action where there is none', () => {
+		const onAction = jest.fn();
+		const onEdit = jest.fn();
+		const tree = { type: 'button', label: 'Add thread', action: 'add', edit: true } as const;
+
+		const { unmount } = render(<PluginUiTree tree={tree} onAction={onAction} onEdit={onEdit} />);
+		fireEvent.click(screen.getByRole('button', { name: 'Add thread' }));
+		expect(onEdit).toHaveBeenCalledTimes(1);
+		expect(onAction).not.toHaveBeenCalled();
+		unmount();
+
+		render(<PluginUiTree tree={tree} onAction={onAction} />);
+		fireEvent.click(screen.getByRole('button', { name: 'Add thread' }));
+		expect(onAction).toHaveBeenCalledWith('add', undefined);
+	});
+
 	it('opens a menu and runs the chosen item', async () => {
 		const onAction = jest.fn();
 		render(

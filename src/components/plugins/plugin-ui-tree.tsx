@@ -95,6 +95,8 @@ export interface PluginUiTreeProps {
 	 * picked on the canvas. Without it (the playground has no map) the action runs as is.
 	 */
 	onPick?: (pick: PluginUiPick, action: string, payload: unknown) => void;
+	/** Called instead of `onAction` for a button that opens the node editor (`edit`). */
+	onEdit?: () => void;
 	disabled?: boolean;
 }
 
@@ -102,6 +104,7 @@ export function PluginUiTree({
 	tree,
 	onAction,
 	onPick,
+	onEdit,
 	disabled = false,
 }: PluginUiTreeProps) {
 	const interactive = Boolean(onAction) && !disabled;
@@ -232,7 +235,8 @@ export function PluginUiTree({
 						type='button'
 						onClick={(event) => {
 							event.stopPropagation();
-							run(node.action, node.payload, node.pick);
+							if (node.edit && onEdit) onEdit();
+							else run(node.action, node.payload, node.pick);
 						}}
 						className={cn(
 							'nodrag nopan inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-zinc-700 text-[13px] font-medium text-zinc-50',

@@ -163,6 +163,11 @@ describe('status colors, menus and picking', () => {
 		).toBe(false);
 	});
 
+	it('accepts a button that opens the node editor', () => {
+		expect(ok({ type: 'button', label: 'Add thread', action: 'add', edit: true })).toBe(true);
+		expect(ok({ type: 'button', label: 'Add thread', action: 'add', edit: 'yes' })).toBe(false);
+	});
+
 	it('accepts asking for a node to be picked, with the nodes to number', () => {
 		const pick = { title: 'Adding stops', hint: 'Click a node', marked: [NODE_A] };
 		expect(ok({ type: 'button', label: 'Add a stop', action: 'add', pick })).toBe(true);

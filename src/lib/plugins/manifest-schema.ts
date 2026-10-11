@@ -166,6 +166,9 @@ export const PLUGIN_LIMITS = {
 	listColumns: 6,
 } as const;
 
+/** How a checklist writes its status column's options, in order: `[ ]`, `[x]`, `[-]`. */
+export const CHECKLIST_MARKERS = [' ', 'x', '-'] as const;
+
 /** Shiko's own key on every list row; plugins read it but columns can't use the name. */
 export const LIST_ROW_ID_KEY = 'id';
 
@@ -294,6 +297,12 @@ export const pluginFieldSpecSchema = z.discriminatedUnion('type', [
 			.min(1)
 			.max(PLUGIN_LIMITS.listColumns),
 		maxItems: z.number().int().min(1).max(PLUGIN_LIMITS.listItemsMax).optional(),
+		/**
+		 * `checklist`: typed as one line per row, `[ ] text`, `[x] text`, `[-] text`, instead of
+		 * `name:[[...]]`. Needs exactly two columns: the text (a string) and the status (an
+		 * enum of 2 or 3 options, written ` `, `x` and `-` in that order).
+		 */
+		syntax: z.literal('checklist').optional(),
 	}),
 ]);
 export type PluginFieldSpec = z.infer<typeof pluginFieldSpecSchema>;
@@ -396,6 +405,42 @@ export const pluginNodeKindSchema = z
 						path: ['fields', name, 'columns'],
 						message: `"${LIST_ROW_ID_KEY}" is reserved for Shiko's row ids`,
 					});
+				}
+				if (spec.syntax === 'checklist') {
+					const [text, status] = spec.columns;
+					if (
+						spec.columns.length !== 2 ||
+						text.type !== 'string' ||
+						status.type !== 'enum' ||
+						status.options.length > CHECKLIST_MARKERS.length
+					) {
+						ctx.addIssue({
+							code: 'custom',
+							path: ['fields', name, 'columns'],
+							message: `A checklist has two columns: text (string) and status (enum of up to ${CHECKLIST_MARKERS.length} options)`,
+						});
+					}
+					if (spec.setBy) {
+						ctx.addIssue({
+							code: 'custom',
+							path: ['fields', name],
+							message: 'A checklist is typed in the editor, so setBy can’t be used',
+						});
+					}
+					if (
+						Object.entries(kind.fields).some(
+							([other, otherSpec]) =>
+								other !== name &&
+								otherSpec.type === 'list' &&
+								otherSpec.syntax === 'checklist'
+						)
+					) {
+						ctx.addIssue({
+							code: 'custom',
+							path: ['fields', name],
+							message: 'Only one list per kind can be a checklist',
+						});
+					}
 				}
 				for (const column of spec.columns) {
 					if (column.type === 'string' && column.ref && !spec.setBy) {

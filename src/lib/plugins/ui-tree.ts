@@ -118,6 +118,8 @@ export type PluginUiNode = (
 			iconOnly?: boolean;
 			payload?: unknown;
 			pick?: PluginUiPick;
+			/** Opens this node in the node editor instead of running the action (with a new line ready for a checklist). */
+			edit?: boolean;
 	  }
 	| {
 			/** A "⋯" button that opens a list of actions. `label` names the button for screen readers. */
@@ -232,6 +234,7 @@ export const pluginUiNodeSchema: z.ZodType<PluginUiNode> = z.lazy(() =>
 			iconOnly: z.boolean().optional(),
 			payload: payloadSchema.optional(),
 			pick: pickSchema.optional(),
+			edit: z.boolean().optional(),
 		}),
 		z.strictObject({
 			type: z.literal('menu'),

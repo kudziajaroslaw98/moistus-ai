@@ -259,3 +259,41 @@ describe('node links', () => {
 		expect(problem(withStops({ maxItems: 101 }))).not.toBeNull();
 	});
 });
+
+describe('checklists', () => {
+	function withChecklist(columns: unknown[], extra: Record<string, unknown> = {}) {
+		const manifest = clone();
+		manifest.nodeKinds[0].fields.threads = {
+			type: 'list',
+			title: 'Threads',
+			syntax: 'checklist',
+			columns,
+			...extra,
+		};
+		return manifest;
+	}
+	const text = { name: 'text', type: 'string', title: 'Thread' };
+	const status = { name: 'status', type: 'enum', title: 'Status', options: ['open', 'resolved', 'dropped'] };
+
+	it('is a list of text and a status of up to three options', () => {
+		expect(problem(withChecklist([text, status]))).toBeNull();
+		expect(problem(withChecklist([text, { ...status, options: ['open', 'done'] }]))).toBeNull();
+	});
+
+	it('refuses other shapes', () => {
+		expect(problem(withChecklist([text]))).toContain('A checklist has two columns');
+		expect(problem(withChecklist([status, text]))).toContain('A checklist has two columns');
+		expect(
+			problem(withChecklist([text, { ...status, options: ['a', 'b', 'c', 'd'] }]))
+		).toContain('A checklist has two columns');
+	});
+
+	it('is typed in the editor, and only one list per kind can be one', () => {
+		expect(problem(withChecklist([text, status], { setBy: 'action' }))).toContain(
+			'A checklist is typed in the editor'
+		);
+		const two = withChecklist([text, status]);
+		two.nodeKinds[0].fields.more = { type: 'list', title: 'More', syntax: 'checklist', columns: [text, status] };
+		expect(problem(two)).toContain('Only one list per kind can be a checklist');
+	});
+});

@@ -56,7 +56,7 @@ export const FIELD_TYPE_ROWS: GuideRow[] = [
 	{ name: 'date', description: 'title, description, required (typed and stored as 2026-12-31)' },
 	{
 		name: 'list',
-		description: `title, description, required, maxItems (up to ${PLUGIN_LIMITS.listItemsMax}, ${PLUGIN_LIMITS.listItems} if you leave it out), columns (up to ${PLUGIN_LIMITS.listColumns}, each a string, number, integer, boolean or enum with a name). Typed as items:[["Hotel", 520, paid]]; a yes/no column is its own name. Each row reaches your code as an object with an id from Shiko.`,
+		description: `title, description, required, maxItems (up to ${PLUGIN_LIMITS.listItemsMax}, ${PLUGIN_LIMITS.listItems} if you leave it out), columns (up to ${PLUGIN_LIMITS.listColumns}, each a string, number, integer, boolean or enum with a name). Typed as items:[["Hotel", 520, paid]]; a yes/no column is its own name. With syntax: "checklist" (two columns: text and a status enum of up to 3 options) rows are typed one per line instead: [ ] open, [x] second option, [-] third. Each row reaches your code as an object with an id from Shiko.`,
 	},
 ];
 
@@ -67,7 +67,7 @@ export const UI_CALLS: Array<GuideRow & { type: string }> = [
 	{ type: 'text', name: 'ui.text(value, options)', description: `Up to ${PLUGIN_UI_LIMITS.text} characters. size sm–xl, weight, strike, tone default / muted / strong / info / success / warning / danger` },
 	{ type: 'badge', name: 'ui.badge(label, options)', description: 'tone neutral / success / warning / danger / info' },
 	{ type: 'progress', name: 'ui.progress(value, options)', description: 'value from 0 to 1. label, showValue, tone info (default) or success' },
-	{ type: 'button', name: 'ui.button(label, action, options)', description: `Runs actions[action]. icon, iconOnly (the label is read out and shown on hover), payload (up to ${formatBytes(PLUGIN_UI_LIMITS.payloadBytes)}), pick: { title, hint, marked } to let the person click a node on the canvas first (actions[action] then gets payload.nodeId; marked lists the node ids to number)` },
+	{ type: 'button', name: 'ui.button(label, action, options)', description: `Runs actions[action]. icon, iconOnly (the label is read out and shown on hover), payload (up to ${formatBytes(PLUGIN_UI_LIMITS.payloadBytes)}), edit: true to open this node in the node editor instead of running the action, pick: { title, hint, marked } to let the person click a node on the canvas first (actions[action] then gets payload.nodeId; marked lists the node ids to number)` },
 	{ type: 'menu', name: 'ui.menu(label, items, options)', description: `A ⋯ button that opens up to ${PLUGIN_UI_LIMITS.menuItems} items: { label, action, payload, icon, danger, pick }, or { separator: true }. label names the button for screen readers` },
 	{ type: 'checkbox', name: 'ui.checkbox(label, checked, action, options)', description: 'Runs actions[action]. payload' },
 	{ type: 'divider', name: 'ui.divider(options)', description: 'A line between pieces' },

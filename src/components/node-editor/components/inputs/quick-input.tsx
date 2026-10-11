@@ -483,10 +483,13 @@ export const QuickInput: FC<QuickInputProps> = ({
 					extension.kind
 				);
 				const checked = active ? validatePluginData(active.kind, extension.data) : null;
-				initializeQuickInput(
+				const base =
 					active && checked?.ok
 						? serializePluginFieldInput(active.kind, checked.data)
-						: (existingNode.data.content ?? ''),
+						: (existingNode.data.content ?? '');
+				// A plugin's "Add" button opens the editor with a new line ready (`[ ] `).
+				initializeQuickInput(
+					initialValue ? `${base}${base ? '\n' : ''}${initialValue}` : base,
 					nodeType,
 					{ pluginId: extension.pluginId, kind: extension.kind }
 				);

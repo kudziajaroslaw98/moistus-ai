@@ -1,4 +1,5 @@
 import {
+	CHECKLIST_MARKERS,
 	LIST_ROW_ID_KEY,
 	PLUGIN_LIMITS,
 	type PluginFieldSpec,
@@ -355,6 +356,107 @@ function parseListValue(spec: PluginListFieldSpec, span: ListSpan): Coerced<Plug
 }
 
 // ---------------------------------------------------------------------------
+// Checklists: one line per row, `[ ] text`, `[x] text`, `[-] text`
+
+export interface ChecklistField {
+	name: string;
+	spec: PluginListFieldSpec;
+	text: Extract<PluginListColumn, { type: 'string' }>;
+	status: Extract<PluginListColumn, { type: 'enum' }>;
+}
+
+/** The kind's checklist list field (at most one), or null. */
+export function checklistFieldOf(kind: PluginNodeKind): ChecklistField | null {
+	for (const [name, spec] of Object.entries(kind.fields)) {
+		if (spec.type !== 'list' || spec.syntax !== 'checklist') continue;
+		const [text, status] = spec.columns;
+		if (text?.type === 'string' && status?.type === 'enum') {
+			return { name, spec, text, status };
+		}
+	}
+	return null;
+}
+
+const CHECKLIST_LINE = /^([ \t]*)\[( |x|X|-)\][ \t]?(.*)$/;
+
+type ChecklistMarker = (typeof CHECKLIST_MARKERS)[number];
+const markerIndex = (marker: string) =>
+	CHECKLIST_MARKERS.indexOf(marker.toLowerCase() as ChecklistMarker);
+
+/** Where checklist markers start lines in editor text; `index` 0, 1, 2 for `[ ]`, `[x]`, `[-]`. */
+export function scanChecklistMarkers(
+	text: string
+): Array<{ from: number; to: number; index: number }> {
+	const markers: Array<{ from: number; to: number; index: number }> = [];
+	let offset = 0;
+	for (const line of text.split('\n')) {
+		const match = CHECKLIST_LINE.exec(line);
+		if (match) {
+			const from = offset + match[1].length;
+			markers.push({ from, to: from + 3, index: markerIndex(match[2]) });
+		}
+		offset += line.length + 1;
+	}
+	return markers;
+}
+
+/** Reads the checklist lines, and blanks them out (keeping offsets) so the rest parses on its own. */
+function parseChecklist(
+	text: string,
+	field: ChecklistField
+): {
+	masked: string;
+	rows: PluginListRow[];
+	error: string | null;
+	tokens: PluginFieldToken[];
+} {
+	const rows: PluginListRow[] = [];
+	const tokens: PluginFieldToken[] = [];
+	let error: string | null = null;
+	let masked = '';
+	let offset = 0;
+	const lines = text.split('\n');
+	lines.forEach((line, index) => {
+		const match = CHECKLIST_LINE.exec(line);
+		if (!match) {
+			masked += line;
+		} else {
+			const option = field.status.options[markerIndex(match[2])] as
+				| string
+				| undefined;
+			const from = offset + match[1].length;
+			const body = match[3].trim();
+			let valid = option !== undefined;
+			if (option === undefined) {
+				error ??= `${field.spec.title}: [${match[2]}] isn't a status here`;
+			} else if (body) {
+				const checked = coerceTyped(field.text, body);
+				if (checked.ok) {
+					rows.push({ [field.text.name]: checked.value, [field.status.name]: option });
+				} else {
+					valid = false;
+					error ??= `${field.spec.title}, line ${rows.length + 1}: ${checked.message}`;
+				}
+			}
+			tokens.push({ from, to: from + 3, field: field.name, valid });
+			masked += ' '.repeat(line.length);
+		}
+		offset += line.length + 1;
+		if (index < lines.length - 1) masked += '\n';
+	});
+	if (!error && rows.length > maxItems(field.spec)) {
+		error = `${field.spec.title} can have up to ${maxItems(field.spec)} rows`;
+	}
+	return { masked, rows, error, tokens };
+}
+
+/** A checklist row as its editor line. */
+function checklistLine(field: ChecklistField, row: PluginListRow): string {
+	const index = Math.max(0, field.status.options.indexOf(String(row[field.status.name])));
+	return `[${CHECKLIST_MARKERS[index]}] ${row[field.text.name] ?? ''}`.trimEnd();
+}
+
+// ---------------------------------------------------------------------------
 // Fields only refresh or an action fills
 
 const editorKinds = new WeakMap<PluginNodeKind, PluginNodeKind>();
@@ -462,7 +564,7 @@ const toErrorList = (errors: FieldErrors): PluginFieldError[] =>
 const listFieldNames = (kind: PluginNodeKind) =>
 	new Set(
 		Object.entries(kind.fields)
-			.filter(([, spec]) => spec.type === 'list')
+			.filter(([, spec]) => spec.type === 'list' && spec.syntax !== 'checklist')
 			.map(([name]) => name)
 	);
 
@@ -498,13 +600,24 @@ export function scanPluginFieldTokens(
 }
 
 export function parsePluginFieldInput(
-	text: string,
+	input: string,
 	fullKind: PluginNodeKind
 ): ParsedPluginFields {
 	const kind = editorKind(fullKind);
 	const data: PluginData = {};
 	const errors: FieldErrors = new Map();
 	const tokens: PluginFieldToken[] = [];
+
+	// Checklist lines (`[ ] text`) are read first and blanked out of what's left.
+	let text = input;
+	const checklist = checklistFieldOf(kind);
+	if (checklist) {
+		const parsedLines = parseChecklist(text, checklist);
+		text = parsedLines.masked;
+		tokens.push(...parsedLines.tokens);
+		if (parsedLines.error) errors.set(checklist.name, parsedLines.error);
+		else data[checklist.name] = parsedLines.rows;
+	}
 
 	const spans = scanListSpans(text, listFieldNames(kind));
 	for (const span of spans) {
@@ -542,7 +655,12 @@ export function parsePluginFieldInput(
 
 		if (spec.type === 'list') {
 			tokens.push({ from, to, field: name, valid: false });
-			errors.set(name, `${spec.title} is a list: write ${name}:[ … ]`);
+			errors.set(
+				name,
+				spec.syntax === 'checklist'
+					? `${spec.title} is written one per line: [ ] text`
+					: `${spec.title} is a list: write ${name}:[ … ]`
+			);
 			continue;
 		}
 		const result = coerceTyped(spec, quoted ?? bare);
@@ -663,7 +781,14 @@ export function serializePluginFieldInput(
 		const value = data[name];
 		if (value === undefined) continue;
 		if (spec.type === 'list') {
-			if (Array.isArray(value) && value.length > 0) lists.push(serializeList(name, spec, value));
+			if (Array.isArray(value) && value.length > 0) {
+				const checklistSpec = checklistFieldOf(kind);
+				lists.push(
+					checklistSpec?.name === name
+						? value.map((row) => checklistLine(checklistSpec, row)).join('\n')
+						: serializeList(name, spec, value)
+				);
+			}
 			continue;
 		}
 		if (Array.isArray(value)) continue;
@@ -751,7 +876,9 @@ function checkList(
 			}
 			const column = columns.get(key);
 			if (!column) return { ok: false, message: `${prefix}.${key} is not a column of ${name}` };
-			const checked = checkValue(`${prefix}.${key}`, column, cell, false);
+			// A checklist line has no quoting, so its text can hold double quotes.
+			const isChecklistText = spec.syntax === 'checklist' && column === spec.columns[0];
+			const checked = checkValue(`${prefix}.${key}`, column, cell, isChecklistText);
 			if (!checked.ok) return checked;
 			row[key] = checked.value;
 		}

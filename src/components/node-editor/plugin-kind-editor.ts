@@ -1,10 +1,15 @@
+import { CHECKLIST_MARKERS } from '@/lib/plugins/manifest-schema';
 import type {
 	PluginFieldSpec,
 	PluginListColumn,
 	PluginManifest,
 	PluginNodeKind,
 } from '@/lib/plugins/manifest-schema';
-import { editorKind, type ParsedPluginFields } from '@/lib/plugins/plugin-fields';
+import {
+	checklistFieldOf,
+	editorKind,
+	type ParsedPluginFields,
+} from '@/lib/plugins/plugin-fields';
 import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
 import {
 	fallbackSummary,
@@ -93,8 +98,18 @@ function columnPatterns(spec: Extract<PluginFieldSpec, { type: 'list' }>): Parsi
 export function buildPluginKindPatterns(
 	kind: PluginNodeKind
 ): ParsingPattern[] {
+	const checklist = checklistFieldOf(editorKind(kind));
+	const checklistPatterns: ParsingPattern[] = checklist
+		? checklist.status.options.map((status, index) => ({
+				pattern: `[${CHECKLIST_MARKERS[index]}] `,
+				description: `${checklist.spec.title}: one line each, marked ${status}`,
+				category: 'metadata',
+				examples: [`[${CHECKLIST_MARKERS[index]}] ${checklist.text.title}`],
+				insertText: `[${CHECKLIST_MARKERS[index]}] `,
+			}))
+		: [];
 	const fieldPatterns = Object.entries(editorKind(kind).fields)
-		.filter(([name]) => name !== kind.labelField)
+		.filter(([name]) => name !== kind.labelField && name !== checklist?.name)
 		.flatMap(([name, spec]): ParsingPattern[] => [
 			{
 				pattern: `${name}:`,
@@ -114,6 +129,7 @@ export function buildPluginKindPatterns(
 				.slice(0, 1)
 				.map((example) => `$${kind.kind} ${example}`),
 		},
+		...checklistPatterns,
 		...fieldPatterns,
 		{
 			pattern: 'text',

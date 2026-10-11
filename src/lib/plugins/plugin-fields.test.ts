@@ -7,6 +7,7 @@ import {
 	editorKind,
 	keepSetByFields,
 	parsePluginFieldInput,
+	scanChecklistMarkers,
 	scanPluginFieldTokens,
 	serializePluginFieldInput,
 	validatePluginData,
@@ -444,5 +445,93 @@ describe('node links', () => {
 			pinned: A,
 			stops: saved.stops,
 		});
+	});
+});
+
+describe('checklists', () => {
+	const kind = pluginNodeKindSchema.parse({
+		kind: 'threads',
+		label: 'Threads',
+		description: 'Open questions',
+		icon: 'puzzle',
+		labelField: 'title',
+		fields: {
+			title: { type: 'string', title: 'Title' },
+			threads: {
+				type: 'list',
+				title: 'Threads',
+				syntax: 'checklist',
+				maxItems: 3,
+				columns: [
+					{ name: 'text', type: 'string', title: 'Thread', required: true },
+					{ name: 'status', type: 'enum', title: 'Status', options: ['open', 'resolved', 'dropped'], default: 'open' },
+				],
+			},
+		},
+	});
+	const text = [
+		'Open threads',
+		'[ ] Who sent the letter?',
+		'[x] Who is the Cartographer working for?',
+		'[-] What happens to the "second" chart?',
+	].join('\n');
+
+	it('reads one row per line, with the marker as the status', () => {
+		const parsed = parsePluginFieldInput(text, kind);
+
+		expect(parsed.errors).toEqual([]);
+		expect(parsed.data).toEqual({
+			title: 'Open threads',
+			threads: [
+				{ text: 'Who sent the letter?', status: 'open' },
+				{ text: 'Who is the Cartographer working for?', status: 'resolved' },
+				{ text: 'What happens to the "second" chart?', status: 'dropped' },
+			],
+		});
+	});
+
+	it('leaves other text as the label, and skips empty lines such as a fresh "[ ] "', () => {
+		const parsed = parsePluginFieldInput('Plot\n[ ] First\n[ ] ', kind);
+
+		expect(parsed.data.title).toBe('Plot');
+		expect(parsed.data.threads).toEqual([{ text: 'First', status: 'open' }]);
+		expect(parsed.errors).toEqual([]);
+	});
+
+	it('round-trips through the editor text', () => {
+		const data = parsePluginFieldInput(text, kind).data;
+
+		expect(serializePluginFieldInput(kind, data)).toBe(text);
+	});
+
+	it('says when there are too many rows', () => {
+		const parsed = parsePluginFieldInput('Plot\n[ ] a\n[ ] b\n[ ] c\n[ ] d', kind);
+
+		expect(parsed.errors).toEqual([
+			{ field: 'threads', message: 'Threads can have up to 3 rows' },
+		]);
+	});
+
+	it('says how to write one when someone types `threads:` as a field', () => {
+		for (const typed of ['Plot threads:x', 'Plot threads:[["a", open]]']) {
+			expect(parsePluginFieldInput(typed, kind).errors).toEqual([
+				{ field: 'threads', message: 'Threads is written one per line: [ ] text' },
+			]);
+		}
+	});
+
+	it('finds the markers for highlighting, by status', () => {
+		expect(scanChecklistMarkers(text).map((marker) => marker.index)).toEqual([0, 1, 2]);
+		expect(scanChecklistMarkers('not [x] a marker')).toEqual([]);
+		expect(scanChecklistMarkers('  [x] indented')).toEqual([{ from: 2, to: 5, index: 1 }]);
+	});
+
+	it('keeps double quotes in a thread when a plugin returns data', () => {
+		expect(
+			validatePluginData(kind, {
+				title: 'Plot',
+				threads: [{ text: 'What is "the" chart?', status: 'open' }],
+			}).ok
+		).toBe(true);
 	});
 });
