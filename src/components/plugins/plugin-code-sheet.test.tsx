@@ -61,8 +61,8 @@ function setup(
 	render(
 		<SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
 			<PluginCodeSheet
-				onOpenChange={onOpenChange}
 				open
+				onOpenChange={onOpenChange}
 				pluginId='shiko.metric'
 				pluginName='Metric'
 				{...props}
@@ -154,8 +154,8 @@ describe('PluginCodeSheet', () => {
 		const first = render(
 			<SWRConfig value={{ provider: () => new Map() }}>
 				<PluginCodeSheet
-					onOpenChange={jest.fn()}
 					open
+					onOpenChange={jest.fn()}
 					pluginId='shiko.metric'
 					pluginName='Metric'
 				/>

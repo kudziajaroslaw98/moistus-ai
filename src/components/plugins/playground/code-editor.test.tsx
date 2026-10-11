@@ -11,9 +11,9 @@ describe('CodeEditor', () => {
 	it('shows a file read-only: colored and numbered, with nothing to type into or fix', () => {
 		const { container } = render(
 			<CodeEditor
+				readOnly
 				label='plugin.js'
 				language='javascript'
-				readOnly
 				value={'definePlugin({});\nconst x = 1;'}
 			/>
 		);

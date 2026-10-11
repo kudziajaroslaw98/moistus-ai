@@ -42,6 +42,8 @@ describe('PluginUiTree', () => {
 		const pick = { title: 'Adding stops' };
 		render(
 			<PluginUiTree
+				onAction={onAction}
+				onPick={onPick}
 				tree={{
 					type: 'row',
 					children: [
@@ -60,8 +62,6 @@ describe('PluginUiTree', () => {
 						},
 					],
 				}}
-				onAction={onAction}
-				onPick={onPick}
 			/>
 		);
 
@@ -77,13 +77,13 @@ describe('PluginUiTree', () => {
 		const onAction = jest.fn();
 		render(
 			<PluginUiTree
+				onAction={onAction}
 				tree={{
 					type: 'button',
 					label: 'Pick',
 					action: 'add',
 					pick: { title: 'x' },
 				}}
-				onAction={onAction}
 			/>
 		);
 
@@ -118,6 +118,7 @@ describe('PluginUiTree', () => {
 		const onAction = jest.fn();
 		render(
 			<PluginUiTree
+				onAction={onAction}
 				tree={{
 					type: 'menu',
 					label: 'Thread actions',
@@ -131,7 +132,6 @@ describe('PluginUiTree', () => {
 						{ label: 'Delete thread', action: 'remove', danger: true },
 					],
 				}}
-				onAction={onAction}
 			/>
 		);
 
