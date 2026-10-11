@@ -12,6 +12,7 @@ import {
 } from '@/lib/plugins/catalog';
 import {
 	describeManifestError,
+	kindHasNodeRefs,
 	networkHostsOf,
 	pluginManifestSchema,
 	type PluginManifest,
@@ -757,6 +758,7 @@ export const createPluginsSlice: StateCreator<
 											version: active.manifest.version,
 											data: nextData,
 											snapshot: rendered.tree,
+											...(kindHasNodeRefs(active.kind) ? { noCopy: true } : {}),
 										},
 									},
 								},

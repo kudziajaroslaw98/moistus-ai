@@ -1,4 +1,4 @@
-import { CHECKLIST_MARKERS } from '@/lib/plugins/manifest-schema';
+import { CHECKLIST_MARKERS, kindHasNodeRefs } from '@/lib/plugins/manifest-schema';
 import type {
 	PluginFieldSpec,
 	PluginListColumn,
@@ -170,6 +170,8 @@ export function buildPluginNodeSaveData(
 		version: manifest.version,
 		data: parsed.data,
 		...(rendered ? { snapshot: rendered.tree } : {}),
+		// Data that links to other nodes can't be copied with the node.
+		...(kindHasNodeRefs(active.kind) ? { noCopy: true } : {}),
 	};
 	return {
 		content: rendered?.summary ?? fallbackSummary(active.kind, parsed.data),
