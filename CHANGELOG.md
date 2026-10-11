@@ -5,6 +5,28 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-11]
+
+### Added
+
+- **plugins/playground**: Write a plugin inside Shiko instead of in VS Code. A two-pane page (`/dashboard/plugins/playground/<draft>`) with `plugin.js` and `manifest.json` editors (syntax colors, error markers, `ui.` / `ctx.` completion), the node drawn live with working buttons (Normal / Wide, "Can edit" off to see it as a viewer), typed sample data built from the manifest's fields, the submit checks updating as you type, and a Network panel for plugins that reach a site (a typed answer by default, so nothing leaves your browser; a switch sends the real request). It runs in its own plugin worker, so a draft can't disturb plugins on a map
+  - Why: building a plugin meant a local server, an editor and the Developer mode loader before seeing anything
+- **plugins/drafts**: Drafts are saved to your account (autosave; a second tab that saved first offers "Load the newer version" or "Keep mine"), at most 20, only you see them. Shiko sets each plugin's id when the draft is created and locks that line in `manifest.json`. New `plugin_drafts` table (local migration, not yet applied to prod) and `/api/plugins/drafts` routes
+- **plugins/entry**: My plugins has a Drafts group, a "Write a plugin" button and a "Write a plugin" tile; the start dialog offers Blank, Counter, Branch progress and GitHub issue templates or an import of your two files; "Edit as new draft" on any version of a plugin you published; "Write a plugin" in the map's Plugins panel and in Ctrl/Cmd+K; a callout at the top of the Build guide
+- **plugins/try-and-submit**: "Try on a map" opens one of your maps with the draft loaded as a developer plugin (the Plugins panel lists it as a draft, with a link back to the editor); "Submit for review" saves the draft and runs the usual checks and review request on it
+
+### Changed
+
+- **plugins/developer-mode**: Developer mode now also covers writing plugins. While it's off, the playground, the start dialog, the panel and the versions sheet say so and hold the switch right there instead of sending you to settings. The switch's description says it
+- **plugins/api**: The Developer mode check for the developer network worker moved to `isDeveloperModeOn` (same behavior)
+
+### Docs
+
+- CLAUDE.md: "Plugin playground" gotcha; the migration note now says migrations stay local-only and are applied through the Supabase MCP (the old "must be force-added" was wrong)
+- CODEBASE_MAP.md: drafts routes, playground files, dashboard frame note
+
+---
+
 ## [2026-10-10]
 
 ### Changed
