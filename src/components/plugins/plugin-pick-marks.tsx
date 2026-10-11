@@ -1,10 +1,13 @@
 'use client';
 
 import useAppStore from '@/store/mind-map-store';
+import type { AppNode } from '@/types/app-node';
 import { ViewportPortal } from '@xyflow/react';
 import { useShallow } from 'zustand/shallow';
 
-const NO_NODES: string[] = [];
+// Stable empty values: a selector that returns a new [] each time never settles.
+const NO_IDS: string[] = [];
+const NO_NODES: AppNode[] = [];
 
 /**
  * Numbers the nodes picked so far (1, 2, 3 …) and rings them while a plugin is waiting
@@ -13,8 +16,8 @@ const NO_NODES: string[] = [];
 export function PluginPickMarks() {
 	const { marked, nodes } = useAppStore(
 		useShallow((state) => ({
-			marked: state.pluginPick?.marked ?? NO_NODES,
-			nodes: state.pluginPick ? state.nodes : [],
+			marked: state.pluginPick?.marked ?? NO_IDS,
+			nodes: state.pluginPick ? state.nodes : NO_NODES,
 		}))
 	);
 	if (marked.length === 0) return null;

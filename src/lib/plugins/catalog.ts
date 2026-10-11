@@ -180,7 +180,7 @@ export const FIRST_PARTY_PLUGINS: readonly PluginCatalogEntry[] = [
 			{
 				version: '0.1.0',
 				sha256:
-					'4f8bb0929161a77bcf04813a68e077e011c59bd566eed1e1aab64c22b4c0c5f2',
+					'4e810c36645920c337895c69746e33fac7ea5c6b9229b3484f5e47d55dc99ecc',
 				permissions: ['node:own', 'nodes:refs'],
 				notes: 'Open questions, and the nodes where each one comes up.',
 			},

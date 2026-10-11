@@ -16,7 +16,7 @@ import {
 	type PluginData,
 } from './plugin-fields';
 import { createPluginSandbox, type PluginSandbox } from './runtime/sandbox';
-import { findPluginPick } from './ui-tree';
+import { findPluginPick, validatePluginTree } from './ui-tree';
 import { nodeTestVariant } from './runtime/test-quickjs-variant';
 
 let QuickJS: QuickJSWASMModule;
@@ -528,6 +528,24 @@ describe('Threads', () => {
 		}
 	});
 
+	it('draws a draft without row ids (the node editor’s preview) with nothing expanded', () => {
+		const { sandbox, kind } = setup();
+		try {
+			const draft = parsePluginFieldInput(TEXT, kind).data;
+			expect(rows(draft, 'threads')[0].id).toBeUndefined();
+
+			const drawn = JSON.stringify(
+				sandbox.render('threads', draft, { ...ctx(undefined, false), refs: {} }).tree
+			);
+
+			expect(drawn).toContain('Who sent the letter?');
+			expect(drawn).not.toContain('No stops yet. Add the nodes');
+			expect(drawn).not.toContain('"tone":"info","children"');
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
 	it('adds the clicked node as a stop, shows the thread, and removes it on a second click', () => {
 		const { sandbox, data, threadId, act, view } = setup();
 		try {
@@ -643,6 +661,24 @@ describe('Threads', () => {
 				next = act(next, 'addStop', { thread: threadId(0), nodeId: id });
 			}
 			expect(rows(next, 'stops')).toHaveLength(12);
+		} finally {
+			sandbox.dispose();
+		}
+	});
+
+	it('draws a valid view with long thread titles and every status showing', () => {
+		const long = 'Who is the Cartographer working for, and why does Ilse trust them so much?';
+		const { sandbox, data, threadId, act } = setup(
+			`Plot\n[ ] ${long}\n[x] ${long}\n[-] ${long}`
+		);
+		try {
+			let next = act(data, 'toggleClosed', null);
+			next = act(next, 'addStop', { thread: threadId(0), nodeId: A });
+			next = act(next, 'toggleStops', { id: threadId(1) });
+			const tree = sandbox.render('threads', next, { ...ctx(), refs: { [A]: node(long) } }).tree;
+
+			expect(validatePluginTree(tree).ok).toBe(true);
+			expect(JSON.stringify(tree)).toContain('Resolved, no stops left');
 		} finally {
 			sandbox.dispose();
 		}

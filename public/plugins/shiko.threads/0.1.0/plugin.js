@@ -7,7 +7,9 @@ const MAX_STOPS_PER_THREAD = 12;
 const MAX_STOPS = 100;
 
 const list = (data, field) => (Array.isArray(data[field]) ? data[field] : []);
-const stopsOf = (data, threadId) => list(data, 'stops').filter((stop) => stop.thread === threadId);
+// Rows get their ids when a node is saved; a draft in the node editor has none yet.
+const stopsOf = (data, threadId) =>
+	threadId ? list(data, 'stops').filter((stop) => stop.thread === threadId) : [];
 const plural = (count, word) => count + ' ' + word + (count === 1 ? '' : 's');
 
 function short(text, length) {
@@ -139,11 +141,11 @@ function menuFor(thread, data, refs, expanded) {
 		{ separator: true },
 		{ label: 'Delete thread', action: 'remove', payload: { id: thread.id }, icon: 'trash', danger: true }
 	);
-	return ui.menu('Actions for “' + short(thread.text, 30) + '”', items);
+	return ui.menu('Actions for “' + short(thread.text, 24) + '”', items);
 }
 
 function threadBlock(thread, data, refs, canEdit) {
-	const expanded = data.current === thread.id;
+	const expanded = Boolean(thread.id) && data.current === thread.id;
 	const stops = stopsOf(data, thread.id);
 	const gone = stops.filter((stop) => !stopNode(stop, refs)).length;
 	const dropped = thread.status === 'dropped';

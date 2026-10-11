@@ -1150,6 +1150,7 @@ export const QuickInput: FC<QuickInputProps> = ({
 						<EnhancedInput
 							className='min-h-0 min-w-0 w-full flex-1'
 							collaborators={collaborators}
+							cursorAtEnd={mode === 'edit' && Boolean(initialValue)}
 							disabled={isCreating}
 							enableCommands={true}
 							onAutocompleteControllerReady={handleAutocompleteControllerReady}

@@ -3,6 +3,7 @@
 import { PluginNodeContent } from '@/components/nodes/content/plugin-node-content';
 import { PluginSitesSentence } from '@/components/plugins/plugin-site-note';
 import {
+	assignListRowIds,
 	keepSetByFields,
 	type ParsedPluginFields,
 } from '@/lib/plugins/plugin-fields';
@@ -36,7 +37,14 @@ export function PluginEditorPreview({
 }: PluginEditorPreviewProps) {
 	const data = useMemo(
 		() =>
-			active && parsed ? keepSetByFields(active.kind, parsed.data, savedData) : null,
+			active && parsed
+				? keepSetByFields(
+						active.kind,
+						// Editing: rows keep the ids they have, so their stops show in the preview.
+						savedData ? assignListRowIds(active.kind, parsed.data, savedData) : parsed.data,
+						savedData
+					)
+				: null,
 		[active, parsed, savedData]
 	);
 	const powers = active ? pluginPowers(active.manifest) : null;

@@ -239,7 +239,7 @@ export const pluginUiNodeSchema: z.ZodType<PluginUiNode> = z.lazy(() =>
 		z.strictObject({
 			type: z.literal('menu'),
 			key: keySchema,
-			label: z.string().min(1).max(40),
+			label: z.string().min(1).max(60),
 			items: z.array(menuItemSchema).min(1).max(PLUGIN_UI_LIMITS.menuItems),
 		}),
 		z.strictObject({
