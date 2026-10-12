@@ -48,6 +48,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **database**: `plugin_drafts` (table, RLS, constraints, `guard_plugin_drafts` trigger) applied to production through the Supabase MCP as `create_plugin_drafts` (20261012081504), with the migration's own `begin`/`commit` left out because the MCP wraps it. Its catalog was compared with the local database and matches; prod has no drafts yet
 - **legal**: Privacy (§6 Data Retention) and Terms (§8.2 Data Sent to AI) no longer mention AI chat history or chat messages, and both "Last updated" dates read October 12, 2026
+- **legal/ai**: Terms §8.1–8.2, Privacy §4 and its OpenAI row, and the subprocessors page now list what is actually sent to OpenAI (map title and description, node text and tags, how nodes connect, recipe instructions and node search queries) and no longer mention "answers" or "Q&A"; the subprocessors date is now October 12, 2026
+  - Why: the wording only listed structure and node content, and described features that were removed
 
 ---
 

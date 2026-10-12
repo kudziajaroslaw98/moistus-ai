@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 		'List of third-party service providers that process data on behalf of Shiko.',
 };
 
-const EFFECTIVE_DATE = 'October 6, 2026';
+const EFFECTIVE_DATE = 'October 12, 2026';
 const CONTACT_EMAIL = 'support@shiko.app';
 
 interface Subprocessor {
@@ -40,8 +40,9 @@ const SUBPROCESSORS: Subprocessor[] = [
 	},
 	{
 		name: 'OpenAI',
-		purpose: 'AI-powered features (suggestions, Q&A, content generation)',
-		dataProcessed: 'Node content sent for AI processing (not stored by OpenAI)',
+		purpose: 'AI-powered features (suggestions, recipes, node search)',
+		dataProcessed:
+			'Map title and description, node text and tags, recipe instructions and search queries sent for AI processing (not stored by OpenAI)',
 		location: 'US',
 		privacyUrl: 'https://openai.com/policies/privacy-policy',
 		dpaStatus: 'DPA available',
@@ -89,7 +90,7 @@ export default function SubprocessorsPage() {
 					Subprocessors
 				</h1>
 				<p className='text-text-secondary'>
-					Last updated: <time dateTime='2026-10-06'>{EFFECTIVE_DATE}</time>
+					Last updated: <time dateTime='2026-10-12'>{EFFECTIVE_DATE}</time>
 				</p>
 			</header>
 

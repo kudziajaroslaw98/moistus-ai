@@ -351,7 +351,8 @@ export default function TermsOfServicePage() {
 				<h3>8.1 AI-Generated Content</h3>
 				<p>
 					Shiko uses artificial intelligence (powered by OpenAI) to provide
-					suggestions, answers, and other features. You understand that:
+					suggestions, recipe results, node search, and other features. You
+					understand that:
 				</p>
 				<ul>
 					<li>
@@ -373,8 +374,13 @@ export default function TermsOfServicePage() {
 					When you use AI features, the following data may be sent to OpenAI:
 				</p>
 				<ul>
-					<li>Mind map structure (node relationships)</li>
-					<li>Node content (text, not images or files)</li>
+					<li>Mind map structure (how nodes connect)</li>
+					<li>Node text and tags (not images or files)</li>
+					<li>The map&apos;s title and description</li>
+					<li>
+						What you type for AI: the instruction in an AI recipe and node
+						search queries
+					</li>
 				</ul>
 
 				<h3>8.3 No Guarantees</h3>
