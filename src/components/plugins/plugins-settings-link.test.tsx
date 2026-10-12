@@ -20,7 +20,7 @@ function setup(overrides: Record<string, unknown> = {}) {
 		loadedPlugins: {},
 		...overrides,
 	};
-	render(<PluginsSettingsLink motionProps={{}} onManage={onManage} />);
+	render(<PluginsSettingsLink onManage={onManage} />);
 	return { onManage, user: userEvent.setup() };
 }
 
@@ -33,7 +33,7 @@ describe('PluginsSettingsLink', () => {
 
 		expect(screen.getByText('Metric is on')).toBeInTheDocument();
 		expect(screen.getByText('1 update available')).toBeInTheDocument();
-		await user.click(screen.getByRole('button', { name: 'Manage plugins' }));
+		await user.click(screen.getByRole('button', { name: /Manage plugins/ }));
 
 		expect(onManage).toHaveBeenCalledTimes(1);
 	});

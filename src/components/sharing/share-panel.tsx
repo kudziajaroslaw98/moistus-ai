@@ -3,8 +3,17 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+	Panel,
+	PanelField,
+	PanelRow,
+	PanelSection,
+	PanelTab,
+	PanelTabsList,
+	panelButtonClass,
+	panelInputClass,
+	panelSelectClass,
+} from '@/components/ui/panel';
 import {
 	Select,
 	SelectContent,
@@ -12,28 +21,23 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
 import { SharePanelProps, ShareRole } from '@/types/sharing-types';
 import { cn } from '@/utils/cn';
 import {
 	AlertCircle,
-	ChevronDown,
 	Link2,
 	Loader2,
 	QrCode,
-	Settings,
-	Shield,
 	Trash2,
 	Users,
 } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useShallow } from 'zustand/shallow';
-import { SidePanel } from '../side-panel';
 import { RoomCodeDisplay } from './room-code-display';
 
 const createShareSchema = z.object({
@@ -44,8 +48,6 @@ const createShareSchema = z.object({
 
 type CreateShareFormData = z.infer<typeof createShareSchema>;
 
-// Animation easing following guidelines
-const easeOutQuad = [0.25, 0.46, 0.45, 0.94] as const;
 
 export function SharePanel({
 	onClose,
@@ -56,13 +58,6 @@ export function SharePanel({
 		'room-code' | 'direct-share' | 'manage'
 	>('room-code');
 	const [isGeneratingCode, setIsGeneratingCode] = useState(false);
-	const [settingsOpen, setSettingsOpen] = useState(true);
-	const shouldReduceMotion = useReducedMotion();
-	const settingsContentId = useId();
-
-	const transition = shouldReduceMotion
-		? { duration: 0 }
-		: { duration: 0.2, ease: easeOutQuad };
 
 	const {
 		shareTokens,
@@ -232,375 +227,285 @@ export function SharePanel({
 	};
 
 	return (
-		<SidePanel
-			data-testid='share-panel'
-			isOpen={isOpen}
-			onClose={onClose}
-			title={`Share ${mindMap?.title || 'Untitled Map'}`}
+		<Tabs
+			className='contents'
+			onValueChange={(v) => setActiveTab(v as typeof activeTab)}
+			value={activeTab}
 		>
-			<div className='flex h-full flex-col min-h-0'>
-				{/* Tabs */}
-				<Tabs
-					className='flex-1 flex flex-col min-h-0'
-					onValueChange={(v) => setActiveTab(v as typeof activeTab)}
-					value={activeTab}
-				>
-					<TabsList
-						className='grid w-full grid-cols-2 mx-4 mt-2 gap-1 shrink-0 rounded-lg border border-border-subtle bg-surface'
-						style={{ width: 'calc(100% - 2rem)' }}
-					>
-						<TabsTrigger value='room-code'>
-							<Link2 className='mr-2 h-4 w-4' />
-							Room Code
-						</TabsTrigger>
+			<Panel
+				data-testid='share-panel'
+				onOpenChange={(open) => {
+					if (!open) onClose();
+				}}
+				open={isOpen}
+				subtitle={mindMap?.title || 'Untitled map'}
+				title='Share'
+				tabs={
+					<PanelTabsList>
+						<PanelTab value='room-code'>Room code</PanelTab>
 
-						<TabsTrigger value='manage'>
-							<Users className='mr-2 h-4 w-4' />
+						<PanelTab value='manage'>
 							Manage
-						</TabsTrigger>
-					</TabsList>
-
-					{/* Room Code Tab: one scroll container for settings + codes so an
-					    expanded settings block can't squeeze the codes list to zero on
-					    short (mobile) viewports. */}
-					<TabsContent
-						className='flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 mt-4 pb-4'
-						value='room-code'
-					>
-						{/* Collapsible Settings Section */}
-						<div className='shrink-0'>
-							<button
-								type='button'
-								aria-controls={settingsContentId}
-								aria-expanded={settingsOpen}
-								onClick={() => setSettingsOpen(!settingsOpen)}
-								className={cn([
-									'flex items-center justify-between w-full p-3 bg-surface rounded-lg hover:bg-surface/80 transition-colors duration-200 ease group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-900',
-									settingsOpen ? 'rounded-b-none' : 'rounded-b-lg',
-								])}
-							>
-								<div className='flex items-center gap-2'>
-									<Settings className='h-4 w-4 text-zinc-400' />
-									<span className='text-sm font-medium text-zinc-200'>
-										Room Code Settings
-									</span>
-								</div>
-								<ChevronDown
-									className={cn(
-										'h-4 w-4 text-zinc-400 transition-transform duration-200 ease-out',
-										settingsOpen && 'rotate-180'
-									)}
-								/>
-							</button>
-
-							<AnimatePresence initial={false}>
-								{settingsOpen && (
-									<motion.div
-										id={settingsContentId}
-										initial={{ height: 0, opacity: 0 }}
-										animate={{ height: 'auto', opacity: 1 }}
-										exit={{ height: 0, opacity: 0 }}
-										transition={transition}
-										className='overflow-hidden'
-									>
-										<div className='space-y-4 bg-surface rounded-b-lg p-4 -mt-1 border-t border-zinc-700/30'>
-											<div className='space-y-2'>
-												<Label className='text-xs text-zinc-400'>
-													Default Permission
-												</Label>
-
-												<Select
-													data-testid='role-selector'
-													value={roomCodeSettings.role}
-													onValueChange={(v) =>
-														setRoomCodeSettings((prev) => ({
-															...prev,
-															role: v as ShareRole,
-														}))
-													}
-												>
-													<SelectTrigger
-														className='h-9'
-														data-testid='role-selector-trigger'
-													>
-														<SelectValue />
-													</SelectTrigger>
-
-													<SelectContent>
-														<SelectItem value='viewer'>
-															<div className='flex items-center gap-2'>
-																<Shield className='h-3.5 w-3.5' />
-																<span>Viewer - Can view only</span>
-															</div>
-														</SelectItem>
-
-														<SelectItem value='commentator'>
-															<div className='flex items-center gap-2'>
-																<Shield className='h-3.5 w-3.5' />
-																<span>Commentator - Can view and comment</span>
-															</div>
-														</SelectItem>
-
-														<SelectItem value='editor'>
-															<div className='flex items-center gap-2'>
-																<Shield className='h-3.5 w-3.5' />
-																<span>Editor - Can edit content</span>
-															</div>
-														</SelectItem>
-													</SelectContent>
-												</Select>
-											</div>
-
-											<div className='grid grid-cols-2 gap-3'>
-												<div className='space-y-2'>
-													<Label className='text-xs text-zinc-400'>
-														Max Users
-													</Label>
-
-													<Input
-														className='h-9'
-														data-testid='max-users-input'
-														max={maxUsersLimit}
-														min={1}
-														type='number'
-														value={roomCodeSettings.maxUsers}
-														onChange={(e) =>
-															setRoomCodeSettings((prev) => ({
-																...prev,
-																maxUsers: Math.min(
-																	maxUsersLimit,
-																	Math.max(1, parseInt(e.target.value) || 3)
-																),
-															}))
-														}
-													/>
-												</div>
-
-												<div className='space-y-2'>
-													<Label className='text-xs text-zinc-400'>
-														Expires After
-													</Label>
-
-													<Select
-														value={roomCodeSettings.expiresInHours.toString()}
-														onValueChange={(v) =>
-															setRoomCodeSettings((prev) => ({
-																...prev,
-																expiresInHours: parseInt(v),
-															}))
-														}
-													>
-														<SelectTrigger className='h-9'>
-															<SelectValue />
-														</SelectTrigger>
-
-														<SelectContent>
-															<SelectItem value='1'>1 hour</SelectItem>
-															<SelectItem value='6'>6 hours</SelectItem>
-															<SelectItem value='24'>24 hours</SelectItem>
-															<SelectItem value='72'>3 days</SelectItem>
-															<SelectItem value='168'>1 week</SelectItem>
-														</SelectContent>
-													</Select>
-												</div>
-											</div>
-
-											{/* Free tier limit indicator - only show if NOT at limit */}
-											{isFreeWithLimit && !isAtCollaboratorLimit && (
-												<button
-													type='button'
-													onClick={() => setPopoverOpen({ upgradeUser: true })}
-													className='flex items-center gap-4 w-full p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/15 transition-colors duration-200 ease text-left group'
-												>
-													<Users className='w-4 h-4 shrink-0' />
-													<div className='flex-1 min-w-0'>
-														<span className='text-xs font-medium block'>
-															Max {maxUsersLimit} users on Free plan
-														</span>
-														<span className='text-xs opacity-80 group-hover:underline'>
-															Upgrade to Pro for unlimited →
-														</span>
-													</div>
-												</button>
-											)}
-
-											{/* Collaborator limit warning */}
-											{isAtCollaboratorLimit && collaboratorLimitInfo && (
-												<div className='flex items-center gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400'>
-													<AlertCircle className='w-4 h-4 shrink-0' />
-													<span className='text-xs'>
-														Collaborator limit reached (
-														{collaboratorLimitInfo.current}/
-														{collaboratorLimitInfo.max}). Upgrade to Pro for
-														more.
-													</span>
-												</div>
-											)}
-
-											<Button
-												className='w-full h-9'
-												data-testid='generate-room-code-btn'
-												disabled={isGeneratingCode || isAtCollaboratorLimit}
-												onClick={handleGenerateRoomCode}
-											>
-												{isGeneratingCode ? (
-													<>
-														<Loader2 className='mr-2 h-4 w-4 animate-spin' />
-														Generating...
-													</>
-												) : (
-													<>
-														<Link2 className='mr-2 h-4 w-4' />
-														Generate Room Code
-													</>
-												)}
-											</Button>
-										</div>
-									</motion.div>
-								)}
-							</AnimatePresence>
-						</div>
-
-						{/* Room Codes List */}
-						<div className='mt-4'>
-							{mapRoomCodes.length > 0 ? (
-								<div className='space-y-3'>
-									{mapRoomCodes.map((token, index) => (
-										<motion.div
-											key={token.id}
-											initial={{ opacity: 0, y: 10 }}
-											animate={{ opacity: 1, y: 0 }}
-											transition={{
-												...transition,
-												delay: shouldReduceMotion ? 0 : index * 0.05,
-											}}
-										>
-											<RoomCodeDisplay
-												showQRCode
-												token={token}
-												defaultExpanded={index === 0}
-												onRefresh={handleRefreshCode}
-												onRevoke={handleRevokeCode}
-											/>
-										</motion.div>
-									))}
-								</div>
-							) : (
-								<motion.div
-									initial={{ opacity: 0 }}
-									animate={{ opacity: 1 }}
-									transition={transition}
-									className='rounded-lg border-2 border-dashed border-zinc-700/50 p-8 text-center'
-								>
-									<QrCode className='mx-auto h-10 w-10 text-zinc-600' />
-
-									<h3 className='mt-4 text-sm font-medium text-zinc-300'>
-										No active room codes
-									</h3>
-
-									<p className='mt-2 text-xs text-zinc-500'>
-										Generate a room code to allow others to join without an
-										account
-									</p>
-								</motion.div>
+							{collaboratorCount > 0 && (
+								<span className='text-xs tabular-nums text-text-tertiary'>
+									{collaboratorCount}
+								</span>
 							)}
+						</PanelTab>
+					</PanelTabsList>
+				}
+			>
+				<TabsContent className='pt-4' value='room-code'>
+					<PanelSection
+						description='Anyone with the code can join with the permission you pick.'
+						label='New room code'
+					>
+						<PanelField htmlFor='room-code-role' label='Default permission'>
+							<Select
+								data-testid='role-selector'
+								value={roomCodeSettings.role}
+								onValueChange={(v) =>
+									setRoomCodeSettings((prev) => ({
+										...prev,
+										role: v as ShareRole,
+									}))
+								}
+							>
+								<SelectTrigger
+									className={panelSelectClass}
+									data-testid='role-selector-trigger'
+									id='room-code-role'
+								>
+									<SelectValue />
+								</SelectTrigger>
+
+								<SelectContent>
+									<SelectItem value='viewer'>Viewer - Can view only</SelectItem>
+
+									<SelectItem value='commentator'>
+										Commentator - Can view and comment
+									</SelectItem>
+
+									<SelectItem value='editor'>Editor - Can edit content</SelectItem>
+								</SelectContent>
+							</Select>
+						</PanelField>
+
+						<div className='mt-3.5 grid grid-cols-2 gap-3'>
+							<PanelField
+								className='mt-0'
+								htmlFor='room-code-max-users'
+								label='Max users'
+							>
+								<Input
+									className={panelInputClass}
+									data-testid='max-users-input'
+									id='room-code-max-users'
+									max={maxUsersLimit}
+									min={1}
+									type='number'
+									value={roomCodeSettings.maxUsers}
+									onChange={(e) =>
+										setRoomCodeSettings((prev) => ({
+											...prev,
+											maxUsers: Math.min(
+												maxUsersLimit,
+												Math.max(1, parseInt(e.target.value) || 3)
+											),
+										}))
+									}
+								/>
+							</PanelField>
+
+							<PanelField className='mt-0' htmlFor='room-code-expires' label='Expires after'>
+								<Select
+									value={roomCodeSettings.expiresInHours.toString()}
+									onValueChange={(v) =>
+										setRoomCodeSettings((prev) => ({
+											...prev,
+											expiresInHours: parseInt(v),
+										}))
+									}
+								>
+									<SelectTrigger
+										className={panelSelectClass}
+										id='room-code-expires'
+									>
+										<SelectValue />
+									</SelectTrigger>
+
+									<SelectContent>
+										<SelectItem value='1'>1 hour</SelectItem>
+										<SelectItem value='6'>6 hours</SelectItem>
+										<SelectItem value='24'>24 hours</SelectItem>
+										<SelectItem value='72'>3 days</SelectItem>
+										<SelectItem value='168'>1 week</SelectItem>
+									</SelectContent>
+								</Select>
+							</PanelField>
 						</div>
-					</TabsContent>
 
-					{/* Manage Access Tab */}
-					<TabsContent className='flex-1 min-h-0 px-4 mt-4' value='manage'>
-						<ScrollArea className='h-full -mx-4 px-4'>
-							<div className='space-y-4 pb-4'>
-								{!currentShares || currentShares.length === 0 ? (
-									<div className='rounded-lg border-2 border-dashed border-zinc-700/50 p-8 text-center'>
-										<Users className='mx-auto h-10 w-10 text-zinc-600' />
+						{/* Free tier limit indicator - only show if NOT at limit */}
+						{isFreeWithLimit && !isAtCollaboratorLimit && (
+							<button
+								className='group mt-4 flex w-full items-center gap-3 rounded-xl border border-warning-500/20 bg-warning-500/10 p-3 text-left text-warning-300 transition-colors duration-200 ease hover:bg-warning-500/15'
+								onClick={() => setPopoverOpen({ upgradeUser: true })}
+								type='button'
+							>
+								<Users aria-hidden className='size-4 shrink-0' />
 
-										<h3 className='mt-4 text-sm font-medium text-zinc-300'>
-											No one else has access
-										</h3>
+								<span className='min-w-0 flex-1'>
+									<span className='block text-xs font-medium'>
+										Max {maxUsersLimit} users on Free plan
+									</span>
 
-										<p className='mt-2 text-xs text-zinc-500'>
-											Share this mind map to start collaborating
-										</p>
-									</div>
-								) : (
-									<div className='space-y-2'>
-										{currentShares.map((share) => (
-											<div
-												className='flex items-center justify-between rounded-lg border border-zinc-700/50 p-3 bg-surface'
-												key={share.id}
-											>
-												<div className='flex items-center gap-3'>
-													<Avatar className='h-8 w-8 ring-border-strong'>
-														<AvatarImage src={share.avatar_url} />
+									<span className='block text-xs opacity-80 group-hover:underline'>
+										Upgrade to Pro for unlimited →
+									</span>
+								</span>
+							</button>
+						)}
 
-														<AvatarFallback>
-															{share.name?.charAt(0)?.toUpperCase() ?? '?'}
-														</AvatarFallback>
-													</Avatar>
+						{/* Collaborator limit warning */}
+						{isAtCollaboratorLimit && collaboratorLimitInfo && (
+							<div className='mt-4 flex items-center gap-3 rounded-xl border border-warning-500/20 bg-warning-500/10 p-3 text-warning-300'>
+								<AlertCircle aria-hidden className='size-4 shrink-0' />
 
-													<div>
-														<p className='text-sm font-medium'>{share.name}</p>
-
-														<p className='text-xs text-muted-foreground'>
-															{share.email}
-														</p>
-													</div>
-												</div>
-
-												<div className='flex items-center gap-2'>
-													<Select
-														disabled={share.share.role === 'owner'}
-														value={share.share.role}
-														onValueChange={(v) =>
-															handleUpdateShareRole(
-																share.share.id,
-																v as ShareRole
-															)
-														}
-													>
-														<SelectTrigger className='h-8 w-[100px]'>
-															<SelectValue />
-														</SelectTrigger>
-
-														<SelectContent>
-															<SelectItem value='viewer'>Viewer</SelectItem>
-
-															<SelectItem value='commentator'>
-																Commentator
-															</SelectItem>
-
-															<SelectItem value='editor'>Editor</SelectItem>
-
-															{share.share.role === 'owner' && (
-																<SelectItem disabled value='owner'>
-																	Owner
-																</SelectItem>
-															)}
-														</SelectContent>
-													</Select>
-
-													{share.share.role !== 'owner' && (
-														<Button
-															aria-label='Remove user access'
-															className='h-8 w-8'
-															onClick={() => handleDeleteShare(share.share.id)}
-															size='icon'
-															variant='ghost'
-														>
-															<Trash2 className='h-4 w-4' />
-														</Button>
-													)}
-												</div>
-											</div>
-										))}
-									</div>
-								)}
+								<span className='text-xs'>
+									Collaborator limit reached ({collaboratorLimitInfo.current}/
+									{collaboratorLimitInfo.max}). Upgrade to Pro for more.
+								</span>
 							</div>
-						</ScrollArea>
-					</TabsContent>
-				</Tabs>
-			</div>
-		</SidePanel>
+						)}
+
+						<Button
+							className={cn(panelButtonClass, 'mt-4 h-10 w-full gap-2')}
+							data-testid='generate-room-code-btn'
+							disabled={isGeneratingCode || isAtCollaboratorLimit}
+							onClick={handleGenerateRoomCode}
+						>
+							{isGeneratingCode ? (
+								<>
+									<Loader2 className='size-4 animate-spin' />
+									Generating...
+								</>
+							) : (
+								<>
+									<Link2 className='size-4' />
+									Generate room code
+								</>
+							)}
+						</Button>
+					</PanelSection>
+
+					<PanelSection
+						label='Active codes'
+						meta={hasRoomCodes ? mapRoomCodes.length : undefined}
+					>
+						{hasRoomCodes ? (
+							mapRoomCodes.map((token, index) => (
+								<RoomCodeDisplay
+									defaultExpanded={index === 0}
+									key={token.id}
+									onRefresh={handleRefreshCode}
+									onRevoke={handleRevokeCode}
+									showQRCode
+									token={token}
+								/>
+							))
+						) : (
+							<div className='flex flex-col items-center gap-1.5 py-8 text-center'>
+								<QrCode aria-hidden className='size-8 text-text-disabled' />
+
+								<h4 className='mt-2 text-sm font-medium text-text-primary'>
+									No active room codes
+								</h4>
+
+								<p className='max-w-64 text-xs text-text-tertiary'>
+									Generate a room code to let others join without an account.
+								</p>
+							</div>
+						)}
+					</PanelSection>
+				</TabsContent>
+
+				<TabsContent className='pt-4' value='manage'>
+					<PanelSection
+						label='People with access'
+						meta={collaboratorCount > 0 ? collaboratorCount : undefined}
+					>
+						{!currentShares || currentShares.length === 0 ? (
+							<div className='flex flex-col items-center gap-1.5 py-8 text-center'>
+								<Users aria-hidden className='size-8 text-text-disabled' />
+
+								<h4 className='mt-2 text-sm font-medium text-text-primary'>
+									No one else has access
+								</h4>
+
+								<p className='max-w-64 text-xs text-text-tertiary'>
+									Share this mind map to start collaborating.
+								</p>
+							</div>
+						) : (
+							currentShares.map((share) => (
+								<PanelRow
+									description={share.email}
+									key={share.id}
+									title={share.name}
+									leading={
+										<Avatar className='size-8 shrink-0'>
+											<AvatarImage src={share.avatar_url} />
+
+											<AvatarFallback>
+												{share.name?.charAt(0)?.toUpperCase() ?? '?'}
+											</AvatarFallback>
+										</Avatar>
+									}
+									trailing={
+										<>
+											<Select
+												disabled={share.share.role === 'owner'}
+												value={share.share.role}
+												onValueChange={(v) =>
+													handleUpdateShareRole(share.share.id, v as ShareRole)
+												}
+											>
+												<SelectTrigger className={cn(panelSelectClass, 'w-[116px]')} size='sm'>
+													<SelectValue />
+												</SelectTrigger>
+
+												<SelectContent>
+													<SelectItem value='viewer'>Viewer</SelectItem>
+													<SelectItem value='commentator'>Commentator</SelectItem>
+													<SelectItem value='editor'>Editor</SelectItem>
+
+													{share.share.role === 'owner' && (
+														<SelectItem disabled value='owner'>
+															Owner
+														</SelectItem>
+													)}
+												</SelectContent>
+											</Select>
+
+											{share.share.role !== 'owner' && (
+												<Button
+													aria-label='Remove user access'
+													className='size-8 text-text-secondary hover:bg-error-500/10 hover:text-error-300'
+													onClick={() => handleDeleteShare(share.share.id)}
+													size='icon'
+													variant='ghost'
+												>
+													<Trash2 className='size-4' />
+												</Button>
+											)}
+										</>
+									}
+								/>
+							))
+						)}
+					</PanelSection>
+				</TabsContent>
+			</Panel>
+		</Tabs>
 	);
 }

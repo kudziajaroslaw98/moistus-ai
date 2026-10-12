@@ -1,6 +1,13 @@
 'use client';
 
-import { SidePanel } from '@/components/side-panel';
+import {
+	Panel,
+	PanelBadge,
+	PanelIcon,
+	PanelSection,
+	panelInputClass,
+	panelSubtitleLinkClass,
+} from '@/components/ui/panel';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -70,28 +77,6 @@ function writeLaterVersions(
 
 const subtleLinkClass =
 	'inline-flex items-center gap-0.5 rounded-sm transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60';
-
-function GroupHeader({
-	label,
-	count,
-}: {
-	label: string;
-	count?: number | string;
-}) {
-	return (
-		<div className='flex items-center gap-2.5 pt-1'>
-			<h3 className='text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55'>
-				{label}
-			</h3>
-
-			<span aria-hidden className='h-px flex-1 bg-white/[0.08]' />
-
-			{count !== undefined && (
-				<span className='text-[12px] tabular-nums text-white/55'>{count}</span>
-			)}
-		</div>
-	);
-}
 
 /** "Add one by typing $metric …": where a running plugin's nodes come from. */
 function AddHint({ manifest }: { manifest: PluginManifest }) {
@@ -203,33 +188,35 @@ function PluginCard({
 		<div
 			data-testid={`plugin-card-${entry.id}`}
 			className={cn(
-				'relative space-y-3 rounded-lg border bg-base p-3 transition-colors duration-200 ease',
-				isConfirmingOn ? 'border-sky-300/35' : 'border-zinc-800'
+				'relative -mx-2 space-y-3 rounded-xl px-2 py-3 transition-colors duration-200 ease',
+				isConfirmingOn && 'bg-primary-500/[0.06]'
 			)}
 		>
 			<div className='flex items-start gap-3'>
-				<span className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-500/15 text-primary-400'>
-					{Icon ? <Icon aria-hidden className='size-[18px]' /> : null}
-				</span>
+				<PanelIcon>
+					{Icon ? <Icon aria-hidden className='size-4' /> : null}
+				</PanelIcon>
 
 				<div className='flex min-w-0 flex-1 flex-col gap-0.5'>
 					{isOwner ? (
 						<label
-							className='text-sm font-medium text-text-primary'
+							className='text-[15px] font-medium leading-[1.3] text-text-primary'
 							htmlFor={switchId}
 						>
 							{name}
 						</label>
 					) : (
-						<span className='text-sm font-medium text-text-primary'>{name}</span>
+						<span className='text-[15px] font-medium leading-[1.3] text-text-primary'>
+							{name}
+						</span>
 					)}
 
-					<span className='text-xs text-text-secondary'>
+					<span className='text-xs text-text-tertiary'>
 						{`${manifest ? `by ${manifest.author} · ` : ''}v${record?.version ?? latestCatalogVersion(entry).version}`}
 					</span>
 
 					{manifest?.description && (
-						<span className='mt-1 text-[13px] leading-[18px] text-zinc-300'>
+						<span className='mt-1 text-[12.5px] leading-[1.4] text-text-secondary'>
 							{manifest.description}
 						</span>
 					)}
@@ -368,10 +355,12 @@ function DeveloperSection({ onSubmit }: { onSubmit: (manifestUrl: string) => voi
 	};
 
 	return (
-		<section aria-label='Developer' className='flex flex-col gap-2.5 pt-2'>
-			<GroupHeader label='Developer' />
-
-			<p className='text-xs text-text-secondary'>
+		<PanelSection
+			aria-label='Developer'
+			className='flex flex-col gap-2.5'
+			label='Developer'
+		>
+			<p className='text-[12.5px] leading-[1.45] text-text-secondary'>
 				Load a plugin you&apos;re building from localhost. Only you see it, in
 				this browser.
 			</p>
@@ -397,6 +386,7 @@ function DeveloperSection({ onSubmit }: { onSubmit: (manifestUrl: string) => voi
 
 				<Input
 					disabled={isLoadingDev}
+					className={panelInputClass}
 					error={Boolean(devError)}
 					id='dev-plugin-url'
 					onChange={(event) => setDevUrl(event.target.value)}
@@ -431,27 +421,25 @@ function DeveloperSection({ onSubmit }: { onSubmit: (manifestUrl: string) => voi
 				}
 				return (
 					<div
-						className='flex flex-col gap-2 rounded-lg border border-zinc-800 bg-base p-2.5'
+						className='flex flex-col gap-2 py-1'
 						key={url}
 					>
 						<div className='flex items-center gap-3'>
-							<span className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/6 text-zinc-300'>
+							<PanelIcon>
 								{loaded?.status === 'loading' ? (
 									<Loader2 aria-hidden className='size-4 animate-spin' />
 								) : Icon ? (
-									<Icon aria-hidden className='size-[18px]' />
+									<Icon aria-hidden className='size-4' />
 								) : null}
-							</span>
+							</PanelIcon>
 
 							<div className='flex min-w-0 flex-1 flex-col gap-0.5'>
 								<span className='flex items-center gap-1.5'>
-									<span className='truncate text-sm font-medium text-text-primary'>
+									<span className='truncate text-[15px] font-medium text-text-primary'>
 										{manifest?.name ?? 'Developer plugin'}
 									</span>
 
-									<span className='rounded bg-blue-500/20 px-1.5 text-[10px] font-semibold leading-4 tracking-[0.08em] text-blue-200'>
-										DEV
-									</span>
+									<PanelBadge tone='current'>Dev</PanelBadge>
 								</span>
 
 								<span
@@ -503,7 +491,7 @@ function DeveloperSection({ onSubmit }: { onSubmit: (manifestUrl: string) => voi
 					</div>
 				);
 			})}
-		</section>
+		</PanelSection>
 	);
 }
 
@@ -680,30 +668,28 @@ export function PluginsPanel() {
 	);
 
 	return (
-		<SidePanel
-			bodyClassName='p-0'
+		<Panel
+			bodyClassName='flex flex-col overflow-hidden p-0'
 			data-testid='plugins-panel'
-			isOpen={isOpen}
-			modal={false}
+			open={isOpen}
 			title={submitUrl ? 'Submit to the library' : 'Plugins'}
-			onClose={() => {
+			variant='docked'
+			onOpenChange={(open) => {
+				if (open) return;
 				setConfirmingOff(null);
 				setConfirmingOn(null);
 				setSubmitUrl(null);
 				setPopoverOpen({ plugins: false });
 			}}
 			subtitle={
-				<Link
-					className={`${subtleLinkClass} text-text-secondary hover:text-text-primary`}
-					href='/dashboard/plugins'
-				>
+				<Link className={panelSubtitleLinkClass} href='/dashboard/plugins'>
 					Open Plugins page
 					<ArrowUpRight aria-hidden className='size-3.5' />
 				</Link>
 			}
 		>
 			{submitUrl ? (
-				<div className='flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4'>
+				<div className='flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-5 pb-6 pt-4'>
 					<button
 						className={`${subtleLinkClass} self-start text-sm text-text-secondary hover:text-text-primary`}
 						onClick={() => setSubmitUrl(null)}
@@ -718,22 +704,22 @@ export function PluginsPanel() {
 					/>
 				</div>
 			) : (
-				<div className='flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4'>
-					<p className='text-[13px] leading-[18px] text-text-secondary'>
+				<div className='min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-4'>
+					<p className='mb-4 text-[12.5px] leading-[1.45] text-text-secondary'>
 						New kinds of nodes for this map. Everyone on the map sees them, and
 						each plugin only touches its own nodes.
 					</p>
 
-					<section aria-label='Shiko plugins' className='flex flex-col gap-3'>
-						<GroupHeader
-							label='Shiko plugins'
-							count={
-								updateCount > 0
-									? `${updateCount} ${updateCount === 1 ? 'update' : 'updates'}`
-									: entries.length
-							}
-						/>
-
+					<PanelSection
+						aria-label='Shiko plugins'
+						className='mt-0 border-t-0 pt-0'
+						label='Shiko plugins'
+						meta={
+							updateCount > 0
+								? `${updateCount} ${updateCount === 1 ? 'update' : 'updates'}`
+								: entries.length
+						}
+					>
 						{entries.length === 0 && libraryEntries.length === 0 ? (
 							<p className='text-sm text-text-secondary'>
 								No plugins on this map.
@@ -741,22 +727,21 @@ export function PluginsPanel() {
 						) : (
 							entries.map(renderCard)
 						)}
-					</section>
+					</PanelSection>
 
 					{libraryEntries.length > 0 && (
-						<section aria-label='Library' className='flex flex-col gap-3'>
-							<GroupHeader count={libraryEntries.length} label='Library' />
-
-							<p className='text-xs leading-[17px] text-text-secondary'>
-								Made by other people and reviewed by Shiko before they&apos;re listed.
-							</p>
-
+						<PanelSection
+							aria-label='Library'
+							description='Made by other people and reviewed by Shiko before they&apos;re listed.'
+							label='Library'
+							meta={libraryEntries.length}
+						>
 							{libraryEntries.map(renderCard)}
-						</section>
+						</PanelSection>
 					)}
 
 					{!isOwner && (
-						<p className='flex items-center gap-2 text-xs text-text-secondary'>
+						<p className='mt-5 flex items-center gap-2 border-t border-white/8 pt-4 text-xs text-text-secondary'>
 							<Lock aria-hidden className='size-3.5 shrink-0' />
 							Only the map owner can turn plugins on or off.
 						</p>
@@ -765,7 +750,7 @@ export function PluginsPanel() {
 					{isOwner && developerMode && <DeveloperSection onSubmit={setSubmitUrl} />}
 
 					{isOwner && !developerMode && (
-						<p className='text-xs leading-[17px] text-text-secondary'>
+						<p className='mt-5 border-t border-white/8 pt-4 text-xs leading-[17px] text-text-secondary'>
 							Building a plugin? Turn on Developer mode in Map Settings › Editor
 							Preferences to load it from localhost.{' '}
 
@@ -780,6 +765,6 @@ export function PluginsPanel() {
 					)}
 				</div>
 			)}
-		</SidePanel>
+		</Panel>
 	);
 }

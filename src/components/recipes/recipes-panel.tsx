@@ -3,7 +3,7 @@
 import { RecipeConfirmDialog } from '@/components/recipes/recipe-confirm-dialog';
 import { RecipeEditor } from '@/components/recipes/recipe-editor';
 import { RecipeList } from '@/components/recipes/recipe-list';
-import { SidePanel } from '@/components/side-panel';
+import { Panel, panelSubtitleLinkClass } from '@/components/ui/panel';
 import useAppStore from '@/store/mind-map-store';
 import type { RecipesPanelView } from '@/types/extensions';
 import { ArrowUpRight, ChevronLeft } from 'lucide-react';
@@ -68,17 +68,19 @@ export function RecipesPanel() {
 
 	return (
 		<>
-			<SidePanel
-				bodyClassName='p-0'
+			<Panel
+				bodyClassName='flex flex-col overflow-hidden p-0'
 				data-testid='recipes-panel'
-				isOpen={isOpen}
-				modal={false}
-				onClose={() => requestLeave('close')}
+				onOpenChange={(open) => {
+					if (!open) requestLeave('close');
+				}}
+				open={isOpen}
 				title={title}
+				variant='docked'
 				subtitle={
 					isEditing ? (
 						<button
-							className='inline-flex items-center gap-0.5 rounded-sm text-text-secondary transition-colors duration-200 ease hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60'
+							className={panelSubtitleLinkClass}
 							onClick={() => requestLeave('list')}
 							type='button'
 						>
@@ -87,7 +89,7 @@ export function RecipesPanel() {
 						</button>
 					) : (
 						<Link
-							className='inline-flex items-center gap-0.5 rounded-sm text-text-secondary transition-colors duration-200 ease hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60'
+							className={panelSubtitleLinkClass}
 							href='/dashboard/recipes'
 						>
 							Open Recipes page
@@ -138,7 +140,7 @@ export function RecipesPanel() {
 						)}
 					</motion.div>
 				</AnimatePresence>
-			</SidePanel>
+			</Panel>
 
 			<RecipeConfirmDialog
 				cancelLabel='Keep editing'

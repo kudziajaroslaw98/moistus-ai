@@ -420,6 +420,7 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 
 - 16 Base UI components (migrated from Radix)
 - 26 custom components (button, card, avatar, sidebar, etc.)
+- `panel.tsx`: the one side-panel kit (`Panel` shell with `modal`/`docked` variants plus `PanelSection`, `PanelRow`, `PanelField`, `PanelTab(s)`, `PanelFooterNote/Actions`, `PanelBadge`, `PanelIcon`). Used by Map Settings, Share, History, Account, Edge edit, Recipes, Plugins, the mobile menu, the landing drawer and `SideSheet` (`dashboard/side-sheet.tsx`, the wide variant for plugin versions and review). `sheet.tsx` is only left for the dashboard's mobile sidebar. `Dialog` sits above panels (z-90/91 vs 80/81)
 
 **Mind Map Settings Panel:**
 

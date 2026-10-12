@@ -1,7 +1,7 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { PanelBadge, panelButtonSmClass } from '@/components/ui/panel';
 import { ShareToken } from '@/types/sharing-types';
 import { cn } from '@/utils/cn';
 import {
@@ -142,92 +142,71 @@ export function RoomCodeDisplay({
 		: false;
 	const usagePercentage = (token.current_users / token.max_users) * 100;
 
-	const roleColorClass =
+	const roleTone =
 		token.permissions.role === 'editor'
-			? 'border-green-500/50 text-green-400 bg-green-500/10'
+			? 'ok'
 			: token.permissions.role === 'commentator'
-				? 'border-yellow-500/50 text-yellow-400 bg-yellow-500/10'
-				: 'border-blue-500/50 text-blue-400 bg-blue-500/10';
+				? 'warn'
+				: 'default';
+	const iconButtonClass =
+		'size-8 shrink-0 p-0 text-text-secondary hover:text-text-primary';
 
 	return (
-		<motion.div
-			layout
-			className={cn(
-				'rounded-lg border border-zinc-700/80 bg-elevated overflow-hidden',
-				'hover:border-zinc-600 transition-colors duration-200 ease',
-				className
-			)}
-			transition={transition}
-		>
-			{/* Compact Header - Always Visible */}
-			<div className='flex items-center justify-between gap-2 p-3'>
-				{/* Left: Code + Badges */}
-				<div className='flex items-center gap-2 min-w-0 flex-1'>
+		<motion.div className={cn('-mx-2 px-2', className)} layout transition={transition}>
+			{/* Compact row: always visible */}
+			<div className='flex min-h-[52px] items-center justify-between gap-2 py-2'>
+				<div className='flex min-w-0 flex-1 items-center gap-2'>
 					<code
-						className='font-mono font-bold text-primary-400 tracking-wider shrink-0'
+						className='shrink-0 font-mono text-sm font-medium tracking-[0.02em] text-text-primary'
 						data-testid='room-code-value'
 					>
 						{token.token}
 					</code>
 
-					<Badge
-						variant='outline'
-						className={cn(
-							'text-[10px] px-1.5 py-0 h-5 shrink-0',
-							roleColorClass
-						)}
-					>
-						{token.permissions.role}
-					</Badge>
+					<PanelBadge tone={roleTone}>{token.permissions.role}</PanelBadge>
 
-					{isExpired && (
-						<Badge
-							variant='destructive'
-							className='text-[10px] px-1.5 py-0 h-5 shrink-0'
-						>
-							Expired
-						</Badge>
-					)}
+					{isExpired && <PanelBadge tone='error'>Expired</PanelBadge>}
 				</div>
 
-				{/* Right: Primary Actions + Expand Toggle */}
-				<div className='flex items-center gap-0.5 shrink-0'>
+				<div className='flex shrink-0 items-center gap-0.5'>
 					<Button
-						className='h-7 w-7 p-0'
+						aria-label='Copy room code'
+						className={iconButtonClass}
 						onClick={handleCopyCode}
-						size='sm'
+						size='icon'
 						title='Copy room code'
 						variant='ghost'
 					>
-						<Copy className='h-3.5 w-3.5' />
+						<Copy className='size-4' />
 					</Button>
 
 					{onRevoke && (
 						<Button
 							aria-label='Revoke room code'
-							className='h-7 w-7 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10'
+							className={cn(iconButtonClass, 'hover:bg-error-500/10 hover:text-error-300')}
 							data-testid='revoke-room-code-btn'
 							onClick={handleRevoke}
-							size='sm'
+							size='icon'
 							title='Revoke room code'
 							variant='ghost'
 						>
-							<X className='h-3.5 w-3.5' />
+							<X className='size-4' />
 						</Button>
 					)}
 
 					<Button
 						aria-controls={expandableContentId}
 						aria-expanded={isExpanded}
-						className='h-7 w-7 p-0 ml-0.5'
+						aria-label={isExpanded ? 'Collapse room code' : 'Expand room code'}
+						className={iconButtonClass}
 						onClick={() => setIsExpanded(!isExpanded)}
-						size='sm'
+						size='icon'
 						title={isExpanded ? 'Collapse' : 'Expand'}
 						variant='ghost'
 					>
 						<ChevronDown
 							className={cn(
-								'h-4 w-4 transition-transform duration-200 ease-out',
+								'size-4 transition-transform duration-200 ease-out',
 								isExpanded && 'rotate-180'
 							)}
 						/>
@@ -235,108 +214,88 @@ export function RoomCodeDisplay({
 				</div>
 			</div>
 
-			{/* Expandable Content */}
+			{/* Details */}
 			<AnimatePresence initial={false}>
 				{isExpanded && (
 					<motion.div
+						animate={{ height: 'auto', opacity: 1 }}
+						className='overflow-hidden'
+						exit={{ height: 0, opacity: 0 }}
 						id={expandableContentId}
 						initial={{ height: 0, opacity: 0 }}
-						animate={{ height: 'auto', opacity: 1 }}
-						exit={{ height: 0, opacity: 0 }}
 						transition={transition}
-						className='overflow-hidden'
 					>
-						<div className='px-3 pb-3 space-y-3 border-t border-zinc-700/50 pt-3'>
-							{/* Stats Row */}
-							<div className='flex items-center gap-4 text-xs'>
-								{/* Users */}
-								<div className='flex items-center gap-2 flex-1'>
-									<Users className='h-3.5 w-3.5 text-zinc-400 shrink-0' />
-									<span className='text-zinc-300'>
-										{token.current_users}/{token.max_users}
-									</span>
-									<div className='flex-1 max-w-16 bg-zinc-700 rounded-full h-1'>
-										<div
-											style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-											className={cn(
-												'h-1 rounded-full transition-all duration-300',
-												usagePercentage > 80
-													? 'bg-red-500'
-													: usagePercentage > 60
-														? 'bg-yellow-500'
-														: 'bg-green-500'
-											)}
-										/>
-									</div>
-								</div>
+						<div className='space-y-3 pb-3 pt-1'>
+							<div className='flex items-center justify-between gap-3 text-[12.5px] text-text-secondary'>
+								<span className='inline-flex items-center gap-2.5'>
+									<Users aria-hidden className='size-3.5 shrink-0' />
 
-								{/* Time */}
-								<div className='flex items-center gap-2'>
-									<Clock className='h-3.5 w-3.5 text-zinc-400 shrink-0' />
+									<span className='tabular-nums'>
+										{token.current_users} / {token.max_users} people
+									</span>
+
 									<span
-										className={cn('text-zinc-300', isExpired && 'text-red-400')}
+										aria-hidden
+										className='h-1 w-16 overflow-hidden rounded-full bg-white/10'
 									>
-										{formatTimeRemaining(token.expires_at)}
+										<span
+											className={cn(
+												'block h-full rounded-full transition-[width] duration-300',
+												usagePercentage > 80
+													? 'bg-error-400'
+													: usagePercentage > 60
+														? 'bg-warning-400'
+														: 'bg-primary-400'
+											)}
+											style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+										/>
 									</span>
-								</div>
+								</span>
+
+								<span
+									className={cn(
+										'inline-flex items-center gap-1.5',
+										isExpired && 'text-error-300'
+									)}
+								>
+									<Clock aria-hidden className='size-3.5 shrink-0' />
+									{formatTimeRemaining(token.expires_at)}
+								</span>
 							</div>
 
-							{/* Permissions Row */}
 							<div className='flex items-center gap-1.5'>
-								{token.permissions.can_view && (
-									<Badge
-										variant='outline'
-										className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'
-									>
-										View
-									</Badge>
-								)}
-								{token.permissions.can_comment && (
-									<Badge
-										variant='outline'
-										className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'
-									>
-										Comment
-									</Badge>
-								)}
-								{token.permissions.can_edit && (
-									<Badge
-										variant='outline'
-										className='text-[10px] px-1.5 py-0 h-5 bg-zinc-700/50'
-									>
-										Edit
-									</Badge>
-								)}
+								{token.permissions.can_view && <PanelBadge>View</PanelBadge>}
+								{token.permissions.can_comment && <PanelBadge>Comment</PanelBadge>}
+								{token.permissions.can_edit && <PanelBadge>Edit</PanelBadge>}
 							</div>
 
-							{/* Share URL */}
-							<div className='flex items-center gap-2 p-2 bg-zinc-800/50 rounded border border-zinc-700/50'>
-								<code className='flex-1 text-[11px] text-zinc-400 truncate'>
+							<div className='flex h-9 items-center gap-2 rounded-[10px] border border-white/10 bg-white/[0.04] pl-3 pr-1'>
+								<code className='min-w-0 flex-1 truncate font-mono text-[12.5px] text-text-secondary'>
 									{`${typeof window !== 'undefined' ? window.location.origin : ''}/join/${token.token}`}
 								</code>
+
 								<Button
-									className='h-6 w-6 p-0 shrink-0'
+									aria-label='Copy share link'
+									className='size-7 shrink-0 p-0 text-text-secondary hover:text-text-primary'
 									onClick={handleCopyLink}
-									size='sm'
+									size='icon'
 									title='Copy share link'
 									variant='ghost'
 								>
-									<ExternalLink className='h-3 w-3' />
+									<ExternalLink className='size-3.5' />
 								</Button>
 							</div>
 
-							{/* Secondary Actions */}
 							<div className='flex items-center gap-2'>
 								{onRefresh && (
 									<Button
-										className='h-7 text-xs gap-1.5 flex-1'
+										className={cn(panelButtonSmClass, 'flex-1 gap-1.5 border-white/12 bg-white/[0.03]')}
 										disabled={isRefreshing || isExpired}
 										onClick={handleRefresh}
-										size='sm'
 										variant='outline'
 									>
 										<RefreshCw
-											className={cn('h-3 w-3', isRefreshing && 'animate-spin')}
+											className={cn('size-3.5', isRefreshing && 'animate-spin')}
 										/>
 										Refresh
 									</Button>
@@ -344,32 +303,31 @@ export function RoomCodeDisplay({
 
 								{showQRCode && (
 									<Button
-										className='h-7 text-xs gap-1.5 flex-1'
+										className={cn(panelButtonSmClass, 'flex-1 gap-1.5 border-white/12 bg-white/[0.03]')}
 										onClick={() => setShowQR(!showQR)}
-										size='sm'
 										variant='outline'
 									>
-										<QrCode className='h-3 w-3' />
+										<QrCode className='size-3.5' />
 										{showQR ? 'Hide QR' : 'QR Code'}
 									</Button>
 								)}
 							</div>
 
-							{/* QR Code (nested expandable) */}
 							<AnimatePresence>
 								{showQR && (
 									<motion.div
-										initial={{ height: 0, opacity: 0 }}
 										animate={{ height: 'auto', opacity: 1 }}
-										exit={{ height: 0, opacity: 0 }}
-										transition={transition}
 										className='overflow-hidden'
+										exit={{ height: 0, opacity: 0 }}
+										initial={{ height: 0, opacity: 0 }}
+										transition={transition}
 									>
-										<div className='text-center pt-2'>
-											<div className='w-28 h-28 bg-zinc-900 border border-zinc-700 rounded-lg mx-auto flex items-center justify-center'>
-												<QrCode className='h-8 w-8 text-zinc-500' />
+										<div className='pt-2 text-center'>
+											<div className='mx-auto flex size-28 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]'>
+												<QrCode className='size-8 text-text-tertiary' />
 											</div>
-											<p className='text-[10px] text-zinc-500 mt-2'>
+
+											<p className='mt-2 text-xs text-text-tertiary'>
 												Scan to join on mobile
 											</p>
 										</div>

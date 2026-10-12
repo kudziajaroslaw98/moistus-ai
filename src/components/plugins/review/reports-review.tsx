@@ -210,7 +210,7 @@ function ReportSheet({
 				<div className='grid grid-cols-3 gap-2'>
 					{stats.map((stat) => (
 						<div
-							className='rounded-xl border border-[#1d1f24] bg-[#0b0b0d] px-3.5 py-3'
+							className='rounded-xl border border-white/8 bg-white/[0.03] px-3.5 py-3'
 							key={stat.label}
 						>
 							<p className='text-xs text-zinc-500'>{stat.label}</p>
@@ -246,7 +246,7 @@ function ReportSheet({
 								>
 							).map(([key, count]) => (
 								<li
-									className='rounded-full border border-[#2a2c33] px-2.5 py-0.5 text-xs text-zinc-300'
+									className='rounded-full border border-white/14 px-2.5 py-0.5 text-xs text-zinc-300'
 									key={key}
 								>
 									{`${PLUGIN_REPORT_REASON_LABELS[key]} · ${count}`}
@@ -260,10 +260,10 @@ function ReportSheet({
 					<section className='flex flex-col gap-2.5'>
 						<h3 className='text-[13px] font-semibold text-white'>Reports</h3>
 
-						<ul className='overflow-hidden rounded-xl border border-[#1d1f24]'>
+						<ul className='overflow-hidden rounded-xl border border-white/8'>
 							{group.reports.map((report) => (
 								<li
-									className='flex flex-col gap-1 border-t border-[#16171b] px-3.5 py-3 first:border-t-0'
+									className='flex flex-col gap-1 border-t border-white/8 px-3.5 py-3 first:border-t-0'
 									key={report.id}
 								>
 									<div className='flex items-center gap-2 text-xs'>
@@ -287,7 +287,7 @@ function ReportSheet({
 													Node data attached
 												</summary>
 
-												<pre className='mt-1 max-h-48 overflow-auto rounded-md bg-[#0b0b0d] p-2 font-mono text-xs text-zinc-300'>
+												<pre className='mt-1 max-h-48 overflow-auto rounded-md bg-white/[0.03] p-2 font-mono text-xs text-zinc-300'>
 													{JSON.stringify(report.nodeData, null, 2)}
 												</pre>
 											</details>

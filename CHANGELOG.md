@@ -7,6 +7,15 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ## [2026-10-12]
 
+### Changed
+
+- **side panels**: Every side panel is now one component, `Panel` (`src/components/ui/panel.tsx`), with the mobile menu's look: sticky header with the map name as subtitle, underline tabs where there are real modes (Share, Account), flat sections with small caps labels instead of cards, 52px rows, one field style and one pinned footer. Map Settings, Share, History, Account, Edge edit, Recipes, Plugins, the mobile menu, the landing drawer and the plugin sheets (versions, submission and report review) all use it
+  - Form panels and menus are modal (dim, Esc and a click outside close them). Recipes, Plugins and History stay docked beside the canvas, so the map stays usable. On a phone History is modal, and "Focus on canvas" closes it before panning
+  - Share and Edge edit now slide out when closed. Share's room code settings are always visible instead of in a collapsible, and the room codes are flat rows. Share keeps working with the same test ids
+  - Why: the panels had drifted into three shells with different headers, sections, footers and colors
+- **dialogs**: Confirm dialogs (discard changes, delete map, cancel subscription, command palette) now sit above every panel (z-90 over the panels' z-80)
+  - Why: the sheet layer was above the dialog layer, so a confirm opened from a panel would have rendered behind it
+
 ### Removed
 
 - **ai/chat**: The AI chat panel is gone (panel, toolbar button, `chat-slice`, `POST /api/ai/chat`, the `NEXT_PUBLIC_ENABLE_AI_CHAT` flag). It was behind a flag and not shipping

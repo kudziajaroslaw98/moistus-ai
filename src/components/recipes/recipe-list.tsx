@@ -60,14 +60,12 @@ function matchesQuery(recipe: RecipeRef, query: string) {
 
 function GroupHeader({ label, count }: { label: string; count: number }) {
 	return (
-		<div className='flex items-center gap-2.5 px-2 pb-2 pt-1'>
-			<h3 className='text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55'>
+		<div className='flex items-baseline justify-between gap-3 pb-1.5 pt-1'>
+			<h3 className='text-[11px] font-medium uppercase tracking-[0.16em] text-text-tertiary'>
 				{label}
 			</h3>
 
-			<span aria-hidden className='h-px flex-1 bg-white/[0.08]' />
-
-			<span className='text-[12px] tabular-nums text-white/55'>{count}</span>
+			<span className='text-xs tabular-nums text-text-tertiary'>{count}</span>
 		</div>
 	);
 }
@@ -96,11 +94,11 @@ function RecipeRow({ recipe, isStarter, index, onOpen, children }: RecipeRowProp
 			</span>
 
 			<span className='flex min-w-0 flex-1 flex-col'>
-				<span className='truncate text-[14px] font-medium leading-5 text-white/92'>
+				<span className='truncate text-[15px] font-medium leading-5 text-text-primary'>
 					{recipe.definition.title}
 				</span>
 
-				<span className='truncate text-[12.5px] leading-5 text-white/55'>
+				<span className='truncate text-[12.5px] leading-5 text-text-secondary'>
 					{describeRecipe(recipe.definition)}
 
 					{isShared && <span className='text-primary-200'> · Shared</span>}
@@ -207,7 +205,7 @@ export function RecipeList({ onEdit, onCreate }: RecipeListProps) {
 
 	return (
 		<div className='flex min-h-0 flex-1 flex-col'>
-			<div className='min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4'>
+			<div className='min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 pb-6 pt-4'>
 				<div className='relative'>
 					<Search
 						aria-hidden
@@ -216,7 +214,7 @@ export function RecipeList({ onEdit, onCreate }: RecipeListProps) {
 
 					<input
 						aria-label='Search recipes'
-						className='block h-9 w-full rounded-lg border border-zinc-700/50 bg-zinc-800/30 pl-9 pr-3 text-sm text-text-primary placeholder-zinc-400 shadow-sm transition-all duration-200 hover:border-zinc-600/50 focus:border-primary-400/60 focus:outline-none focus:ring-2 focus:ring-primary-500/20'
+						className='block h-10 w-full rounded-[10px] border border-white/10 bg-white/[0.04] pl-9 pr-3 text-sm text-text-primary placeholder:text-text-tertiary transition-colors duration-200 hover:border-white/18 focus:border-primary-400/60 focus:outline-none focus:ring-2 focus:ring-primary-500/20'
 						onChange={(event) => setQuery(event.target.value)}
 						placeholder='Search recipes…'
 						type='search'
@@ -339,8 +337,8 @@ export function RecipeList({ onEdit, onCreate }: RecipeListProps) {
 				</section>
 			</div>
 
-			<div className='flex h-fit shrink-0 items-center justify-between gap-3 border-t border-zinc-800 bg-base p-4 pb-[max(1rem,env(safe-area-inset-bottom))]'>
-				<p className='text-sm text-text-secondary'>
+			<div className='flex shrink-0 items-center justify-between gap-3 border-t border-white/8 bg-base/90 px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl'>
+				<p className='text-xs text-text-tertiary'>
 					{canSaveRecipes
 						? `${recipes.length} of ${MAX_SAVED_RECIPES} recipes`
 						: 'Create an account to save recipes'}
