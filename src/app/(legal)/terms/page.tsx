@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 		'Terms and conditions for using Shiko, the AI-powered mind mapping platform.',
 };
 
-const EFFECTIVE_DATE = 'January 23, 2026';
+const EFFECTIVE_DATE = 'October 12, 2026';
 const CONTACT_EMAIL = 'support@shiko.app';
 
 export default function TermsOfServicePage() {
@@ -20,7 +20,7 @@ export default function TermsOfServicePage() {
 					Terms of Service
 				</h1>
 				<p className='text-text-secondary'>
-					Last updated: <time dateTime='2026-01-23'>{EFFECTIVE_DATE}</time>
+					Last updated: <time dateTime='2026-10-12'>{EFFECTIVE_DATE}</time>
 				</p>
 			</header>
 
@@ -375,9 +375,6 @@ export default function TermsOfServicePage() {
 				<ul>
 					<li>Mind map structure (node relationships)</li>
 					<li>Node content (text, not images or files)</li>
-					<li>
-						Your chat messages and conversation history (within the session)
-					</li>
 				</ul>
 
 				<h3>8.3 No Guarantees</h3>

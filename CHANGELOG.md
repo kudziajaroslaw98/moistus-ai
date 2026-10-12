@@ -13,6 +13,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: the feature is dropped. `NEXT_PUBLIC_ENABLE_AI_CHAT` can be deleted from Vercel and `.env` files
 - **ai/modals**: Removed the unused "generate from nodes" and "AI content prompt" modals and the unused `POST /api/generate-answer` route. Nothing opened them or called the route
 
+### Docs
+
+- **legal**: Privacy (§6 Data Retention) and Terms (§8.2 Data Sent to AI) no longer mention AI chat history or chat messages, and both "Last updated" dates read October 12, 2026
+
 ---
 
 ## [2026-10-10]
