@@ -69,7 +69,7 @@ export function RecipesPanel() {
 	return (
 		<>
 			<Panel
-				bodyClassName='flex flex-col overflow-hidden p-0'
+				bodyClassName='flex flex-col overflow-clip p-0'
 				data-testid='recipes-panel'
 				onOpenChange={(open) => {
 					if (!open) requestLeave('close');

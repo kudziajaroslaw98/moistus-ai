@@ -674,7 +674,7 @@ export function PluginsPanel() {
 
 	return (
 		<Panel
-			bodyClassName='flex flex-col overflow-hidden p-0'
+			bodyClassName='flex flex-col overflow-clip p-0'
 			data-testid='plugins-panel'
 			open={isOpen}
 			title={submitUrl ? 'Submit to the library' : 'Plugins'}

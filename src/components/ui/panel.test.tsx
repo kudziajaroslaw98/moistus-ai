@@ -49,6 +49,8 @@ describe('Panel', () => {
 		const dialog = screen.getByRole('dialog');
 
 		expect(dialog).toHaveAttribute('data-variant', 'modal');
+		// Clip, not hidden: a hidden box can still be scrolled by focus or scrollIntoView.
+		expect(dialog.className).toContain('overflow-clip');
 		expect(screen.getByRole('heading', { name: 'History' })).toBeInTheDocument();
 		expect(screen.getByText('Dump')).toBeInTheDocument();
 		expect(screen.getByLabelText('Inside')).toBeInTheDocument();

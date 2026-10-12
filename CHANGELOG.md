@@ -13,6 +13,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Form panels and menus are modal (dim, Esc and a click outside close them). Recipes, Plugins and History stay docked beside the canvas, so the map stays usable. On a phone History is modal, and "Focus on canvas" closes it before panning
   - Share and Edge edit now slide out when closed. Share's room code settings are always visible instead of in a collapsible, and the room codes are flat rows. Share keeps working with the same test ids
   - Why: the panels had drifted into three shells with different headers, sections, footers and colors
+- **side panels**: A panel could slide out of view when something inside it was scrolled into view (the Plugins panel's Developer form did this): the panel now clips instead of hiding its overflow
 - **dialogs**: Confirm dialogs (discard changes, delete map, cancel subscription, command palette) now sit above every panel (z-90 over the panels' z-80)
   - Why: the sheet layer was above the dialog layer, so a confirm opened from a panel would have rendered behind it
 

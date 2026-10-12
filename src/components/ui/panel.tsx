@@ -139,8 +139,11 @@ export function Panel({
 				)}
 
 				<BaseDialog.Popup
+					// overflow-clip, not -hidden: a hidden box can still be scrolled by
+					// focus or scrollIntoView, and an absolute child (sr-only labels)
+					// makes it scrollable, which slid the whole panel out of view.
 					className={cn(
-						'fixed inset-y-0 right-0 flex h-dvh max-w-full flex-col overflow-hidden border-l border-white/14 text-text-primary shadow-[-30px_0_60px_-30px_rgba(0,0,0,0.8)] outline-none',
+						'fixed inset-y-0 right-0 flex h-dvh max-w-full flex-col overflow-clip border-l border-white/14 text-text-primary shadow-[-30px_0_60px_-30px_rgba(0,0,0,0.8)] outline-none',
 						isModal ? 'z-[81]' : 'z-40',
 						WIDTHS[width],
 						surface === 'glow' ? GLOW_SURFACE : 'bg-base',
