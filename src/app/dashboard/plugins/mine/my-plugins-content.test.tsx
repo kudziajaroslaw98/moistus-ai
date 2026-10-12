@@ -309,6 +309,23 @@ describe('MyPluginsContent', () => {
 			// The tab, the page's main button and the empty state's.
 			expect(screen.getAllByRole('link', { name: 'Write a plugin' })).toHaveLength(3);
 			expect(screen.queryByRole('group', { name: 'Filter your plugins' })).not.toBeInTheDocument();
+		});
+
+		it('still says drafts are hidden while Developer mode is off, so work in drafts doesn\u2019t look gone', async () => {
+			setup({ plugins: [], drafts: [counterDraft] });
+
+			expect(await screen.findByText(/You haven't written a plugin yet/)).toBeInTheDocument();
+			expect(screen.getByText(/Drafts are hidden while Developer mode is off/)).toBeInTheDocument();
+			expect(screen.getByRole('link', { name: 'Turn it on' })).toHaveAttribute(
+				'href',
+				'/dashboard/plugins/build'
+			);
+		});
+
+		it('says nothing about hidden drafts when Developer mode is on', async () => {
+			setup({ developerMode: true, plugins: [], drafts: [] });
+
+			expect(await screen.findByText(/You haven't written a plugin yet/)).toBeInTheDocument();
 			expect(screen.queryByText(/Drafts are hidden/)).not.toBeInTheDocument();
 		});
 	});

@@ -37,6 +37,8 @@ interface PreviewPaneProps {
 	onCanEditChange: (canEdit: boolean) => void;
 	onKindChange: (kind: string) => void;
 	onAction: (action: string, payload: unknown) => void;
+	/** A button that opens the node editor was clicked; the preview has none. */
+	onEdit: () => void;
 	/** Set for kinds with a `refresh` action. */
 	refresh: { hosts: string[]; busy: boolean; onRefresh: () => void } | null;
 }
@@ -63,6 +65,7 @@ export function PreviewPane({
 	onCanEditChange,
 	onKindChange,
 	onAction,
+	onEdit,
 	refresh,
 }: PreviewPaneProps) {
 	const id = useId();
@@ -167,6 +170,7 @@ export function PreviewPane({
 						<PluginUiTree
 							disabled={!canEdit && !refresh}
 							onAction={onAction}
+							onEdit={onEdit}
 							tree={view.tree}
 						/>
 					) : (

@@ -91,7 +91,7 @@ describe('PluginUiTree', () => {
 		expect(onAction).toHaveBeenCalledWith('add', undefined);
 	});
 
-	it('opens the node editor for an edit button, and runs its action where there is none', () => {
+	it('opens the node editor for an edit button, and never runs its action', () => {
 		const onAction = jest.fn();
 		const onEdit = jest.fn();
 		const tree = {
@@ -109,9 +109,10 @@ describe('PluginUiTree', () => {
 		expect(onAction).not.toHaveBeenCalled();
 		unmount();
 
+		// A host with no node editor: the click does nothing, it doesn't run `add`.
 		render(<PluginUiTree tree={tree} onAction={onAction} />);
 		fireEvent.click(screen.getByRole('button', { name: 'Add thread' }));
-		expect(onAction).toHaveBeenCalledWith('add', undefined);
+		expect(onAction).not.toHaveBeenCalled();
 	});
 
 	it('opens a menu and runs the chosen item', async () => {

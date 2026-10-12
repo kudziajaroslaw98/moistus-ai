@@ -127,6 +127,7 @@ function setup({
 		sample: {},
 		checkSummary: null,
 		saveState: 'saved',
+		saveMessage: null,
 		conflict: null,
 		...actions,
 		...draft,
@@ -207,6 +208,16 @@ describe('PlaygroundPage', () => {
 	it('says whether the draft is saved', () => {
 		setup({ draft: { saveState: 'unsaved' } });
 		expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+	});
+
+	it('says why a save was turned down, instead of promising to try again', () => {
+		setup({
+			draft: { saveState: 'rejected', saveMessage: 'Developer mode is off.' },
+		});
+		expect(
+			screen.getByText('Couldn’t save. Developer mode is off.')
+		).toBeInTheDocument();
+		expect(screen.queryByText(/Trying again/)).not.toBeInTheDocument();
 	});
 
 	it('offers the newer draft or keeping yours when another tab saved first', async () => {

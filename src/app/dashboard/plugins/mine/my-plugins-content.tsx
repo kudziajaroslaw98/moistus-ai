@@ -194,6 +194,31 @@ function FilterChips({
 }
 
 /** Nothing written or submitted yet: the way in is the Write a plugin tab. */
+/**
+ * Drafts are only fetched while Developer mode is on, so with it off a person whose work
+ * is all drafts would see an empty page. This says why, and where the switch is.
+ */
+function DraftsHiddenNote({ centered }: { centered: boolean }) {
+	return (
+		<p
+			className={cn(
+				'mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] leading-[19px] text-zinc-500',
+				centered && 'justify-center'
+			)}
+		>
+			<Code2 aria-hidden className='size-3.5 shrink-0' />
+			Drafts are hidden while Developer mode is off.
+
+			<Link
+				className='text-zinc-300 underline underline-offset-[3px] transition-colors duration-200 ease [@media(hover:hover)]:hover:text-white'
+				href='/dashboard/plugins/build'
+			>
+				Turn it on
+			</Link>
+		</p>
+	);
+}
+
 function NothingYet() {
 	return (
 		<div className='flex flex-col items-center px-4 py-16 text-center'>
@@ -454,18 +479,8 @@ export function MyPluginsContent() {
 				</CatalogGrid>
 			)}
 
-			{!loading && !developerMode && rows.length > 0 && (
-				<p className='mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] leading-[19px] text-zinc-500'>
-					<Code2 aria-hidden className='size-3.5 shrink-0' />
-					Drafts are hidden while Developer mode is off.
-
-					<Link
-						className='text-zinc-300 underline underline-offset-[3px] transition-colors duration-200 ease [@media(hover:hover)]:hover:text-white'
-						href='/dashboard/plugins/build'
-					>
-						Turn it on
-					</Link>
-				</p>
+			{!loading && !developerMode && (
+				<DraftsHiddenNote centered={rows.length === 0} />
 			)}
 
 			<PluginVersionsSheet

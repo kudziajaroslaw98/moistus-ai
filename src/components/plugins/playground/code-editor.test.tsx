@@ -107,4 +107,20 @@ describe('CodeEditor', () => {
 		});
 		expect(editorView(container).state.doc.toString()).toBe(doc);
 	});
+
+	it('shows a manifest loaded from outside even though it has a locked line', () => {
+		const doc = '{\n  "id": "dev.x-1",\n  "name": "X"\n}';
+		const newer = '{\n  "id": "dev.x-1",\n  "name": "Newer"\n}';
+		const props = {
+			label: 'manifest.json',
+			language: 'json' as const,
+			lockedLine: /^\s*"id":/,
+			onChange: jest.fn(),
+		};
+		const { container, rerender } = render(<CodeEditor {...props} value={doc} />);
+
+		rerender(<CodeEditor {...props} value={newer} />);
+
+		expect(editorView(container).state.doc.toString()).toBe(newer);
+	});
 });

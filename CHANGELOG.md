@@ -5,6 +5,19 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-12]
+
+### Fixed
+
+- **plugins/playground**: "Load the newer version" after a revision conflict now shows the newer manifest. The locked `"id"` line is a change filter, and the editor replaced the whole document, so the filter dropped the entire change and the editor kept the old text; the next keystroke then overwrote the newer manifest on autosave. Loading from outside now skips the filter (typing is still filtered)
+- **plugins/playground**: A save the server turns down (400, 403, 404 and other 4xx except 408/429) no longer retries every 5 seconds forever behind "Couldn't save. Trying again…". It stops, shows the server's reason in the status line, and tries once more after the next edit; network errors, 5xx and 429 still retry
+- **plugins/playground**: The sample data box for a list field followed only its first value, so a row added by a button in the preview, or a loaded newer draft, left it showing old JSON that the next edit would write back over the change. It now follows outside changes and leaves typing alone
+- **plugins/playground**: A button that opens the node editor (`edit: true`) no longer runs its action in the preview (an "unknown action" error for plugins with no such action); the preview says it opens the node editor on a map. The same button does nothing in any host without a node editor
+- **plugins/threads**: A node you just picked for a stop no longer shows "This node was deleted" for about 300 ms. `usePluginRefs` debounced changes to which nodes are linked as well as to their content, so a plugin saw the new link without its node. Link changes now apply at once, content changes still wait. It also reads only the linked nodes, so dragging other nodes no longer rebuilds and compares their descriptions for every Threads node
+- **plugins/my-plugins**: With Developer mode off, someone whose plugins are all drafts saw "You haven't written a plugin yet" with no hint that drafts are hidden. The "Drafts are hidden while Developer mode is off" note now shows on the empty page too
+
+---
+
 ## [2026-10-11]
 
 ### Added

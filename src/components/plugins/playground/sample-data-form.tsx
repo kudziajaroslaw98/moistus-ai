@@ -38,6 +38,16 @@ function ListJsonField({
 }) {
 	const [text, setText] = useState(() => JSON.stringify(value ?? [], null, 2));
 	const [problem, setProblem] = useState<string | null>(null);
+	// The list this field last took in or passed up. A different `value` came from
+	// elsewhere (a button in the preview, a loaded newer draft), so the text follows it;
+	// what the person is typing never differs from it, so typing is left alone.
+	const current = JSON.stringify(value ?? []);
+	const [known, setKnown] = useState(current);
+	if (current !== known) {
+		setKnown(current);
+		setText(JSON.stringify(value ?? [], null, 2));
+		setProblem(null);
+	}
 
 	return (
 		<>
@@ -54,6 +64,7 @@ function ListJsonField({
 						const parsed: unknown = JSON.parse(event.target.value);
 						if (!Array.isArray(parsed)) throw new Error('not a list');
 						setProblem(null);
+						setKnown(JSON.stringify(parsed));
 						onChange(parsed as PluginFieldValue);
 					} catch {
 						setProblem('This isn’t valid JSON for a list of rows yet.');

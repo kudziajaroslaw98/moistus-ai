@@ -18,6 +18,15 @@ export type PluginRefs = Record<string, PluginRefNode>;
 const isGhost = (node: AppNode) =>
 	(node.data.node_type ?? node.type) === 'ghostNode';
 
+/** The nodes a plugin's data links to, as they are in the store (not described yet). */
+export function pickLinkedNodes(
+	ids: readonly string[],
+	nodes: readonly AppNode[]
+): AppNode[] {
+	const wanted = new Set(ids);
+	return nodes.filter((node) => wanted.has(node.id));
+}
+
 export function buildPluginRefs(
 	ids: readonly string[],
 	nodes: readonly AppNode[]

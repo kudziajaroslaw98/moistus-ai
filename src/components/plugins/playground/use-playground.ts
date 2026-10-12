@@ -249,6 +249,16 @@ export function usePlaygroundNode({
 		};
 	}, [host, manifest, kind, data, context]);
 
+	/** An `edit` button opens the node editor on a map; here there's nothing to run. */
+	const noteEdit = useCallback(
+		() =>
+			setLast({
+				ok: true,
+				text: 'This button opens the node editor on a map. There’s nothing to run here.',
+			}),
+		[]
+	);
+
 	const runAction = useCallback(
 		async (action: string, payload?: unknown) => {
 			const input = validated.current;
@@ -309,6 +319,7 @@ export function usePlaygroundNode({
 				? host.canRefresh(manifest.id, kind.kind)
 				: false,
 		runAction,
+		noteEdit,
 		refresh,
 	};
 }

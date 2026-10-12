@@ -71,13 +71,21 @@ const SAVE_LABEL: Record<DraftSaveState, string> = {
 	saving: 'Saving…',
 	unsaved: 'Unsaved changes',
 	error: 'Couldn’t save. Trying again…',
+	rejected: 'Couldn’t save.',
 };
+
+/** What the status line says; a turned-down save also says why. */
+const saveStatusText = (state: DraftSaveState, message: string | null) =>
+	state === 'rejected' && message
+		? `${SAVE_LABEL.rejected} ${message}`
+		: SAVE_LABEL[state];
 
 const SAVE_DOT: Record<DraftSaveState, string> = {
 	saved: 'bg-emerald-400',
 	saving: 'bg-amber-300',
 	unsaved: 'bg-amber-300',
 	error: 'bg-red-400',
+	rejected: 'bg-red-400',
 };
 
 const byteLength = (text: string) => new Blob([text]).size;
@@ -393,16 +401,21 @@ function PlaygroundWorkspace({ draftId }: { draftId: string }) {
 						</div>
 
 						<div className='flex h-[38px] items-center justify-between gap-3 border-t border-[#1d1f24] px-4 text-xs text-zinc-500'>
-							<span className='flex items-center gap-1.5' role='status'>
+							<span className='flex min-w-0 items-center gap-1.5' role='status'>
 								<span
 									aria-hidden
 									className={cn(
-										'size-1.5 rounded-full',
+										'size-1.5 shrink-0 rounded-full',
 										SAVE_DOT[draft.saveState]
 									)}
 								/>
 
-								{SAVE_LABEL[draft.saveState]}
+								<span
+									className='truncate'
+									title={saveStatusText(draft.saveState, draft.saveMessage)}
+								>
+									{saveStatusText(draft.saveState, draft.saveMessage)}
+								</span>
 							</span>
 
 							<span className='font-mono'>
@@ -425,6 +438,7 @@ function PlaygroundWorkspace({ draftId }: { draftId: string }) {
 						needsSampleData={Object.keys(node.fieldErrors).length > 0}
 						onAction={(action, payload) => void node.runAction(action, payload)}
 						onCanEditChange={setCanEdit}
+						onEdit={node.noteEdit}
 						onKindChange={setKindName}
 						onWideChange={setWide}
 						problem={program && !program.ok ? program.message : null}

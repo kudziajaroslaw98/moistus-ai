@@ -237,6 +237,19 @@ describe('usePlaygroundNode', () => {
 		expect(result.current.last?.text).toContain('increment');
 	});
 
+	it('says an edit button has nothing to run in the preview', async () => {
+		const host = fakeHost();
+		const props = baseProps(host, { label: 'Coffees', count: 2 });
+		const { result } = renderHook(() => usePlaygroundNode(props));
+		await wait(RENDER_DEBOUNCE_MS);
+
+		act(() => result.current.noteEdit());
+
+		expect(host.action).not.toHaveBeenCalled();
+		expect(result.current.last).toMatchObject({ ok: true });
+		expect(result.current.last?.text).toMatch(/opens the node editor/);
+	});
+
 	it('reports an action the host refuses', async () => {
 		const host = fakeHost({
 			action: jest

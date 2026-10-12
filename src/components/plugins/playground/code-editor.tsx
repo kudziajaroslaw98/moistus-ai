@@ -163,8 +163,11 @@ export function CodeEditor({
 	useEffect(() => {
 		const editor = view.current;
 		if (!editor || editor.state.doc.toString() === value) return;
+		// A replacement from outside (a loaded newer draft) isn't typing: it would span a
+		// locked line and the change filter would drop all of it.
 		editor.dispatch({
 			changes: { from: 0, to: editor.state.doc.length, insert: value },
+			filter: false,
 		});
 	}, [value]);
 

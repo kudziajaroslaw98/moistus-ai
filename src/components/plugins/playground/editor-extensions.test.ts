@@ -39,6 +39,16 @@ describe('lockedLines', () => {
 		expect(next.doc.toString()).toContain('"id": "dev.counter-9b2c41a7"');
 	});
 
+	it('lets a change that skips the filters replace everything, like loading a newer draft', () => {
+		const state = stateWith(manifest);
+		const newer = manifest.replace('Counter', 'Tally');
+		const next = state.update({
+			changes: { from: 0, to: manifest.length, insert: newer },
+			filter: false,
+		}).state;
+		expect(next.doc.toString()).toBe(newer);
+	});
+
 	it('lets every other line be edited', () => {
 		const state = stateWith(manifest);
 		const from = manifest.indexOf('Counter"');

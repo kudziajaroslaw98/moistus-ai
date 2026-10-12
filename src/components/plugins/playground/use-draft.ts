@@ -17,7 +17,24 @@ export const AUTOSAVE_MS = 1500;
 /** After a failed save, when to try again. */
 const RETRY_MS = 5000;
 
-export type DraftSaveState = 'saved' | 'unsaved' | 'saving' | 'error';
+/** `error` is a failure that may pass (network, 5xx): it's retried. `rejected` won't pass by itself. */
+export type DraftSaveState =
+	| 'saved'
+	| 'unsaved'
+	| 'saving'
+	| 'error'
+	| 'rejected';
+
+/**
+ * A 4xx answer (deleted draft, Developer mode off, a manifest the server won't take)
+ * isn't fixed by sending the same thing again. 408 and 429 are about timing, so they retry.
+ */
+const isRejection = (reason: unknown): reason is DraftRequestError =>
+	reason instanceof DraftRequestError &&
+	reason.status >= 400 &&
+	reason.status < 500 &&
+	reason.status !== 408 &&
+	reason.status !== 429;
 
 /** The parts of a draft the editor changes. */
 interface Editable {
@@ -65,6 +82,8 @@ export function useDraft(draftId: string) {
 	const [local, setLocal] = useState<Editable | null>(null);
 	const [saveState, setSaveState] = useState<DraftSaveState>('saved');
 	const [conflict, setConflict] = useState<PluginDraft | null>(null);
+	// Why the server turned the last save down; saving waits for the next edit.
+	const [rejection, setRejection] = useState<string | null>(null);
 	// Bumped when a save ends so the autosave effect looks again for unsaved changes.
 	const [tick, setTick] = useState(0);
 
@@ -112,6 +131,7 @@ export function useDraft(draftId: string) {
 		if (!patch) return true;
 
 		setSaveState('saving');
+		setRejection(null);
 		const running = (async () => {
 			try {
 				const next = await saveDraft(draftId, revisionRef.current, patch);
@@ -129,6 +149,14 @@ export function useDraft(draftId: string) {
 				) {
 					setConflict(reason.draft);
 					setSaveState('unsaved');
+				} else if (isRejection(reason)) {
+					if (localRef.current === now) {
+						setRejection(reason.message);
+						setSaveState('rejected');
+					} else {
+						// Typing went on meanwhile: the next save carries the new text.
+						setSaveState('unsaved');
+					}
 				} else {
 					setSaveState('error');
 					setTimeout(() => setTick((value) => value + 1), RETRY_MS);
@@ -144,8 +172,8 @@ export function useDraft(draftId: string) {
 	}, [draftId]);
 
 	useEffect(() => {
-		if (status !== 'ready' || conflict || !local || !savedRef.current) return;
-		if (savingRef.current) return;
+		if (status !== 'ready' || conflict || rejection || !local) return;
+		if (!savedRef.current || savingRef.current) return;
 		if (!changesSince(local, savedRef.current)) {
 			setSaveState((current) => (current === 'error' ? current : 'saved'));
 			return;
@@ -153,7 +181,7 @@ export function useDraft(draftId: string) {
 		setSaveState((current) => (current === 'error' ? current : 'unsaved'));
 		const timer = setTimeout(() => void save(), AUTOSAVE_MS);
 		return () => clearTimeout(timer);
-	}, [local, status, conflict, tick, save]);
+	}, [local, status, conflict, rejection, tick, save]);
 
 	// Tell the browser before it throws away text that isn't saved yet.
 	useEffect(() => {
@@ -164,8 +192,11 @@ export function useDraft(draftId: string) {
 	}, [saveState]);
 
 	const update = useCallback(
-		<K extends keyof Editable>(key: K, value: Editable[K]) =>
-			setLocal((current) => (current ? { ...current, [key]: value } : current)),
+		<K extends keyof Editable>(key: K, value: Editable[K]) => {
+			// A new edit is worth one more try.
+			setRejection(null);
+			setLocal((current) => (current ? { ...current, [key]: value } : current));
+		},
 		[]
 	);
 
@@ -210,6 +241,8 @@ export function useDraft(draftId: string) {
 			[update]
 		),
 		saveState,
+		/** Why the last save was turned down, while `saveState` is `rejected`. */
+		saveMessage: rejection,
 		conflict,
 		loadNewer,
 		keepMine,

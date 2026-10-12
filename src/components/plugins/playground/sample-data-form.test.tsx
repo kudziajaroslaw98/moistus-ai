@@ -142,4 +142,47 @@ describe('SampleDataForm', () => {
 		expect(screen.getByText(/isn’t valid JSON/)).toBeInTheDocument();
 		expect(onChange).not.toHaveBeenCalled();
 	});
+
+	it('shows a list that changed from outside, like a row added in the preview', () => {
+		const { rerender } = render(
+			<SampleDataForm
+				data={{ label: 'A', items: [{ name: 'x' }] }}
+				kind={withList}
+				onChange={jest.fn()}
+			/>
+		);
+		expect(screen.getByLabelText(/Items/)).toHaveValue(
+			JSON.stringify([{ name: 'x' }], null, 2)
+		);
+
+		rerender(
+			<SampleDataForm
+				data={{ label: 'A', items: [{ name: 'x' }, { name: 'added' }] }}
+				kind={withList}
+				onChange={jest.fn()}
+			/>
+		);
+		expect(screen.getByLabelText(/Items/)).toHaveValue(
+			JSON.stringify([{ name: 'x' }, { name: 'added' }], null, 2)
+		);
+	});
+
+	it('does not touch what is being typed, valid or not, while the list is the same', () => {
+		render(
+			<Harness
+				initial={{ label: 'A', items: [] }}
+				kind={withList}
+				onChange={jest.fn()}
+			/>
+		);
+		const items = screen.getByLabelText(/Items/);
+
+		fireEvent.change(items, { target: { value: '[{"name":"x"}]' } });
+		// Typed compactly: it stays as typed, it isn't reformatted under the caret.
+		expect(items).toHaveValue('[{"name":"x"}]');
+
+		fireEvent.change(items, { target: { value: '[{"name":"x"}' } });
+		expect(items).toHaveValue('[{"name":"x"}');
+		expect(screen.getByText(/isn’t valid JSON/)).toBeInTheDocument();
+	});
 });

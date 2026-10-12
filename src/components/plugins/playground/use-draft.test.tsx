@@ -205,6 +205,88 @@ describe('useDraft', () => {
 		expect(mockSaveDraft).toHaveBeenCalledTimes(2);
 	});
 
+	describe('when the server turns a save down', () => {
+		it.each([
+			[400, 'The manifest isn’t valid.'],
+			[403, 'Turn on Developer mode first.'],
+			[404, 'Draft not found.'],
+		])('a %i stops the retries and says why', async (status, message) => {
+			mockSaveDraft.mockRejectedValue(new DraftRequestError(message, status));
+			const { result } = await loaded();
+			act(() => result.current.setCode('x'));
+			await wait(AUTOSAVE_MS);
+
+			expect(result.current.saveState).toBe('rejected');
+			expect(result.current.saveMessage).toBe(message);
+
+			await wait(60_000);
+			expect(mockSaveDraft).toHaveBeenCalledTimes(1);
+		});
+
+		it('tries once more after the next edit, and goes back to saved when it works', async () => {
+			mockSaveDraft.mockRejectedValueOnce(
+				new DraftRequestError('Draft not found.', 404)
+			);
+			const { result } = await loaded();
+			act(() => result.current.setCode('x'));
+			await wait(AUTOSAVE_MS);
+			expect(result.current.saveState).toBe('rejected');
+
+			mockSaveDraft.mockResolvedValue(draft({ revision: 2 }));
+			act(() => result.current.setCode('xy'));
+			await wait(AUTOSAVE_MS);
+
+			expect(mockSaveDraft).toHaveBeenCalledTimes(2);
+			expect(result.current.saveState).toBe('saved');
+			expect(result.current.saveMessage).toBeNull();
+		});
+
+		it.each([429, 503])('a %i is about timing, so it still retries', async (status) => {
+			mockSaveDraft.mockRejectedValueOnce(new DraftRequestError('later', status));
+			const { result } = await loaded();
+			act(() => result.current.setCode('x'));
+			await wait(AUTOSAVE_MS);
+			expect(result.current.saveState).toBe('error');
+
+			mockSaveDraft.mockResolvedValue(draft({ revision: 2 }));
+			await wait(6000);
+			expect(result.current.saveState).toBe('saved');
+		});
+
+		it('saves what was typed meanwhile instead of giving up on it', async () => {
+			let reject: (reason: unknown) => void = () => undefined;
+			mockSaveDraft.mockImplementationOnce(
+				() => new Promise<PluginDraft>((_resolve, fail) => (reject = fail))
+			);
+			const { result } = await loaded();
+			act(() => result.current.setCode('x'));
+			await wait(AUTOSAVE_MS); // the first save starts and hangs
+			act(() => result.current.setCode('xy'));
+
+			mockSaveDraft.mockResolvedValue(draft({ revision: 2 }));
+			await act(async () => {
+				reject(new DraftRequestError('no', 400));
+			});
+			await wait(AUTOSAVE_MS);
+
+			expect(mockSaveDraft).toHaveBeenLastCalledWith('draft-1', 1, { code: 'xy' });
+			expect(result.current.saveState).toBe('saved');
+		});
+
+		it('says so when Submit or Try on a map asks for a save that is turned down', async () => {
+			mockSaveDraft.mockRejectedValue(new DraftRequestError('No.', 403));
+			const { result } = await loaded();
+			act(() => result.current.setCode('x'));
+			let saved: boolean | undefined;
+			await act(async () => {
+				saved = await result.current.flush();
+			});
+			expect(saved).toBe(false);
+			expect(result.current.saveState).toBe('rejected');
+			expect(result.current.saveMessage).toBe('No.');
+		});
+	});
+
 	describe('flush', () => {
 		it('saves right away and says it worked', async () => {
 			mockSaveDraft.mockResolvedValue(draft({ revision: 2 }));

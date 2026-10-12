@@ -95,7 +95,7 @@ export interface PluginUiTreeProps {
 	 * picked on the canvas. Without it (the playground has no map) the action runs as is.
 	 */
 	onPick?: (pick: PluginUiPick, action: string, payload: unknown) => void;
-	/** Called instead of `onAction` for a button that opens the node editor (`edit`). */
+	/** Called for a button that opens the node editor (`edit`); such a button never runs its action. */
 	onEdit?: () => void;
 	disabled?: boolean;
 }
@@ -235,7 +235,9 @@ export function PluginUiTree({
 						type='button'
 						onClick={(event) => {
 							event.stopPropagation();
-							if (node.edit && onEdit) onEdit();
+							// An edit button opens the node editor. Where a host has none, it does
+							// nothing: its action isn't meant to run (checks skip it too).
+							if (node.edit) onEdit?.();
 							else run(node.action, node.payload, node.pick);
 						}}
 						className={cn(

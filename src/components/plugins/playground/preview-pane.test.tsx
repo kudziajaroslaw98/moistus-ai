@@ -34,6 +34,7 @@ const base = {
 	onCanEditChange: jest.fn(),
 	onKindChange: jest.fn(),
 	onAction: jest.fn(),
+	onEdit: jest.fn(),
 	refresh: null,
 };
 
@@ -51,6 +52,19 @@ describe('PreviewPane', () => {
 		render(<PreviewPane {...base} />);
 		await userEvent.click(screen.getByRole('button', { name: 'Add one' }));
 		expect(base.onAction).toHaveBeenCalledWith('increment', undefined);
+	});
+
+	it('tells the page when a button that opens the node editor is clicked, without running its action', async () => {
+		const editTree: PluginUiNode = {
+			type: 'button',
+			label: 'Add thread',
+			action: 'add',
+			edit: true,
+		};
+		render(<PreviewPane {...base} view={{ tree: editTree }} />);
+		await userEvent.click(screen.getByRole('button', { name: 'Add thread' }));
+		expect(base.onEdit).toHaveBeenCalledTimes(1);
+		expect(base.onAction).not.toHaveBeenCalled();
 	});
 
 	it('switches between the two node widths', async () => {
