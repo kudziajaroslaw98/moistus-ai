@@ -139,6 +139,22 @@ describe('Panel parts', () => {
 		expect(screen.getByText('Short note')).toBeInTheDocument();
 	});
 
+	it('PanelSection centers a numeric meta over icon buttons, but right-aligns text', () => {
+		render(
+			<>
+				<PanelSection label='People' meta={5} metaAlign='icon' />
+
+				<PanelSection label='Plugins' meta='2 updates' metaAlign='icon' />
+
+				<PanelSection label='History' meta={50} />
+			</>
+		);
+
+		expect(screen.getByText('5').className).toContain('size-8');
+		expect(screen.getByText('2 updates').className).not.toContain('size-8');
+		expect(screen.getByText('50').className).not.toContain('size-8');
+	});
+
 	it('PanelField shows a counter, a required mark, and an alert error', () => {
 		render(
 			<PanelField

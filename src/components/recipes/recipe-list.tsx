@@ -65,7 +65,9 @@ function GroupHeader({ label, count }: { label: string; count: number }) {
 				{label}
 			</h3>
 
-			<span className='text-xs tabular-nums text-text-tertiary'>{count}</span>
+			<span className='-my-2 -mr-2 grid size-8 place-items-center text-xs tabular-nums text-text-tertiary'>
+				{count}
+			</span>
 		</div>
 	);
 }

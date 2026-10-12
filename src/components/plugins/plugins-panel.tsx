@@ -719,6 +719,7 @@ export function PluginsPanel() {
 						aria-label='Shiko plugins'
 						className='mt-0 border-t-0 pt-0'
 						label='Shiko plugins'
+						metaAlign='icon'
 						meta={
 							updateCount > 0
 								? `${updateCount} ${updateCount === 1 ? 'update' : 'updates'}`
@@ -740,6 +741,7 @@ export function PluginsPanel() {
 							description='Made by other people and reviewed by Shiko before they&apos;re listed.'
 							label='Library'
 							meta={libraryEntries.length}
+							metaAlign='icon'
 						>
 							{libraryEntries.map(renderCard)}
 						</PanelSection>

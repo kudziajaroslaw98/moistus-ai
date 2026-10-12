@@ -401,6 +401,7 @@ export function SharePanel({
 					<PanelSection
 						label='Active codes'
 						meta={hasRoomCodes ? mapRoomCodes.length : undefined}
+						metaAlign='icon'
 					>
 						{hasRoomCodes ? (
 							mapRoomCodes.map((token, index) => (
@@ -433,6 +434,7 @@ export function SharePanel({
 					<PanelSection
 						label='People with access'
 						meta={collaboratorCount > 0 ? collaboratorCount : undefined}
+						metaAlign='icon'
 					>
 						{!currentShares || currentShares.length === 0 ? (
 							<div className='flex flex-col items-center gap-1.5 py-8 text-center'>

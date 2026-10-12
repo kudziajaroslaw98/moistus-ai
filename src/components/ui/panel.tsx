@@ -292,6 +292,11 @@ interface PanelSectionProps extends Omit<ComponentProps<'section'>, 'title'> {
 	label?: ReactNode;
 	/** Count or note at the right of the label. */
 	meta?: ReactNode;
+	/**
+	 * `icon` centers a numeric count over the trailing icon buttons of the rows below
+	 * (a 32px box, the size of the icon buttons). `edge` right-aligns it.
+	 */
+	metaAlign?: 'edge' | 'icon';
 	/** One line under the label. */
 	description?: ReactNode;
 	/** Wraps the children (spacing between a section's own blocks). */
@@ -305,12 +310,15 @@ interface PanelSectionProps extends Omit<ComponentProps<'section'>, 'title'> {
 export function PanelSection({
 	label,
 	meta,
+	metaAlign = 'edge',
 	description,
 	contentClassName,
 	className,
 	children,
 	...props
 }: PanelSectionProps) {
+	const hasMeta = meta !== undefined && meta !== null && meta !== false && meta !== '';
+
 	return (
 		<section
 			className={cn(
@@ -319,14 +327,21 @@ export function PanelSection({
 			)}
 			{...props}
 		>
-			{(label || meta) && (
+			{(label || hasMeta) && (
 				<div className='mb-1.5 flex items-baseline justify-between gap-3'>
 					<h3 className='text-[11px] font-medium uppercase tracking-[0.16em] text-text-tertiary'>
 						{label}
 					</h3>
 
-					{meta && (
-						<span className='text-xs tabular-nums text-text-tertiary'>
+					{hasMeta && (
+						<span
+							className={cn(
+								'text-xs tabular-nums text-text-tertiary',
+								metaAlign === 'icon' &&
+									typeof meta === 'number' &&
+									'-my-2 -mr-2 grid size-8 place-items-center'
+							)}
+						>
 							{meta}
 						</span>
 					)}
