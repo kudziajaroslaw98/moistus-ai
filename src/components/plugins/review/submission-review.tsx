@@ -3,8 +3,8 @@
 import { SideSheet } from '@/components/dashboard/side-sheet';
 import { PluginChecksList } from '@/components/plugins/plugin-checks-list';
 import { PluginPowersLine } from '@/components/plugins/plugin-powers';
-import { PluginUiTree } from '@/components/plugins/plugin-ui-tree';
 import { formatTimeAgo } from '@/components/plugins/plugin-update-details';
+import { PluginLivePreview } from '@/components/plugins/review/plugin-live-preview';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { communityFileUrl, permissionChanges } from '@/lib/plugins/catalog';
@@ -442,18 +442,21 @@ export function SubmissionReview({
 							title='Automatic checks'
 						/>
 
-						{loaded.result.previews.map((preview) => (
-							<div
-								className='flex flex-col gap-1.5'
-								key={`${preview.kind}:${preview.example}`}
-							>
-								<span className='text-xs text-text-secondary'>{`Preview · “${preview.example}”`}</span>
+						{loaded.manifest &&
+							loaded.result.previews.map((preview) => (
+								<div
+									className='flex flex-col gap-1.5'
+									key={`${preview.kind}:${preview.example}`}
+								>
+									<span className='text-xs text-text-secondary'>{`Preview · “${preview.example}”`}</span>
 
-								<div className='max-w-[320px] rounded-[10px] border border-white/6 bg-[#1e1e1e] p-4'>
-									<PluginUiTree disabled tree={preview.tree} />
+									<PluginLivePreview
+										code={loaded.code}
+										manifest={loaded.manifest!}
+										preview={preview}
+									/>
 								</div>
-							</div>
-						))}
+							))}
 
 						<section className='flex flex-col gap-1.5'>
 							<h3 className='text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55'>

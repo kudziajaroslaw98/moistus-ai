@@ -17,6 +17,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **dialogs**: Confirm dialogs (discard changes, delete map, cancel subscription, command palette) now sit above every panel (z-90 over the panels' z-80)
   - Why: the sheet layer was above the dialog layer, so a confirm opened from a panel would have rendered behind it
 
+- **plugin-review**: The preview of a submitted plugin is live: a reviewer can press its buttons and watch the view change, with a Reset link back to the example (nothing is saved, and the code only loads in the sandbox when the first button is pressed). The checks now return each example's data with its preview
+  - Why: the preview was a static picture, so a reviewer couldn't see what the buttons do
+
 ### Removed
 
 - **ai/chat**: The AI chat panel is gone (panel, toolbar button, `chat-slice`, `POST /api/ai/chat`, the `NEXT_PUBLIC_ENABLE_AI_CHAT` flag). It was behind a flag and not shipping

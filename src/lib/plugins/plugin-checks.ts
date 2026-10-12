@@ -33,6 +33,8 @@ export interface PluginCheck {
 export interface PluginPreview {
 	kind: string;
 	example: string;
+	/** The example's parsed data: what `tree` was drawn from, so a preview can be run again. */
+	data: PluginData;
 	tree: PluginUiNode;
 }
 
@@ -154,7 +156,7 @@ export function runPluginChecks(
 					continue;
 				}
 				if (previews.length < MAX_PREVIEWS) {
-					previews.push({ kind: kind.kind, example, tree: view.tree });
+					previews.push({ kind: kind.kind, example, data, tree: view.tree });
 				}
 				for (const { action, payload } of actionsIn(view.tree)) {
 					actionCount += 1;
