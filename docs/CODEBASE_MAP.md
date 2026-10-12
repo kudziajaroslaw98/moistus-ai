@@ -108,7 +108,7 @@ graph TB
         BroadcastAdapter[Broadcast Channel Adapter]
     end
 
-    subgraph API["Next.js API Routes (65)"]
+    subgraph API["Next.js API Routes (64)"]
         AIRoutes[AI Routes]
         MapRoutes[Map CRUD]
         ShareRoutes[Sharing]
@@ -193,8 +193,7 @@ shiko/
 │   │   ├── join/               # Room code join flow
 │   │   └── mind-map/           # Canvas page
 │   │
-│   ├── components/             # React components (25 directories)
-│   │   ├── ai-chat/            # AI chat panel
+│   ├── components/             # React components (24 directories)
 │   │   ├── auth/               # Auth UI (banner, upgrade, sign-up wizard)
 │   │   ├── context-menu/       # Right-click menus
 │   │   ├── dashboard/          # Dashboard shell, map cards, first run, settings, loading skeletons
@@ -284,7 +283,6 @@ shiko/
 | **onboarding-slice**      | 958   | Editor-first onboarding tasks, substeps, coachmarks, per-user persisted state |
 | **ui-slice**              | 248   | Modals, panels, focus mode                                                    |
 | **groups-slice**          | 265   | Node grouping, membership moves, transient drag-to-group intent               |
-| **chat-slice**            | 241   | AI chat messages                                                              |
 | **streaming-toast-slice** | 168   | Progress toasts                                                               |
 | **clipboard-slice**       | 156   | Copy/paste                                                                    |
 | **export-slice**          | 172   | PNG/SVG/PDF export                                                            |
@@ -330,12 +328,11 @@ Task-title metadata uses lowercase quoted syntax `title:"..."` (not `Title:`).
 - `src/components/nodes/base-node-wrapper.tsx` - Shared wrapper
 - `src/components/nodes/[type]-node.tsx` - Individual components
 
-### API Routes (65 total)
+### API Routes (64 total)
 
-**AI & Content (7):**
+**AI & Content (6):**
 
 - `POST /api/ai/suggestions` - Streaming node suggestions (node-scoped + whole-map adaptive context, novelty lenses, duplicate suppression)
-- `POST /api/ai/chat` - AI chat with context modes
 - `POST /api/ai/suggest-connections` - Connection recommendations
 - `POST /api/ai/suggest-merges` - Merge suggestions
 - `POST /api/ai/recipes/run` - Run an AI recipe (saved, starter or draft definition) and stream attributed ghost suggestions

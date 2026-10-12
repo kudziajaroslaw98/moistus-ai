@@ -328,15 +328,6 @@ test.describe.serial('Viewer Role Restrictions', () => {
 		// await guestToolbarPage.expectCommentsButtonHidden();
 	});
 
-	test.skip('viewer cannot open AI Chat panel', async ({
-		guestToolbarPage,
-	}) => {
-		// TODO: Implement - AI Chat should be hidden/disabled for viewers
-		// await guestToolbarPage.expectAiChatButtonHidden();
-		// OR if button visible but disabled:
-		// await guestToolbarPage.expectAiChatButtonDisabled();
-	});
-
 	test.skip('viewer cannot view comment threads on nodes', async ({
 		guestMindMapPage,
 	}) => {
@@ -642,11 +633,6 @@ test.describe.serial('Commentator Role Restrictions', () => {
 		// 1. Owner creates a comment
 		// 2. Commentator tries to delete it
 		// 3. Verify delete button hidden or action blocked
-	});
-
-	test.skip('commentator cannot use AI Chat', async ({ guestToolbarPage }) => {
-		// TODO: Implement - AI Chat should be hidden/disabled for commentators
-		// await guestToolbarPage.expectAiChatButtonHidden();
 	});
 
 	test.afterAll(async ({ ownerPage, testMapId }) => {

@@ -3,7 +3,6 @@
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import type { CollaboratorRealtimeEvent } from '@/lib/realtime/collaborator-events';
 import { AvailableNodeTypes } from '@/registry/node-registry';
-import type { ChatSlice } from '@/store/slices/chat-slice';
 import type { CommentsSlice } from '@/store/slices/comments-slice';
 import type { OnboardingSlice } from '@/store/slices/onboarding-slice';
 import type { QuickInputSlice } from '@/store/slices/quick-input-slice';
@@ -478,15 +477,12 @@ export interface Popovers {
 	edgeEdit: boolean;
 	history: boolean;
 	mergeSuggestions: boolean;
-	aiContent: boolean;
-	generateFromNodesModal: boolean;
 	contextMenu: boolean;
 	sharePanel: boolean;
 	joinRoom: boolean;
 	permissionManager: boolean;
 	roomCodeDisplay: boolean;
 	guestSignup: boolean;
-	aiChat: boolean;
 	referenceSearch: boolean;
 	mapSettings: boolean;
 	upgradeUser: boolean;
@@ -651,7 +647,6 @@ export interface AppState
 		PermissionsSlice,
 		RealtimeSlice,
 		SuggestionsSlice,
-		ChatSlice,
 		CommentsSlice,
 		StreamingToastSlice,
 		SubscriptionSlice,

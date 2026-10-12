@@ -28,7 +28,6 @@ import {
 	useState,
 } from 'react';
 
-import { ChatPanel } from '@/components/ai-chat';
 import { SettingsPanel } from '@/components/dashboard/settings-panel';
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import AnnotationTetherEdge from '@/components/edges/annotation-tether-edge';
@@ -70,9 +69,6 @@ import WaypointEdge from '../edges/waypoint-edge';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
 import { MindMapTopBar, MobileMenu } from './top-bar';
-
-// Feature flag: Set NEXT_PUBLIC_ENABLE_AI_CHAT=true to enable AI Chat
-const ENABLE_AI_CHAT = process.env.NEXT_PUBLIC_ENABLE_AI_CHAT === 'true';
 
 interface ReactFlowAreaProps {
 	isMapReady: boolean;
@@ -1039,8 +1035,6 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					notifications={mobileNotifications}
 				/>
 			)}
-
-			{ENABLE_AI_CHAT && <ChatPanel />}
 
 			<OnboardingModal />
 
