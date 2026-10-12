@@ -6,3 +6,10 @@ export async function loadPluginHost(): Promise<PluginHost> {
 		await import('@/lib/plugins/runtime/plugin-host-instance')
 	).getPluginHost();
 }
+
+/** A new host with its own worker for the playground (imported on first use). Dispose it when done. */
+export async function loadPlaygroundPluginHost(): Promise<PluginHost> {
+	return (
+		await import('@/lib/plugins/runtime/plugin-host-instance')
+	).createPlaygroundPluginHost();
+}

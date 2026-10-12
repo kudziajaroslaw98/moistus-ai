@@ -333,8 +333,9 @@ export default function PrivacyPolicyPage() {
 				<ul>
 					<li>
 						Most plugins work only with their own nodes and send nothing
-						anywhere. Plugins that read the nodes under them can&apos;t connect
-						to any site, so what they read stays in your browser.
+						anywhere. Plugins that read other nodes, whether the nodes under
+						them or the nodes you link to them, can&apos;t connect to any
+						site, so what they read stays in your browser.
 					</li>
 					<li>
 						A plugin that connects to another site, such as GitHub or

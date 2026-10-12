@@ -12,12 +12,13 @@ const mockState = {
 	mapPlugins: [] as Array<{ pluginId: string; version: string }>,
 	mapPluginsLoaded: true,
 	refreshMapPluginsSoon: jest.fn(),
+	runNodeAction: jest.fn(async () => ({ ok: true })),
+	startPluginPick: jest.fn(),
 };
 
 jest.mock('@/lib/plugins/runtime/load-plugin-host', () => ({
 	loadPluginHost: async () => mockHost,
 }));
-jest.mock('@/lib/extensions/graph-ops', () => ({ applyGraphOps: jest.fn() }));
 jest.mock('sonner', () => ({ toast: { error: jest.fn() } }));
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
@@ -27,7 +28,6 @@ jest.mock('@/store/mind-map-store', () => ({
 	),
 }));
 
-import { applyGraphOps } from '@/lib/extensions/graph-ops';
 import { PluginNodeContent } from './plugin-node-content';
 
 const extension: NodeExtensionData = {
@@ -143,51 +143,19 @@ describe('PluginNodeContent', () => {
 		expect(document.querySelector('img')).toBeNull();
 	});
 
-	it('renders live and saves an action as one plugin-attributed update', async () => {
+	it('renders live and runs a button’s action through the store', async () => {
 		mockState.loadedPlugins = readyMetric();
 		mockState.mapPlugins = [{ pluginId: 'shiko.metric', version: '0.1.0' }];
-		const nextData = { ...extension.data, value: 6 };
-		const nextTree = { type: 'text' as const, value: 'Live: 6 of 10' };
-		mockHost.render
-			.mockResolvedValueOnce({ tree: liveTree, summary: 'Signups: 5 / 10' })
-			.mockResolvedValueOnce({ tree: nextTree, summary: 'Signups: 6 / 10' });
-		mockHost.action.mockResolvedValue(nextData);
-		jest.mocked(applyGraphOps).mockResolvedValue({ ok: true, applied: 1 });
+		mockHost.render.mockResolvedValue({ tree: liveTree, summary: 'Signups: 5 / 10' });
 		const user = userEvent.setup();
 
 		render(<PluginNodeContent canEdit extension={extension} nodeId='n1' />);
 		expect(await screen.findByText('Live: 5 of 10')).toBeInTheDocument();
 		await user.click(screen.getByRole('button', { name: '1' }));
 
-		expect(mockHost.action).toHaveBeenCalledWith(
-			'shiko.metric',
-			expect.objectContaining({ kind: 'metric' }),
-			'increment',
-			extension.data,
-			undefined,
-			{ canEdit: true, today: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) }
-		);
-		expect(applyGraphOps).toHaveBeenCalledWith(
-			expect.any(Function),
-			[
-				{
-					type: 'updateNode',
-					nodeId: 'n1',
-					data: {
-						content: 'Signups: 6 / 10',
-						metadata: {
-							extension: expect.objectContaining({
-								pluginId: 'shiko.metric',
-								data: nextData,
-								snapshot: nextTree,
-							}),
-						},
-					},
-				},
-			],
-			{ kind: 'plugin', id: 'shiko.metric', label: 'Metric' },
-			{ label: 'updateNode' }
-		);
+		// Saving as one plugin-attributed History entry is the store's job (plugins-slice).
+		expect(mockState.runNodeAction).toHaveBeenCalledWith('n1', 'increment', undefined);
+		expect(mockHost.action).not.toHaveBeenCalled();
 	});
 
 	it('keeps buttons off for people who can only view', async () => {

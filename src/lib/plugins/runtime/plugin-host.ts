@@ -299,6 +299,16 @@ export class PluginHost {
 		return { data: assignListRowIds(kind, checked.data, data), responses };
 	}
 
+	/**
+	 * Stops the worker and forgets every plugin; pending calls fail. For hosts a page owns
+	 * (the playground's). The host stays usable: the next call starts a fresh worker.
+	 */
+	dispose() {
+		this.restart(new PluginHostError('The plugin runtime was closed', 'error'));
+		this.codes.clear();
+		this.refreshKinds.clear();
+	}
+
 	unload(pluginId: string) {
 		this.refreshKinds.delete(pluginId);
 		this.codes.delete(pluginId);

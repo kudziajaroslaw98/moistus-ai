@@ -9,6 +9,7 @@ import {
 	PERIODIC_NOTIFICATIONS_SYNC_TAG,
 	refreshGlobalNotificationsCache,
 } from '@/lib/offline/offline-sync-core';
+import { isLeftToBrowser } from '@/lib/offline/sw-browser-requests';
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
 import { Serwist } from 'serwist';
 
@@ -43,27 +44,9 @@ const serwist = new Serwist({
 });
 
 // Requests left to the browser (registered before Serwist's listener, so stopping here
-// skips it):
-// - Worker scripts. Turbopack passes a worker's bootstrap config in the script URL's
-//   #fragment, which a service-worker response loses, so the plugin runtime failed with
-//   "Missing worker bootstrap config". The plugin network worker must also arrive fresh,
-//   with its own policy.
-// - Plugin refresh requests (`src/lib/plugins/network.ts`): cross-origin with
-//   `cache: 'no-store'`. A cached answer would be saved into the node as fresh data.
-// - Page navigations to /api routes (billing portal, invoices, exports). They answer
-//   with redirects or files, never pages, and a redirect through the worker's offline
-//   fallback shows a page that doesn't exist instead of where the route sends you.
+// skips it). The rules and why are in `isLeftToBrowser`.
 self.addEventListener('fetch', (event) => {
-	const { request } = event;
-	const isWorkerScript =
-		request.destination === 'worker' || request.destination === 'sharedworker';
-	const isUncachedCrossOrigin =
-		request.cache === 'no-store' &&
-		new URL(request.url).origin !== self.location.origin;
-	const isApiNavigation =
-		request.mode === 'navigate' &&
-		new URL(request.url).pathname.startsWith('/api/');
-	if (isWorkerScript || isUncachedCrossOrigin || isApiNavigation) {
+	if (isLeftToBrowser(event.request, self.location.origin)) {
 		event.stopImmediatePropagation();
 	}
 });

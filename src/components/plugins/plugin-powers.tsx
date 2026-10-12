@@ -3,8 +3,10 @@
 import { Button } from '@/components/ui/button';
 import type { PluginManifest } from '@/lib/plugins/manifest-schema';
 import { authorReceivesNote, listHosts, pluginPowers } from '@/lib/plugins/powers';
-import { Globe, ListTree, ShieldCheck } from 'lucide-react';
+import { Code2, Globe, ListTree, ShieldCheck } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
+import { useState } from 'react';
+import { PluginCodeSheet } from './plugin-code-sheet';
 import { PluginSiteName, PluginSitesSentence } from './plugin-site-note';
 
 /** One line on a plugin card: what the plugin can reach beyond its own nodes. */
@@ -57,6 +59,22 @@ export function PluginPowersLine({ manifest }: { manifest: PluginManifest }) {
 		);
 	}
 
+	if (powers.kind === 'refs') {
+		return (
+			<p
+				className='flex items-start gap-2 text-xs leading-[17px] text-text-secondary'
+				data-testid='plugin-powers'
+			>
+				<ListTree
+					aria-hidden
+					className='mt-px size-3.5 shrink-0 text-violet-300'
+				/>
+				Reads the nodes you link to its nodes, to show them. Nothing leaves your
+				browser.
+			</p>
+		);
+	}
+
 	return (
 		<p
 			className='flex items-start gap-2 text-xs text-text-secondary'
@@ -98,6 +116,7 @@ export function PluginPowersConfirm({
 	onConfirm,
 }: PluginPowersConfirmProps) {
 	const reduceMotion = useReducedMotion();
+	const [viewingCode, setViewingCode] = useState(false);
 	const powers = pluginPowers(manifest);
 	const operators =
 		powers.kind === 'network'
@@ -137,12 +156,40 @@ export function PluginPowersConfirm({
 						{`It contacts ${listHosts(powers.sites)} only when someone editing the map adds one or presses Refresh. Everyone else sees the saved result, and viewing the map never contacts ${operators}. You can turn it off any time.`}
 					</p>
 				</>
+			) : powers.kind === 'refs' ? (
+				<p className='text-[13px] leading-[18px] text-zinc-200'>
+					It reads the nodes you link to from its nodes (their text, tasks,
+					people, dates and tags) to show them. It can’t read the rest of the map
+					or reach any site, so nothing leaves the browser. You can turn it off
+					any time.
+				</p>
 			) : (
 				<p className='text-[13px] leading-[18px] text-zinc-200'>
 					It reads the nodes under each of its nodes (their text, tasks, people,
 					dates and tags) to draw its view. It can’t reach any site, so nothing
 					leaves the browser. You can turn it off any time.
 				</p>
+			)}
+
+			{fromCatalog && (
+				<>
+					<button
+						className='inline-flex items-center gap-1.5 self-start rounded-sm text-[13px] font-medium text-sky-300 transition-colors duration-200 ease hover:text-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/60'
+						onClick={() => setViewingCode(true)}
+						type='button'
+					>
+						<Code2 aria-hidden className='size-3.5' />
+						View code
+					</button>
+
+					<PluginCodeSheet
+						onOpenChange={setViewingCode}
+						open={viewingCode}
+						pluginId={manifest.id}
+						pluginName={manifest.name}
+						version={manifest.version}
+					/>
+				</>
 			)}
 
 			<div className='flex justify-end gap-2'>

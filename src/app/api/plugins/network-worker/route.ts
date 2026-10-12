@@ -7,6 +7,7 @@ import {
 	PLUGIN_POWER_LIMITS,
 } from '@/lib/plugins/manifest-schema';
 import { pluginNetworkWorkerSource } from '@/lib/plugins/network';
+import { isDeveloperModeOn } from '@/lib/plugins/server/developer-mode';
 import {
 	pluginDisabledReason,
 	reviewedPluginVersions,
@@ -62,14 +63,7 @@ async function developerHosts(
 	user: User,
 	raw: string
 ): Promise<HostsResult> {
-	const { data: profile } = await supabase
-		.from('user_profiles')
-		.select('preferences')
-		.eq('user_id', user.id)
-		.maybeSingle();
-	const preferences = profile?.preferences as
-		{ developerMode?: unknown } | null | undefined;
-	if (preferences?.developerMode !== true) {
+	if (!(await isDeveloperModeOn(supabase, user.id))) {
 		return {
 			error: 'Turn on Developer mode to run developer plugins.',
 			status: 403,

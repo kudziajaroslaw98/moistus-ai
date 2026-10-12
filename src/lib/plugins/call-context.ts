@@ -1,4 +1,5 @@
 import type { PluginBranchNode } from './branch-context';
+import type { PluginRefs } from './ref-context';
 
 /** What a plugin knows when it renders or runs an action. */
 export interface PluginCallContext {
@@ -7,6 +8,8 @@ export interface PluginCallContext {
 	today: string;
 	/** The nodes under the plugin's node; only for plugins with `branch:read`. */
 	branch?: PluginBranchNode[];
+	/** The nodes the plugin's data links to, by id; only for plugins with `nodes:refs`. */
+	refs?: PluginRefs;
 }
 
 /** The viewer's local calendar day as YYYY-MM-DD. */
@@ -18,9 +21,11 @@ export function localDateString(date: Date = new Date()): string {
 
 export function pluginCallContext(
 	canEdit: boolean,
-	branch?: PluginBranchNode[] | null
+	branch?: PluginBranchNode[] | null,
+	refs?: PluginRefs | null
 ): PluginCallContext {
-	return branch
-		? { canEdit, today: localDateString(), branch }
-		: { canEdit, today: localDateString() };
+	const context: PluginCallContext = { canEdit, today: localDateString() };
+	if (branch) context.branch = branch;
+	if (refs) context.refs = refs;
+	return context;
 }

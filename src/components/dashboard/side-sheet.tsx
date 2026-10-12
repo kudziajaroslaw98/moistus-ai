@@ -19,6 +19,8 @@ interface SideSheetProps {
 	footer?: ReactNode;
 	/** `md` is 40rem, `lg` 47.5rem (wide content such as code changes). */
 	width?: 'md' | 'lg';
+	/** Open above popovers and menus, e.g. a sheet opened from inside one. */
+	raised?: boolean;
 	children: ReactNode;
 }
 
@@ -41,6 +43,7 @@ export function SideSheet({
 	hue = 214,
 	footer,
 	width = 'md',
+	raised = false,
 	children,
 }: SideSheetProps) {
 	return (
@@ -48,6 +51,7 @@ export function SideSheet({
 			bodyClassName='flex flex-col gap-5 pt-5'
 			onOpenChange={onOpenChange}
 			open={open}
+			raised={raised}
 			subtitle={subtitle}
 			title={title}
 			titleAttr={title}

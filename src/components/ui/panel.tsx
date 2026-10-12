@@ -73,6 +73,8 @@ interface PanelProps {
 	footer?: ReactNode;
 	variant?: PanelVariant;
 	width?: PanelWidth;
+	/** Opens above popovers and menus (z-110), for a panel opened from inside one. A dialog opened from it would sit below it. Modal only. */
+	raised?: boolean;
 	/** `glow` is the mobile menu's surface, `flat` a plain dark one. */
 	surface?: 'glow' | 'flat';
 	/** Accessible name of the close button. */
@@ -97,6 +99,7 @@ export function Panel({
 	footer,
 	variant = 'modal',
 	width = 'md',
+	raised = false,
 	surface = 'glow',
 	closeLabel = 'Close panel',
 	bodyClassName,
@@ -131,7 +134,8 @@ export function Panel({
 				{isModal && (
 					<BaseDialog.Backdrop
 						className={cn(
-							'fixed inset-0 z-[80] bg-black/50 backdrop-blur-[8px]',
+							'fixed inset-0 bg-black/50 backdrop-blur-[8px]',
+							raised ? 'z-[110]' : 'z-[80]',
 							'transition-opacity duration-[280ms] ease-[cubic-bezier(.23,1,.32,1)]',
 							'data-[starting-style]:opacity-0 data-[ending-style]:opacity-0 data-[ending-style]:duration-200'
 						)}
@@ -144,7 +148,7 @@ export function Panel({
 					// makes it scrollable, which slid the whole panel out of view.
 					className={cn(
 						'fixed inset-y-0 right-0 flex h-dvh max-w-full flex-col overflow-clip border-l border-white/14 text-text-primary shadow-[-30px_0_60px_-30px_rgba(0,0,0,0.8)] outline-none',
-						isModal ? 'z-[81]' : 'z-40',
+						isModal ? (raised ? 'z-[111]' : 'z-[81]') : 'z-40',
 						WIDTHS[width],
 						surface === 'glow' ? GLOW_SURFACE : 'bg-base',
 						// Slide in from the right, a little faster on the way out. With
@@ -401,6 +405,8 @@ interface PanelRowProps extends Omit<
 > {
 	/** Renders the row as a link (a menu that goes to a page or a section). */
 	href?: string;
+	/** `li` for rows inside a `<ul>` (a list of versions). Not used with `href` or `onClick`. */
+	as?: 'div' | 'li';
 	icon?: ReactNode;
 	iconTone?: keyof typeof ICON_TONES;
 	/** Replaces the icon tile (an avatar). */
@@ -443,6 +449,7 @@ export function PanelRow({
 	align = 'center',
 	onClick,
 	href,
+	as = 'div',
 	disabled,
 	singleLine,
 	className,
@@ -534,6 +541,14 @@ export function PanelRow({
 			>
 				{content}
 			</button>
+		);
+	}
+
+	if (as === 'li') {
+		return (
+			<li className={rowClass} {...(props as ComponentProps<'li'>)}>
+				{content}
+			</li>
 		);
 	}
 

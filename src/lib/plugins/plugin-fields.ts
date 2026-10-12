@@ -1,4 +1,5 @@
 import {
+	CHECKLIST_MARKERS,
 	LIST_ROW_ID_KEY,
 	PLUGIN_LIMITS,
 	type PluginFieldSpec,
@@ -48,6 +49,8 @@ const FIELD_TOKEN = /(^|\s)([a-z][a-zA-Z0-9]{0,23}):(?:"([^"\n]*)"|([^\s"]+))/g;
 /** The start of a list value: `name:[`. */
 const LIST_START = /(^|\s)([a-z][a-zA-Z0-9]{0,23}):\[/g;
 const ROW_ID = /^[a-z0-9]{1,16}$/;
+/** Node ids are v4 UUIDs (`generateUuid`). */
+const NODE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const TRUE_WORDS = new Set(['true', 'yes', 'on', '1']);
 const FALSE_WORDS = new Set(['false', 'no', 'off', '0']);
@@ -353,22 +356,124 @@ function parseListValue(spec: PluginListFieldSpec, span: ListSpan): Coerced<Plug
 }
 
 // ---------------------------------------------------------------------------
-// Fields only refresh fills
+// Checklists: one line per row, `[ ] text`, `[x] text`, `[-] text`
+
+export interface ChecklistField {
+	name: string;
+	spec: PluginListFieldSpec;
+	text: Extract<PluginListColumn, { type: 'string' }>;
+	status: Extract<PluginListColumn, { type: 'enum' }>;
+}
+
+/** The kind's checklist list field (at most one), or null. */
+export function checklistFieldOf(kind: PluginNodeKind): ChecklistField | null {
+	for (const [name, spec] of Object.entries(kind.fields)) {
+		if (spec.type !== 'list' || spec.syntax !== 'checklist') continue;
+		const [text, status] = spec.columns;
+		if (text?.type === 'string' && status?.type === 'enum') {
+			return { name, spec, text, status };
+		}
+	}
+	return null;
+}
+
+const CHECKLIST_LINE = /^([ \t]*)\[( |x|X|-)\][ \t]?(.*)$/;
+
+type ChecklistMarker = (typeof CHECKLIST_MARKERS)[number];
+const markerIndex = (marker: string) =>
+	CHECKLIST_MARKERS.indexOf(marker.toLowerCase() as ChecklistMarker);
+
+/** Where checklist markers start lines in editor text; `index` 0, 1, 2 for `[ ]`, `[x]`, `[-]`. */
+export function scanChecklistMarkers(
+	text: string
+): Array<{ from: number; to: number; index: number }> {
+	const markers: Array<{ from: number; to: number; index: number }> = [];
+	let offset = 0;
+	for (const line of text.split('\n')) {
+		const match = CHECKLIST_LINE.exec(line);
+		if (match) {
+			const from = offset + match[1].length;
+			markers.push({ from, to: from + 3, index: markerIndex(match[2]) });
+		}
+		offset += line.length + 1;
+	}
+	return markers;
+}
+
+/** Reads the checklist lines, and blanks them out (keeping offsets) so the rest parses on its own. */
+function parseChecklist(
+	text: string,
+	field: ChecklistField
+): {
+	masked: string;
+	rows: PluginListRow[];
+	error: string | null;
+	tokens: PluginFieldToken[];
+} {
+	const rows: PluginListRow[] = [];
+	const tokens: PluginFieldToken[] = [];
+	let error: string | null = null;
+	let masked = '';
+	let offset = 0;
+	const lines = text.split('\n');
+	lines.forEach((line, index) => {
+		const match = CHECKLIST_LINE.exec(line);
+		if (!match) {
+			masked += line;
+		} else {
+			const option = field.status.options[markerIndex(match[2])] as
+				| string
+				| undefined;
+			const from = offset + match[1].length;
+			const body = match[3].trim();
+			let valid = option !== undefined;
+			if (option === undefined) {
+				error ??= `${field.spec.title}: [${match[2]}] isn't a status here`;
+			} else if (body) {
+				const checked = coerceTyped(field.text, body);
+				if (checked.ok) {
+					rows.push({ [field.text.name]: checked.value, [field.status.name]: option });
+				} else {
+					valid = false;
+					error ??= `${field.spec.title}, line ${rows.length + 1}: ${checked.message}`;
+				}
+			}
+			tokens.push({ from, to: from + 3, field: field.name, valid });
+			masked += ' '.repeat(line.length);
+		}
+		offset += line.length + 1;
+		if (index < lines.length - 1) masked += '\n';
+	});
+	if (!error && rows.length > maxItems(field.spec)) {
+		error = `${field.spec.title} can have up to ${maxItems(field.spec)} rows`;
+	}
+	return { masked, rows, error, tokens };
+}
+
+/** A checklist row as its editor line. */
+function checklistLine(field: ChecklistField, row: PluginListRow): string {
+	const index = Math.max(0, field.status.options.indexOf(String(row[field.status.name])));
+	return `[${CHECKLIST_MARKERS[index]}] ${row[field.text.name] ?? ''}`.trimEnd();
+}
+
+// ---------------------------------------------------------------------------
+// Fields only refresh or an action fills
 
 const editorKinds = new WeakMap<PluginNodeKind, PluginNodeKind>();
 
 /**
- * The kind as the node editor sees it: fields with `setBy: "refresh"` (data fetched from
- * a site) are left out, so they're never typed, suggested or listed in Syntax Help.
+ * The kind as the node editor sees it: fields with `setBy` (fetched by refresh, or set by
+ * an action such as a node link) are left out, so they're never typed, suggested or
+ * listed in Syntax Help.
  */
 export function editorKind(kind: PluginNodeKind): PluginNodeKind {
-	if (!Object.values(kind.fields).some((spec) => spec.setBy === 'refresh')) return kind;
+	if (!Object.values(kind.fields).some((spec) => spec.setBy)) return kind;
 	let typed = editorKinds.get(kind);
 	if (!typed) {
 		typed = {
 			...kind,
 			fields: Object.fromEntries(
-				Object.entries(kind.fields).filter(([, spec]) => spec.setBy !== 'refresh')
+				Object.entries(kind.fields).filter(([, spec]) => !spec.setBy)
 			),
 		};
 		editorKinds.set(kind, typed);
@@ -376,8 +481,8 @@ export function editorKind(kind: PluginNodeKind): PluginNodeKind {
 	return typed;
 }
 
-/** Typed editor data plus the refresh-only fields the node already had. */
-export function keepRefreshFields(
+/** Typed editor data plus the `setBy` fields (refresh or action) the node already had. */
+export function keepSetByFields(
 	kind: PluginNodeKind,
 	typed: PluginData,
 	existing: Record<string, unknown> | null | undefined
@@ -385,11 +490,31 @@ export function keepRefreshFields(
 	if (!existing) return typed;
 	const kept: PluginData = { ...typed };
 	for (const [name, spec] of Object.entries(kind.fields)) {
-		if (spec.setBy === 'refresh' && existing[name] !== undefined) {
+		if (spec.setBy && existing[name] !== undefined) {
 			kept[name] = existing[name] as PluginFieldValue;
 		}
 	}
 	return kept;
+}
+
+/** Ids of the nodes this data links to, once each, in the order they appear. */
+export function collectNodeRefs(kind: PluginNodeKind, data: PluginData): string[] {
+	const found = new Set<string>();
+	for (const [name, spec] of Object.entries(kind.fields)) {
+		const value = data[name];
+		if (spec.type === 'string' && spec.ref === 'node') {
+			if (typeof value === 'string' && NODE_ID.test(value)) found.add(value);
+		} else if (spec.type === 'list' && Array.isArray(value)) {
+			for (const column of spec.columns) {
+				if (column.type !== 'string' || column.ref !== 'node') continue;
+				for (const row of value) {
+					const id = row[column.name];
+					if (typeof id === 'string' && NODE_ID.test(id)) found.add(id);
+				}
+			}
+		}
+	}
+	return [...found];
 }
 
 // ---------------------------------------------------------------------------
@@ -416,13 +541,30 @@ function applyDefaultsAndRequired(
 	}
 }
 
+/**
+ * What a new node of this kind starts with: each field's default, and an empty list for
+ * list fields. Required fields without a default stay out (the person has to fill them).
+ */
+export function defaultPluginData(kind: PluginNodeKind): PluginData {
+	const data: PluginData = {};
+	for (const [name, spec] of Object.entries(kind.fields)) {
+		if (spec.type === 'list') {
+			data[name] = [];
+			continue;
+		}
+		const fallback = defaultFor(spec);
+		if (fallback !== undefined) data[name] = fallback;
+	}
+	return data;
+}
+
 const toErrorList = (errors: FieldErrors): PluginFieldError[] =>
 	[...errors].map(([field, message]) => ({ field, message }));
 
 const listFieldNames = (kind: PluginNodeKind) =>
 	new Set(
 		Object.entries(kind.fields)
-			.filter(([, spec]) => spec.type === 'list')
+			.filter(([, spec]) => spec.type === 'list' && spec.syntax !== 'checklist')
 			.map(([name]) => name)
 	);
 
@@ -458,13 +600,24 @@ export function scanPluginFieldTokens(
 }
 
 export function parsePluginFieldInput(
-	text: string,
+	input: string,
 	fullKind: PluginNodeKind
 ): ParsedPluginFields {
 	const kind = editorKind(fullKind);
 	const data: PluginData = {};
 	const errors: FieldErrors = new Map();
 	const tokens: PluginFieldToken[] = [];
+
+	// Checklist lines (`[ ] text`) are read first and blanked out of what's left.
+	let text = input;
+	const checklist = checklistFieldOf(kind);
+	if (checklist) {
+		const parsedLines = parseChecklist(text, checklist);
+		text = parsedLines.masked;
+		tokens.push(...parsedLines.tokens);
+		if (parsedLines.error) errors.set(checklist.name, parsedLines.error);
+		else data[checklist.name] = parsedLines.rows;
+	}
 
 	const spans = scanListSpans(text, listFieldNames(kind));
 	for (const span of spans) {
@@ -502,7 +655,12 @@ export function parsePluginFieldInput(
 
 		if (spec.type === 'list') {
 			tokens.push({ from, to, field: name, valid: false });
-			errors.set(name, `${spec.title} is a list: write ${name}:[ … ]`);
+			errors.set(
+				name,
+				spec.syntax === 'checklist'
+					? `${spec.title} is written one per line: [ ] text`
+					: `${spec.title} is a list: write ${name}:[ … ]`
+			);
 			continue;
 		}
 		const result = coerceTyped(spec, quoted ?? bare);
@@ -623,7 +781,14 @@ export function serializePluginFieldInput(
 		const value = data[name];
 		if (value === undefined) continue;
 		if (spec.type === 'list') {
-			if (Array.isArray(value) && value.length > 0) lists.push(serializeList(name, spec, value));
+			if (Array.isArray(value) && value.length > 0) {
+				const checklistSpec = checklistFieldOf(kind);
+				lists.push(
+					checklistSpec?.name === name
+						? value.map((row) => checklistLine(checklistSpec, row)).join('\n')
+						: serializeList(name, spec, value)
+				);
+			}
 			continue;
 		}
 		if (Array.isArray(value)) continue;
@@ -652,6 +817,9 @@ function checkValue(
 			// Quoted field values can't contain `"`; the free-text label can.
 			if (!isLabel && value.includes('"')) {
 				return { ok: false, message: `${name} can't contain double quotes` };
+			}
+			if (spec.ref === 'node' && !NODE_ID.test(value)) {
+				return { ok: false, message: `${name} must be a node id` };
 			}
 			return coerceTyped(spec, value);
 		case 'number':
@@ -708,7 +876,9 @@ function checkList(
 			}
 			const column = columns.get(key);
 			if (!column) return { ok: false, message: `${prefix}.${key} is not a column of ${name}` };
-			const checked = checkValue(`${prefix}.${key}`, column, cell, false);
+			// A checklist line has no quoting, so its text can hold double quotes.
+			const isChecklistText = spec.syntax === 'checklist' && column === spec.columns[0];
+			const checked = checkValue(`${prefix}.${key}`, column, cell, isChecklistText);
 			if (!checked.ok) return checked;
 			row[key] = checked.value;
 		}

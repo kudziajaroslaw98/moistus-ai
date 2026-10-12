@@ -229,6 +229,37 @@ describe('plugin node type completions', () => {
 
 		expect(source(pluginContext('Users wei'))).toBeNull()
 	})
+
+	describe('a checklist', () => {
+		const checklistContext = (text: string) => {
+			const state = EditorState.create({ doc: text, extensions: [pluginFieldsField] }).update({
+				effects: setPluginFieldsEffect.of([
+					{ name: 'threads', title: 'Threads', type: 'list', checklist: ['open', 'resolved', 'dropped'] },
+				]),
+			}).state
+			return { ...buildContext(text), state } as unknown as CompletionContext
+		}
+		type Result = { options: Array<{ label: string; detail?: string; apply?: string }> } | null
+
+		it('offers the markers when a line starts with [', () => {
+			const { source } = createCompletions()
+			const result = source(checklistContext('Plot\n[')) as unknown as Result
+
+			expect(result?.options.map((option) => [option.label, option.detail, option.apply])).toEqual([
+				['[ ]', 'open', '[ ] '],
+				['[x]', 'resolved', '[x] '],
+				['[-]', 'dropped', '[-] '],
+			])
+		})
+
+		it('narrows to the marker being typed, and never offers `threads:`', () => {
+			const { source } = createCompletions()
+
+			const narrowed = source(checklistContext('Plot\n[x')) as unknown as Result
+			expect(narrowed?.options.map((option) => option.label)).toEqual(['[x]'])
+			expect(source(checklistContext('Plot thr'))).toBeNull()
+		})
+	})
 })
 
 describe('"More node types…" in the $ list', () => {

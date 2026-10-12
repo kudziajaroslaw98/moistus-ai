@@ -242,7 +242,7 @@ describe('PluginsPanel for the owner', () => {
 
 		expect(screen.getByRole('link', { name: /How to build a plugin/ })).toHaveAttribute(
 			'href',
-			'/dashboard/plugins/build'
+			'/dashboard/plugins/build#own-editor'
 		);
 		await user.type(screen.getByLabelText('Plugin manifest URL'), 'https://evil.test/m.json');
 		await user.click(screen.getByRole('button', { name: 'Load' }));
@@ -261,6 +261,42 @@ describe('PluginsPanel for the owner', () => {
 			'href',
 			'/dashboard/plugins/build'
 		);
+	});
+
+	it('offers Write a plugin in the Developer section, opening the Write a plugin tab in a new tab', async () => {
+		setup();
+
+		const link = await screen.findByRole('link', { name: /Write a plugin/ });
+		expect(link).toHaveAttribute('href', '/dashboard/plugins/build');
+		expect(link).toHaveAttribute('target', '_blank');
+	});
+
+	it('puts the Developer mode switch in the panel while it is off, so no trip to settings', async () => {
+		setup({ userProfile: { preferences: {} } });
+
+		expect(await screen.findByRole('switch', { name: 'Developer mode' })).not.toBeChecked();
+		expect(screen.queryByRole('link', { name: /Write a plugin/ })).not.toBeInTheDocument();
+	});
+
+	it('shows a playground draft as a draft, with a way back to edit it', async () => {
+		const draftUrl = `${window.location.origin}/api/plugins/drafts/0d6f2f4e-8c1b-4a51-9d0e-2b7d3c1f5a01/files/manifest.json`;
+		setup({
+			devPluginUrls: [draftUrl],
+			loadedPlugins: {
+				[draftUrl]: {
+					status: 'ready',
+					manifest: { id: 'dev.counter-0d6f2f4e', name: 'Counter', icon: 'puzzle', permissions: ['node:own'] },
+				},
+			},
+		});
+
+		expect(await screen.findByText('dev.counter-0d6f2f4e · Draft in Shiko')).toBeInTheDocument();
+		const edit = screen.getByRole('link', { name: 'Edit Counter in the playground' });
+		expect(edit).toHaveAttribute(
+			'href',
+			'/dashboard/plugins/playground/0d6f2f4e-8c1b-4a51-9d0e-2b7d3c1f5a01'
+		);
+		expect(edit).toHaveAttribute('target', '_blank');
 	});
 
 	it('closes', async () => {
