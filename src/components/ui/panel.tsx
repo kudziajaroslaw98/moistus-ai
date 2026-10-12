@@ -36,7 +36,8 @@ export const panelButtonSmClass = 'h-[30px] rounded-[9px] px-2.5 text-[12.5px]';
 
 /** Inputs, textareas and select triggers inside a panel field. */
 export const panelInputClass =
-	'h-10 rounded-[10px] border-white/10 bg-white/[0.04] px-3 text-sm sm:text-sm';
+	// `Input` appends its own `h-9`, which would win over a plain `h-10`.
+	'!h-10 rounded-[10px] border-white/10 bg-white/[0.04] px-3 text-sm sm:text-sm';
 /** Select triggers: the trigger sets its own height per `size`, so the variant must match. */
 export const panelSelectClass =
 	'w-full rounded-[10px] border-white/10 bg-white/[0.04] text-sm data-[size=default]:h-10';

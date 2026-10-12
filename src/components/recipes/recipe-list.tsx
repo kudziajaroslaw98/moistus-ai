@@ -110,7 +110,7 @@ function RecipeRow({ recipe, isStarter, index, onOpen, children }: RecipeRowProp
 	return (
 		<motion.li
 			animate={{ opacity: 1, y: 0 }}
-			className='group/row flex items-center gap-1 rounded-lg transition-colors duration-200 ease hover:bg-white/[0.035]'
+			className='group/row -mx-2 flex items-center gap-1 rounded-xl transition-colors duration-200 ease hover:bg-white/[0.04]'
 			initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
 			transition={
 				shouldReduceMotion
@@ -120,19 +120,19 @@ function RecipeRow({ recipe, isStarter, index, onOpen, children }: RecipeRowProp
 		>
 			{onOpen ? (
 				<button
-					className='flex min-w-0 flex-1 items-start gap-3 rounded-lg py-2 pl-2.5 pr-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/60'
+					className='flex min-w-0 flex-1 items-start gap-3 rounded-xl py-2.5 pl-2 pr-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500'
 					onClick={onOpen}
 					type='button'
 				>
 					{content}
 				</button>
 			) : (
-				<div className='flex min-w-0 flex-1 items-start gap-3 py-2 pl-2.5 pr-1'>
+				<div className='flex min-w-0 flex-1 items-start gap-3 py-2.5 pl-2 pr-1'>
 					{content}
 				</div>
 			)}
 
-			<div className='pr-1.5'>{children}</div>
+			<div>{children}</div>
 		</motion.li>
 	);
 }
@@ -141,7 +141,7 @@ function RowMenuTrigger({ title }: { title: string }) {
 	return (
 		<DropdownMenuTrigger
 			aria-label={`Options for ${title}`}
-			className='flex h-7 w-7 items-center justify-center rounded-md text-text-secondary transition-colors duration-200 ease hover:bg-white/[0.06] hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 data-[popup-open]:bg-white/[0.06]'
+			className='flex size-8 items-center justify-center rounded-lg text-text-secondary transition-colors duration-200 ease hover:bg-white/[0.06] hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 data-[popup-open]:bg-white/[0.06]'
 		>
 			<MoreHorizontal className='size-4' />
 		</DropdownMenuTrigger>

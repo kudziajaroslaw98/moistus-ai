@@ -168,7 +168,7 @@ export function RoomCodeDisplay({
 					{isExpired && <PanelBadge tone='error'>Expired</PanelBadge>}
 				</div>
 
-				<div className='flex shrink-0 items-center gap-0.5'>
+				<div className='-mr-2 flex shrink-0 items-center gap-0.5'>
 					<Button
 						aria-label='Copy room code'
 						className={iconButtonClass}

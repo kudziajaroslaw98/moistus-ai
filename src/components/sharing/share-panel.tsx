@@ -490,7 +490,7 @@ export function SharePanel({
 											{share.share.role !== 'owner' && (
 												<Button
 													aria-label='Remove user access'
-													className='size-8 text-text-secondary hover:bg-error-500/10 hover:text-error-300'
+													className='-mr-2 size-8 text-text-secondary hover:bg-error-500/10 hover:text-error-300'
 													onClick={() => handleDeleteShare(share.share.id)}
 													size='icon'
 													variant='ghost'

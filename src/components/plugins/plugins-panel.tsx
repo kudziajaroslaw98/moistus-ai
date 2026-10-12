@@ -75,6 +75,10 @@ function writeLaterVersions(
 	}
 }
 
+/** Overhangs the row by 8px so the "…" lines up with the section count above it. */
+const PANEL_MENU_TRIGGER_CLASS =
+	'nodrag -mr-2 flex size-8 shrink-0 items-center justify-center rounded-lg text-text-secondary transition-colors duration-200 ease hover:bg-white/[0.06] hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500';
+
 const subtleLinkClass =
 	'inline-flex items-center gap-0.5 rounded-sm transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60';
 
@@ -249,6 +253,7 @@ function PluginCard({
 					nodeData={reportNodeData}
 					pluginId={entry.id}
 					pluginName={name}
+					triggerClassName={PANEL_MENU_TRIGGER_CLASS}
 					version={record?.version ?? latestCatalogVersion(entry).version}
 				/>
 			</div>
