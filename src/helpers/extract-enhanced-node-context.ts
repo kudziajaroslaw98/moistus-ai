@@ -512,102 +512,6 @@ function extractTopics(contents: string[], maxTopics: number = 5): string[] {
 }
 
 /**
- * Build a context summary string for AI prompts
- *
- * This formats the enhanced context into a human-readable string
- * suitable for inclusion in AI prompts.
- *
- * @param context - The enhanced context to format
- * @returns A formatted string describing the context
- */
-export function buildContextPrompt(
-	context: EnhancedNodeContext,
-	options?: ContextRowOptions
-): string {
-	const lines: string[] = [];
-	const primaryDepth = context.graphTopology.depth;
-	const primaryFlags = ['focus'];
-	if (context.graphTopology.isIsolated) {
-		primaryFlags.push('isolated');
-	}
-	if (context.graphTopology.inDegree === 0) {
-		primaryFlags.push('root');
-	}
-
-	lines.push(
-		encodeNodeContextRow(
-			context.primary,
-			primaryDepth,
-			context.graphTopology.degree,
-			primaryFlags,
-			options
-		)
-	);
-
-	if (context.parent) {
-		lines.push(
-			encodeNodeContextRow(
-				context.parent,
-				Math.max(0, primaryDepth - 1),
-				null,
-				['parent'],
-				options
-			)
-		);
-		lines.push(
-			encodeRelationRow('parent', context.parent.id, context.primary.id, options)
-		);
-	}
-
-	if (context.grandparent && context.parent) {
-		lines.push(
-			encodeNodeContextRow(
-				context.grandparent,
-				Math.max(0, primaryDepth - 2),
-				null,
-				['grandparent'],
-				options
-			)
-		);
-		lines.push(
-			encodeRelationRow(
-				'parent',
-				context.grandparent.id,
-				context.parent.id,
-				options
-			)
-		);
-	}
-
-	const siblingDepth = context.parent ? primaryDepth : null;
-	for (const sibling of context.siblings.slice(0, 5)) {
-		lines.push(
-			encodeNodeContextRow(sibling, siblingDepth, null, ['sibling'], options)
-		);
-		lines.push(
-			encodeRelationRow('sibling', context.primary.id, sibling.id, options)
-		);
-	}
-
-	if (context.siblings.length > 5) {
-		lines.push(
-			encodeHybridRow('METRIC', [
-				context.graphTopology.depth,
-				context.graphTopology.degree,
-				context.siblings.length - 5,
-			])
-		);
-	}
-
-	const topicValues = compactPromptList(context.siblingPatterns.topics, 10);
-	if (topicValues.length > 0) {
-		lines.push(encodeHybridRow('TOPICS', topicValues));
-	}
-
-	return lines.join('\n');
-}
-
-/**
  * Check if a node should trigger suggestions based on context
  *
  * This applies the trigger conditions defined in the suggestion config
@@ -764,79 +668,6 @@ export function buildMapSummaryContext(
 				)
 			);
 		}
-	}
-
-	return lines.join('\n');
-}
-
-/**
- * Build full context (~8-16k tokens)
- * Includes all nodes, priority-ranked with truncation
- */
-export function buildFullMapContext(
-	nodes: AppNode[],
-	edges: AppEdge[],
-	mapMeta: { title: string; description: string | null },
-	tokenBudget: number = 16000,
-	options?: ContextRowOptions
-): string {
-	if (nodes.length === 0) {
-		return buildMapOverviewContext(nodes, edges, mapMeta, options);
-	}
-
-	const lines: string[] = [];
-
-	lines.push(buildMapOverviewContext(nodes, edges, mapMeta, options));
-	const allContents = nodes
-		.map((n) => n.data.content)
-		.filter((c): c is string => !!c);
-	const topics = extractTopics(allContents, 10);
-	if (topics.length > 0) {
-		lines.push(encodeHybridRow('TOPICS', topics));
-	}
-
-	// Score and sort all nodes
-	const scoredNodes = nodes
-		.map((n) => scoreNode(n, edges, nodes))
-		.sort((a, b) => b.score - a.score);
-
-	// Track token budget
-	let currentTokens = estimateTokens(lines.join('\n'));
-	const nodeLines: string[] = [];
-	let includedCount = 0;
-
-	for (const { node, depth, degree } of scoredNodes) {
-		const nodeLine = encodeNodeContextRow(
-			node,
-			depth,
-			degree,
-			getMapNodeFlags(depth, degree),
-			options
-		);
-
-		// Check if adding this exceeds budget
-		const lineTokens = estimateTokens(nodeLine);
-		if (currentTokens + lineTokens > tokenBudget - 100) {
-			// Reserve 100 tokens for truncation message
-			break;
-		}
-
-		nodeLines.push(nodeLine);
-		currentTokens += lineTokens;
-		includedCount++;
-	}
-
-	lines.push(...nodeLines);
-
-	// Add truncation notice if needed
-	if (includedCount < nodes.length) {
-		lines.push(
-			encodeHybridRow('METRIC', [
-				includedCount,
-				nodes.length - includedCount,
-				tokenBudget,
-			])
-		);
 	}
 
 	return lines.join('\n');
@@ -1025,19 +856,6 @@ function encodeNodeContextRow(
 		depth,
 		degree,
 		flags,
-	]);
-}
-
-function encodeRelationRow(
-	kind: string,
-	fromId: string,
-	toId: string,
-	options?: ContextRowOptions
-): string {
-	return encodeHybridRow('REL', [
-		kind,
-		aliasNodeId(fromId, options?.aliasMap) ?? fromId,
-		aliasNodeId(toId, options?.aliasMap) ?? toId,
 	]);
 }
 

@@ -20,6 +20,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **ai/chat**: The AI chat panel is gone (panel, toolbar button, `chat-slice`, `POST /api/ai/chat`, the `NEXT_PUBLIC_ENABLE_AI_CHAT` flag). It was behind a flag and not shipping
   - Why: the feature is dropped. `NEXT_PUBLIC_ENABLE_AI_CHAT` can be deleted from Vercel and `.env` files
+- **side panels**: Deleted the old `SidePanel` shell and its test (no panel uses it any more)
+- **ai/context**: Removed `buildContextPrompt` and `buildFullMapContext` (only the removed chat used them) and their tests
 - **ai/modals**: Removed the unused "generate from nodes" and "AI content prompt" modals and the unused `POST /api/generate-answer` route. Nothing opened them or called the route
 
 ### Docs
