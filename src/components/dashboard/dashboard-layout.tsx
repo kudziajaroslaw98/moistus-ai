@@ -10,7 +10,6 @@ import { useTouchFirst } from '@/hooks/use-touch-first';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import {
-	Archive,
 	ChefHat,
 	Home,
 	PanelLeft,
@@ -19,7 +18,6 @@ import {
 	ShieldCheck,
 	SlidersHorizontal,
 	Star,
-	Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -84,21 +82,15 @@ const mainNavItems: NavItem[] = [
 		icon: Puzzle,
 		href: '/dashboard/plugins',
 	},
-	{
-		id: 'teams',
-		label: 'Teams',
-		icon: Users,
-		href: '/dashboard/teams',
-		comingSoon: true,
-	},
-	{
-		id: 'archive',
-		label: 'Archive',
-		icon: Archive,
-		href: '/dashboard/archive',
-		comingSoon: true,
-	},
 ];
+
+/** Only shown to Shiko's plugin reviewers (the summary route 404s for everyone else). */
+const REVIEW_NAV_ITEM: NavItem = {
+	id: 'plugin-review',
+	label: 'Plugin review',
+	icon: ShieldCheck,
+	href: '/dashboard/admin/plugins',
+};
 
 const RECENT_MAP_COUNT = 3;
 
@@ -283,10 +275,7 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 		? [
 				...mainNavItems,
 				{
-					id: 'plugin-review',
-					label: 'Plugin review',
-					icon: ShieldCheck,
-					href: '/admin/plugins',
+					...REVIEW_NAV_ITEM,
 					badge: review.submissions + review.reports || undefined,
 				},
 			]
@@ -364,10 +353,13 @@ function DashboardShell({ children, title }: DashboardLayoutProps) {
 		if (scroller && !window.location.hash) scroller.scrollTop = 0;
 	}, [pathname]);
 
+	// The review entry is looked up even before its summary has loaded, so a direct
+	// visit to the page doesn't show "Home" in the top bar meanwhile.
 	const pageTitle =
 		title ??
-		navItems.find((item) => !item.comingSoon && isItemActive(item.href))
-			?.label ??
+		[...mainNavItems, REVIEW_NAV_ITEM].find(
+			(item) => !item.comingSoon && isItemActive(item.href)
+		)?.label ??
 		'Home';
 	const searchConfig = searchHidden
 		? undefined

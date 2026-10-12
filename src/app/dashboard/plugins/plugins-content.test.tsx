@@ -69,7 +69,7 @@ describe('PluginsContent', () => {
 		expect(await within(card).findByText('v0.2.0 · On in 1 map')).toBeInTheDocument();
 		expect(within(card).getByRole('button', { name: 'Choose maps' })).toBeInTheDocument();
 		expect(screen.queryByTestId('plugin-update')).not.toBeInTheDocument();
-		expect(screen.getByRole('link', { name: /Build a plugin/ })).toHaveAttribute(
+		expect(screen.getByRole('link', { name: /Write a plugin/ })).toHaveAttribute(
 			'href',
 			'/dashboard/plugins/build'
 		);

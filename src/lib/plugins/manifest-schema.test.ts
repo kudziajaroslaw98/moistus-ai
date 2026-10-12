@@ -196,3 +196,104 @@ describe('plugin powers', () => {
 		);
 	});
 });
+
+describe('node links', () => {
+	/** Metric with a list of rows that hold node ids, the way Threads keeps its stops. */
+	function withStops(extra: Record<string, unknown> = {}) {
+		const manifest = withPowers(['node:own', 'nodes:refs']);
+		manifest.nodeKinds[0].fields.stops = {
+			type: 'list',
+			title: 'Stops',
+			setBy: 'action',
+			maxItems: 100,
+			columns: [
+				{ name: 'thread', type: 'string', title: 'Thread' },
+				{ name: 'node', type: 'string', title: 'Node', ref: 'node' },
+			],
+			...extra,
+		};
+		return manifest;
+	}
+
+	it('accepts a list of node ids set by actions, with the nodes:refs power', () => {
+		expect(problem(withStops())).toBeNull();
+	});
+
+	it('needs the nodes:refs power for fields that hold node ids', () => {
+		const manifest = withStops();
+		manifest.permissions = ['node:own'];
+		expect(problem(manifest)).toBe(
+			'permissions: Fields that hold node ids need the "nodes:refs" power'
+		);
+	});
+
+	it('only lets actions set node ids, so they are never typed', () => {
+		const manifest = withStops();
+		delete (manifest.nodeKinds[0].fields.stops as Record<string, unknown>).setBy;
+		expect(problem(manifest)).toContain('is set by an action');
+
+		const field = withPowers(['node:own', 'nodes:refs']);
+		field.nodeKinds[0].fields.linked = { type: 'string', title: 'Linked', ref: 'node' };
+		expect(problem(field)).toContain('add setBy: "action"');
+	});
+
+	it('keeps fields set by an action optional and out of the label', () => {
+		const manifest = withStops({ required: true });
+		expect(problem(manifest)).toContain('A field set by action can’t be required');
+	});
+
+	it('never lets one plugin read linked nodes and reach a site', () => {
+		expect(
+			problem(
+				withPowers(['node:own', 'nodes:refs', 'network:api.github.com'], {
+					'api.github.com': github,
+				})
+			)
+		).toBe(
+			'permissions: A plugin can reach sites or read the nodes it links to, not both'
+		);
+	});
+
+	it('allows up to 100 rows in a list and no more', () => {
+		expect(problem(withStops({ maxItems: 100 }))).toBeNull();
+		expect(problem(withStops({ maxItems: 101 }))).not.toBeNull();
+	});
+});
+
+describe('checklists', () => {
+	function withChecklist(columns: unknown[], extra: Record<string, unknown> = {}) {
+		const manifest = clone();
+		manifest.nodeKinds[0].fields.threads = {
+			type: 'list',
+			title: 'Threads',
+			syntax: 'checklist',
+			columns,
+			...extra,
+		};
+		return manifest;
+	}
+	const text = { name: 'text', type: 'string', title: 'Thread' };
+	const status = { name: 'status', type: 'enum', title: 'Status', options: ['open', 'resolved', 'dropped'] };
+
+	it('is a list of text and a status of up to three options', () => {
+		expect(problem(withChecklist([text, status]))).toBeNull();
+		expect(problem(withChecklist([text, { ...status, options: ['open', 'done'] }]))).toBeNull();
+	});
+
+	it('refuses other shapes', () => {
+		expect(problem(withChecklist([text]))).toContain('A checklist has two columns');
+		expect(problem(withChecklist([status, text]))).toContain('A checklist has two columns');
+		expect(
+			problem(withChecklist([text, { ...status, options: ['a', 'b', 'c', 'd'] }]))
+		).toContain('A checklist has two columns');
+	});
+
+	it('is typed in the editor, and only one list per kind can be one', () => {
+		expect(problem(withChecklist([text, status], { setBy: 'action' }))).toContain(
+			'A checklist is typed in the editor'
+		);
+		const two = withChecklist([text, status]);
+		two.nodeKinds[0].fields.more = { type: 'list', title: 'More', syntax: 'checklist', columns: [text, status] };
+		expect(problem(two)).toContain('Only one list per kind can be a checklist');
+	});
+});

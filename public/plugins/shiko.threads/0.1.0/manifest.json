@@ -1,0 +1,71 @@
+{
+	"id": "shiko.threads",
+	"name": "Threads",
+	"version": "0.1.0",
+	"apiVersion": 1,
+	"author": "Shiko",
+	"description": "Open questions, and the nodes where each one comes up.",
+	"icon": "route",
+	"permissions": ["node:own", "nodes:refs"],
+	"main": "plugin.js",
+	"nodeKinds": [
+		{
+			"kind": "threads",
+			"label": "Threads",
+			"description": "Open questions and the nodes where they come up",
+			"icon": "route",
+			"labelField": "title",
+			"fields": {
+				"title": {
+					"type": "string",
+					"title": "Title",
+					"description": "What the list is, like Open threads",
+					"maxLength": 80
+				},
+				"threads": {
+					"type": "list",
+					"title": "Threads",
+					"description": "One line each: [ ] open, [x] resolved, [-] dropped",
+					"syntax": "checklist",
+					"maxItems": 12,
+					"columns": [
+						{ "name": "text", "type": "string", "title": "Thread", "required": true, "maxLength": 120 },
+						{
+							"name": "status",
+							"type": "enum",
+							"title": "Status",
+							"options": ["open", "resolved", "dropped"],
+							"default": "open"
+						}
+					]
+				},
+				"stops": {
+					"type": "list",
+					"title": "Stops",
+					"description": "The nodes each thread comes up in, added on the canvas",
+					"setBy": "action",
+					"maxItems": 100,
+					"columns": [
+						{ "name": "thread", "type": "string", "title": "Thread", "maxLength": 16 },
+						{ "name": "node", "type": "string", "title": "Node", "ref": "node" }
+					]
+				},
+				"current": {
+					"type": "string",
+					"title": "Open thread",
+					"description": "The thread whose stops are showing",
+					"setBy": "action",
+					"maxLength": 16
+				},
+				"showClosed": {
+					"type": "boolean",
+					"title": "Show resolved and dropped",
+					"setBy": "action"
+				}
+			},
+			"examples": [
+				"Open threads\n[ ] Who sent the letter?\n[ ] Where is the second chart?\n[x] Who is the Cartographer working for?\n[-] What happens to the second chart?"
+			]
+		}
+	]
+}

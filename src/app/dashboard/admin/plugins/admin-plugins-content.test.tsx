@@ -1,13 +1,3 @@
-jest.mock('@/components/dashboard/dashboard-layout', () => ({
-	DashboardLayout: ({ children }: { children: React.ReactNode }) => (
-		<div>{children}</div>
-	),
-}));
-jest.mock('@/components/ui/sidebar', () => ({
-	SidebarProvider: ({ children }: { children: React.ReactNode }) => (
-		<div>{children}</div>
-	),
-}));
 jest.mock('@/components/plugins/review/submission-review', () => ({
 	SubmissionReview: ({
 		submission,

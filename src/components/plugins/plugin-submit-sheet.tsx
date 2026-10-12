@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
 	catalogManifestUrl,
+	draftIdOfPluginUrl,
 	findCatalogPlugin,
 	latestCatalogVersion,
 } from '@/lib/plugins/catalog';
@@ -177,6 +178,8 @@ export function PluginSubmitSheet({
 	} catch {
 		// Keep the raw text.
 	}
+	// A playground draft is served by this site, so name it rather than the site.
+	if (draftIdOfPluginUrl(manifestUrl)) host = 'your draft';
 
 	const submit = async () => {
 		setSending(true);
@@ -299,7 +302,7 @@ export function PluginSubmitSheet({
 					</label>
 
 					<p className='text-xs leading-[17px] text-text-secondary'>
-						{`We copy manifest.json and ${manifest?.main ?? 'plugin.js'} from ${host} now. Later changes need a new version, which is reviewed again. Your name is shown as the author.`}
+						{`We copy manifest.json and ${manifest?.main ?? 'plugin.js'} from ${host} now. Later changes need a new version, which is reviewed again. Your name is shown as the author, and anyone signed in to Shiko can read the published code.`}
 					</p>
 				</>
 			)}

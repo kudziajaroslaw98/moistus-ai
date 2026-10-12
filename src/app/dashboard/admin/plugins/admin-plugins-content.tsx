@@ -6,7 +6,6 @@ import {
 	CatalogGrid,
 	type CatalogChip,
 } from '@/components/dashboard/catalog-card';
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
 import {
 	CARD_BUTTON_CLASS,
 	DashboardPage,
@@ -21,7 +20,6 @@ import { formatTimeAgo } from '@/components/plugins/plugin-update-details';
 import { ReportsReview } from '@/components/plugins/review/reports-review';
 import { SubmissionReview } from '@/components/plugins/review/submission-review';
 import { Button } from '@/components/ui/button';
-import { SidebarProvider } from '@/components/ui/sidebar';
 import { Tabs } from '@/components/ui/tabs';
 import { permissionChanges } from '@/lib/plugins/catalog';
 import type { PluginPermission } from '@/lib/plugins/manifest-schema';
@@ -213,7 +211,11 @@ const TABS = [
 
 type ReviewTab = (typeof TABS)[number]['id'];
 
-/** /admin/plugins: Shiko's reviewers approve submissions and act on reports. */
+/**
+ * /dashboard/admin/plugins: Shiko's reviewers approve submissions and act on reports.
+ * It renders inside the dashboard layout like every other dashboard page, so moving
+ * to or from it keeps the sidebar and top bar mounted.
+ */
 export function AdminPluginsContent() {
 	const { data: summary } = useSWR(SUMMARY_KEY, (url: string) =>
 		fetchData<{ submissions: number; reports: number }>(url)
@@ -221,39 +223,33 @@ export function AdminPluginsContent() {
 	const [tab, setTab] = useState<ReviewTab>('submissions');
 
 	return (
-		<SidebarProvider>
-			<DashboardLayout title='Plugin review'>
-				<DashboardPage>
-					<PageHeading
-						intro='Approve new plugins and versions, and act on what people report.'
-						title='Plugin review'
-					/>
+		<DashboardPage>
+			<PageHeading
+				intro='Approve new plugins and versions, and act on what people report.'
+				title='Plugin review'
+			/>
 
-					<Tabs
-						className='mt-9 gap-0'
-						onValueChange={(value) => setTab(value as ReviewTab)}
-						value={tab}
-					>
-						<UnderlineTabsBar>
-							<UnderlineTabsList aria-label='Plugin review'>
-								{TABS.map((item) => (
-									<UnderlineTab
-										count={summary?.[item.id]}
-										key={item.id}
-										value={item.id}
-									>
-										{item.label}
-									</UnderlineTab>
-								))}
-							</UnderlineTabsList>
-						</UnderlineTabsBar>
-					</Tabs>
+			<Tabs
+				className='mt-9 gap-0'
+				onValueChange={(value) => setTab(value as ReviewTab)}
+				value={tab}
+			>
+				<UnderlineTabsBar>
+					<UnderlineTabsList aria-label='Plugin review'>
+						{TABS.map((item) => (
+							<UnderlineTab
+								count={summary?.[item.id]}
+								key={item.id}
+								value={item.id}
+							>
+								{item.label}
+							</UnderlineTab>
+						))}
+					</UnderlineTabsList>
+				</UnderlineTabsBar>
+			</Tabs>
 
-					<div>
-						{tab === 'submissions' ? <SubmissionsTab /> : <ReportsTab />}
-					</div>
-				</DashboardPage>
-			</DashboardLayout>
-		</SidebarProvider>
+			<div>{tab === 'submissions' ? <SubmissionsTab /> : <ReportsTab />}</div>
+		</DashboardPage>
 	);
 }

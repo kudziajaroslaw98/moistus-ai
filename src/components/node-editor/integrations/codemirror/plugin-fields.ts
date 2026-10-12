@@ -12,6 +12,8 @@ export interface PluginFieldSpecLite {
 	title: string;
 	type: 'string' | 'number' | 'integer' | 'boolean' | 'enum' | 'date' | 'list';
 	options?: string[];
+	/** For a checklist list: its status options, written `[ ]`, `[x]`, `[-]` in that order. */
+	checklist?: string[];
 }
 
 export const setPluginFieldsEffect = StateEffect.define<
@@ -47,5 +49,8 @@ export function toPluginFieldSpecs(
 			title: spec.title,
 			type: spec.type,
 			...(spec.type === 'enum' ? { options: spec.options } : {}),
+			...(spec.type === 'list' && spec.syntax === 'checklist' && spec.columns[1]?.type === 'enum'
+				? { checklist: spec.columns[1].options }
+				: {}),
 		}));
 }

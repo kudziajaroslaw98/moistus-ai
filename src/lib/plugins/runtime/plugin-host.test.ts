@@ -57,6 +57,46 @@ const data = {
 	step: 100,
 };
 
+describe('PluginHost.dispose', () => {
+	it('stops the worker, fails pending calls and forgets loaded plugins', async () => {
+		const workers: Array<ReturnType<typeof inProcessWorker>> = [];
+		const host = new PluginHost(() => {
+			const worker = inProcessWorker();
+			workers.push(worker);
+			return worker;
+		});
+		await host.load('shiko.metric', metricCode);
+		expect(workers).toHaveLength(1);
+
+		host.dispose();
+		expect(workers[0].terminate).toHaveBeenCalledTimes(1);
+		expect(host.canRefresh('shiko.metric', metric.kind)).toBe(false);
+	});
+
+	it('can be used again afterwards: a fresh worker starts', async () => {
+		const workers: Array<ReturnType<typeof inProcessWorker>> = [];
+		const host = new PluginHost(() => {
+			const worker = inProcessWorker();
+			workers.push(worker);
+			return worker;
+		});
+		await host.load('shiko.metric', metricCode);
+		host.dispose();
+
+		await expect(host.load('shiko.metric', metricCode)).resolves.toEqual([
+			'metric',
+		]);
+		expect(workers).toHaveLength(2);
+	});
+
+	it('does nothing when the worker never started', () => {
+		const createWorker = jest.fn(inProcessWorker);
+		const host = new PluginHost(createWorker);
+		expect(() => host.dispose()).not.toThrow();
+		expect(createWorker).not.toHaveBeenCalled();
+	});
+});
+
 describe('PluginHost', () => {
 	it('loads a plugin, returns a validated view and summary, and runs actions', async () => {
 		const host = new PluginHost(inProcessWorker);

@@ -5,6 +5,88 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-12]
+
+### Fixed
+
+- **plugins/playground**: "Load the newer version" after a revision conflict now shows the newer manifest. The locked `"id"` line is a change filter, and the editor replaced the whole document, so the filter dropped the entire change and the editor kept the old text; the next keystroke then overwrote the newer manifest on autosave. Loading from outside now skips the filter (typing is still filtered)
+- **plugins/playground**: A save the server turns down (400, 403, 404 and other 4xx except 408/429) no longer retries every 5 seconds forever behind "Couldn't save. Trying again…". It stops, shows the server's reason in the status line, and tries once more after the next edit; network errors, 5xx and 429 still retry
+- **plugins/playground**: The sample data box for a list field followed only its first value, so a row added by a button in the preview, or a loaded newer draft, left it showing old JSON that the next edit would write back over the change. It now follows outside changes and leaves typing alone
+- **plugins/playground**: A button that opens the node editor (`edit: true`) no longer runs its action in the preview (an "unknown action" error for plugins with no such action); the preview says it opens the node editor on a map. The same button does nothing in any host without a node editor
+- **plugins/threads**: A node you just picked for a stop no longer shows "This node was deleted" for about 300 ms. `usePluginRefs` debounced changes to which nodes are linked as well as to their content, so a plugin saw the new link without its node. Link changes now apply at once, content changes still wait. It also reads only the linked nodes, so dragging other nodes no longer rebuilds and compares their descriptions for every Threads node
+- **plugins/my-plugins**: With Developer mode off, someone whose plugins are all drafts saw "You haven't written a plugin yet" with no hint that drafts are hidden. The "Drafts are hidden while Developer mode is off" note now shows on the empty page too
+- **plugins/threads**: Reaching a stop limit is no longer silent. The pick bar's hint and the open thread now say "This thread has 12 of 12 stops" or "This node holds 100 stops, the most it can", where a click on a new node used to do nothing and the bar kept saying "N stops so far". Stops left behind when a thread's line is deleted in the node editor no longer count toward the 100, and the next pick or removal drops them
+  - Why: edited `shiko.threads` 0.1.0 in place (new fingerprint in `catalog.ts`), because it isn't on `main` or in production yet; once it ships, a change like this needs a new version folder
+- **plugins/my-plugins**: "Edit as new draft" says when it opens a draft you already had, based on another version ("You already have a draft of this plugin, based on 0.3.0. Opened that one."). It used to open it with no word. There is still one draft per plugin
+
+### Refactored
+
+- **plugins/drafts**: One `hasAccount` predicate for the palette commands that need a signed-in account (it was written twice, as `canSaveRecipes` too); `parseObject` and a `utf8ByteLength` helper shared by the draft routes instead of local copies; "Edit as new draft" reads the plugin, its versions and the chosen version in one `Promise.all` instead of three round trips in a row
+
+### Docs
+
+- **database**: `plugin_drafts` (table, RLS, constraints, `guard_plugin_drafts` trigger) applied to production through the Supabase MCP as `create_plugin_drafts` (20261012081504), with the migration's own `begin`/`commit` left out because the MCP wraps it. Its catalog was compared with the local database and matches; prod has no drafts yet
+
+---
+
+## [2026-10-11]
+
+### Added
+
+- **plugins/playground**: Write a plugin inside Shiko instead of in VS Code. A two-pane page (`/dashboard/plugins/playground/<draft>`) with `plugin.js` and `manifest.json` editors (syntax colors, error markers, `ui.` / `ctx.` completion), the node drawn live with working buttons (Normal / Wide, "Can edit" off to see it as a viewer), typed sample data built from the manifest's fields, the submit checks updating as you type, and a Network panel for plugins that reach a site (a typed answer by default, so nothing leaves your browser; a switch sends the real request). It runs in its own plugin worker, so a draft can't disturb plugins on a map
+  - Why: building a plugin meant a local server, an editor and the Developer mode loader before seeing anything
+- **plugins/drafts**: Drafts are saved to your account (autosave; a second tab that saved first offers "Load the newer version" or "Keep mine"), at most 20, only you see them. Shiko sets each plugin's id when the draft is created and locks that line in `manifest.json`. New `plugin_drafts` table (migration applied to the local database; not applied to prod yet) and `/api/plugins/drafts` routes
+- **plugins/entry**: My plugins has a Drafts group, a "Write a plugin" button and a "Write a plugin" tile; the start dialog offers Blank, Counter, Branch progress and GitHub issue templates or an import of your two files; "Edit as new draft" on any version of a plugin you published; "Write a plugin" in the map's Plugins panel and in Ctrl/Cmd+K; a callout at the top of the Build guide
+- **plugins/code-view**: "View code" in a plugin card's ⋯ menu (Library and the map's Plugins panel) and in the "Turn on …?" box opens a read-only side sheet with the plugin's `plugin.js` and `manifest.json`, a picker for its published versions, a Copy button, and a check that the code still matches the fingerprint it was reviewed with ("Matches the reviewed fingerprint", or a plain warning if it doesn't or the browser can't check). It reads the same files the map loader runs, which signed-in people could already fetch; this just makes them easy to see
+  - Why: "reviewed code, fingerprint checked on every load" and "reaches only the sites it lists" are now something people can verify themselves
+- **plugins/write-tab**: "Write a plugin" is now the second tab of the Plugins page (Library, Write a plugin, My plugins). Its top is a "Start a plugin" section with the four templates, the import link and the Developer mode switch right there (an amber box while it's off, a green status line with the switch once it's on); the localhost steps follow as "Use your own editor", then the guide. Ctrl/Cmd+K "Write a plugin", the map Plugins panel, the Library's last tile and the empty My plugins page all lead to it
+  - Why: the button lived on My plugins (a list of submissions), and with Developer mode off nothing on that page said how to start
+- **plugins/my-plugins**: My plugins is one list with one row per plugin: submitted plugins and their drafts together (a draft started with "Edit as new draft" shares the plugin's id, so it's one row with Published 0.1.0 and Draft chips), plus drafts that were never submitted. Plugins that need a look come first (changes requested, turned off, an open report, a draft failing its checks), then the most recently touched. Filter chips (All, Needs attention, Drafts, In review, Published, with counts), the top-bar search, and the grid/list switch (list by default). One "Open" button per row opens a side sheet with its Drafts (Open, Delete) above its Versions
+  - Why: Drafts and Submitted were two stacked card grids that got long fast, and the same plugin showed up in both
+
+- **plugins/threads**: Threads, a first-party plugin for open questions and the nodes where each one comes up. Type threads as `[ ] open`, `[x] resolved` and `[-] dropped` lines; "Add a stop" in a thread's ⋯ menu lets you click nodes on the map, numbered 1, 2, 3 while you pick; stops show the node's text, and a deleted node shows as "This node was deleted" with a "needs a look" count. Open threads are blue, resolved green, dropped struck through, warnings amber. Turning it on asks the owner first (it reads the nodes it links to; nothing leaves the browser)
+  - Why: stories, research and product maps all have questions raised in one place and settled in another
+- **plugins/powers**: New power `nodes:refs`: render and actions get `ctx.refs` for only the nodes the plugin's own data links to (fields or list columns with `ref: "node"`, set by actions). It can't be combined with `network:<host>`, like `branch:read`. `/privacy` 5.3 says so
+- **plugins/views**: Plugin views got status colors (text tones, strike-through, tinted panels, a green or blue progress bar), a `ui.menu` ⋯ menu, buttons that ask for a node to be picked on the canvas (`pick`) or open the node editor (`edit`), and more icons; list fields can be typed as a checklist (`syntax: "checklist"`) and take up to 100 rows
+- **plugins/try-and-submit**: "Try on a map" opens one of your maps with the draft loaded as a developer plugin (the Plugins panel lists it as a draft, with a link back to the editor); "Submit for review" saves the draft and runs the usual checks and review request on it
+
+### Changed
+
+- **plugins/actions**: Plugin actions now run from the store (`runNodeAction`), one after the other per node, so a pick bar outside the node can run them and quick clicks don't overwrite each other. `setBy` accepts `"action"` as well as `"refresh"` (`keepRefreshFields` is now `keepSetByFields`)
+- **copy**: Nodes whose data links to other nodes (Threads) can't be copied: Cmd/Ctrl+C leaves them behind with a toast, and map templates skip them. Pasted nodes get new ids, so a copy would have pointed at the originals
+- **plugins/developer-mode**: Developer mode now also covers writing plugins. While it's off, the playground, the start dialog, the panel and the versions sheet say so and hold the switch right there instead of sending you to settings. The switch's description says it
+- **plugins/entry**: The start dialog is gone: its templates live on the Write a plugin tab (`PluginStartPanel`), and `?write=1` no longer opens anything. Drafts need Developer mode, so with it off My plugins shows only submitted plugins and a line saying drafts are hidden
+- **plugins/submit**: The submit sheet now tells authors that anyone signed in can read the published code
+- **ui/side-sheet**: `SideSheet` takes `raised` to open above popovers and menus (the code view opens from inside the Choose maps popover)
+- **dashboard/catalog-card**: `CatalogCard` takes `wrapChips`: in list view the chips stay visible and wrap under the title on a phone (the description hides there)
+- **plugins/api**: The Developer mode check for the developer network worker moved to `isDeveloperModeOn` (same behavior)
+
+### Fixed
+
+- **offline**: `queueMutation` no longer throws "crypto.randomUUID is not a function" (seen when saving preferences). That function only exists in secure contexts, so it was missing on plain-http LAN dev (and old browsers); the operation id now comes from `generateUuid`, which falls back to `getRandomValues`
+  - Why: every queued mutation (preferences, comments, nodes) goes through this call
+- **ids**: Same fix for the other browser call sites that used `crypto.randomUUID()` unguarded: default node ids in `node-factory`, new task ids in the task node, and the cursor session id (`use-realtime-cursor`)
+
+- **plugins/start**: The Developer mode switch on the Write a plugin tab did nothing when clicked: `Switch` is a hidden checkbox with a drawn track beside it, and the track only works inside a `<label>` for that id. It also got a stable id (without one `Switch` makes a random id, which broke hydration)
+
+- **dashboard/shell**: Leaving Plugin review for another dashboard page no longer reloads the whole layout (entry skeleton, sidebar, top bar). The page sat outside `/dashboard` with its own shell, so every way out mounted the dashboard layout from scratch. It now lives at `/dashboard/admin/plugins` inside the shell (sidebar entry, title and loading screen included); `/admin/plugins` redirects there
+  - Why: moving between dashboard pages keeps the shell mounted, and this was the one dashboard-looking page that didn't. Admin checks are unchanged (page `isPluginAdmin` → 404, `requirePluginAdmin` on the API routes)
+
+- **offline/service-worker**: A plugin draft's files (`/api/plugins/drafts/<id>/files/*`) are no longer served from the service worker's cache. Serwist answers any same-origin `.js` from Cache Storage first and ignores `no-store`, so "Try on a map" and "Submit for review" could read the code from the save before. The "leave to the browser" rules moved into `isLeftToBrowser` (`src/lib/offline/sw-browser-requests.ts`, tested) so they can be tested; the three existing rules are unchanged
+  - Why: production only (in development the caching is off), and found by reading Serwist's `defaultCache`, not seen in a browser
+
+### Removed
+
+- **dashboard/sidebar**: The "Teams" and "Archive" entries marked Coming Soon. Neither had a page (`/dashboard/teams` and `/dashboard/archive` never existed) and neither is planned for now; the entry loading skeleton draws four sidebar rows instead of six to match
+
+### Docs
+
+- CLAUDE.md: "Plugin playground" gotcha; the migration note now says migrations stay local-only and are applied through the Supabase MCP (the old "must be force-added" was wrong)
+- CODEBASE_MAP.md: drafts routes, playground files, dashboard frame note, Plugins tabs and My plugins rows
+- CLAUDE.md: Plugin playground entry paths now describe the Write a plugin tab and the one-list My plugins
+
+---
+
 ## [2026-10-10]
 
 ### Changed

@@ -11,6 +11,7 @@ import {
 	NodeMetadataMap,
 	createTypedNodeData,
 } from '@/components/nodes/core/types';
+import generateUuid from '@/helpers/generate-uuid';
 import { NodeRegistry, type AvailableNodeTypes } from './node-registry';
 
 // ═══════════════════════════════════════════════
@@ -47,7 +48,7 @@ export class NodeFactory {
 		options: CreateNodeOptions<T>
 	): TypedNodeData<T> {
 		const {
-			id = crypto.randomUUID(),
+			id = generateUuid(),
 			mapId,
 			content = null,
 			position,
@@ -141,7 +142,7 @@ export class NodeFactory {
 		}
 	): TypedNode<T> {
 		const {
-			newId = crypto.randomUUID(),
+			newId = generateUuid(),
 			position,
 			clearMetadata = false,
 		} = options || {};

@@ -22,6 +22,7 @@ export function findActivePluginKind(
 						networkHostsOf(plugin.manifest.permissions).length > 0 &&
 						(plugin.refreshKinds ?? []).includes(kind.kind),
 					readsBranch: plugin.manifest.permissions.includes('branch:read'),
+					readsRefs: plugin.manifest.permissions.includes('nodes:refs'),
 				}
 			: null;
 	}
