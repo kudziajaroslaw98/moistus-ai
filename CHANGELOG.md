@@ -5,6 +5,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-12]
+
+### Fixed
+
+- **plugins/pan-mode**: With the Pan tool on, dragging from a plugin node's buttons, checkbox rows or Refresh button did nothing; only native Shiko nodes panned the canvas. Plugin content now uses `nodrag` instead of `nodrag nopan`, and disabled plugin controls let the drag through
+  - Why: React Flow ignores a pan that starts inside a `.nopan` element, and plugin controls cover most of a node
+
 ## [2026-10-10]
 
 ### Changed
