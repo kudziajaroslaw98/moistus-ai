@@ -259,8 +259,8 @@ describe('POST /api/plugins/drafts', () => {
 			serviceClient({
 				plugins: [{ data: { author_id: 'someone-else' }, error: null }],
 				plugin_versions: [
-					{ data: [{ version: '0.1.0' }], error: null },
 					{ data: { manifest: {}, code: 'x' }, error: null },
+					{ data: [{ version: '0.1.0' }], error: null },
 				],
 			});
 			const res = await createDraft(request('POST', { from }));
@@ -299,12 +299,15 @@ describe('POST /api/plugins/drafts', () => {
 			});
 			serviceClient({
 				plugins: [{ data: { author_id: USER.id }, error: null }],
+				// The route asks for the plugin, its versions and the chosen version together.
+				// This fake answers in the order queries are read: `maybeSingle()` when it is
+				// called, a list when it is awaited, so the chosen version comes first.
 				plugin_versions: [
-					{ data: [{ version: '0.1.0' }, { version: '0.1.4' }], error: null },
 					{
 						data: { manifest: publishedManifest, code: 'definePlugin({});' },
 						error: null,
 					},
+					{ data: [{ version: '0.1.0' }, { version: '0.1.4' }], error: null },
 				],
 			});
 			const res = await createDraft(request('POST', { from }));

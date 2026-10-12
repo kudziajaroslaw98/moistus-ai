@@ -23,6 +23,7 @@ import {
 	draftAccessError,
 	toDraft,
 	toDraftSummary,
+	utf8ByteLength,
 	type PluginDraftRow,
 } from '@/lib/plugins/server/plugin-drafts';
 import {
@@ -127,10 +128,6 @@ async function insertDraft(
 	return respondSuccess(toDraft(data as unknown as PluginDraftRow), 201);
 }
 
-function bytes(text: string): number {
-	return Buffer.byteLength(text, 'utf8');
-}
-
 async function createFromText(
 	supabase: SupabaseClient,
 	user: User,
@@ -139,10 +136,10 @@ async function createFromText(
 ): Promise<Response> {
 	const summary = draftManifestSummary(manifestText);
 	if (!summary) return respondError('manifest.json isn’t valid JSON.', 400);
-	if (bytes(manifestText) > MAX_DRAFT_MANIFEST_BYTES) {
+	if (utf8ByteLength(manifestText) > MAX_DRAFT_MANIFEST_BYTES) {
 		return respondError('manifest.json is larger than 64 KB.', 400);
 	}
-	if (bytes(code) > MAX_PLUGIN_CODE_BYTES) {
+	if (utf8ByteLength(code) > MAX_PLUGIN_CODE_BYTES) {
 		return respondError('plugin.js is larger than 256 KB.', 400);
 	}
 
@@ -178,21 +175,24 @@ async function createFromPublished(
 	// Published code is read with the service role (the library tables have no
 	// policies); only the plugin's author can start a draft from it.
 	const admin = createServiceRoleClient();
-	const { data: plugin } = await admin
-		.from('plugins')
-		.select('author_id')
-		.eq('id', from.pluginId)
-		.maybeSingle();
-	const { data: versions } = await admin
-		.from('plugin_versions')
-		.select('version')
-		.eq('plugin_id', from.pluginId);
-	const { data: chosen } = await admin
-		.from('plugin_versions')
-		.select('manifest, code')
-		.eq('plugin_id', from.pluginId)
-		.eq('version', from.version)
-		.maybeSingle();
+	const [{ data: plugin }, { data: versions }, { data: chosen }] =
+		await Promise.all([
+			admin
+				.from('plugins')
+				.select('author_id')
+				.eq('id', from.pluginId)
+				.maybeSingle(),
+			admin
+				.from('plugin_versions')
+				.select('version')
+				.eq('plugin_id', from.pluginId),
+			admin
+				.from('plugin_versions')
+				.select('manifest, code')
+				.eq('plugin_id', from.pluginId)
+				.eq('version', from.version)
+				.maybeSingle(),
+		]);
 	if (!plugin || plugin.author_id !== user.id || !chosen) {
 		return respondError('Plugin not found.', 404);
 	}

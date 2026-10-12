@@ -1,5 +1,6 @@
 import { respondError } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import { parseObject } from '@/lib/plugins/draft-manifest';
 import { draftAccessError } from '@/lib/plugins/server/plugin-drafts';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -7,17 +8,6 @@ import { z } from 'zod';
 type FileParams = { id: string; file: string[] };
 
 const draftIdSchema = z.string().uuid();
-
-function asObject(text: string): Record<string, unknown> | null {
-	try {
-		const value: unknown = JSON.parse(text);
-		return value && typeof value === 'object' && !Array.isArray(value)
-			? (value as Record<string, unknown>)
-			: null;
-	} catch {
-		return null;
-	}
-}
 
 /**
  * A draft's two files, read by the author's own browser when they try the draft on a map
@@ -46,7 +36,7 @@ export const GET = withApiValidation<unknown, never, FileParams>(
 		if (!row) return respondError('Not found.', 404);
 
 		const file = (params?.file ?? []).join('/');
-		const manifest = asObject(row.manifest_text as string);
+		const manifest = parseObject(row.manifest_text as string);
 
 		let body: string;
 		let type: string;

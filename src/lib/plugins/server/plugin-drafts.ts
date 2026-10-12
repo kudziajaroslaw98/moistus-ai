@@ -9,6 +9,11 @@ import {
 } from '@/types/plugin-drafts';
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 
+/** Size of a draft file in bytes, as the limits count it. */
+export function utf8ByteLength(text: string): number {
+	return Buffer.byteLength(text, 'utf8');
+}
+
 /** Row of `plugin_drafts` as the API selects it (RLS keeps it to the signed-in author). */
 export interface PluginDraftRow {
 	id: string;

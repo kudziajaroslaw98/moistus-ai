@@ -17,6 +17,7 @@ import {
 	DRAFT_COLUMNS,
 	draftAccessError,
 	toDraft,
+	utf8ByteLength,
 	type PluginDraftRow,
 } from '@/lib/plugins/server/plugin-drafts';
 import { DRAFT_ERROR_CODES, type PluginDraft } from '@/types/plugin-drafts';
@@ -73,10 +74,6 @@ const patchSchema = z
 		'Nothing to save.'
 	);
 
-function bytes(text: string): number {
-	return Buffer.byteLength(text, 'utf8');
-}
-
 /** 409 carrying the draft as it is now, so the editor can offer to load it. */
 async function conflict(
 	supabase: SupabaseClient,
@@ -122,16 +119,19 @@ export const PATCH = withApiValidation<
 
 	if (
 		body.manifestText !== undefined &&
-		bytes(body.manifestText) > MAX_DRAFT_MANIFEST_BYTES
+		utf8ByteLength(body.manifestText) > MAX_DRAFT_MANIFEST_BYTES
 	) {
 		return respondError('manifest.json is larger than 64 KB.', 400);
 	}
-	if (body.code !== undefined && bytes(body.code) > MAX_PLUGIN_CODE_BYTES) {
+	if (
+		body.code !== undefined &&
+		utf8ByteLength(body.code) > MAX_PLUGIN_CODE_BYTES
+	) {
 		return respondError('plugin.js is larger than 256 KB.', 400);
 	}
 	if (
 		body.sample !== undefined &&
-		bytes(JSON.stringify(body.sample)) > MAX_DRAFT_SAMPLE_BYTES
+		utf8ByteLength(JSON.stringify(body.sample)) > MAX_DRAFT_SAMPLE_BYTES
 	) {
 		return respondError('The sample data is too large.', 400);
 	}

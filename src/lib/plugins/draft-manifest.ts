@@ -31,7 +31,8 @@ export function draftPluginId(name: string, draftId: string): string {
 	return `dev.${slugOf(name)}-${suffix}`;
 }
 
-function parseObject(text: string): Record<string, unknown> | null {
+/** The text as a JSON object, or null when it isn't valid JSON or isn't an object. */
+export function parseObject(text: string): Record<string, unknown> | null {
 	try {
 		const value: unknown = JSON.parse(text);
 		return value && typeof value === 'object' && !Array.isArray(value)

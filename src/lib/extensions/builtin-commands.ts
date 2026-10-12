@@ -2,11 +2,7 @@ import { availableCatalogUpdate } from '@/lib/plugins/catalog';
 import type { Contribution, ContributionContext } from '@/types/extensions';
 import { ChefHat, Code2, History, Plus, Puzzle, Search, Settings } from 'lucide-react';
 
-/** Recipes are saved per account, so guests (anonymous sessions) can't manage them. */
-const canSaveRecipes = (ctx: ContributionContext) =>
-	ctx.isMapReady && ctx.getState().currentUser?.is_anonymous === false;
-
-/** Anything that lives on the account (drafts, recipes) is for signed-in accounts, not guests. */
+/** Anything that lives on the account (drafts, saved recipes) is for signed-in accounts, not guests. */
 const hasAccount = (ctx: ContributionContext) =>
 	ctx.isMapReady && ctx.getState().currentUser?.is_anonymous === false;
 
@@ -105,7 +101,7 @@ export const BUILTIN_COMMANDS: Contribution[] = [
 		owner: 'builtin',
 		scopes: ['map'],
 		placements: ['commandPalette'],
-		when: canSaveRecipes,
+		when: hasAccount,
 		run: (ctx) =>
 			ctx.getState().openRecipesPanel({ mode: 'edit', recipeId: null, initial: null }),
 	},
@@ -118,7 +114,7 @@ export const BUILTIN_COMMANDS: Contribution[] = [
 		owner: 'builtin',
 		scopes: ['map'],
 		placements: ['commandPalette'],
-		when: canSaveRecipes,
+		when: hasAccount,
 		run: (ctx) => ctx.getState().openRecipesPanel(),
 	},
 ];

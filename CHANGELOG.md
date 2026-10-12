@@ -19,6 +19,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: edited `shiko.threads` 0.1.0 in place (new fingerprint in `catalog.ts`), because it isn't on `main` or in production yet; once it ships, a change like this needs a new version folder
 - **plugins/my-plugins**: "Edit as new draft" says when it opens a draft you already had, based on another version ("You already have a draft of this plugin, based on 0.3.0. Opened that one."). It used to open it with no word. There is still one draft per plugin
 
+### Refactored
+
+- **plugins/drafts**: One `hasAccount` predicate for the palette commands that need a signed-in account (it was written twice, as `canSaveRecipes` too); `parseObject` and a `utf8ByteLength` helper shared by the draft routes instead of local copies; "Edit as new draft" reads the plugin, its versions and the chosen version in one `Promise.all` instead of three round trips in a row
+
 ---
 
 ## [2026-10-11]
