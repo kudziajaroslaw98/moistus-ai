@@ -68,7 +68,11 @@ export const createDraftFromText = (manifestText: string, code: string) =>
 		body: JSON.stringify({ manifestText, code }),
 	});
 
-/** A draft that continues a version of a plugin you published (opens yours if it exists). */
+/**
+ * A draft that continues a version of a plugin you published. There is one draft per
+ * plugin, so if you already have one it comes back instead, whatever it was based on
+ * (see its `baseVersion`).
+ */
 export const createDraftFromPublished = (pluginId: string, version: string) =>
 	requestJson<PluginDraft>(PLUGIN_DRAFTS_KEY, {
 		method: 'POST',

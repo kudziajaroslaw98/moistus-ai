@@ -15,6 +15,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **plugins/playground**: A button that opens the node editor (`edit: true`) no longer runs its action in the preview (an "unknown action" error for plugins with no such action); the preview says it opens the node editor on a map. The same button does nothing in any host without a node editor
 - **plugins/threads**: A node you just picked for a stop no longer shows "This node was deleted" for about 300 ms. `usePluginRefs` debounced changes to which nodes are linked as well as to their content, so a plugin saw the new link without its node. Link changes now apply at once, content changes still wait. It also reads only the linked nodes, so dragging other nodes no longer rebuilds and compares their descriptions for every Threads node
 - **plugins/my-plugins**: With Developer mode off, someone whose plugins are all drafts saw "You haven't written a plugin yet" with no hint that drafts are hidden. The "Drafts are hidden while Developer mode is off" note now shows on the empty page too
+- **plugins/threads**: Reaching a stop limit is no longer silent. The pick bar's hint and the open thread now say "This thread has 12 of 12 stops" or "This node holds 100 stops, the most it can", where a click on a new node used to do nothing and the bar kept saying "N stops so far". Stops left behind when a thread's line is deleted in the node editor no longer count toward the 100, and the next pick or removal drops them
+  - Why: edited `shiko.threads` 0.1.0 in place (new fingerprint in `catalog.ts`), because it isn't on `main` or in production yet; once it ships, a change like this needs a new version folder
+- **plugins/my-plugins**: "Edit as new draft" says when it opens a draft you already had, based on another version ("You already have a draft of this plugin, based on 0.3.0. Opened that one."). It used to open it with no word. There is still one draft per plugin
 
 ---
 

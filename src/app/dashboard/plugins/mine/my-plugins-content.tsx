@@ -293,6 +293,14 @@ export function MyPluginsContent() {
 		if (!openRow?.plugin) return;
 		try {
 			const draft = await createDraftFromPublished(openRow.plugin.id, version);
+			// There is one draft per plugin, so this may be an older one, from another version.
+			if (draft.baseVersion !== version) {
+				toast.info(
+					draft.baseVersion
+						? `You already have a draft of this plugin, based on ${draft.baseVersion}. Opened that one.`
+						: 'You already have a draft of this plugin. Opened it.'
+				);
+			}
 			router.push(playgroundHref(draft.id));
 		} catch (reason) {
 			toast.error(

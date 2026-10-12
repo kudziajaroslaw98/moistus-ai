@@ -22,8 +22,13 @@ jest.mock('@/store/mind-map-store', () => ({
 }));
 
 const mockToastSuccess = jest.fn();
+const mockToastInfo = jest.fn();
 jest.mock('sonner', () => ({
-	toast: { success: (message: string) => mockToastSuccess(message), error: jest.fn() },
+	toast: {
+		success: (message: string) => mockToastSuccess(message),
+		info: (message: string) => mockToastInfo(message),
+		error: jest.fn(),
+	},
 }));
 
 import { PluginsPageFrame } from '@/components/plugins/plugins-page-tabs';
@@ -108,10 +113,13 @@ function setup({
 	developerMode = false,
 	plugins = [readingList, pomodoro],
 	drafts = [counterDraft, readingDraft],
+	startedDraft,
 }: {
 	developerMode?: boolean;
 	plugins?: unknown[];
 	drafts?: unknown[];
+	/** What "Edit as new draft" gets back; by default a fresh draft based on the version asked for. */
+	startedDraft?: Record<string, unknown>;
 } = {}) {
 	mockStore = {
 		userProfile: { is_anonymous: false, preferences: { developerMode } },
@@ -119,7 +127,14 @@ function setup({
 	};
 	global.fetch = jest.fn(async (url: string, init?: RequestInit) => {
 		if (url === '/api/plugins/drafts' && init?.method === 'POST') {
-			return { ok: true, status: 201, json: async () => ({ data: { id: 'd9' } }) };
+			const { from } = JSON.parse(String(init.body)) as { from: { version: string } };
+			return {
+				ok: true,
+				status: 201,
+				json: async () => ({
+					data: startedDraft ?? { id: 'd9', baseVersion: from.version },
+				}),
+			};
 		}
 		if (init?.method === 'DELETE') {
 			return { ok: true, status: 200, json: async () => ({ data: null }) };
@@ -375,6 +390,47 @@ describe('MyPluginsContent', () => {
 			expect(JSON.parse(post[1].body)).toEqual({
 				from: { pluginId: 'com.example.reading-list', version: '0.1.0' },
 			});
+			expect(mockToastInfo).not.toHaveBeenCalled();
+		});
+
+		async function editPublished(user: ReturnType<typeof setup>) {
+			const sheet = await openSheet(user);
+			const published = within(sheet)
+				.getAllByRole('listitem')
+				.find((row) => within(row).queryByText('Published'));
+			await user.click(
+				within(published as HTMLElement).getByRole('button', { name: 'Edit as new draft' })
+			);
+		}
+
+		it('says so when it opens a draft you already had, based on another version', async () => {
+			const user = setup({
+				developerMode: true,
+				startedDraft: { id: 'd5', baseVersion: '0.3.0' },
+			});
+			await editPublished(user);
+
+			await waitFor(() =>
+				expect(mockPush).toHaveBeenCalledWith('/dashboard/plugins/playground/d5')
+			);
+			expect(mockToastInfo).toHaveBeenCalledWith(
+				'You already have a draft of this plugin, based on 0.3.0. Opened that one.'
+			);
+		});
+
+		it('says so without a version when the draft you had wasn’t based on one', async () => {
+			const user = setup({
+				developerMode: true,
+				startedDraft: { id: 'd5', baseVersion: null },
+			});
+			await editPublished(user);
+
+			await waitFor(() =>
+				expect(mockPush).toHaveBeenCalledWith('/dashboard/plugins/playground/d5')
+			);
+			expect(mockToastInfo).toHaveBeenCalledWith(
+				'You already have a draft of this plugin. Opened it.'
+			);
 		});
 	});
 });

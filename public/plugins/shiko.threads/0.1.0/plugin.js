@@ -10,7 +10,25 @@ const list = (data, field) => (Array.isArray(data[field]) ? data[field] : []);
 // Rows get their ids when a node is saved; a draft in the node editor has none yet.
 const stopsOf = (data, threadId) =>
 	threadId ? list(data, 'stops').filter((stop) => stop.thread === threadId) : [];
+// Deleting a thread's line in the node editor leaves its stops in the list (they are set by
+// clicking, never typed). They don't show anywhere, so they don't count toward the limits,
+// and the next pick or removal drops them.
+const liveStops = (data) => {
+	const threadIds = list(data, 'threads').map((thread) => thread.id);
+	return list(data, 'stops').filter((stop) => threadIds.includes(stop.thread));
+};
 const plural = (count, word) => count + ' ' + word + (count === 1 ? '' : 's');
+
+/** Which limit a thread has reached, if any: its own 12 stops, or the node's 100 in all. */
+function limitMessage(data, threadId) {
+	if (stopsOf(data, threadId).length >= MAX_STOPS_PER_THREAD) {
+		return 'This thread has ' + MAX_STOPS_PER_THREAD + ' of ' + MAX_STOPS_PER_THREAD + ' stops.';
+	}
+	if (liveStops(data).length >= MAX_STOPS) {
+		return 'This node holds ' + MAX_STOPS + ' stops, the most it can.';
+	}
+	return null;
+}
 
 function short(text, length) {
 	const line = String(text || '').replace(/\s+/g, ' ').trim();
@@ -34,11 +52,14 @@ function stopNode(stop, refs) {
 
 function pickFor(thread, data, refs) {
 	const live = stopsOf(data, thread.id).filter((stop) => stopNode(stop, refs));
+	// At a limit a click on a new node changes nothing, so say so before anyone tries.
+	const limit = limitMessage(data, thread.id);
 	return {
 		title: 'Adding stops to “' + short(thread.text, 40) + '”',
-		hint:
-			(live.length === 0 ? 'No stops yet. ' : plural(live.length, 'stop') + ' so far. ') +
-			'Click a node to add it, click a numbered one to remove it.',
+		hint: limit
+			? limit + ' Click a numbered node to remove one.'
+			: (live.length === 0 ? 'No stops yet. ' : plural(live.length, 'stop') + ' so far. ') +
+				'Click a node to add it, click a numbered one to remove it.',
 		marked: live.map((stop) => stop.node),
 	};
 }
@@ -172,6 +193,8 @@ function threadBlock(thread, data, refs, canEdit) {
 		}
 		children.push(...rows);
 		if (canEdit && thread.status === 'open') {
+			const limit = limitMessage(data, thread.id);
+			if (limit) children.push(ui.text(limit + ' Remove one to add another.', { size: 'sm', tone: 'warning' }));
 			children.push(
 				ui.row({ gap: 2 }, [
 					ui.button('Add a stop', 'addStop', {
@@ -308,14 +331,15 @@ definePlugin({
 					const threadId = payload && payload.thread;
 					const nodeId = payload && payload.nodeId;
 					if (!nodeId || !list(data, 'threads').some((thread) => thread.id === threadId)) return data;
-					const stops = list(data, 'stops');
+					const stops = liveStops(data);
 					const exists = stops.some((stop) => stop.thread === threadId && stop.node === nodeId);
 					if (exists) {
 						return Object.assign({}, data, {
 							stops: stops.filter((stop) => !(stop.thread === threadId && stop.node === nodeId)),
 						});
 					}
-					if (stops.length >= MAX_STOPS || stopsOf(data, threadId).length >= MAX_STOPS_PER_THREAD) return data;
+					// The pick bar already says when a limit is reached (see `limitMessage`).
+					if (limitMessage(data, threadId)) return data;
 					return Object.assign({}, data, {
 						stops: stops.concat([{ thread: threadId, node: nodeId }]),
 						current: threadId,
@@ -324,7 +348,7 @@ definePlugin({
 
 				removeStop(data, payload) {
 					return Object.assign({}, data, {
-						stops: list(data, 'stops').filter((stop) => stop.id !== (payload && payload.id)),
+						stops: liveStops(data).filter((stop) => stop.id !== (payload && payload.id)),
 					});
 				},
 			},
