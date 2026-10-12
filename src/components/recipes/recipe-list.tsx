@@ -60,14 +60,14 @@ function matchesQuery(recipe: RecipeRef, query: string) {
 
 function GroupHeader({ label, count }: { label: string; count: number }) {
 	return (
-		<div className='flex items-center gap-2.5 px-2 pb-2 pt-1'>
-			<h3 className='text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55'>
+		<div className='flex items-baseline justify-between gap-3 pb-1.5 pt-1'>
+			<h3 className='text-[11px] font-medium uppercase tracking-[0.16em] text-text-tertiary'>
 				{label}
 			</h3>
 
-			<span aria-hidden className='h-px flex-1 bg-white/[0.08]' />
-
-			<span className='text-[12px] tabular-nums text-white/55'>{count}</span>
+			<span className='-my-2 -mr-2 grid size-8 place-items-center text-xs tabular-nums text-text-tertiary'>
+				{count}
+			</span>
 		</div>
 	);
 }
@@ -96,11 +96,11 @@ function RecipeRow({ recipe, isStarter, index, onOpen, children }: RecipeRowProp
 			</span>
 
 			<span className='flex min-w-0 flex-1 flex-col'>
-				<span className='truncate text-[14px] font-medium leading-5 text-white/92'>
+				<span className='truncate text-[15px] font-medium leading-5 text-text-primary'>
 					{recipe.definition.title}
 				</span>
 
-				<span className='truncate text-[12.5px] leading-5 text-white/55'>
+				<span className='truncate text-[12.5px] leading-5 text-text-secondary'>
 					{describeRecipe(recipe.definition)}
 
 					{isShared && <span className='text-primary-200'> · Shared</span>}
@@ -112,7 +112,7 @@ function RecipeRow({ recipe, isStarter, index, onOpen, children }: RecipeRowProp
 	return (
 		<motion.li
 			animate={{ opacity: 1, y: 0 }}
-			className='group/row flex items-center gap-1 rounded-lg transition-colors duration-200 ease hover:bg-white/[0.035]'
+			className='group/row -mx-2 flex items-center gap-1 rounded-xl transition-colors duration-200 ease hover:bg-white/[0.04]'
 			initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
 			transition={
 				shouldReduceMotion
@@ -122,19 +122,19 @@ function RecipeRow({ recipe, isStarter, index, onOpen, children }: RecipeRowProp
 		>
 			{onOpen ? (
 				<button
-					className='flex min-w-0 flex-1 items-start gap-3 rounded-lg py-2 pl-2.5 pr-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500/60'
+					className='flex min-w-0 flex-1 items-start gap-3 rounded-xl py-2.5 pl-2 pr-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500'
 					onClick={onOpen}
 					type='button'
 				>
 					{content}
 				</button>
 			) : (
-				<div className='flex min-w-0 flex-1 items-start gap-3 py-2 pl-2.5 pr-1'>
+				<div className='flex min-w-0 flex-1 items-start gap-3 py-2.5 pl-2 pr-1'>
 					{content}
 				</div>
 			)}
 
-			<div className='pr-1.5'>{children}</div>
+			<div>{children}</div>
 		</motion.li>
 	);
 }
@@ -143,7 +143,7 @@ function RowMenuTrigger({ title }: { title: string }) {
 	return (
 		<DropdownMenuTrigger
 			aria-label={`Options for ${title}`}
-			className='flex h-7 w-7 items-center justify-center rounded-md text-text-secondary transition-colors duration-200 ease hover:bg-white/[0.06] hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 data-[popup-open]:bg-white/[0.06]'
+			className='flex size-8 items-center justify-center rounded-lg text-text-secondary transition-colors duration-200 ease hover:bg-white/[0.06] hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 data-[popup-open]:bg-white/[0.06]'
 		>
 			<MoreHorizontal className='size-4' />
 		</DropdownMenuTrigger>
@@ -207,7 +207,7 @@ export function RecipeList({ onEdit, onCreate }: RecipeListProps) {
 
 	return (
 		<div className='flex min-h-0 flex-1 flex-col'>
-			<div className='min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-4'>
+			<div className='min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 pb-6 pt-4'>
 				<div className='relative'>
 					<Search
 						aria-hidden
@@ -216,7 +216,7 @@ export function RecipeList({ onEdit, onCreate }: RecipeListProps) {
 
 					<input
 						aria-label='Search recipes'
-						className='block h-9 w-full rounded-lg border border-zinc-700/50 bg-zinc-800/30 pl-9 pr-3 text-sm text-text-primary placeholder-zinc-400 shadow-sm transition-all duration-200 hover:border-zinc-600/50 focus:border-primary-400/60 focus:outline-none focus:ring-2 focus:ring-primary-500/20'
+						className='block h-10 w-full rounded-[10px] border border-white/10 bg-white/[0.04] pl-9 pr-3 text-sm text-text-primary placeholder:text-text-tertiary transition-colors duration-200 hover:border-white/18 focus:border-primary-400/60 focus:outline-none focus:ring-2 focus:ring-primary-500/20'
 						onChange={(event) => setQuery(event.target.value)}
 						placeholder='Search recipes…'
 						type='search'
@@ -339,8 +339,8 @@ export function RecipeList({ onEdit, onCreate }: RecipeListProps) {
 				</section>
 			</div>
 
-			<div className='flex h-fit shrink-0 items-center justify-between gap-3 border-t border-zinc-800 bg-base p-4 pb-[max(1rem,env(safe-area-inset-bottom))]'>
-				<p className='text-sm text-text-secondary'>
+			<div className='flex shrink-0 items-center justify-between gap-3 border-t border-white/8 bg-base/90 px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl'>
+				<p className='text-xs text-text-tertiary'>
 					{canSaveRecipes
 						? `${recipes.length} of ${MAX_SAVED_RECIPES} recipes`
 						: 'Create an account to save recipes'}

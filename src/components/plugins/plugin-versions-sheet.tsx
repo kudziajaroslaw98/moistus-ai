@@ -1,6 +1,5 @@
 'use client';
 
-import { PRIMARY_BUTTON_CLASS } from '@/components/dashboard/dashboard-page';
 import { SideSheet } from '@/components/dashboard/side-sheet';
 import {
 	DeveloperModeSetting,
@@ -8,6 +7,16 @@ import {
 } from '@/components/plugins/developer-mode-switch';
 import type { MyPluginRow } from '@/components/plugins/my-plugin-rows';
 import { formatTimeAgo } from '@/components/plugins/plugin-update-details';
+import { Button } from '@/components/ui/button';
+import {
+	PanelBadge,
+	PanelFooterActions,
+	PanelFooterNote,
+	PanelRow,
+	PanelSection,
+	panelButtonClass,
+	panelButtonSmClass,
+} from '@/components/ui/panel';
 import { playgroundHref } from '@/lib/plugins/drafts-client';
 import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
 import {
@@ -16,27 +25,17 @@ import {
 } from '@/lib/plugins/powers';
 import type { PluginDraftSummary } from '@/types/plugin-drafts';
 import type { MyPluginVersion } from '@/types/plugin-library';
-import { cn } from '@/utils/cn';
 import { Ban, Pencil, Puzzle, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
 export const VERSION_STATUS: Record<
 	MyPluginVersion['status'],
-	{ label: string; className: string }
+	{ label: string; tone: 'warn' | 'ok' | 'error' }
 > = {
-	in_review: {
-		label: 'In review',
-		className: 'border-amber-400/30 text-amber-300',
-	},
-	published: {
-		label: 'Published',
-		className: 'border-emerald-500/30 text-emerald-300',
-	},
-	changes_requested: {
-		label: 'Changes requested',
-		className: 'border-red-500/35 text-red-300',
-	},
+	in_review: { label: 'In review', tone: 'warn' },
+	published: { label: 'Published', tone: 'ok' },
+	changes_requested: { label: 'Changes requested', tone: 'error' },
 };
 
 function when(version: MyPluginVersion): string {
@@ -56,60 +55,54 @@ function VersionRow({
 	editAsDraft?: { disabled: boolean; busy: boolean; onClick: () => void };
 }) {
 	const status = VERSION_STATUS[version.status];
+
 	return (
-		<li className='flex flex-col gap-2 border-t border-[#16171b] px-4 py-3 first:border-t-0'>
-			<div className='flex flex-wrap items-center gap-2.5'>
-				<span className='font-mono text-sm font-medium text-white'>
-					{version.version}
-				</span>
+		<PanelRow
+			align='top'
+			as='li'
+			trailing={when(version)}
+			title={
+				<span className='font-mono text-sm font-medium'>{version.version}</span>
+			}
+			badge={<PanelBadge tone={status.tone}>{status.label}</PanelBadge>}
+			description={
+				<>
+					{version.notes && <span className='block'>{version.notes}</span>}
 
-				<span
-					className={cn(
-						'rounded-full border bg-[#0e0f12] px-2 py-0.5 text-[11px] leading-4',
-						status.className
+					{version.reviewMessage && version.status !== 'published' && (
+						<span className='mt-2 block border-l-2 border-white/14 pl-3'>
+							{`“${version.reviewMessage}”`}
+
+							<span className='mt-0.5 block text-xs text-text-tertiary'>
+								Shiko review
+							</span>
+						</span>
 					)}
-				>
-					{status.label}
-				</span>
 
-				<span className='ml-auto text-xs text-zinc-500'>{when(version)}</span>
-			</div>
+					{version.disabledReason && (
+						<span className='mt-2 flex items-start gap-1.5 text-xs text-error-300'>
+							<Ban aria-hidden className='mt-px size-3.5 shrink-0' />
 
-			{version.notes && (
-				<p className='text-[13px] leading-5 text-zinc-300'>{version.notes}</p>
-			)}
+							{`Turned off by Shiko: ${version.disabledReason}`}
+						</span>
+					)}
 
-			{version.reviewMessage && version.status !== 'published' && (
-				<blockquote className='border-l-2 border-[#2a2c33] pl-3 text-[13px] leading-5 text-zinc-300'>
-					{`“${version.reviewMessage}”`}
+					{editAsDraft && (
+						<Button
+							className={`${panelButtonSmClass} mt-2.5 gap-1.5 border-white/12 bg-white/[0.03] text-text-primary hover:bg-white/[0.07]`}
+							disabled={editAsDraft.disabled}
+							onClick={editAsDraft.onClick}
+							type='button'
+							variant='outline'
+						>
+							<Pencil aria-hidden className='size-3' />
 
-					<span className='block text-xs text-zinc-500'>Shiko review</span>
-				</blockquote>
-			)}
-
-			{version.disabledReason && (
-				<p className='flex items-start gap-1.5 text-xs text-red-300'>
-					<Ban aria-hidden className='mt-px size-3.5 shrink-0' />
-
-					{`Turned off by Shiko: ${version.disabledReason}`}
-				</p>
-			)}
-
-			{editAsDraft && (
-				<div>
-					<button
-						className='inline-flex h-7 items-center gap-1.5 rounded-[9px] border border-[#2a2c33] bg-[#131418] px-2.5 text-xs text-white transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-50 [@media(hover:hover)]:hover:bg-[#1a1b20]'
-						disabled={editAsDraft.disabled}
-						onClick={editAsDraft.onClick}
-						type='button'
-					>
-						<Pencil aria-hidden className='size-3' />
-
-						{editAsDraft.busy ? 'Opening…' : 'Edit as new draft'}
-					</button>
-				</div>
-			)}
-		</li>
+							{editAsDraft.busy ? 'Opening…' : 'Edit as new draft'}
+						</Button>
+					)}
+				</>
+			}
+		/>
 	);
 }
 
@@ -118,19 +111,13 @@ function DraftChecks({ draft }: { draft: PluginDraftSummary }) {
 	const summary = draft.checkSummary;
 	if (!summary || summary.total === 0) return null;
 	const failing = summary.total - summary.passed;
+
 	return (
-		<span
-			className={cn(
-				'rounded-full border bg-[#0e0f12] px-2 py-0.5 text-[11px] leading-4',
-				failing === 0
-					? 'border-emerald-500/30 text-emerald-300'
-					: 'border-red-500/35 text-red-300'
-			)}
-		>
+		<PanelBadge tone={failing === 0 ? 'ok' : 'error'}>
 			{failing === 0
 				? `All ${summary.total} pass`
 				: `${failing} ${failing === 1 ? 'check' : 'checks'} failing`}
-		</span>
+		</PanelBadge>
 	);
 }
 
@@ -142,37 +129,32 @@ function DraftRow({
 	onDelete: () => void;
 }) {
 	return (
-		<li className='flex items-center gap-3 border-t border-[#1d1f24] px-4 py-3 first:border-t-0'>
-			<div className='flex min-w-0 flex-1 flex-col gap-1'>
-				<div className='flex flex-wrap items-center gap-2'>
-					<span className='text-sm font-medium text-white'>
-						{draft.baseVersion ? `Draft from ${draft.baseVersion}` : 'Draft'}
-					</span>
+		<PanelRow
+			as='li'
+			badge={<DraftChecks draft={draft} />}
+			description={`Edited ${formatTimeAgo(draft.updatedAt)}`}
+			title={draft.baseVersion ? `Draft from ${draft.baseVersion}` : 'Draft'}
+			trailing={
+				<span className='-mr-2 flex items-center gap-1'>
+					<Link
+						className='inline-flex h-8 items-center rounded-[9px] border border-white/12 bg-white/[0.03] px-3 text-[13px] text-text-primary transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 [@media(hover:hover)]:hover:bg-white/[0.07]'
+						href={playgroundHref(draft.id)}
+					>
+						Open
+					</Link>
 
-					<DraftChecks draft={draft} />
-				</div>
-
-				<span className='text-xs text-zinc-500'>
-					{`Edited ${formatTimeAgo(draft.updatedAt)}`}
+					<Button
+						aria-label='Delete draft'
+						className='size-8 text-text-secondary hover:bg-error-500/10 hover:text-error-300'
+						onClick={onDelete}
+						size='icon'
+						variant='ghost'
+					>
+						<Trash2 aria-hidden className='size-4' />
+					</Button>
 				</span>
-			</div>
-
-			<Link
-				className='inline-flex h-8 shrink-0 items-center rounded-[9px] border border-[#2a2c33] bg-[#131418] px-3 text-[13px] text-white transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 [@media(hover:hover)]:hover:bg-[#1a1b20]'
-				href={playgroundHref(draft.id)}
-			>
-				Open
-			</Link>
-
-			<button
-				aria-label='Delete draft'
-				className='flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#2a2c33] bg-[#0e0f12] text-zinc-400 transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 [@media(hover:hover)]:hover:text-white'
-				onClick={onDelete}
-				type='button'
-			>
-				<Trash2 aria-hidden className='size-3.5' />
-			</button>
-		</li>
+			}
+		/>
 	);
 }
 
@@ -233,55 +215,59 @@ export function PluginVersionsSheet({
 			}
 			footer={
 				plugin ? (
-					<div className='flex flex-wrap items-center justify-between gap-3'>
-						<span className='flex-1 basis-56 text-xs leading-[17px] text-zinc-500'>
+					<div className='flex w-full items-center justify-between gap-3'>
+						<PanelFooterNote>
 							{inReview
 								? 'One version can be in review at a time.'
 								: 'Shiko reviews every version before map owners can use it.'}
-						</span>
+						</PanelFooterNote>
 
-						<button
-							className={PRIMARY_BUTTON_CLASS}
-							disabled={inReview}
-							onClick={onSubmitVersion}
-							type='button'
-						>
-							Submit a version
-						</button>
+						<PanelFooterActions>
+							<Button
+								className={panelButtonClass}
+								disabled={inReview}
+								onClick={onSubmitVersion}
+								type='button'
+							>
+								Submit a version
+							</Button>
+						</PanelFooterActions>
 					</div>
 				) : (
-					<span className='text-xs leading-[17px] text-zinc-500'>
+					<PanelFooterNote>
 						Nothing here is in the library until you submit it.
-					</span>
+					</PanelFooterNote>
 				)
 			}
 		>
 			{row && (
 				<>
 					{plugin ? (
-						<div className='grid grid-cols-3 gap-2'>
-							{stats.map((stat) => (
-								<div
-									className='rounded-xl border border-[#1d1f24] bg-[#0b0b0d] px-3.5 py-3'
-									key={stat.label}
-								>
-									<p className='text-xs text-zinc-500'>{stat.label}</p>
+						<PanelSection>
+							<div className='grid grid-cols-3'>
+								{stats.map((stat) => (
+									<div
+										className='border-l border-white/8 px-4 first:border-l-0 first:pl-0'
+										key={stat.label}
+									>
+										<p className='text-xs text-text-tertiary'>{stat.label}</p>
 
-									<p className='mt-1 text-lg font-semibold tabular-nums text-white'>
-										{stat.value}
-									</p>
-								</div>
-							))}
-						</div>
+										<p className='mt-0.5 text-xl font-semibold tracking-[-0.03em] tabular-nums text-text-primary'>
+											{stat.value}
+										</p>
+									</div>
+								))}
+							</div>
+						</PanelSection>
 					) : (
-						<p className='rounded-xl border border-[#1d1f24] bg-[#0b0b0d] px-3.5 py-3 text-[13px] leading-[19px] text-zinc-400'>
+						<p className='rounded-xl border border-white/8 bg-white/[0.03] px-3.5 py-3 text-[13px] leading-[19px] text-text-secondary'>
 							Not submitted yet. When its checks pass, submit it from the
 							playground.
 						</p>
 					)}
 
 					{plugin?.disabledReason && (
-						<p className='flex items-start gap-1.5 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2.5 text-xs leading-4 text-red-300'>
+						<p className='flex items-start gap-1.5 rounded-xl border border-error-500/25 bg-error-500/10 px-3 py-2.5 text-xs leading-4 text-error-300'>
 							<Ban aria-hidden className='mt-px size-3.5 shrink-0' />
 
 							{`Turned off everywhere by Shiko: ${plugin.disabledReason}`}
@@ -289,18 +275,14 @@ export function PluginVersionsSheet({
 					)}
 
 					{row.drafts.length > 0 && (
-						<section className='flex flex-col gap-2'>
-							<div className='flex items-baseline gap-2'>
-								<h3 className='text-[13px] font-semibold text-white'>Drafts</h3>
-
-								<span className='font-mono text-xs text-zinc-500'>
-									{row.drafts.length}
-								</span>
-
-								<span className='text-xs text-zinc-500'>Only you see these.</span>
-							</div>
-
-							<ul className='overflow-hidden rounded-xl border border-[#1d1f24]'>
+						<PanelSection
+							className='mt-0'
+							description='Only you see these.'
+							label='Drafts'
+							meta={row.drafts.length}
+							metaAlign='icon'
+						>
+							<ul>
 								{row.drafts.map((draft) => (
 									<DraftRow
 										draft={draft}
@@ -309,16 +291,18 @@ export function PluginVersionsSheet({
 									/>
 								))}
 							</ul>
-						</section>
+						</PanelSection>
 					)}
 
 					{plugin && (
-						<section className='flex flex-col gap-2'>
-							<h3 className='text-[13px] font-semibold text-white'>Versions</h3>
-
+						<PanelSection
+							className='mt-0'
+							label='Versions'
+							meta={plugin.versions.length}
+						>
 							{onEditAsDraft && !developerMode && (
-								<div className='flex flex-col gap-2.5 rounded-xl border border-[#1d1f24] bg-[#0b0b0d] px-3.5 py-3'>
-									<p className='text-[13px] leading-5 text-zinc-300'>
+								<div className='mb-2 flex flex-col gap-2.5 rounded-xl border border-white/8 bg-white/[0.03] px-3.5 py-3'>
+									<p className='text-[13px] leading-5 text-text-secondary'>
 										Turn on Developer mode to edit a version here as a draft.
 									</p>
 
@@ -326,7 +310,7 @@ export function PluginVersionsSheet({
 								</div>
 							)}
 
-							<ul className='overflow-hidden rounded-xl border border-[#1d1f24]'>
+							<ul>
 								{plugin.versions.map((version) => (
 									<VersionRow
 										key={version.version}
@@ -348,7 +332,7 @@ export function PluginVersionsSheet({
 									/>
 								))}
 							</ul>
-						</section>
+						</PanelSection>
 					)}
 				</>
 			)}

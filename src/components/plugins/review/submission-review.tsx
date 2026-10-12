@@ -3,8 +3,8 @@
 import { SideSheet } from '@/components/dashboard/side-sheet';
 import { PluginChecksList } from '@/components/plugins/plugin-checks-list';
 import { PluginPowersLine } from '@/components/plugins/plugin-powers';
-import { PluginUiTree } from '@/components/plugins/plugin-ui-tree';
 import { formatTimeAgo } from '@/components/plugins/plugin-update-details';
+import { PluginLivePreview } from '@/components/plugins/review/plugin-live-preview';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { communityFileUrl, permissionChanges } from '@/lib/plugins/catalog';
@@ -137,7 +137,7 @@ function CodeChanges({
 }) {
 	if (!previousVersion) {
 		return (
-			<details className='rounded-lg border border-zinc-800 bg-[#0b0b0b]'>
+			<details className='rounded-lg border border-white/8 bg-white/[0.03]'>
 				<summary className='cursor-pointer px-3 py-2 text-xs text-text-secondary'>
 					{`Show the code (${loaded.code.split('\n').length} lines)`}
 				</summary>
@@ -161,7 +161,7 @@ function CodeChanges({
 		);
 	}
 	return (
-		<div className='overflow-auto rounded-lg border border-zinc-800 bg-[#0b0b0b] py-2 font-mono text-xs leading-5'>
+		<div className='overflow-auto rounded-lg border border-white/8 bg-white/[0.03] py-2 font-mono text-xs leading-5'>
 			{loaded.diff.map((hunk, hunkIndex) => (
 				<div key={hunkIndex}>
 					{hunkIndex > 0 && <div className='px-3 text-zinc-600'>…</div>}
@@ -338,7 +338,7 @@ export function SubmissionReview({
 		>
 			<div data-testid='submission-review' className='flex flex-col gap-5'>
 				<p className='flex flex-wrap items-center gap-2 text-xs'>
-					<span className='rounded-full border border-[#2a2c33] bg-[#0e0f12] px-2 py-0.5 text-[11px] leading-4 text-zinc-300'>
+					<span className='rounded-full border border-white/14 bg-white/[0.03] px-2 py-0.5 text-[11px] leading-4 text-zinc-300'>
 						{newPlugin
 							? 'New plugin'
 							: `Update from ${submission.previous?.version}`}
@@ -348,7 +348,7 @@ export function SubmissionReview({
 				<PowerChanges manifest={manifest} submission={submission} />
 
 				{sites.length > 0 && (
-					<fieldset className='flex flex-col gap-2.5 rounded-xl border border-[#1d1f24] bg-[#0b0b0d] px-4 py-3.5'>
+					<fieldset className='flex flex-col gap-2.5 rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3.5'>
 						<legend className='px-1 text-xs text-text-secondary'>
 							Sites it reaches
 						</legend>
@@ -394,7 +394,7 @@ export function SubmissionReview({
 				{(submission.notes || submission.submitterNote) && (
 					<div className='grid gap-3 sm:grid-cols-2'>
 						{submission.notes && (
-							<section className='rounded-xl border border-[#1d1f24] px-4 py-3.5'>
+							<section className='rounded-xl border border-white/8 px-4 py-3.5'>
 								<h3 className='text-xs font-normal text-zinc-500'>
 									What&apos;s new
 								</h3>
@@ -406,7 +406,7 @@ export function SubmissionReview({
 						)}
 
 						{submission.submitterNote && (
-							<section className='rounded-xl border border-[#1d1f24] px-4 py-3.5'>
+							<section className='rounded-xl border border-white/8 px-4 py-3.5'>
 								<h3 className='text-xs font-normal text-zinc-500'>
 									Notes for the reviewer
 								</h3>
@@ -442,18 +442,21 @@ export function SubmissionReview({
 							title='Automatic checks'
 						/>
 
-						{loaded.result.previews.map((preview) => (
-							<div
-								className='flex flex-col gap-1.5'
-								key={`${preview.kind}:${preview.example}`}
-							>
-								<span className='text-xs text-text-secondary'>{`Preview · “${preview.example}”`}</span>
+						{loaded.manifest &&
+							loaded.result.previews.map((preview) => (
+								<div
+									className='flex flex-col gap-1.5'
+									key={`${preview.kind}:${preview.example}`}
+								>
+									<span className='text-xs text-text-secondary'>{`Preview · “${preview.example}”`}</span>
 
-								<div className='max-w-[320px] rounded-[10px] border border-white/6 bg-[#1e1e1e] p-4'>
-									<PluginUiTree disabled tree={preview.tree} />
+									<PluginLivePreview
+										code={loaded.code}
+										manifest={loaded.manifest!}
+										preview={preview}
+									/>
 								</div>
-							</div>
-						))}
+							))}
 
 						<section className='flex flex-col gap-1.5'>
 							<h3 className='text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55'>

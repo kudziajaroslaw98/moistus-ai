@@ -132,8 +132,8 @@ describe('MapSettingsPanel', () => {
 		expect(screen.getByText('General')).toBeInTheDocument();
 		expect(screen.getByText('Organization')).toBeInTheDocument();
 		expect(screen.getByText('Appearance')).toBeInTheDocument();
-		expect(screen.getByText('Editor Preferences')).toBeInTheDocument();
-		expect(screen.getByText('Danger Zone')).toBeInTheDocument();
+		expect(screen.getByText('Editor preferences')).toBeInTheDocument();
+		expect(screen.getByText('Danger zone')).toBeInTheDocument();
 		expect(screen.queryByText('Mark as template')).not.toBeInTheDocument();
 	});
 
@@ -153,7 +153,7 @@ describe('MapSettingsPanel', () => {
 
 		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
 
-		const saveButton = screen.getByRole('button', { name: 'Save Changes' });
+		const saveButton = screen.getByRole('button', { name: 'Save changes' });
 		const titleInput = screen.getByLabelText(/title/i);
 		const thumbnailInput = screen.getByLabelText(/thumbnail url/i);
 
@@ -192,7 +192,7 @@ describe('MapSettingsPanel', () => {
 		await user.type(thumbnailInput, '  https://example.com/thumb.jpg  ');
 		await user.tab();
 
-		await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+		await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
 		await waitFor(() => {
 			expect(mockState.updateMindMap).toHaveBeenCalledTimes(1);
@@ -219,7 +219,10 @@ describe('MapSettingsPanel', () => {
 		expect(screen.getByTestId('discard-dialog')).toBeInTheDocument();
 		expect(onClose).not.toHaveBeenCalled();
 
-		await user.click(screen.getByRole('button', { name: 'Discard changes' }));
+		// The mocked dialog renders inside the test container, which a modal panel hides.
+		await user.click(
+			screen.getByRole('button', { name: 'Discard changes', hidden: true })
+		);
 
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});

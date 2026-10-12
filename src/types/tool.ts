@@ -8,6 +8,5 @@ export type Tool =
   | 'layout'
   | 'export'
   | 'zoom'
-	| 'chat'
 	| 'comments'
 	| 'present';

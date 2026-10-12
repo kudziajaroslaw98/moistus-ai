@@ -96,14 +96,11 @@ function createCoreSliceHarness(overrides: Record<string, unknown> = {}) {
 			edgeEdit: true,
 			history: true,
 			mergeSuggestions: true,
-			aiContent: true,
-			generateFromNodesModal: true,
 			sharePanel: true,
 			joinRoom: true,
 			permissionManager: true,
 			roomCodeDisplay: true,
 			guestSignup: true,
-			aiChat: true,
 			referenceSearch: true,
 			mapSettings: true,
 			upgradeUser: true,
@@ -138,14 +135,6 @@ function createCoreSliceHarness(overrides: Record<string, unknown> = {}) {
 		stopStreamCallback: jest.fn(),
 		lastTriggerTime: 123,
 		pendingAnimations: new Map([['edge-1', true]]),
-		chatMessages: [{ id: 'chat-1' }],
-		isChatStreaming: true,
-		chatContext: {
-			mapId: 'stale-map',
-			selectedNodeIds: ['node-1'],
-			contextMode: 'full',
-		},
-		isChatOpen: true,
 		shareTokens: [{ id: 'token-1' }],
 		currentShares: [{ id: 'share-1' }],
 		activeToken: { id: 'token-1' },
@@ -217,12 +206,6 @@ describe('core slice', () => {
 		expect(nextState.selectedNodes).toEqual([]);
 		expect(nextState.comments).toEqual([]);
 		expect(nextState.historyMeta).toEqual([]);
-		expect(nextState.chatMessages).toEqual([]);
-		expect(nextState.chatContext).toEqual({
-			mapId: null,
-			selectedNodeIds: [],
-			contextMode: 'summary',
-		});
 		expect(nextState.popoverOpen.mapSettings).toBe(false);
 		expect(nextState.isFocusMode).toBe(false);
 		expect(nextState.loadingStates).toEqual(createLoadingStates());

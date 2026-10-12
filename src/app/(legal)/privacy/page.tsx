@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 		'Learn how Shiko collects, uses, and protects your personal information. GDPR and CCPA compliant.',
 };
 
-const EFFECTIVE_DATE = 'October 6, 2026';
+const EFFECTIVE_DATE = 'October 12, 2026';
 const CONTACT_EMAIL = 'support@shiko.app';
 
 export default function PrivacyPolicyPage() {
@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
 					Privacy Policy
 				</h1>
 				<p className='text-text-secondary'>
-					Last updated: <time dateTime='2026-10-06'>{EFFECTIVE_DATE}</time>
+					Last updated: <time dateTime='2026-10-12'>{EFFECTIVE_DATE}</time>
 				</p>
 			</header>
 
@@ -393,10 +393,6 @@ export default function PrivacyPolicyPage() {
 						<strong>Deleted accounts</strong> — When you delete your account, we
 						will delete your personal data within 30 days, except where we are
 						required to retain it for legal purposes
-					</li>
-					<li>
-						<strong>AI chat history</strong> — Chat conversations with AI are
-						ephemeral and are not stored on our servers after your session ends
 					</li>
 					<li>
 						<strong>Backups</strong> — Backups may retain deleted data for up to

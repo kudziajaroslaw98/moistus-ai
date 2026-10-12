@@ -11,7 +11,6 @@ import {
 	Hand,
 	LayoutGrid,
 	Loader2,
-	MessageCircle,
 	MessageSquare,
 	MousePointer2,
 	Play,
@@ -50,9 +49,6 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Separator } from './ui/separator';
 
-// Feature flag: Set NEXT_PUBLIC_ENABLE_AI_CHAT=true to enable AI Chat
-const ENABLE_AI_CHAT = process.env.NEXT_PUBLIC_ENABLE_AI_CHAT === 'true';
-
 interface ToolButton {
 	id: Tool | `separator-${number}`;
 	icon: ReactNode;
@@ -66,13 +62,7 @@ interface ToolbarProps {
 }
 
 const mobileCoreToolOrder: Tool[] = ['node', 'magic-wand', 'comments'];
-const mobileOverflowToolOrder: Tool[] = [
-	'layout',
-	'export',
-	'present',
-	'zoom',
-	'chat',
-];
+const mobileOverflowToolOrder: Tool[] = ['layout', 'export', 'present', 'zoom'];
 const mobileOverflowContentClass =
 	'w-56 p-1 data-[side=top]:mb-2 data-[side=bottom]:mt-2';
 const mobileOverflowSubContentClass =
@@ -103,16 +93,6 @@ const tools: ToolButton[] = [
 		icon: <Sparkles className='size-4' />,
 		label: 'AI Suggestions',
 	},
-	// Conditionally included via getVisibleTools()
-	...(ENABLE_AI_CHAT
-		? [
-				{
-					id: 'chat' as const,
-					icon: <MessageCircle className='size-4' />,
-					label: 'AI Chat',
-				},
-			]
-		: []),
 	{ id: 'layout', icon: null, label: 'Auto Layout' }, // Layout dropdown rendered separately
 	{ id: 'export', icon: null, label: 'Export' }, // Export dropdown rendered separately
 	{ id: 'present', icon: <Play className='size-4' />, label: 'Guided Tour' },
@@ -137,8 +117,6 @@ export const Toolbar = ({
 		reactFlowInstance,
 		isCommentMode,
 		setCommentMode,
-		toggleChat,
-		isChatOpen,
 		startTour,
 		enterPathEditMode,
 		savedPaths,
@@ -151,8 +129,6 @@ export const Toolbar = ({
 			reactFlowInstance: state.reactFlowInstance,
 			isCommentMode: state.isCommentMode,
 			setCommentMode: state.setCommentMode,
-			toggleChat: state.toggleChat,
-			isChatOpen: state.isChatOpen,
 			startTour: state.startTour,
 			enterPathEditMode: state.enterPathEditMode,
 			savedPaths: state.savedPaths,
@@ -288,10 +264,7 @@ export const Toolbar = ({
 			return;
 		}
 
-		if (toolId === 'chat') {
-			toggleChat();
-			// Don't change the active tool for chat
-		} else if (toolId === 'zoom') {
+		if (toolId === 'zoom') {
 			reactFlowInstance?.zoomTo(1);
 		} else if (toolId === 'comments') {
 			// Toggle comment mode
@@ -391,26 +364,6 @@ export const Toolbar = ({
 
 		if (tool.id === 'magic-wand') {
 			return renderAIPopoverButton(tool.id, tool.label ?? `Tool ${index}`);
-		}
-
-		if (tool.id === 'chat') {
-			return (
-				<Button
-					key={tool.id}
-					onClick={() => onToolChange(tool.id)}
-					size='icon'
-					title={tool.label ?? `Tool ${index}`}
-					variant='outline'
-					disabled={!isMapReady}
-					className={cn(
-						isChatOpen &&
-							'text-text-primary bg-primary-500 border-2 border-primary-500/20',
-						'active:scale-95'
-					)}
-				>
-					{tool.icon}
-				</Button>
-			);
 		}
 
 		if (tool.id === 'comments') {
@@ -564,19 +517,6 @@ export const Toolbar = ({
 				>
 					<Fullscreen className='size-4' />
 					Reset Zoom
-				</DropdownMenuItem>
-			);
-		}
-
-		if (tool.id === 'chat') {
-			return (
-				<DropdownMenuItem
-					key='mobile-overflow-chat'
-					className={mobileOverflowItemClass}
-					onClick={() => onToolChange('chat')}
-				>
-					<MessageCircle className='size-4' />
-					{isChatOpen ? 'Close AI Chat' : 'Open AI Chat'}
 				</DropdownMenuItem>
 			);
 		}

@@ -1,19 +1,41 @@
+'use client';
+
 import useAppStore from '@/store/mind-map-store';
 import { EdgeData } from '@/types/edge-data';
+import { cn } from '@/utils/cn';
 import { SquareX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { SidePanel } from '../side-panel';
 import { Button } from '../ui/button';
-import { FormField } from '../ui/form-field';
 import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Select } from '../ui/select';
+import {
+	Panel,
+	PanelFooterActions,
+	PanelFooterNote,
+	PanelRow,
+	PanelSection,
+	PanelField,
+	panelButtonClass,
+	panelInputClass,
+	panelSelectClass,
+} from '../ui/panel';
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from '../ui/select';
+import { Switch } from '../ui/switch';
+
 const markerEndOptions = [
 	{ value: 'none', label: 'None' },
-	{ value: 'arrow', label: 'Default Arrow' },
-	{ value: 'arrowclosed', label: 'Closed Arrow' },
+	{ value: 'arrow', label: 'Default arrow' },
+	{ value: 'arrowclosed', label: 'Closed arrow' },
 ];
+
+const clearButtonClass =
+	'size-10 shrink-0 rounded-[10px] border-white/10 bg-white/[0.04]';
 
 export default function EdgeEditModal() {
 	const {
@@ -28,7 +50,6 @@ export default function EdgeEditModal() {
 			popoverOpen: state.popoverOpen,
 			setPopoverOpen: state.setPopoverOpen,
 			updateEdge: state.updateEdge,
-			edges: state.edges,
 			nodes: state.nodes,
 			edgeInfo: state.edgeInfo,
 			setEdgeInfo: state.setEdgeInfo,
@@ -43,6 +64,12 @@ export default function EdgeEditModal() {
 	);
 	const [markerEnd, setMarkerEnd] = useState<string | undefined>(undefined);
 	const [isSaving, setIsSaving] = useState(false);
+	// Closing clears the store's edge; keep showing the last one while the panel slides out.
+	const [shownEdge, setShownEdge] = useState(edge);
+
+	if (edge && edge !== shownEdge) {
+		setShownEdge(edge);
+	}
 
 	useEffect(() => {
 		if (edge) {
@@ -53,6 +80,11 @@ export default function EdgeEditModal() {
 			setMarkerEnd(edge.data?.markerEnd || 'none');
 		}
 	}, [edge, isOpen]);
+
+	const handleOnClose = () => {
+		setPopoverOpen({ edgeEdit: false });
+		setEdgeInfo(null);
+	};
 
 	const handleSave = async () => {
 		if (!edge || isSaving) return;
@@ -73,191 +105,185 @@ export default function EdgeEditModal() {
 		handleOnClose();
 	};
 
-	if (!edge) return null;
+	const viewEdge = edge ?? shownEdge;
+
+	if (!viewEdge) return null;
 
 	const sourceNodeContent =
-		nodes.find((n) => n.id === edge.source)?.data?.content || edge.source;
+		nodes.find((n) => n.id === viewEdge.source)?.data?.content ||
+		viewEdge.source;
 	const targetNodeContent =
-		nodes.find((n) => n.id === edge.target)?.data?.content || edge.target;
+		nodes.find((n) => n.id === viewEdge.target)?.data?.content ||
+		viewEdge.target;
 
 	// Extract text content safely without using innerHTML (prevents XSS)
 	const getContentSnippet = (content: string | undefined): string => {
 		if (!content) return '<Empty>';
 		// Strip HTML tags using regex instead of innerHTML to prevent XSS
-		const textContent = content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+		const textContent = content
+			.replace(/<[^>]*>/g, ' ')
+			.replace(/\s+/g, ' ')
+			.trim();
 		return textContent.length > 30
 			? textContent.substring(0, 30) + '...'
 			: textContent || '<Empty>';
 	};
 
-	const handleOnClose = () => {
-		setPopoverOpen({ edgeEdit: false });
-		setEdgeInfo(null);
-	};
-
 	return (
-		<SidePanel
-			isOpen={isOpen}
-			key={edge?.id}
-			onClose={handleOnClose}
-			title={`Edit Connection`}
+		<Panel
+			footer={
+				<>
+					<PanelFooterNote>Changes apply to this connection only</PanelFooterNote>
+
+					<PanelFooterActions>
+						<Button
+							className={panelButtonClass}
+							disabled={isSaving}
+							onClick={handleOnClose}
+							variant='ghost'
+						>
+							Cancel
+						</Button>
+
+						<Button
+							className={panelButtonClass}
+							disabled={isSaving}
+							onClick={handleSave}
+						>
+							{isSaving ? 'Saving...' : 'Save changes'}
+						</Button>
+					</PanelFooterActions>
+				</>
+			}
+			onOpenChange={(open) => {
+				if (!open) handleOnClose();
+			}}
+			open={isOpen}
+			title='Edit connection'
 		>
-			<div className='flex flex-col gap-4'>
-				<p className='text-sm text-zinc-400'>
-					<span>From: </span>
+			<PanelSection label='Connection'>
+				<PanelRow
+					description={getContentSnippet(sourceNodeContent)}
+					singleLine
+					title='From'
+				/>
 
-					<span className='font-semibold text-zinc-200 italic'>
-						{getContentSnippet(sourceNodeContent)}
-					</span>
-				</p>
+				<PanelRow
+					description={getContentSnippet(targetNodeContent)}
+					singleLine
+					title='To'
+				/>
+			</PanelSection>
 
-				<p className='text-sm text-zinc-400'>
-					<span>To: </span>
+			<PanelSection label='Properties'>
+				<PanelField htmlFor='edgeLabel' label='Label'>
+					<Input
+						className={panelInputClass}
+						id='edgeLabel'
+						onChange={(e) => setLabel(e.target.value)}
+						placeholder='e.g., leads to, is part of'
+						type='text'
+						value={label}
+					/>
+				</PanelField>
 
-					<span className='font-semibold text-zinc-200 italic'>
-						{getContentSnippet(targetNodeContent)}
-					</span>
-				</p>
+				<div className='mt-3.5 flex items-center justify-between gap-4'>
+					<label
+						className='text-[13px] font-medium text-text-primary'
+						htmlFor='edgeAnimated'
+					>
+						Animated
+					</label>
 
-				<hr className='my-2 border-zinc-700' />
+					<label className='shrink-0 cursor-pointer' htmlFor='edgeAnimated'>
+						<Switch
+							checked={animated}
+							id='edgeAnimated'
+							onCheckedChange={setAnimated}
+							role='switch'
+						/>
+					</label>
+				</div>
+			</PanelSection>
 
-				<div>
-					<h3 className='text-md mb-2 font-semibold text-zinc-200'>
-						Properties
-					</h3>
-
-					<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-						<FormField id='edgeLabel' label='Label'>
+			<PanelSection label='Appearance'>
+				<div className='grid grid-cols-2 gap-3'>
+					<PanelField className='mt-0' htmlFor='edgeColor' label='Color'>
+						<div className='flex items-center gap-2'>
 							<Input
-								id='edgeLabel'
-								onChange={(e) => setLabel(e.target.value)}
-								placeholder='e.g., leads to, is part of'
-								type='text'
-								value={label}
+								className={cn(panelInputClass, 'cursor-pointer p-1')}
+								id='edgeColor'
+								onChange={(e) => setColor(e.target.value)}
+								type='color'
+								value={color || '#000000'}
 							/>
-						</FormField>
 
-						<div>
-							<FormField id='edgeAnimated' label='Animated'>
-								<Input
-									checked={animated}
-									className='mr-2 rounded border-zinc-600 text-primary-600 shadow-sm focus:ring-primary-500 disabled:opacity-50'
-									onChange={(e) => setAnimated(e.target.checked)}
-									type='checkbox'
-								/>
-							</FormField>
+							{color && (
+								<Button
+									aria-label='Reset color'
+									className={clearButtonClass}
+									onClick={() => setColor(undefined)}
+									size='icon'
+									variant='outline'
+								>
+									<SquareX className='size-4' />
+								</Button>
+							)}
 						</div>
-					</div>
+					</PanelField>
+
+					<PanelField className='mt-0' htmlFor='strokeWidth' label='Stroke width (px)'>
+						<div className='flex items-center gap-2'>
+							<Input
+								className={panelInputClass}
+								id='strokeWidth'
+								max='10'
+								min='1'
+								placeholder='e.g. 2'
+								type='number'
+								value={strokeWidth ?? ''}
+								onChange={(e) => {
+									const value = parseInt(e.target.value, 10);
+									setStrokeWidth(isNaN(value) || value <= 0 ? undefined : value);
+								}}
+							/>
+
+							{strokeWidth !== undefined && (
+								<Button
+									aria-label='Reset stroke width'
+									className={clearButtonClass}
+									onClick={() => setStrokeWidth(undefined)}
+									size='icon'
+									variant='outline'
+								>
+									<SquareX className='size-4' />
+								</Button>
+							)}
+						</div>
+					</PanelField>
 				</div>
 
-				<div>
-					<h3 className='text-md mb-2 font-semibold text-zinc-200'>
-						Appearance
-					</h3>
+				<PanelField htmlFor='markerEnd' label='Arrow style'>
+					<Select
+						value={markerEnd || 'none'}
+						onValueChange={(value) =>
+							setMarkerEnd(value === 'none' ? undefined : (value as string))
+						}
+					>
+						<SelectTrigger className={panelSelectClass} id='markerEnd'>
+							<SelectValue />
+						</SelectTrigger>
 
-					<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-						<div className='flex flex-col gap-2'>
-							<Label
-								className='block text-sm font-medium text-zinc-400'
-								htmlFor='edgeColor'
-							>
-								Color
-							</Label>
-
-							<div className='flex items-center gap-2'>
-								<Input
-									id='edgeColor'
-									onChange={(e) => setColor(e.target.value)}
-									type='color'
-									value={color || '#000000'}
-								/>
-
-								{color && (
-									<Button
-										onClick={() => setColor(undefined)}
-										size='icon'
-										variant='outline'
-									>
-										<SquareX className='size-4' />
-									</Button>
-								)}
-							</div>
-						</div>
-
-						{/* Stroke Width Input */}
-						<div className='flex flex-col gap-2'>
-							<Label
-								className='block text-sm font-medium text-zinc-400'
-								htmlFor='strokeWidth'
-							>
-								Stroke Width (px)
-							</Label>
-
-							<div className='flex items-center gap-2'>
-								<Input
-									id='strokeWidth'
-									max='10'
-									min='1'
-									placeholder='e.g. 2'
-									type='number'
-									value={strokeWidth ?? ''}
-									onChange={(e) => {
-										const value = parseInt(e.target.value, 10);
-										setStrokeWidth(
-											isNaN(value) || value <= 0 ? undefined : value
-										);
-									}}
-								/>
-
-								{strokeWidth !== undefined && (
-									<Button
-										onClick={() => setStrokeWidth(undefined)}
-										size='icon'
-										variant='outline'
-									>
-										<SquareX className='size-4' />
-									</Button>
-								)}
-							</div>
-						</div>
-
-						{/* Marker End Select */}
-						<div>
-							<Label
-								className='block text-sm font-medium text-zinc-400'
-								htmlFor='markerEnd'
-							>
-								Arrow Style (Marker End)
-							</Label>
-
-							<Select
-								value={markerEnd || 'none'}
-								onValueChange={(value) =>
-									setMarkerEnd(value === 'none' ? undefined : value)
-								}
-							>
-								{markerEndOptions.map((option) => (
-									<option key={option.value} value={option.value}>
-										{option.label}
-									</option>
-								))}
-							</Select>
-						</div>
-					</div>
-				</div>
-
-				{/* Keep footer outside the scrollable area if SidePanel doesn't include one */}
-				{/* If SidePanel's children area scrolls, footer needs to be positioned separately or within */}
-				<div className='mt-auto flex shrink-0 justify-end gap-3 border-t border-zinc-700 pt-4'>
-					<Button disabled={isSaving} onClick={handleOnClose} variant='outline'>
-						Cancel
-					</Button>
-
-					<Button disabled={isSaving} onClick={handleSave}>
-						{isSaving ? 'Saving...' : 'Save Changes'}
-					</Button>
-				</div>
-			</div>
-		</SidePanel>
+						<SelectContent>
+							{markerEndOptions.map((option) => (
+								<SelectItem key={option.value} value={option.value}>
+									{option.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</PanelField>
+			</PanelSection>
+		</Panel>
 	);
 }

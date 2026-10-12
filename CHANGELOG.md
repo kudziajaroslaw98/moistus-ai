@@ -7,6 +7,19 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ## [2026-10-12]
 
+### Changed
+
+- **side panels**: Every side panel is now one component, `Panel` (`src/components/ui/panel.tsx`), with the mobile menu's look: sticky header with the map name as subtitle, underline tabs where there are real modes (Share, Account), flat sections with small caps labels instead of cards, 52px rows, one field style and one pinned footer. Map Settings, Share, History, Account, Edge edit, Recipes, Plugins, the mobile menu, the landing drawer and the plugin sheets (versions, submission and report review) all use it
+  - Form panels and menus are modal (dim, Esc and a click outside close them). Recipes, Plugins and History stay docked beside the canvas, so the map stays usable. On a phone History is modal, and "Focus on canvas" closes it before panning
+  - Share and Edge edit now slide out when closed. Share's room code settings are always visible instead of in a collapsible, and the room codes are flat rows. Share keeps working with the same test ids
+  - Why: the panels had drifted into three shells with different headers, sections, footers and colors
+- **side panels**: A panel could slide out of view when something inside it was scrolled into view (the Plugins panel's Developer form did this): the panel now clips instead of hiding its overflow
+- **dialogs**: Confirm dialogs (discard changes, delete map, cancel subscription, command palette) now sit above every panel (z-90 over the panels' z-80)
+  - Why: the sheet layer was above the dialog layer, so a confirm opened from a panel would have rendered behind it
+
+- **plugin-review**: The preview of a submitted plugin is live: a reviewer can press its buttons and watch the view change, with a Reset link back to the example (nothing is saved, and the code only loads in the sandbox when the first button is pressed). The checks now return each example's data with its preview
+  - Why: the preview was a static picture, so a reviewer couldn't see what the buttons do
+
 ### Fixed
 
 - **plugins/playground**: "Load the newer version" after a revision conflict now shows the newer manifest. The locked `"id"` line is a change filter, and the editor replaced the whole document, so the filter dropped the entire change and the editor kept the old text; the next keystroke then overwrote the newer manifest on autosave. Loading from outside now skips the filter (typing is still filtered)
@@ -19,6 +32,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: edited `shiko.threads` 0.1.0 in place (new fingerprint in `catalog.ts`), because it isn't on `main` or in production yet; once it ships, a change like this needs a new version folder
 - **plugins/my-plugins**: "Edit as new draft" says when it opens a draft you already had, based on another version ("You already have a draft of this plugin, based on 0.3.0. Opened that one."). It used to open it with no word. There is still one draft per plugin
 
+### Removed
+
+- **ai/chat**: The AI chat panel is gone (panel, toolbar button, `chat-slice`, `POST /api/ai/chat`, the `NEXT_PUBLIC_ENABLE_AI_CHAT` flag). It was behind a flag and not shipping
+  - Why: the feature is dropped. `NEXT_PUBLIC_ENABLE_AI_CHAT` can be deleted from Vercel and `.env` files
+- **side panels**: Deleted the old `SidePanel` shell and its test (no panel uses it any more)
+- **ai/context**: Removed `buildContextPrompt` and `buildFullMapContext` (only the removed chat used them) and their tests
+- **ai/modals**: Removed the unused "generate from nodes" and "AI content prompt" modals and the unused `POST /api/generate-answer` route. Nothing opened them or called the route
+
 ### Refactored
 
 - **plugins/drafts**: One `hasAccount` predicate for the palette commands that need a signed-in account (it was written twice, as `canSaveRecipes` too); `parseObject` and a `utf8ByteLength` helper shared by the draft routes instead of local copies; "Edit as new draft" reads the plugin, its versions and the chosen version in one `Promise.all` instead of three round trips in a row
@@ -26,6 +47,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 ### Docs
 
 - **database**: `plugin_drafts` (table, RLS, constraints, `guard_plugin_drafts` trigger) applied to production through the Supabase MCP as `create_plugin_drafts` (20261012081504), with the migration's own `begin`/`commit` left out because the MCP wraps it. Its catalog was compared with the local database and matches; prod has no drafts yet
+- **legal**: Privacy (§6 Data Retention) and Terms (§8.2 Data Sent to AI) no longer mention AI chat history or chat messages, and both "Last updated" dates read October 12, 2026
 
 ---
 
@@ -84,7 +106,6 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - CLAUDE.md: "Plugin playground" gotcha; the migration note now says migrations stay local-only and are applied through the Supabase MCP (the old "must be force-added" was wrong)
 - CODEBASE_MAP.md: drafts routes, playground files, dashboard frame note, Plugins tabs and My plugins rows
 - CLAUDE.md: Plugin playground entry paths now describe the Write a plugin tab and the one-list My plugins
-
 ---
 
 ## [2026-10-10]

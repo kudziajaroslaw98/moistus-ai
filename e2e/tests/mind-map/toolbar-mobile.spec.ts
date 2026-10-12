@@ -42,7 +42,6 @@ test.describe('Mobile Toolbar', () => {
 		await toolbarPage.expectExportButtonHidden();
 		await toolbarPage.expectGuidedTourButtonHidden();
 		await toolbarPage.expectZoomButtonHidden();
-		await toolbarPage.expectAiChatButtonHidden();
 	});
 
 	test('shows secondary actions in More menu', async ({ page }) => {
@@ -63,13 +62,6 @@ test.describe('Mobile Toolbar', () => {
 		await expect(
 			page.locator('[role="menuitemradio"]:has-text("PNG Image")').first()
 		).toBeVisible();
-
-		const optionalChatItem = toolbarPage.moreMenu
-			.locator('[role="menuitem"]:has-text("AI Chat")')
-			.first();
-		if ((await optionalChatItem.count()) > 0) {
-			await expect(optionalChatItem).toBeVisible();
-		}
 	});
 
 	test('hides keyboard shortcuts FAB on mobile', async ({ page }) => {

@@ -43,20 +43,15 @@ export function HistoryFilterBar({
 						onClick={() => onChange(filter.value)}
 						type='button'
 						className={cn(
-							'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60',
+							'inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[12.5px] transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
 							isActive
-								? 'border-white/20 bg-white/[0.1] text-white'
-								: 'border-white/[0.08] text-white/65 hover:border-white/15 hover:text-white/90'
+								? 'border-white/22 bg-white/[0.09] text-text-primary'
+								: 'border-white/14 text-text-secondary hover:bg-white/[0.04] hover:text-text-primary'
 						)}
 					>
 						{filter.label}
 
-						<span
-							className={cn(
-								'tabular-nums text-[12px]',
-								isActive ? 'text-white/60' : 'text-white/40'
-							)}
-						>
+						<span className='tabular-nums text-[12px] text-text-tertiary'>
 							{counts[filter.value]}
 						</span>
 					</button>
