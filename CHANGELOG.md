@@ -23,6 +23,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **plugins/drafts**: One `hasAccount` predicate for the palette commands that need a signed-in account (it was written twice, as `canSaveRecipes` too); `parseObject` and a `utf8ByteLength` helper shared by the draft routes instead of local copies; "Edit as new draft" reads the plugin, its versions and the chosen version in one `Promise.all` instead of three round trips in a row
 
+### Docs
+
+- **database**: `plugin_drafts` (table, RLS, constraints, `guard_plugin_drafts` trigger) applied to production through the Supabase MCP as `create_plugin_drafts` (20261012081504), with the migration's own `begin`/`commit` left out because the MCP wraps it. Its catalog was compared with the local database and matches; prod has no drafts yet
+
 ---
 
 ## [2026-10-11]
