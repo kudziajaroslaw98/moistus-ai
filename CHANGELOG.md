@@ -28,7 +28,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **history**: Manual checkpoints failed on any map with links (`coalesce(text, boolean)` in `create_history_checkpoint_and_prune`); fixed by the boolean column
 - **security**: Database functions that took a user id from the caller and never checked it (cross-map search, node creation from the canvas, reference nodes, AI usage counters) now require the caller's own id, check map access, cap search results at 50, and are no longer callable by signed-out visitors. Server-only and unused functions can only be run by the server
   - Why: on production anyone could read another user's node text through search or write nodes into other people's maps
-  - Database change: untracked migration `20261013113000_definer_functions_use_auth_uid.sql`, applied locally; production after review
+  - Database change: untracked migration `20261013113000_definer_functions_use_auth_uid.sql`, applied locally and to production on 2026-10-13
 
 ## [2026-10-12]
 
