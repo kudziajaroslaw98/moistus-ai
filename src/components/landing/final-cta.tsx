@@ -1,10 +1,11 @@
 'use client';
 
 import { useReducedMotion } from 'motion/react';
+import Image from 'next/image';
 import { StartMappingLink } from './start-mapping-link';
 
 const footerLinks = [
-	{ label: 'Features', href: '#features' },
+	{ label: 'How a map grows', href: '#story' },
 	{ label: 'Pricing', href: '#pricing' },
 	{ label: 'FAQ', href: '#faq' },
 	{ label: 'Privacy', href: '/privacy' },
@@ -33,55 +34,50 @@ export function FinalCta() {
 	};
 
 	return (
-		<footer className='relative overflow-hidden bg-background'>
-			<div className='absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/30 to-transparent' />
+		<footer className='relative overflow-hidden bg-zinc-950'>
+			<div className='mx-auto max-w-[1200px] px-6 lg:px-8'>
+				<div className='pt-40'>
+					<div className='relative overflow-hidden rounded-[28px] border border-white/8 bg-[#040404] px-6 py-24 text-center [background-image:radial-gradient(circle,rgba(255,255,255,0.12)_0.6px,transparent_1px)] [background-size:16px_16px]'>
+						<h2 className='font-lora text-[2.5rem] font-semibold leading-none tracking-tight text-text-primary md:text-[4.5rem]'>
+							Start with{' '}
 
-			<div className='mx-auto max-w-6xl px-6 sm:px-6 lg:px-8'>
-				<div className='py-14 sm:py-16'>
-					<div className='relative overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(16,20,28,0.94),rgba(10,12,18,0.88))] px-6 py-10 shadow-[0_20px_70px_rgba(0,0,0,0.28)] md:px-10 md:py-12'>
-						<div className='absolute inset-x-[12%] top-8 h-28 rounded-full bg-primary-500/10 blur-3xl' />
-						<div className='relative flex flex-col gap-8 text-center lg:flex-row lg:items-end lg:justify-between lg:text-left'>
-							<div className='mx-auto max-w-2xl lg:mx-0'>
-								<p className='text-[0.72rem] font-semibold uppercase tracking-[0.34em] text-primary-300/70'>
-									Ready to start
-								</p>
-								<h2 className='mx-auto mt-5 max-w-[15ch] text-balance font-lora text-[2.35rem] font-bold leading-[0.98] tracking-tight text-text-primary md:max-w-[14ch] md:text-[3.35rem] lg:mx-0 lg:max-w-[12ch]'>
-									Start with the idea. Leave with clarity.
-								</h2>
-								<p className='mx-auto mt-4 max-w-[34rem] text-[1.03rem] leading-7 text-text-secondary lg:mx-0'>
-									Open a map, get the work down fast, and keep moving while it
-									becomes clear enough to share.
-								</p>
-							</div>
+							<em className='font-medium text-brand-coral'>one thought.</em>
+						</h2>
 
-							<div className='group inline-block'>
-								<StartMappingLink
-									className='inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-base font-semibold text-neutral-900 shadow-[0_12px_36px_rgba(255,255,255,0.14)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_18px_42px_rgba(255,255,255,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-									showArrow
-									arrowClassName='h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5'
-								/>
-							</div>
+						<p className='mx-auto mt-5 max-w-lg text-lg leading-relaxed text-text-secondary'>
+							Shiko will help you find the rest. Free for personal use.
+						</p>
+
+						<div className='group mt-10 inline-block'>
+							<StartMappingLink
+								showArrow
+								arrowClassName='h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5'
+								className='inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-white px-6 text-base font-semibold text-neutral-900 shadow-[0_12px_36px_rgba(255,255,255,0.12)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_18px_42px_rgba(255,255,255,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+							/>
 						</div>
 					</div>
 				</div>
 
-				<div className='flex flex-col items-center justify-between gap-4 border-t border-white/[0.06] py-6 sm:flex-row'>
-					<span className='text-sm font-medium text-text-primary'>Shiko</span>
+				<div className='mt-24 flex flex-col items-center justify-between gap-4 border-t border-white/[0.06] py-7 sm:flex-row'>
+					<span className='flex items-center gap-2.5 text-sm font-semibold text-text-primary'>
+						<Image alt='' height={18} src='/images/shiko-logo.svg' width={18} />
+						Shiko
+					</span>
 
-					<nav className='flex items-center gap-6'>
+					<nav aria-label='Footer' className='flex flex-wrap items-center justify-center gap-x-6 gap-y-1'>
 						{footerLinks.map((link) => (
 							<a
-								key={link.label}
+								className='rounded-sm py-2.5 text-sm text-text-tertiary transition-colors duration-200 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
 								href={link.href}
+								key={link.label}
 								onClick={(e) => handleLinkClick(e, link.href)}
-								className='text-sm text-text-tertiary hover:text-text-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm'
 							>
 								{link.label}
 							</a>
 						))}
 					</nav>
 
-					<span className='text-sm text-text-tertiary' suppressHydrationWarning>
+					<span suppressHydrationWarning className='text-sm text-text-tertiary'>
 						© {currentYear} Shiko
 					</span>
 				</div>

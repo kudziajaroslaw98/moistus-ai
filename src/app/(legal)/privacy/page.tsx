@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 		'Learn how Shiko collects, uses, and protects your personal information. GDPR and CCPA compliant.',
 };
 
-const EFFECTIVE_DATE = 'January 23, 2026';
+const EFFECTIVE_DATE = 'October 12, 2026';
 const CONTACT_EMAIL = 'support@shiko.app';
 
 export default function PrivacyPolicyPage() {
@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
 					Privacy Policy
 				</h1>
 				<p className='text-text-secondary'>
-					Last updated: <time dateTime='2026-01-23'>{EFFECTIVE_DATE}</time>
+					Last updated: <time dateTime='2026-10-12'>{EFFECTIVE_DATE}</time>
 				</p>
 			</header>
 
@@ -185,7 +185,8 @@ export default function PrivacyPolicyPage() {
 					</li>
 					<li>
 						<strong>Process AI features</strong> — Send relevant content to our
-						AI provider (OpenAI) to generate suggestions and answers
+						AI provider (OpenAI) to generate suggestions and recipe results and
+						to search your nodes
 					</li>
 					<li>
 						<strong>Process payments</strong> — Manage subscriptions through our
@@ -292,7 +293,10 @@ export default function PrivacyPolicyPage() {
 								<td className='py-3 px-4'>OpenAI</td>
 								<td className='py-3 px-4'>AI features</td>
 								<td className='py-3 px-4'>US</td>
-								<td className='py-3 px-4'>Node content for AI processing</td>
+								<td className='py-3 px-4'>
+									Map title and description, node text and tags, recipe
+									instructions, search queries
+								</td>
 							</tr>
 							<tr className='border-b border-border-subtle/50'>
 								<td className='py-3 px-4'>Vercel</td>
@@ -324,13 +328,55 @@ export default function PrivacyPolicyPage() {
 					it in your profile.
 				</p>
 
-				<h3>5.3 Legal Requirements</h3>
+				<h3 id='plugins' className='scroll-mt-24'>5.3 Plugins</h3>
+				<p>
+					Plugins add new kinds of nodes to a map. Only a map&apos;s owner can
+					turn a plugin on, and Shiko reviews every plugin it offers. Plugins
+					you load from your own computer in Developer mode run only for you.
+				</p>
+				<ul>
+					<li>
+						Most plugins work only with their own nodes and send nothing
+						anywhere. Plugins that read other nodes, whether the nodes under
+						them or the nodes you link to them, can&apos;t connect to any
+						site, so what they read stays in your browser.
+					</li>
+					<li>
+						A plugin that connects to another site, such as GitHub or
+						Wikipedia, names that site and who runs it, with a link to their
+						privacy policy, before anything is sent. It connects only when
+						someone who can edit the map adds the plugin&apos;s node, edits it
+						or presses Refresh. That person&apos;s browser sends the site what
+						was typed into that one node (for example an issue address or a
+						topic), along with what every browser request includes, such as
+						their IP address. No cookies or Shiko account details are sent.
+						The site handles that information under its own privacy policy.
+					</li>
+					<li>
+						What the site sends back is saved in the map, so everyone else sees
+						it without contacting the site. Viewing a map never makes your
+						browser contact a plugin&apos;s site.
+					</li>
+					<li>
+						If you report a plugin, Shiko&apos;s reviewers see your report and,
+						only if you choose to attach it, the plugin data of the one node you
+						selected. The plugin&apos;s author never sees who reported it or
+						what was attached.
+					</li>
+				</ul>
+				<p>
+					Sites that plugins connect to are not Shiko subprocessors: Shiko
+					doesn&apos;t send them your data. The request comes from the browser
+					of the person who adds or refreshes the node.
+				</p>
+
+				<h3>5.4 Legal Requirements</h3>
 				<p>
 					We may disclose your information if required by law, court order, or
 					government request.
 				</p>
 
-				<h3>5.4 Business Transfers</h3>
+				<h3>5.5 Business Transfers</h3>
 				<p>
 					If Shiko is involved in a merger, acquisition, or sale of assets, your
 					information may be transferred as part of that transaction. We will
@@ -351,10 +397,6 @@ export default function PrivacyPolicyPage() {
 						<strong>Deleted accounts</strong> — When you delete your account, we
 						will delete your personal data within 30 days, except where we are
 						required to retain it for legal purposes
-					</li>
-					<li>
-						<strong>AI chat history</strong> — Chat conversations with AI are
-						ephemeral and are not stored on our servers after your session ends
 					</li>
 					<li>
 						<strong>Backups</strong> — Backups may retain deleted data for up to

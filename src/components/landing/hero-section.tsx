@@ -1,169 +1,99 @@
 'use client';
 
-import { cn } from '@/utils/cn';
-import { Keyboard, Sparkles, Users } from 'lucide-react';
+import { ArrowDown } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { HeroBackground } from './hero-background';
-import { HeroMapScene } from './hero-map-scene';
+import { HeroFrame } from './product/hero-frame';
 import { StartMappingLink } from './start-mapping-link';
 
 const EASE_OUT_QUART = [0.165, 0.84, 0.44, 1] as const;
 
-const heroPoints = [
-	{
-		icon: Keyboard,
-		label: 'Command-aware capture',
-	},
-	{
-		icon: Sparkles,
-		label: 'Ghost-node AI guidance',
-	},
-	{
-		icon: Users,
-		label: 'Live shared canvases',
-	},
-] as const;
-
 export function HeroSection() {
 	const shouldReduceMotion = useReducedMotion() ?? false;
 
-	const scrollToFeatures = () => {
-		document.getElementById('features')?.scrollIntoView({
+	const scrollToStory = () => {
+		document.getElementById('story')?.scrollIntoView({
 			behavior: shouldReduceMotion ? 'auto' : 'smooth',
 		});
 	};
 
+	const enter = (delay: number, y: number) =>
+		shouldReduceMotion
+			? { initial: { opacity: 1, y: 0 }, transition: { duration: 0 } }
+			: {
+					initial: { opacity: 0, y },
+					transition: { duration: 0.5, ease: EASE_OUT_QUART, delay },
+				};
+
 	return (
 		<section
+			className='relative px-6 pb-4 pt-20 text-center sm:pt-24 lg:px-8'
 			id='hero'
-			className='relative isolate overflow-hidden bg-background px-6 pb-12 pt-24 sm:px-6 sm:pb-16 sm:pt-28 lg:px-8 lg:pb-24 lg:pt-32'
 		>
-			<HeroBackground />
+			<div className='mx-auto max-w-6xl'>
+				<motion.p
+					animate={{ opacity: 1, y: 0 }}
+					className='inline-flex items-center gap-2.5 rounded-full border border-white/8 bg-white/[0.03] px-3.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] text-text-secondary'
+					{...enter(0, 12)}
+				>
+					<span className='size-1.5 rounded-full bg-primary-400' />
+					Keyboard-first mind mapping
+				</motion.p>
 
-			<div className='relative mx-auto grid w-full max-w-6xl items-center gap-7 md:min-h-[calc(100svh-7rem)] md:gap-12 lg:grid-cols-[minmax(0,29rem)_minmax(0,1fr)] lg:gap-16'>
-				<div className='relative z-10 mx-auto max-w-xl text-center lg:mx-0 lg:text-left'>
-					<motion.p
-						initial={
-							shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 14 }
-						}
-						animate={{ opacity: 1, y: 0 }}
-						transition={
-							shouldReduceMotion
-								? { duration: 0 }
-								: { duration: 0.45, ease: EASE_OUT_QUART }
-						}
-						className='mx-auto inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.24em] text-text-secondary backdrop-blur-xl lg:mx-0'
-					>
-						<span className='h-1.5 w-1.5 rounded-full bg-primary-400' />
-						Keyboard-first mind mapping
-					</motion.p>
+				<motion.h1
+					animate={{ opacity: 1, y: 0 }}
+					className='mx-auto mt-7 max-w-[15ch] text-balance font-lora text-[2.75rem] font-semibold leading-none tracking-tight text-white sm:text-6xl lg:text-[6rem]'
+					{...enter(0.08, 24)}
+				>
+					Every plan starts as{' '}
 
-					<motion.h1
-						initial={
-							shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 26 }
-						}
-						animate={{ opacity: 1, y: 0 }}
-						transition={
-							shouldReduceMotion
-								? { duration: 0 }
-								: { duration: 0.58, ease: EASE_OUT_QUART, delay: 0.08 }
-						}
-						className='mx-auto mt-5 max-w-[17ch] text-balance font-lora text-[2.4rem] font-bold leading-[0.96] tracking-tight text-white sm:max-w-[15ch] sm:text-[3.2rem] md:max-w-[14ch] md:text-[3.85rem] lg:mx-0 lg:max-w-[12ch] lg:text-[4.3rem]'
-					>
-						Go from spark to clarity, fast.
-					</motion.h1>
+					<em className='font-medium text-brand-coral'>one loose thought.</em>
+				</motion.h1>
 
-					<motion.p
-						initial={
-							shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }
-						}
-						animate={{ opacity: 1, y: 0 }}
-						transition={
-							shouldReduceMotion
-								? { duration: 0 }
-								: { duration: 0.45, ease: EASE_OUT_QUART, delay: 0.18 }
-						}
-						className='mx-auto mt-7 max-w-[35rem] text-pretty text-[1.03rem] leading-7 text-text-secondary sm:text-lg lg:mx-0'
-					>
-						Don't let good momentum get buried in organization overhead.
-					</motion.p>
-
-					<motion.div
-						initial={
-							shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }
-						}
-						animate={{ opacity: 1, y: 0 }}
-						transition={
-							shouldReduceMotion
-								? { duration: 0 }
-								: { duration: 0.45, ease: EASE_OUT_QUART, delay: 0.28 }
-						}
-						className='mx-auto mt-5 flex max-w-sm flex-col items-stretch gap-3 sm:flex-row sm:items-center lg:mx-0 lg:mt-6 lg:max-w-none'
-					>
-						<StartMappingLink
-							className='landing-hero-primary-cta inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-base font-semibold text-neutral-900 shadow-[0_12px_40px_rgba(255,255,255,0.14)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-							showArrow
-							arrowClassName='landing-hero-primary-cta-arrow h-4 w-4 transition-transform duration-200'
-						/>
-						<button
-							onClick={scrollToFeatures}
-							className='landing-hero-secondary-cta inline-flex h-12 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 text-base font-medium text-text-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-						>
-							See the workflow
-						</button>
-					</motion.div>
-
-					<motion.div
-						initial={
-							shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 18 }
-						}
-						animate={{ opacity: 1, y: 0 }}
-						transition={
-							shouldReduceMotion
-								? { duration: 0 }
-								: { duration: 0.45, ease: EASE_OUT_QUART, delay: 0.38 }
-						}
-						className='mt-7 hidden gap-3 sm:grid sm:grid-cols-3'
-					>
-						{heroPoints.map((point, index) => {
-							const Icon = point.icon;
-
-							return (
-								<div
-									key={point.label}
-									className={cn(
-										'flex items-start gap-3 text-left',
-										index === 0
-											? 'pt-0'
-											: 'border-t border-white/8 pt-3 sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0'
-									)}
-								>
-									<Icon
-										aria-hidden='true'
-										className='mt-0.5 h-4 w-4 shrink-0 text-primary-300'
-									/>
-									<p className='text-sm font-medium leading-6 text-text-secondary'>
-										{point.label}
-									</p>
-								</div>
-							);
-						})}
-					</motion.div>
-				</div>
+				<motion.p
+					animate={{ opacity: 1, y: 0 }}
+					className='mx-auto mt-7 max-w-xl text-pretty text-lg leading-relaxed text-text-secondary sm:text-xl'
+					{...enter(0.16, 16)}
+				>
+					Shiko gives it room to grow. Capture it from the keyboard, let AI
+					suggest what&apos;s missing, and shape it with your team, on one live
+					canvas.
+				</motion.p>
 
 				<motion.div
-					initial={
-						shouldReduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }
-					}
 					animate={{ opacity: 1, y: 0 }}
-					transition={
-						shouldReduceMotion
-							? { duration: 0 }
-							: { duration: 0.6, ease: EASE_OUT_QUART, delay: 0.22 }
-					}
-					className='relative mx-auto w-full max-w-[22.5rem] overflow-visible sm:max-w-[27rem] md:max-w-[48rem] lg:mx-0 lg:w-[52rem] lg:max-w-none lg:translate-x-72 lg:justify-self-end xl:w-[56rem] xl:translate-x-80'
+					className='mt-9 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center'
+					{...enter(0.24, 14)}
 				>
-					<HeroMapScene />
+					<StartMappingLink
+						showArrow
+						arrowClassName='landing-hero-primary-cta-arrow h-4 w-4 transition-transform duration-200'
+						className='landing-hero-primary-cta inline-flex h-[52px] items-center justify-center gap-2 rounded-xl bg-white px-6 text-base font-semibold text-neutral-900 shadow-[0_12px_40px_rgba(255,255,255,0.12)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+					/>
+
+					<button
+						className='landing-hero-secondary-cta inline-flex h-[52px] cursor-pointer items-center justify-center gap-2.5 rounded-xl border border-[#292929] bg-white/[0.03] px-5 text-base font-medium text-text-primary transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+						onClick={scrollToStory}
+						type='button'
+					>
+						Watch a map grow
+						<ArrowDown aria-hidden='true' className='size-4' />
+					</button>
+				</motion.div>
+
+				<motion.p
+					animate={{ opacity: 1 }}
+					className='mt-4 text-sm text-text-tertiary'
+					{...enter(0.3, 0)}
+				>
+					Free for personal use · Runs in your browser
+				</motion.p>
+
+				<motion.div
+					animate={{ opacity: 1, y: 0 }}
+					className='mt-14'
+					{...enter(0.34, 28)}
+				>
+					<HeroFrame />
 				</motion.div>
 			</div>
 		</section>

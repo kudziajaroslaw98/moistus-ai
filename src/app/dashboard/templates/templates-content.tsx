@@ -1,31 +1,50 @@
 'use client';
 
-import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
+import {
+	CARD_MENU_TRIGGER_CLASS,
+	CardMenuIcon,
+	CatalogCard,
+	CatalogCardSkeleton,
+	CatalogEmptyState,
+	CatalogGrid,
+} from '@/components/dashboard/catalog-card';
+import {
+	CARD_BUTTON_CLASS,
+	DashboardPage,
+	PageHeading,
+} from '@/components/dashboard/dashboard-page';
+import { useDashboardSearch } from '@/components/dashboard/dashboard-shell-context';
+import {
+	UnderlineTab,
+	UnderlineTabsBar,
+	UnderlineTabsList,
+} from '@/components/dashboard/underline-tabs';
+import { ViewToggle } from '@/components/dashboard/view-toggle';
 import { DeleteMapConfirmationDialog } from '@/components/mind-map/delete-map-confirmation-dialog';
-import { Button } from '@/components/ui/button';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Tabs } from '@/components/ui/tabs';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
-import { cn } from '@/utils/cn';
+import type { DashboardViewMode } from '@/types/dashboard-map';
 import {
 	BarChart,
-	BookOpen,
 	Briefcase,
 	Calendar,
 	Code,
 	FileText,
 	GraduationCap,
-	Grid3x3,
 	Lightbulb,
-	List,
-	Loader2,
 	Pencil,
-	Plus,
 	Trash2,
 	User,
 	Zap,
 	type LucideIcon,
 } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -55,45 +74,40 @@ type TemplateCategory =
 	| 'personal'
 	| 'technical';
 
-// Category metadata
-const TEMPLATE_CATEGORIES: Record<
-	TemplateCategory,
-	{ label: string; icon: LucideIcon }
-> = {
-	creative: { label: 'Creative', icon: Lightbulb },
-	productivity: { label: 'Productivity', icon: Zap },
-	planning: { label: 'Planning', icon: Calendar },
-	analysis: { label: 'Analysis', icon: BarChart },
-	business: { label: 'Business', icon: Briefcase },
-	education: { label: 'Education', icon: GraduationCap },
-	personal: { label: 'Personal', icon: User },
-	technical: { label: 'Technical', icon: Code },
+const TEMPLATE_CATEGORIES: Record<TemplateCategory, string> = {
+	creative: 'Creative',
+	productivity: 'Productivity',
+	planning: 'Planning',
+	analysis: 'Analysis',
+	business: 'Business',
+	education: 'Education',
+	personal: 'Personal',
+	technical: 'Technical',
 };
 
-// Category colors
-const CATEGORY_COLORS: Record<TemplateCategory, string> = {
-	productivity: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-	planning: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-	analysis: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-	creative: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-	business: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
-	education: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-	personal: 'bg-pink-500/20 text-pink-400 border-pink-500/30',
-	technical: 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+// One accent hue per category, shared by every template in it.
+const CATEGORY_HUES: Record<TemplateCategory, number> = {
+	creative: 270,
+	productivity: 152,
+	planning: 214,
+	analysis: 38,
+	business: 244,
+	education: 188,
+	personal: 330,
+	technical: 14,
 };
 
-// Icon mapping
-const ICON_MAP: Record<string, LucideIcon> = {
-	Lightbulb,
-	Calendar,
-	BarChart,
-	Zap,
-	Briefcase,
-	GraduationCap,
-	User,
-	Code,
-	FileText,
-	BookOpen,
+// Covers are icon-per-category: the `icon` stored on each template row is
+// not used here.
+const CATEGORY_ICONS: Record<TemplateCategory, LucideIcon> = {
+	creative: Lightbulb,
+	productivity: Zap,
+	planning: Calendar,
+	analysis: BarChart,
+	business: Briefcase,
+	education: GraduationCap,
+	personal: User,
+	technical: Code,
 };
 
 // SWR fetcher with proper error handling
@@ -111,12 +125,11 @@ interface TemplateCardProps {
 	template: TemplateFromAPI;
 	onUse: (templateId: string) => void;
 	onView: (templateDbId: string) => void;
-	/** Admin-only; when set, Edit/Delete controls are shown. */
+	/** Admin-only; when set, the card gets an Edit/Delete menu. */
 	onDelete?: (template: TemplateFromAPI) => void;
 	isCreating: boolean;
 	isAtMapLimit: boolean;
-	viewMode: 'grid' | 'list';
-	index: number;
+	viewMode: DashboardViewMode;
 }
 
 const TemplateCard = memo(function TemplateCard({
@@ -127,265 +140,77 @@ const TemplateCard = memo(function TemplateCard({
 	isCreating,
 	isAtMapLimit,
 	viewMode,
-	index,
 }: TemplateCardProps) {
-	const [isHovered, setIsHovered] = useState(false);
-	const prefersReducedMotion = useReducedMotion();
-	const Icon = ICON_MAP[template.icon] || FileText;
-	const CategoryIcon = TEMPLATE_CATEGORIES[template.category]?.icon || FileText;
-
-	const gradientStyle = useMemo(() => {
-		if (!template.previewColors?.length) {
-			return {
-				background: 'linear-gradient(135deg, #3f3f46 0%, #27272a 100%)',
-			};
-		}
-		const colors = template.previewColors;
-		return {
-			background: `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1] || colors[0]} 50%, ${colors[2] || colors[0]} 100%)`,
-		};
-	}, [template.previewColors]);
-
-	const handleCardClick = () => {
-		onView(template.id);
-	};
-
-	const handleUseClick = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		onUse(template.templateId);
-	};
-
-	const adminActions = onDelete ? (
-		<div className='flex items-center gap-1'>
-			<Button
-				aria-label={`Edit template ${template.name}`}
-				className='h-7 w-7'
-				size='icon'
-				title='Edit template'
-				variant='ghost'
-				onClick={(e) => {
-					e.stopPropagation();
-					onView(template.id);
-				}}
-			>
-				<Pencil className='w-3.5 h-3.5' />
-			</Button>
-
-			<Button
-				aria-label={`Delete template ${template.name}`}
-				className='h-7 w-7 text-error-400 hover:text-error-300'
-				size='icon'
-				title='Delete template'
-				variant='ghost'
-				onClick={(e) => {
-					e.stopPropagation();
-					onDelete(template);
-				}}
-			>
-				<Trash2 className='w-3.5 h-3.5' />
-			</Button>
-		</div>
-	) : null;
-
-	if (viewMode === 'list') {
-		return (
-			<motion.div
-				initial={{ opacity: 0, x: prefersReducedMotion ? 0 : -12 }}
-				animate={{ opacity: 1, x: 0 }}
-				transition={
-					prefersReducedMotion
-						? { duration: 0 }
-						: { delay: index * 0.02, duration: 0.2 }
-				}
-				onClick={handleCardClick}
-				className={cn(
-					'group flex items-center gap-4 p-4 rounded-xl cursor-pointer',
-					'bg-zinc-900/50 border border-zinc-800/50',
-					'hover:bg-zinc-800/50 hover:border-zinc-700/50',
-					'transition-all duration-200'
-				)}
-			>
-				<div
-					className='w-12 h-12 rounded-lg flex items-center justify-center shrink-0'
-					style={gradientStyle}
-				>
-					<Icon className='w-6 h-6 text-white' />
-				</div>
-				<div className='flex-grow min-w-0'>
-					<div className='flex items-center gap-2 mb-1'>
-						<h3 className='font-medium text-white truncate'>{template.name}</h3>
-						<span
-							className={cn(
-								'px-2 py-0.5 rounded-full text-xs font-medium border',
-								CATEGORY_COLORS[template.category]
-							)}
-						>
-							{TEMPLATE_CATEGORIES[template.category]?.label}
-						</span>
-					</div>
-					<p className='text-sm text-zinc-400 line-clamp-1'>
-						{template.description}
-					</p>
-				</div>
-				<div className='hidden sm:flex items-center gap-4 text-xs text-zinc-500'>
-					<span>{template.nodeCount} nodes</span>
-					<span>{template.usageCount} uses</span>
-				</div>
-
-				{adminActions}
-				<Button
-					size='sm'
-					onClick={handleUseClick}
+	return (
+		<CatalogCard
+			description={template.description}
+			hue={CATEGORY_HUES[template.category] ?? 214}
+			icon={CATEGORY_ICONS[template.category] ?? FileText}
+			meta={`${template.nodeCount} nodes · ${template.usageCount} uses`}
+			onOpen={() => onView(template.id)}
+			title={template.name}
+			viewMode={viewMode}
+			action={
+				<button
+					className={CARD_BUTTON_CLASS}
 					disabled={isCreating || isAtMapLimit}
-					className='opacity-0 group-hover:opacity-100 transition-opacity'
+					onClick={() => onUse(template.templateId)}
+					type='button'
 				>
-					<Plus className='w-4 h-4 mr-1' />
-					{isAtMapLimit ? 'Limit reached' : 'Use'}
-				</Button>
-			</motion.div>
-		);
-	}
-
-	return (
-		<motion.div
-			initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 12 }}
-			animate={{ opacity: 1, y: 0 }}
-			transition={
-				prefersReducedMotion
-					? { duration: 0 }
-					: { delay: index * 0.03, duration: 0.2 }
+					{isAtMapLimit ? 'Limit reached' : 'Use template'}
+				</button>
 			}
-			onClick={handleCardClick}
-			onMouseEnter={() => setIsHovered(true)}
-			onMouseLeave={() => setIsHovered(false)}
-			className={cn(
-				'group relative rounded-xl overflow-hidden cursor-pointer',
-				'bg-zinc-900/50 border border-zinc-800/50',
-				'hover:border-zinc-700/50',
-				'transition-all duration-200'
-			)}
-		>
-			<div className='relative h-32' style={gradientStyle}>
-				<div className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20' />
-				<div
-					className={cn(
-						'absolute top-3 left-3 p-2 rounded-lg',
-						'bg-black/30 backdrop-blur-sm',
-						'transition-transform duration-200',
-						isHovered && 'scale-110'
-					)}
-				>
-					<Icon className='w-5 h-5 text-white/90' />
-				</div>
-				<div
-					className={cn(
-						'absolute top-3 right-3 flex items-center gap-1.5 px-2 py-1 rounded-full',
-						'text-xs font-medium border backdrop-blur-sm',
-						CATEGORY_COLORS[template.category]
-					)}
-				>
-					<CategoryIcon className='w-3 h-3' />
-					{TEMPLATE_CATEGORIES[template.category]?.label}
-				</div>
-				<div className='absolute bottom-0 left-0 right-0 p-3'>
-					<h3 className='text-white font-medium text-sm truncate'>
-						{template.name}
-					</h3>
-				</div>
-			</div>
-			<div className='p-3'>
-				<p className='text-xs text-zinc-400 line-clamp-2 mb-3 min-h-[2.5rem]'>
-					{template.description}
-				</p>
-				<div className='flex items-center justify-between'>
-					<div className='flex items-center gap-3 text-xs text-zinc-500'>
-						<span>{template.nodeCount} nodes</span>
-						<span>•</span>
-						<span>{template.usageCount} uses</span>
-					</div>
+			chips={[{ label: TEMPLATE_CATEGORIES[template.category] }]}
+			menu={
+				onDelete ? (
+					<DropdownMenu>
+						<DropdownMenuTrigger
+							aria-label={`Options for ${template.name}`}
+							className={CARD_MENU_TRIGGER_CLASS}
+						>
+							<CardMenuIcon />
+						</DropdownMenuTrigger>
 
-					{adminActions}
-					<Button
-						size='sm'
-						variant='ghost'
-						onClick={handleUseClick}
-						disabled={isCreating || isAtMapLimit}
-						className={cn(
-							'h-7 px-2 text-xs',
-							'opacity-0 group-hover:opacity-100',
-							'transition-opacity duration-200'
-						)}
-					>
-						<Plus className='w-3.5 h-3.5 mr-1' />
-						{isAtMapLimit ? 'Limit reached' : 'Use'}
-					</Button>
-				</div>
-			</div>
-		</motion.div>
+						<DropdownMenuContent align='end'>
+							<DropdownMenuItem onClick={() => onView(template.id)}>
+								<Pencil className='mr-2 size-4' />
+								Edit template
+							</DropdownMenuItem>
+
+							<DropdownMenuSeparator />
+
+							<DropdownMenuItem
+								onClick={() => onDelete(template)}
+								variant='destructive'
+							>
+								<Trash2 className='mr-2 size-4' />
+								Delete template
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				) : undefined
+			}
+		/>
 	);
 });
 
-// Category Filter Component
-interface CategoryFilterProps {
-	selectedCategory: TemplateCategory | 'all';
-	onSelectCategory: (category: TemplateCategory | 'all') => void;
-	templatesByCategory: Record<TemplateCategory, TemplateFromAPI[]>;
-	totalCount: number;
-}
+const TEMPLATES_INTRO =
+	'Start from a ready-made structure. Pick one and it becomes your own map.';
 
-const CategoryFilter = memo(function CategoryFilter({
-	selectedCategory,
-	onSelectCategory,
-	templatesByCategory,
-	totalCount,
-}: CategoryFilterProps) {
-	const categories = Object.keys(TEMPLATE_CATEGORIES) as TemplateCategory[];
-
+/** The page before it mounts (templates/loading.tsx): same heading, empty tabs, card skeletons. */
+export function TemplatesPageSkeleton() {
 	return (
-		<div className='flex flex-wrap gap-2'>
-			<button
-				onClick={() => onSelectCategory('all')}
-				className={cn(
-					'px-3 py-1.5 rounded-full text-sm font-medium',
-					'transition-all duration-200',
-					'border',
-					selectedCategory === 'all'
-						? 'bg-zinc-700 text-white border-zinc-600'
-						: 'text-zinc-400 border-transparent hover:bg-zinc-800 hover:text-zinc-300'
-				)}
-			>
-				All ({totalCount})
-			</button>
-			{categories.map((category) => {
-				const meta = TEMPLATE_CATEGORIES[category];
-				const count = templatesByCategory[category]?.length || 0;
-				if (count === 0) return null;
+		<DashboardPage>
+			<PageHeading intro={TEMPLATES_INTRO} title='Templates' />
 
-				const CategoryIcon = meta.icon;
-				const isSelected = selectedCategory === category;
+			<div className='mt-9 h-11 border-b border-[#1d1f24]' />
 
-				return (
-					<button
-						key={category}
-						onClick={() => onSelectCategory(category)}
-						className={cn(
-							'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium',
-							'transition-all duration-200',
-							'border',
-							isSelected
-								? CATEGORY_COLORS[category]
-								: 'text-zinc-400 border-transparent hover:bg-zinc-800 hover:text-zinc-300'
-						)}
-					>
-						<CategoryIcon className='w-3.5 h-3.5' />
-						<span>{meta.label}</span>
-						<span className='text-xs opacity-60'>({count})</span>
-					</button>
-				);
-			})}
-		</div>
+			<CatalogGrid className='mt-6' viewMode='grid'>
+				<CatalogCardSkeleton viewMode='grid' />
+			</CatalogGrid>
+		</DashboardPage>
 	);
-});
+}
 
 // Main Content Component
 interface TemplatesContentProps {
@@ -395,11 +220,12 @@ interface TemplatesContentProps {
 
 export function TemplatesContent({ isAdmin = false }: TemplatesContentProps) {
 	const router = useRouter();
-	const prefersReducedMotion = useReducedMotion();
-	const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+	const [viewMode, setViewMode] = useState<DashboardViewMode>('grid');
 	const [selectedCategory, setSelectedCategory] = useState<
 		TemplateCategory | 'all'
 	>('all');
+	// The field sits in the shell's top bar.
+	const { query: searchQuery, setQuery: setSearchQuery } = useDashboardSearch();
 	const [isCreating, setIsCreating] = useState(false);
 	const [templateToDelete, setTemplateToDelete] =
 		useState<TemplateFromAPI | null>(null);
@@ -417,27 +243,30 @@ export function TemplatesContent({ isAdmin = false }: TemplatesContentProps) {
 		dedupingInterval: 60000,
 	});
 
-	const templates = data?.data?.templates || [];
+	const templates = useMemo(() => data?.data?.templates ?? [], [data]);
 
-	// Group by category
-	const templatesByCategory = useMemo(() => {
-		const grouped = {} as Record<TemplateCategory, TemplateFromAPI[]>;
-		Object.keys(TEMPLATE_CATEGORIES).forEach((cat) => {
-			grouped[cat as TemplateCategory] = [];
-		});
-		templates.forEach((t) => {
-			if (grouped[t.category]) {
-				grouped[t.category].push(t);
-			}
-		});
-		return grouped;
+	// Tabs only list categories that have templates
+	const categoryCounts = useMemo(() => {
+		const counts = new Map<TemplateCategory, number>();
+		for (const t of templates) {
+			counts.set(t.category, (counts.get(t.category) ?? 0) + 1);
+		}
+		return counts;
 	}, [templates]);
 
-	// Filter templates
 	const filteredTemplates = useMemo(() => {
-		if (selectedCategory === 'all') return templates;
-		return templatesByCategory[selectedCategory] || [];
-	}, [selectedCategory, templates, templatesByCategory]);
+		const query = searchQuery.trim().toLowerCase();
+		return templates.filter((t) => {
+			if (selectedCategory !== 'all' && t.category !== selectedCategory) {
+				return false;
+			}
+			if (!query) return true;
+			return (
+				t.name.toLowerCase().includes(query) ||
+				(t.description ?? '').toLowerCase().includes(query)
+			);
+		});
+	}, [templates, selectedCategory, searchQuery]);
 
 	// View template
 	const handleViewTemplate = useCallback(
@@ -552,134 +381,107 @@ export function TemplatesContent({ isAdmin = false }: TemplatesContentProps) {
 		[templates, router, isAtMapLimit, limits.mindMaps]
 	);
 
+	const clearFilters = useCallback(() => {
+		setSelectedCategory('all');
+		setSearchQuery('');
+	}, [setSearchQuery]);
+
+	const tabs: ReadonlyArray<
+		readonly [TemplateCategory | 'all', string, number]
+	> = [
+		['all', 'All', templates.length],
+		...(Object.keys(TEMPLATE_CATEGORIES) as TemplateCategory[])
+			.filter((category) => categoryCounts.has(category))
+			.map(
+				(category) =>
+					[
+						category,
+						TEMPLATE_CATEGORIES[category],
+						categoryCounts.get(category) ?? 0,
+					] as const
+			),
+	];
+
+	const showSkeleton = isLoading && !error;
+	const showEmpty = !isLoading && !error && filteredTemplates.length === 0;
+
 	return (
-		<SidebarProvider>
-			<DashboardLayout>
-				<div className='p-6 md:p-8'>
-					<div className='mx-auto max-w-7xl'>
-						{/* Header */}
-						<div className='mb-8'>
-							<h1 className='text-3xl font-bold text-white tracking-tight mb-2'>
-								Templates
-							</h1>
-							<p className='text-zinc-400'>
-								Browse {templates.length} pre-built templates to jumpstart your
-								mind maps
-							</p>
-						</div>
+		<DashboardPage>
+			<PageHeading intro={TEMPLATES_INTRO} title='Templates' />
 
-						{/* Toolbar */}
-						<div className='flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6'>
-							<CategoryFilter
-								selectedCategory={selectedCategory}
-								onSelectCategory={setSelectedCategory}
-								templatesByCategory={templatesByCategory}
-								totalCount={templates.length}
-							/>
-							<div className='flex items-center rounded-lg bg-zinc-800/30 border border-zinc-700/50 p-1'>
-								<Button
-									onClick={() => setViewMode('grid')}
-									size='sm'
-									variant='ghost'
-									className={cn(
-										'h-8 px-3',
-										viewMode === 'grid' && 'bg-zinc-700'
-									)}
-								>
-									<Grid3x3 className='h-4 w-4' />
-								</Button>
-								<Button
-									onClick={() => setViewMode('list')}
-									size='sm'
-									variant='ghost'
-									className={cn(
-										'h-8 px-3',
-										viewMode === 'list' && 'bg-zinc-700'
-									)}
-								>
-									<List className='h-4 w-4' />
-								</Button>
-							</div>
-						</div>
+			<Tabs
+				className='mt-9 gap-0'
+				value={selectedCategory}
+				onValueChange={(value) =>
+					setSelectedCategory(value as TemplateCategory | 'all')
+				}
+			>
+				<UnderlineTabsBar>
+					<UnderlineTabsList aria-label='Filter templates by category'>
+						{tabs.map(([value, label, count]) => (
+							<UnderlineTab count={count} key={value} value={value}>
+								{label}
+							</UnderlineTab>
+						))}
+					</UnderlineTabsList>
 
-						{/* Loading State */}
-						{isLoading && (
-							<div className='flex items-center justify-center h-64'>
-								{prefersReducedMotion ? (
-									<span className='text-zinc-500 text-sm'>
-										Loading templates...
-									</span>
-								) : (
-									<Loader2 className='w-8 h-8 text-zinc-500 animate-spin' />
-								)}
-							</div>
-						)}
-
-						{/* Error State */}
-						{error && (
-							<div className='flex items-center justify-center h-64 text-zinc-500'>
-								<p>Failed to load templates. Please try again.</p>
-							</div>
-						)}
-
-						{/* Templates Grid/List */}
-						{!isLoading && !error && (
-							<AnimatePresence mode='popLayout'>
-								<div
-									className={cn(
-										viewMode === 'grid'
-											? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
-											: 'space-y-2'
-									)}
-								>
-									{filteredTemplates.map((template, index) => (
-										<TemplateCard
-											key={template.templateId}
-											template={template}
-											onUse={handleUseTemplate}
-											onView={handleViewTemplate}
-											onDelete={isAdmin ? setTemplateToDelete : undefined}
-											isCreating={isCreating}
-											isAtMapLimit={isAtMapLimit}
-											viewMode={viewMode}
-											index={index}
-										/>
-									))}
-								</div>
-							</AnimatePresence>
-						)}
-
-						{/* Empty State */}
-						{!isLoading && !error && filteredTemplates.length === 0 && (
-							<div className='flex flex-col items-center justify-center h-64 text-zinc-500'>
-								<FileText className='w-12 h-12 mb-4 opacity-50' />
-								<p>No templates found in this category</p>
-								<Button
-									variant='ghost'
-									onClick={() => setSelectedCategory('all')}
-									className='mt-2'
-								>
-									View all templates
-								</Button>
-							</div>
-						)}
-					</div>
-				</div>
-
-				{isAdmin && (
-					<DeleteMapConfirmationDialog
-						edgeCount={templateToDelete?.edgeCount ?? 0}
-						isDeleting={isDeletingTemplate}
-						mapTitle={templateToDelete?.name ?? ''}
-						nodeCount={templateToDelete?.nodeCount ?? 0}
-						open={templateToDelete !== null}
-						onConfirm={handleConfirmDeleteTemplate}
-						onOpenChange={(open) => {
-							if (!open && !isDeletingTemplate) setTemplateToDelete(null);
-						}}
+					<ViewToggle
+						className='mb-1.5'
+						onChange={setViewMode}
+						value={viewMode}
 					/>
-				)}
-			</DashboardLayout>
-		</SidebarProvider>
+				</UnderlineTabsBar>
+			</Tabs>
+
+			{error && (
+				<div className='flex h-64 items-center justify-center text-zinc-500'>
+					<p>Failed to load templates. Please try again.</p>
+				</div>
+			)}
+
+			{!error && !showEmpty && (
+				<CatalogGrid className='mt-6' viewMode={viewMode}>
+					{showSkeleton ? (
+						<CatalogCardSkeleton viewMode={viewMode} />
+					) : (
+						filteredTemplates.map((template) => (
+							<TemplateCard
+								isAtMapLimit={isAtMapLimit}
+								isCreating={isCreating}
+								key={template.templateId}
+								onUse={handleUseTemplate}
+								onView={handleViewTemplate}
+								onDelete={isAdmin ? setTemplateToDelete : undefined}
+								template={template}
+								viewMode={viewMode}
+							/>
+						))
+					)}
+				</CatalogGrid>
+			)}
+
+			{showEmpty && (
+				<CatalogEmptyState
+					actionLabel='Show all templates'
+					hint='Try another category or search term.'
+					onAction={clearFilters}
+					title='No templates found'
+				/>
+			)}
+
+			{isAdmin && (
+				<DeleteMapConfirmationDialog
+					edgeCount={templateToDelete?.edgeCount ?? 0}
+					isDeleting={isDeletingTemplate}
+					mapTitle={templateToDelete?.name ?? ''}
+					nodeCount={templateToDelete?.nodeCount ?? 0}
+					open={templateToDelete !== null}
+					onConfirm={handleConfirmDeleteTemplate}
+					onOpenChange={(open) => {
+						if (!open && !isDeletingTemplate) setTemplateToDelete(null);
+					}}
+				/>
+			)}
+		</DashboardPage>
 	);
 }

@@ -1,4 +1,5 @@
 import { AvailableNodeTypes } from '@/registry/node-registry';
+import type { NodeExtensionData } from './extensions';
 import type {
 	SuggestionContext,
 	SuggestionNodePayload,
@@ -97,6 +98,9 @@ export interface NodeData extends Record<string, unknown> {
 		annotationType?: 'note' | 'idea' | 'quote' | 'summary' | 'warning' | 'success' | 'info' | 'error';
 		author?: string;
 		timestamp?: string;
+		// Anchored annotations follow a host node (NOT hierarchy: parent_id stays null)
+		anchorNodeId?: string;
+		anchorOffset?: { x: number; y: number }; // annotation position minus host position
 
 		// ------------------------------------------
 		// Question Properties (QuestionNode)
@@ -156,5 +160,11 @@ export interface NodeData extends Record<string, unknown> {
 		nodePayload?: SuggestionNodePayload | null;
 		context?: SuggestionContext;
 		sourceNodeName?: string; // Name of the node that triggered this suggestion
+
+		// ------------------------------------------
+		// Extensions (reserved namespaces)
+		// ------------------------------------------
+		extension?: NodeExtensionData | null; // extensionNode: plugin-owned node data
+		ext?: Record<string, unknown> | null; // per-plugin data on any node, keyed by plugin id
 	} | null;
 }

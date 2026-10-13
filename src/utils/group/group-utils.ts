@@ -7,6 +7,127 @@ export interface GroupBounds {
 	height: number;
 }
 
+export interface GroupDragIntent {
+	type: 'add' | 'remove';
+	groupId: string;
+	nodeIds: string[];
+}
+
+const isGroupNode = (node: AppNode): boolean =>
+	Boolean(node.data.metadata?.isGroup);
+
+/**
+ * Resolve the group a node belongs to. Mirrors GroupNode's membership rule
+ * (`groupChildren` includes the node OR `metadata.groupId` matches): prefers
+ * an existing `metadata.groupId` group, then any group listing the node in
+ * `groupChildren`. The fallback heals groups whose members carry a stale or
+ * phantom `groupId` (pre-fix `createGroupFromSelected` produced these).
+ */
+export function findNodeGroup(
+	allNodes: AppNode[],
+	node: AppNode
+): AppNode | null {
+	const groupId = node.data.metadata?.groupId;
+
+	if (groupId) {
+		const byId = allNodes.find((n) => n.id === groupId);
+		if (byId && isGroupNode(byId)) return byId;
+	}
+
+	return (
+		allNodes.find(
+			(n) =>
+				isGroupNode(n) &&
+				((n.data.metadata?.groupChildren as string[] | undefined) ?? []).includes(
+					node.id
+				)
+		) ?? null
+	);
+}
+
+/**
+ * Get a node's flow-space rectangle (measured size first, then explicit size)
+ */
+export function getNodeRect(node: AppNode): GroupBounds {
+	return {
+		x: node.position.x,
+		y: node.position.y,
+		width: node.measured?.width ?? node.width ?? 320,
+		height: node.measured?.height ?? node.height ?? 100,
+	};
+}
+
+/**
+ * Find the smallest group whose bounds contain the point
+ */
+export function findGroupAtPoint(
+	allNodes: AppNode[],
+	point: { x: number; y: number },
+	excludeIds: Set<string> = new Set()
+): AppNode | null {
+	let best: AppNode | null = null;
+	let bestArea = Infinity;
+
+	for (const node of allNodes) {
+		if (!isGroupNode(node) || excludeIds.has(node.id)) continue;
+
+		const rect = getNodeRect(node);
+		const contains =
+			point.x >= rect.x &&
+			point.x <= rect.x + rect.width &&
+			point.y >= rect.y &&
+			point.y <= rect.y + rect.height;
+		const area = rect.width * rect.height;
+
+		if (contains && area < bestArea) {
+			best = node;
+			bestArea = area;
+		}
+	}
+
+	return best;
+}
+
+/**
+ * Decide whether an in-progress drag would add nodes to a group or remove
+ * them from their group. Hit-testing uses the primary dragged node's center.
+ * Dragging a group (with or without its members) never produces an intent.
+ */
+export function resolveGroupDragIntent({
+	allNodes,
+	draggedNodes,
+	primaryNode,
+}: {
+	allNodes: AppNode[];
+	draggedNodes: AppNode[];
+	primaryNode: AppNode;
+}): GroupDragIntent | null {
+	if (isGroupNode(primaryNode) || draggedNodes.some(isGroupNode)) return null;
+
+	const rect = getNodeRect(primaryNode);
+	const center = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+	const target = findGroupAtPoint(allNodes, center);
+	const currentGroupId = findNodeGroup(allNodes, primaryNode)?.id;
+
+	if (target && target.id !== currentGroupId) {
+		const nodeIds = draggedNodes
+			.filter((node) => findNodeGroup(allNodes, node)?.id !== target.id)
+			.map((node) => node.id);
+		return nodeIds.length > 0
+			? { type: 'add', groupId: target.id, nodeIds }
+			: null;
+	}
+
+	if (!target && currentGroupId) {
+		const nodeIds = draggedNodes
+			.filter((node) => findNodeGroup(allNodes, node) !== null)
+			.map((node) => node.id);
+		return { type: 'remove', groupId: currentGroupId, nodeIds };
+	}
+
+	return null;
+}
+
 /**
  * Calculate the bounds for a group of nodes
  */

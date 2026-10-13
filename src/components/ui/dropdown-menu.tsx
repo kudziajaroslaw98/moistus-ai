@@ -53,16 +53,19 @@ function DropdownMenuContent({
 	className,
 	alignOffset = 4,
 	align = 'start',
+	side,
 	...props
 }: ComponentProps<typeof BaseMenu.Popup> & {
 	alignOffset?: number;
 	align?: 'start' | 'center' | 'end';
+	side?: 'top' | 'bottom' | 'left' | 'right';
 }) {
 	return (
 		<BaseMenu.Portal>
 			<BaseMenu.Positioner
 				alignOffset={alignOffset}
 				align={align}
+				side={side}
 				className='z-[100]'
 			>
 				<BaseMenu.Popup

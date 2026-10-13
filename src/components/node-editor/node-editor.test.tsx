@@ -6,6 +6,11 @@ const mockHandleOnboardingNodeEditorOpened = jest.fn();
 const mockResetQuickInput = jest.fn();
 
 let mockState: Record<string, unknown>;
+let mockIsMobile = false;
+
+jest.mock('@/hooks/use-mobile', () => ({
+	useIsMobile: () => mockIsMobile,
+}));
 
 jest.mock('@/hooks/collaboration/use-permissions', () => ({
 	usePermissions: () => ({
@@ -26,6 +31,7 @@ jest.mock('./components/inputs/quick-input', () => ({
 describe('NodeEditor dismissal guards', () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		mockIsMobile = false;
 		mockState = {
 			nodeEditor: {
 				isOpen: true,
@@ -72,5 +78,24 @@ describe('NodeEditor dismissal guards', () => {
 		fireEvent.pointerDown(backdrop);
 
 		expect(mockCloseNodeEditor).toHaveBeenCalledTimes(1);
+	});
+
+	it('renders as a centered dialog on larger screens', () => {
+		render(<NodeEditor />);
+
+		const editor = screen.getByTestId('node-editor');
+		expect(editor).toHaveAttribute('data-layout', 'dialog');
+		expect(editor).toHaveClass('rounded-md');
+	});
+
+	it('takes over the whole viewport on phones', () => {
+		mockIsMobile = true;
+		render(<NodeEditor />);
+
+		const editor = screen.getByTestId('node-editor');
+		expect(editor).toHaveAttribute('data-layout', 'fullscreen');
+		expect(editor).toHaveClass('h-dvh', 'w-full');
+		expect(editor).not.toHaveClass('rounded-md');
+		expect(screen.getByTestId('node-editor-backdrop')).toHaveClass('inset-0');
 	});
 });

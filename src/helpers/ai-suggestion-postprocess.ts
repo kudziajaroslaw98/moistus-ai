@@ -15,7 +15,7 @@ export const FULL_MAP_SUGGESTION_TOO_LARGE_MESSAGE =
 const SAME_SOURCE_DUPLICATE_THRESHOLD = 0.72;
 const CROSS_SOURCE_DUPLICATE_THRESHOLD = 0.82;
 const aiNodeIdSchema = z.union([z.number().int().positive(), z.string().min(1)]);
-const suggestionRouteNodeTypes = [
+export const suggestionRouteNodeTypes = [
 	'defaultNode',
 	'textNode',
 	'questionNode',
@@ -23,6 +23,7 @@ const suggestionRouteNodeTypes = [
 	'codeNode',
 	'taskNode',
 ] as const;
+export type SuggestionRouteNodeType = (typeof suggestionRouteNodeTypes)[number];
 const suggestionQuestionTypes = ['binary', 'multiple'] as const;
 const suggestionAnnotationTypes = [
 	'note',
@@ -48,7 +49,10 @@ function createEmptySuggestionNodePayload(): NormalizedSuggestionNodePayload {
 	};
 }
 
-const suggestionNodePayloadSchema = z
+// OpenAI strict structured outputs (the @ai-sdk/openai default) require every key to be
+// listed as required, so unused fields are null rather than omitted. Never add .partial()
+// or .optional() to schemas passed to streamObject.
+export const suggestionNodePayloadSchema = z
 	.object({
 		title: z.string().trim().min(1).nullable(),
 		taskTexts: z.array(z.string().trim().min(1)).nullable(),
@@ -58,7 +62,6 @@ const suggestionNodePayloadSchema = z
 		language: z.string().trim().min(1).nullable(),
 		fileName: z.string().trim().min(1).nullable(),
 	})
-	.partial()
 	.nullable();
 
 export const suggestionObjectSchema = z.object({
@@ -180,9 +183,14 @@ function normalizeTaskPayload(
 	};
 }
 
-function normalizeStructuredPayload(
-	suggestion: SuggestionObject
-): SuggestionObject {
+/**
+ * Keeps only the payload fields that belong to the node type. A task without
+ * checklist rows is downgraded to a plain note, since approval builds the checklist
+ * from `taskTexts`.
+ */
+export function normalizeStructuredPayload<
+	T extends Pick<SuggestionObject, 'nodeType' | 'nodePayload'>,
+>(suggestion: T): T {
 	switch (suggestion.nodeType) {
 		case 'taskNode': {
 			const normalizedTaskPayload = normalizeTaskPayload(
@@ -194,13 +202,13 @@ function normalizeStructuredPayload(
 					...suggestion,
 					nodeType: 'defaultNode',
 					nodePayload: null,
-				};
+				} as T;
 			}
 
 			return {
 				...suggestion,
 				nodePayload: normalizedTaskPayload,
-			};
+			} as T;
 		}
 
 		case 'questionNode':
@@ -214,7 +222,7 @@ function normalizeStructuredPayload(
 							questionType: suggestion.nodePayload.questionType ?? null,
 					  }
 					: null,
-			};
+			} as T;
 
 		case 'annotationNode':
 			return {
@@ -226,7 +234,7 @@ function normalizeStructuredPayload(
 								suggestion.nodePayload.annotationType ?? null,
 					  }
 					: null,
-			};
+			} as T;
 
 		case 'codeNode':
 			return {
@@ -240,7 +248,7 @@ function normalizeStructuredPayload(
 								normalizeOptionalString(suggestion.nodePayload.fileName) ?? null,
 					  }
 					: null,
-			};
+			} as T;
 
 		case 'defaultNode':
 		case 'textNode':
@@ -248,7 +256,7 @@ function normalizeStructuredPayload(
 			return {
 				...suggestion,
 				nodePayload: null,
-			};
+			} as T;
 	}
 }
 
@@ -372,7 +380,7 @@ export function normalizeSuggestionElement(
 	};
 }
 
-function getSuggestionSourceDetails(
+export function getSuggestionSourceDetails(
 	sourceNodeId: string | null | undefined,
 	nodes: AppNode[]
 ) {

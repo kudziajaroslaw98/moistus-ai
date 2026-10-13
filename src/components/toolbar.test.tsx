@@ -134,8 +134,6 @@ function createStoreState(overrides: Record<string, unknown> = {}) {
 		reactFlowInstance: { zoomTo: jest.fn() },
 		isCommentMode: false,
 		setCommentMode: jest.fn(),
-		toggleChat: jest.fn(),
-		isChatOpen: false,
 		startTour: jest.fn(),
 		enterPathEditMode: jest.fn(),
 		savedPaths: [],

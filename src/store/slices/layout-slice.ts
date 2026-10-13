@@ -3,10 +3,16 @@
  * Manages ELK.js-based automatic layout state and actions
  */
 
+import { buildAnchorHostById } from '@/helpers/anchored-annotations';
 import {
 	getLayoutPresetDirection,
 	getLayoutPresetLabel,
 } from '@/helpers/layout/elk-config';
+import {
+	reattachAnchoredAnnotations,
+	splitAnchoredAnnotations,
+	withAnchoredFollowers,
+} from '@/helpers/layout/anchored-annotation-layout';
 import { runElkLayout } from '@/helpers/layout/elk-worker-client';
 import {
 	applyLocalCreateBranchReflow,
@@ -443,8 +449,13 @@ export const createLayoutSlice: StateCreator<AppState, [], [], LayoutSlice> = (
 				});
 
 				if (supabase) {
+					// Anchored annotations of selected hosts moved with them.
+					const persistedNodeIds = withAnchoredFollowers(
+						selectedNodeIds,
+						buildAnchorHostById(result.nodes)
+					);
 					const affectedNodes = result.nodes.filter((node) =>
-						selectedNodeIds.has(node.id)
+						persistedNodeIds.has(node.id)
 					);
 					const affectedEdges = result.edges.filter(
 						(edge) =>
@@ -557,20 +568,42 @@ async function runLocalBranchReflow({
 		return false;
 	}
 
-	const result =
+	// Anchored annotations are not tree members: reflow without them, then
+	// re-place them next to their hosts.
+	const split = splitAnchoredAnnotations(nodes, edges);
+	if (split.anchorHostById.has(nodeId)) {
+		// Editing/creating an anchored annotation never reflows the tree.
+		return true;
+	}
+	const reflowResult =
 		mode === 'create'
 			? applyLocalCreateBranchReflow({
 					changedNodeId: nodeId,
-					nodes,
-					edges,
+					nodes: split.nodes,
+					edges: split.edges,
 					config: layoutConfig,
 				})
 			: applyLocalEditBranchReflow({
 					changedNodeId: nodeId,
-					nodes,
-					edges,
+					nodes: split.nodes,
+					edges: split.edges,
 					config: layoutConfig,
 				});
+	const reattached = reattachAnchoredAnnotations(
+		nodes,
+		edges,
+		reflowResult,
+		split.anchorHostById
+	);
+	const result = {
+		...reflowResult,
+		nodes: reattached.nodes,
+		edges: reattached.edges,
+		affectedNodeIds: new Set([
+			...reflowResult.affectedNodeIds,
+			...reattached.movedAnnotationIds,
+		]),
+	};
 	const rerouteNodeIds = new Set(result.affectedNodeIds);
 	rerouteNodeIds.add(nodeId);
 	const reroutedEdgesResult = rerouteAutoWaypointEdges({

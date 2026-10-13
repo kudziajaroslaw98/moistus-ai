@@ -28,6 +28,8 @@ interface CreateMapDialogProps {
 		templateId?: string;
 	}) => Promise<void>;
 	disabled?: boolean;
+	/** Opens straight on the details step with this template slug selected. */
+	initialTemplate?: { templateId: string; name: string } | null;
 }
 
 export function CreateMapDialog({
@@ -35,6 +37,7 @@ export function CreateMapDialog({
 	onOpenChange,
 	onSubmit,
 	disabled = false,
+	initialTemplate = null,
 }: CreateMapDialogProps) {
 	// Step state
 	const [step, setStep] = useState<DialogStep>('template');
@@ -65,6 +68,19 @@ export function CreateMapDialog({
 			setTouched(false);
 		}
 	}, [open]);
+
+	// Template chosen outside the dialog (dashboard template chips): skip the
+	// picker. Adjusted during render (not in an effect) to avoid an extra pass.
+	const [appliedTemplate, setAppliedTemplate] =
+		useState<CreateMapDialogProps['initialTemplate']>(null);
+	if (open && initialTemplate && appliedTemplate !== initialTemplate) {
+		setAppliedTemplate(initialTemplate);
+		setSelectedTemplateId(initialTemplate.templateId);
+		setTitle(initialTemplate.name);
+		setStep('details');
+	} else if (!open && appliedTemplate) {
+		setAppliedTemplate(null);
+	}
 
 	// Auto-focus title input when entering details step
 	useEffect(() => {

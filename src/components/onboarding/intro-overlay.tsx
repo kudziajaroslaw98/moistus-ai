@@ -178,7 +178,7 @@ export function IntroOverlay({
 			>
 				<motion.div
 					{...mobilePanelMotion}
-					className='w-full overflow-hidden rounded-t-[2rem] border border-white/12 bg-base/96 shadow-2xl shadow-black/35'
+					className='max-h-[100dvh] w-full overflow-y-auto overscroll-contain rounded-t-[2rem] border border-white/12 bg-base/96 shadow-2xl shadow-black/35'
 				>
 					<div className='space-y-5 px-5 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.25rem)]'>
 						<div className='mx-auto h-1.5 w-12 rounded-full bg-white/12' />

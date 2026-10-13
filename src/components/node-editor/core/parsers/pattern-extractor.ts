@@ -412,9 +412,11 @@ export function extractAllPatterns(text: string): ExtractedData {
 			cleanText.slice(pattern.position + pattern.raw.length);
 	}
 
-	// Clean up the text
+	// Clean up the text. Line breaks stay (notes are Markdown, one line per typed line);
+	// only the spaces left where patterns were removed, and trailing spaces, go.
 	cleanText = cleanText
-		.replace(/\s+/g, ' ') // Normalize whitespace
+		.replace(/(\S)[^\S\n]{2,}/g, '$1 ')
+		.replace(/[^\S\n]+$/gm, '')
 		.trim();
 
 	return {
@@ -617,7 +619,9 @@ export function parseTaskList(
 
 		if (match) {
 			const checkboxContent = match[1] || ''; // Space, x, X, or empty
-			const taskText = match[2].trim();
+			// ^date, #tag and the like set the node's metadata; keep them out of the task's
+			// text, the same way they're removed from the node's content.
+			const taskText = extractAllPatterns(match[2]).cleanText.trim();
 
 			// Only add if there's actual task text
 			if (taskText) {

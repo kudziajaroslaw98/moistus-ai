@@ -13,8 +13,6 @@ import {
 	Edit,
 	Group,
 	LocateFixed,
-	Network,
-	NotepadTextDashed,
 	Pause,
 	Play,
 	Plus,
@@ -27,11 +25,6 @@ import { EdgeStyleSelector } from './edge-style-selector';
 import type { MenuSection } from './types';
 
 interface UseContextMenuConfigProps {
-	aiActions: {
-		suggestConnections: () => void;
-		suggestMerges: () => void;
-		suggestCounterpoints?: () => void;
-	};
 	onClose: () => void;
 }
 
@@ -108,9 +101,6 @@ interface BuildNodeMenuParams {
 	deleteNodes: (nodes: AppNode[]) => void;
 	reactFlowInstance: ReactFlowInstance | null;
 	onClose: () => void;
-	aiActions: {
-		suggestCounterpoints?: () => void;
-	};
 	canEdit: boolean;
 	suppressUngroupAction?: boolean;
 }
@@ -126,7 +116,6 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 		deleteNodes,
 		reactFlowInstance,
 		onClose,
-		aiActions,
 		canEdit,
 		suppressUngroupAction = false,
 	} = params;
@@ -217,21 +206,6 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 						onClose();
 					},
 					hidden: suppressUngroupAction || !isGroup || !canEdit,
-				},
-			],
-		},
-		{
-			id: 'node-ai',
-			items: [
-				{
-					id: 'generate-counterpoints',
-					icon: <NotepadTextDashed className='h-4 w-4' />,
-					label: 'Generate Counterpoints',
-					onClick: () => {
-						aiActions?.suggestCounterpoints?.();
-						onClose();
-					},
-					hidden: !canEdit,
 				},
 			],
 		},
@@ -342,12 +316,6 @@ interface BuildPaneMenuParams {
 	x: number;
 	y: number;
 	openNodeEditor: any;
-	aiActions: {
-		suggestConnections: () => void;
-		suggestMerges: () => void;
-		suggestCounterpoints?: () => void;
-	};
-	loadingStates: any;
 	onClose: () => void;
 	canEdit: boolean;
 }
@@ -358,8 +326,6 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 		x,
 		y,
 		openNodeEditor,
-		aiActions,
-		loadingStates,
 		onClose,
 		canEdit,
 	} = params;
@@ -407,35 +373,6 @@ function buildPaneMenu(params: BuildPaneMenuParams): MenuSection[] {
 							onClose();
 						}
 					},
-					hidden: !canEdit,
-				},
-			],
-		},
-		{
-			id: 'pane-ai',
-			items: [
-				{
-					id: 'suggest-connections',
-					icon: <Network className='h-4 w-4' />,
-					label: 'Suggest Connections',
-					onClick: aiActions.suggestConnections,
-					loading: loadingStates.isSuggestingConnections,
-					hidden: !canEdit,
-				},
-				{
-					id: 'suggest-counterpoints',
-					icon: <NotepadTextDashed className='h-4 w-4' />,
-					label: 'Generate Counterpoints',
-					onClick: () => aiActions.suggestCounterpoints?.(),
-					loading: loadingStates.isGenerating,
-					hidden: !canEdit,
-				},
-				{
-					id: 'suggest-merges',
-					icon: <NotepadTextDashed className='h-4 w-4' />,
-					label: 'Suggest Merges',
-					onClick: aiActions.suggestMerges,
-					loading: loadingStates.isSuggestingMerges,
 					hidden: !canEdit,
 				},
 			],
@@ -500,17 +437,13 @@ function buildSelectedNodesMenu(
 // Main Hook - Simplified and focused
 // ============================================================================
 
-export function useContextMenuConfig({
-	aiActions,
-	onClose,
-}: UseContextMenuConfigProps) {
+export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 	const {
 		nodes,
 		edges,
 		updateEdge,
 		deleteNodes,
 		deleteEdges,
-		loadingStates,
 		selectedNodes,
 		reactFlowInstance,
 		contextMenuState,
@@ -528,7 +461,6 @@ export function useContextMenuConfig({
 			updateEdge: state.updateEdge,
 			deleteNodes: state.deleteNodes,
 			deleteEdges: state.deleteEdges,
-			loadingStates: state.loadingStates,
 			selectedNodes: state.selectedNodes,
 			contextMenuState: state.contextMenuState,
 			createGroupFromSelected: state.createGroupFromSelected,
@@ -595,7 +527,6 @@ export function useContextMenuConfig({
 				deleteNodes,
 				reactFlowInstance,
 				onClose,
-				aiActions,
 				canEdit,
 				suppressUngroupAction:
 					canEdit &&
@@ -634,8 +565,6 @@ export function useContextMenuConfig({
 			x,
 			y,
 			openNodeEditor,
-			aiActions,
-			loadingStates,
 			onClose,
 			canEdit,
 		});
@@ -657,8 +586,6 @@ export function useContextMenuConfig({
 		ungroupNodes,
 		x,
 		y,
-		aiActions,
-		loadingStates,
 		onClose,
 		canEdit,
 	]);

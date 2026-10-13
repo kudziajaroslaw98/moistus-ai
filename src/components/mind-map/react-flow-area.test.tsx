@@ -52,7 +52,6 @@ jest.mock('@xyflow/react', () => {
 	};
 });
 
-jest.mock('@/components/ai-chat', () => ({ ChatPanel: () => null }));
 jest.mock('@/components/dashboard/settings-panel', () => ({
 	SettingsPanel: () => null,
 }));
@@ -92,6 +91,11 @@ jest.mock('@/components/edges/suggested-merge-edge', () => ({
 	SuggestedMergeEdge: () => null,
 }));
 jest.mock('@/components/edges/waypoint-edge', () => () => null);
+jest.mock('@/components/edges/annotation-tether-edge', () => () => null);
+jest.mock('@/components/edges/collapsed-proxy-edge', () => () => null);
+jest.mock('@/components/mind-map/canvas-search-bar', () => ({
+	CanvasSearchBar: () => null,
+}));
 jest.mock('@/components/realtime/realtime-cursor', () => ({
 	RealtimeCursors: () => null,
 }));
@@ -135,6 +139,12 @@ jest.mock('@/hooks/use-context-menu', () => ({
 jest.mock('@/hooks/use-touch-context-menu-fallback', () => ({
 	useTouchContextMenuFallback: (...args: unknown[]) =>
 		mockUseTouchContextMenuFallback(...args),
+}));
+jest.mock('@/hooks/use-group-drag-membership', () => ({
+	useGroupDragMembership: () => ({
+		onNodeDrag: (...args: unknown[]) => mockNoop(...args),
+		onNodeDragStop: (...args: unknown[]) => mockNoop(...args),
+	}),
 }));
 jest.mock('@/hooks/use-mobile', () => ({
 	useIsMobile: () => false,

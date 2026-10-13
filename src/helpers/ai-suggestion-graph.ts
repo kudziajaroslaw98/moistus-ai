@@ -3,7 +3,9 @@ import {
 	compactPromptText,
 	getCompactNodeType,
 } from '@/helpers/ai-hybrid-rows';
+import { isStructuralEdge } from '@/helpers/collapse/branch-index';
 import { extractEnhancedContext } from '@/helpers/extract-enhanced-node-context';
+import { getNodeSemanticText } from '@/helpers/node-semantic-text';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type {
@@ -31,6 +33,12 @@ export interface SuggestionPromptInput {
 	clickIndex: number;
 	requestNonce: string;
 }
+
+/** The graph builders only read these fields of a prompt input. */
+export type SuggestionGraphInput = Pick<
+	SuggestionPromptInput,
+	'nodes' | 'edges' | 'mapMeta' | 'context'
+>;
 
 export type SuggestionGraphContextMode = 'full-map' | 'focused-node';
 
@@ -78,7 +86,7 @@ export interface SuggestionGraphContextModel {
 	validAnchorNodeIds: string[];
 }
 
-function normalizeMapMeta(mapMeta?: SuggestionPromptInput['mapMeta']) {
+function normalizeMapMeta(mapMeta?: SuggestionGraphInput['mapMeta']) {
 	return {
 		title: compactPromptText(mapMeta?.title) ?? 'Untitled',
 		description: compactPromptText(mapMeta?.description),
@@ -87,23 +95,6 @@ function normalizeMapMeta(mapMeta?: SuggestionPromptInput['mapMeta']) {
 
 function getNodeType(node: AppNode): string {
 	return getCompactNodeType(node.data.node_type || node.type);
-}
-
-function getNodeSemanticText(node: AppNode): string {
-	const metadata = node.data.metadata;
-	const fragments = [
-		typeof metadata?.title === 'string' ? metadata.title : null,
-		typeof metadata?.label === 'string' ? metadata.label : null,
-		typeof node.data.content === 'string' ? node.data.content : null,
-		typeof metadata?.summary === 'string' ? metadata.summary : null,
-		typeof metadata?.answer === 'string' ? metadata.answer : null,
-		typeof metadata?.caption === 'string' ? metadata.caption : null,
-		typeof metadata?.altText === 'string' ? metadata.altText : null,
-	]
-		.map((fragment) => compactPromptText(fragment))
-		.filter((fragment): fragment is string => fragment !== null);
-
-	return Array.from(new Set(fragments)).join(' | ') || '[no content]';
 }
 
 function getNodePromptTags(node: AppNode): string[] {
@@ -271,7 +262,7 @@ function sortNodesForFullMap(nodes: AppNode[], edges: AppEdge[]) {
 }
 
 export function buildFullMapSuggestionGraph(
-	input: SuggestionPromptInput
+	input: SuggestionGraphInput
 ): SuggestionGraphContextModel {
 	const mapMeta = normalizeMapMeta(input.mapMeta);
 	const eligibleNodes = input.nodes.filter(isFullMapCandidate);
@@ -321,7 +312,7 @@ export function buildFullMapSuggestionGraph(
 }
 
 function buildFallbackFocusedGraph(
-	input: SuggestionPromptInput
+	input: SuggestionGraphInput
 ): SuggestionGraphContextModel {
 	const mapMeta = normalizeMapMeta(input.mapMeta);
 	const nodeIds = new Set(input.nodes.map((node) => node.id));
@@ -385,8 +376,26 @@ function toFocusedGraphNode(
 	};
 }
 
+/** Direct children of a node through structural edges, in edge order. */
+function getStructuralChildren(
+	nodeId: string,
+	nodesById: Map<string, AppNode>,
+	edges: AppEdge[]
+): AppNode[] {
+	const children: AppNode[] = [];
+	for (const edge of edges) {
+		if (edge.source !== nodeId || !isStructuralEdge(edge)) continue;
+		const child = nodesById.get(edge.target);
+		if (child && !children.includes(child)) children.push(child);
+	}
+	return children;
+}
+
+const FOCUSED_CHILD_LIMIT = 10;
+
 export function buildFocusedNodeSuggestionGraph(
-	input: SuggestionPromptInput
+	input: SuggestionGraphInput,
+	options: { includeChildren?: boolean } = {}
 ): SuggestionGraphContextModel {
 	if (!input.context.sourceNodeId) {
 		return buildFallbackFocusedGraph(input);
@@ -462,6 +471,24 @@ export function buildFocusedNodeSuggestionGraph(
 			});
 		}
 
+		if (options.includeChildren) {
+			const nodesById = new Map(input.nodes.map((node) => [node.id, node]));
+			const children = getStructuralChildren(
+				enhancedContext.primary.id,
+				nodesById,
+				input.edges
+			).slice(0, FOCUSED_CHILD_LIMIT);
+
+			for (const child of children) {
+				graphNodes.push(toFocusedGraphNode(child, input.edges, nodeIds, ['child']));
+				relations.push({
+					kind: 'parent',
+					fromId: enhancedContext.primary.id,
+					toId: child.id,
+				});
+			}
+		}
+
 			return {
 				mode: 'focused-node',
 				map: {
@@ -485,4 +512,76 @@ export function buildFocusedNodeSuggestionGraph(
 		console.error('Failed to build focused suggestion graph:', error);
 		return buildFallbackFocusedGraph(input);
 	}
+}
+
+/**
+ * A node and its whole structural subtree (breadth-first, capped at `limit` nodes
+ * including the focus), plus its parent for context. Every node in the subtree is a
+ * valid anchor; the parent is not.
+ */
+export function buildBranchSuggestionGraph(
+	input: SuggestionGraphInput,
+	options: { limit: number }
+): SuggestionGraphContextModel {
+	const focusNode = input.nodes.find((node) => node.id === input.context.sourceNodeId);
+	if (!focusNode) {
+		return buildFallbackFocusedGraph(input);
+	}
+
+	const mapMeta = normalizeMapMeta(input.mapMeta);
+	const nodeIds = new Set(input.nodes.map((node) => node.id));
+	const nodesById = new Map(input.nodes.map((node) => [node.id, node]));
+	const branchNodes: AppNode[] = [focusNode];
+	const relations: SuggestionGraphRelation[] = [];
+	const visited = new Set([focusNode.id]);
+
+	for (let index = 0; index < branchNodes.length; index += 1) {
+		const current = branchNodes[index];
+		for (const child of getStructuralChildren(current.id, nodesById, input.edges)) {
+			// Cross-links into nodes already in the branch are kept as relations only.
+			if (visited.has(child.id)) {
+				relations.push({ kind: 'link', fromId: current.id, toId: child.id });
+				continue;
+			}
+			if (branchNodes.length >= options.limit) continue;
+			visited.add(child.id);
+			branchNodes.push(child);
+			relations.push({ kind: 'parent', fromId: current.id, toId: child.id });
+		}
+	}
+
+	const graphNodes = branchNodes.map((node) =>
+		toFocusedGraphNode(node, input.edges, nodeIds, [
+			node.id === focusNode.id ? 'focus' : 'branch',
+		])
+	);
+
+	const parentEdge = input.edges.find(
+		(edge) =>
+			edge.target === focusNode.id &&
+			isStructuralEdge(edge) &&
+			nodesById.has(edge.source) &&
+			!visited.has(edge.source)
+	);
+	const parentNode = parentEdge ? nodesById.get(parentEdge.source) : undefined;
+	if (parentNode) {
+		graphNodes.push(toFocusedGraphNode(parentNode, input.edges, nodeIds, ['parent']));
+		relations.push({ kind: 'parent', fromId: parentNode.id, toId: focusNode.id });
+	}
+
+	return {
+		mode: 'focused-node',
+		map: {
+			title: mapMeta.title,
+			description: mapMeta.description,
+			nodeCount: input.nodes.length,
+			edgeCount: input.edges.length,
+		},
+		topics: extractTopics(graphNodes.map((node) => node.text)),
+		nodes: graphNodes,
+		relations,
+		anchors: [],
+		metrics: buildGraphMetrics(graphNodes),
+		validAnchorNodeIds: branchNodes.map((node) => node.id),
+	};
 }

@@ -60,6 +60,10 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from '@/components/ui/sheet';
+import {
+	SIDEBAR_COOKIE_MAX_AGE,
+	SIDEBAR_COOKIE_NAME,
+} from '@/components/ui/sidebar-cookie';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
 	Tooltip,
@@ -76,8 +80,6 @@ import {
 	useReducedMotion,
 } from '@/components/ui/sidebar-theme';
 
-const SIDEBAR_COOKIE_NAME = 'sidebar_state';
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = '16rem';
 const SIDEBAR_WIDTH_MOBILE = '18rem';
 const SIDEBAR_WIDTH_ICON = '3.25rem';

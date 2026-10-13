@@ -261,24 +261,41 @@ describe('ai suggestion postprocess', () => {
 		});
 	});
 
-	it('accepts partial structured nodePayload objects when fields are omitted', () => {
+	it('requires every nodePayload key (null when unused) for OpenAI strict structured outputs', () => {
+		const baseSuggestion = {
+			id: 'suggestion-strict-payload',
+			content: 'Capture user objections to referrals',
+			nodeType: 'questionNode',
+			confidence: 0.81,
+			position: { x: 0, y: 0 },
+			context: {
+				sourceNodeId: null,
+				targetNodeId: null,
+				relationshipType: null,
+				trigger: 'magic-wand',
+			},
+			reasoning: 'Strict mode lists every key as required.',
+		};
+
 		expect(
 			suggestionObjectSchema.safeParse({
-				id: 'suggestion-partial-payload',
-				content: 'Capture user objections to referrals',
-				nodeType: 'questionNode',
+				...baseSuggestion,
+				nodePayload: { answer: 'Interview at-risk cohorts first' },
+			}).success
+		).toBe(false);
+
+		expect(
+			suggestionObjectSchema.safeParse({
+				...baseSuggestion,
 				nodePayload: {
+					title: null,
+					taskTexts: null,
 					answer: 'Interview at-risk cohorts first',
+					questionType: null,
+					annotationType: null,
+					language: null,
+					fileName: null,
 				},
-				confidence: 0.81,
-				position: { x: 0, y: 0 },
-				context: {
-					sourceNodeId: null,
-					targetNodeId: null,
-					relationshipType: null,
-					trigger: 'magic-wand',
-				},
-				reasoning: 'Keeps structure while allowing omitted optional keys.',
 			}).success
 		).toBe(true);
 	});
@@ -289,6 +306,8 @@ describe('ai suggestion postprocess', () => {
 				id: 'suggestion-task-fallback',
 				content: 'Upgrade copy fixes',
 				nodeType: 'taskNode',
+				// Strict structured outputs always include nodePayload; null means no task rows.
+				nodePayload: null,
 				confidence: 0.82,
 				position: { x: 0, y: 0 },
 				context: {

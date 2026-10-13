@@ -5,6 +5,7 @@ import {
 	SubscriptionError,
 } from '@/helpers/api/with-subscription-check';
 import { z } from 'zod';
+import { BILLING_SETTINGS_URL } from '@/lib/billing-urls';
 
 const requestSchema = z.object({
 	format: z.enum(['pdf', 'json']),
@@ -33,7 +34,7 @@ export const POST = withApiValidation(
 					'Pro subscription required for this export format.',
 					403,
 					error.code,
-					{ format, upgradeUrl: '/dashboard/settings/billing' }
+					{ format, upgradeUrl: BILLING_SETTINGS_URL }
 				);
 			}
 

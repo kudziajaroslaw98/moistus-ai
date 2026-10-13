@@ -70,9 +70,11 @@ export async function POST(req: NextRequest) {
 
 		const checkout = await polar.checkouts.create({
 			products: [productId],
-			successUrl: `${appUrl}/dashboard?checkout=success`,
-			customerEmail: user.email || undefined,
-			customerName:
+			success_url: `${appUrl}/dashboard?checkout=success`,
+			// Reuse one Polar customer per app user instead of creating one per checkout
+			external_customer_id: user.id,
+			customer_email: user.email || undefined,
+			customer_name:
 				user.user_metadata?.full_name || user.email?.split('@')[0] || undefined,
 			metadata: {
 				user_id: user.id,

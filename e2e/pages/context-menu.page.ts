@@ -6,7 +6,7 @@ import { expect, Locator, Page } from '@playwright/test';
  * Handles interactions with:
  * - Node context menu options (Edit, Add Child, Delete, etc.)
  * - Edge context menu options (Delete Edge, Toggle Animation)
- * - Pane context menu options (Add Node Here, AI features)
+ * - Pane context menu options (Add Node Here, Add Reference)
  * - Permission-based visibility verification
  */
 export class ContextMenuPage {
@@ -22,7 +22,6 @@ export class ContextMenuPage {
 	readonly collapseOption: Locator;
 	readonly expandOption: Locator;
 	readonly removeFromGroupOption: Locator;
-	readonly generateCounterpointsOption: Locator;
 
 	// Edge menu items
 	readonly deleteEdgeOption: Locator;
@@ -32,8 +31,6 @@ export class ContextMenuPage {
 	// Pane menu items
 	readonly addNodeHereOption: Locator;
 	readonly addReferenceOption: Locator;
-	readonly suggestConnectionsOption: Locator;
-	readonly suggestMergesOption: Locator;
 
 	// Group menu items
 	readonly groupSelectedOption: Locator;
@@ -60,9 +57,6 @@ export class ContextMenuPage {
 		this.removeFromGroupOption = page.locator(
 			'[data-testid="context-menu-remove-from-group"]'
 		);
-		this.generateCounterpointsOption = page.locator(
-			'[data-testid="context-menu-generate-counterpoints"]'
-		);
 
 		// Edge menu items
 		this.deleteEdgeOption = page.locator(
@@ -81,12 +75,6 @@ export class ContextMenuPage {
 		);
 		this.addReferenceOption = page.locator(
 			'[data-testid="context-menu-add-reference"]'
-		);
-		this.suggestConnectionsOption = page.locator(
-			'[data-testid="context-menu-suggest-connections"]'
-		);
-		this.suggestMergesOption = page.locator(
-			'[data-testid="context-menu-suggest-merges"]'
 		);
 
 		// Group menu items
@@ -159,20 +147,6 @@ export class ContextMenuPage {
 		const collapseVisible = await this.collapseOption.isVisible();
 		const expandVisible = await this.expandOption.isVisible();
 		expect(collapseVisible || expandVisible).toBe(true);
-	}
-
-	/**
-	 * Asserts that AI options are visible (editor mode).
-	 */
-	async expectAiOptionsVisible() {
-		await expect(this.generateCounterpointsOption).toBeVisible();
-	}
-
-	/**
-	 * Asserts that AI options are hidden (viewer mode).
-	 */
-	async expectAiOptionsHidden() {
-		await expect(this.generateCounterpointsOption).not.toBeVisible();
 	}
 
 	// ============================================================================
@@ -262,13 +236,6 @@ export class ContextMenuPage {
 	 */
 	async clickAddNodeHere() {
 		await this.addNodeHereOption.click();
-	}
-
-	/**
-	 * Clicks the Generate Counterpoints option.
-	 */
-	async clickGenerateCounterpoints() {
-		await this.generateCounterpointsOption.click();
 	}
 
 	/**

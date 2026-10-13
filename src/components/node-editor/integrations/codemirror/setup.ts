@@ -31,6 +31,7 @@ import {
 	getEditorAutocompleteState,
 } from './autocomplete-state';
 import { type CollaboratorMention, createCompletions } from './completions';
+import { pluginFieldsField } from './plugin-fields';
 import { createPatternDecorations } from './pattern-decorations';
 import { nodeEditorTheme } from './theme';
 import { getTooltipSpace } from './tooltip-viewport';
@@ -53,6 +54,8 @@ export interface NodeEditorConfig {
 	onAutocompleteChange?: (state: EditorAutocompleteState) => void;
 	showNativeAutocompleteTooltip?: boolean;
 	collaborators?: CollaboratorMention[];
+	/** Adds "More node types…" to the `$` list (owner, create mode). */
+	onBrowsePlugins?: () => void;
 }
 
 export interface NodeEditorRuntimeConfig {
@@ -190,10 +193,12 @@ export function createNodeEditor(
 		onAutocompleteChange,
 		showNativeAutocompleteTooltip = true,
 		collaborators,
+		onBrowsePlugins,
 	} = config;
 
 	const { source: completionSource, mentionMap } = createCompletions(
-		collaborators ?? []
+		collaborators ?? [],
+		{ onBrowsePlugins }
 	);
 	const runtimeConfig = {
 		placeholder: resolvePlaceholderText(placeholderText),
@@ -258,6 +263,7 @@ export function createNodeEditor(
 			)
 		),
 
+		pluginFieldsField,
 		...(enablePatternHighlighting ? [createPatternDecorations()] : []),
 		...(enableValidation ? [createValidationDecorations()] : []),
 

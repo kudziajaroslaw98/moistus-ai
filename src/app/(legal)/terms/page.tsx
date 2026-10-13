@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 		'Terms and conditions for using Shiko, the AI-powered mind mapping platform.',
 };
 
-const EFFECTIVE_DATE = 'January 23, 2026';
+const EFFECTIVE_DATE = 'October 12, 2026';
 const CONTACT_EMAIL = 'support@shiko.app';
 
 export default function TermsOfServicePage() {
@@ -20,7 +20,7 @@ export default function TermsOfServicePage() {
 					Terms of Service
 				</h1>
 				<p className='text-text-secondary'>
-					Last updated: <time dateTime='2026-01-23'>{EFFECTIVE_DATE}</time>
+					Last updated: <time dateTime='2026-10-12'>{EFFECTIVE_DATE}</time>
 				</p>
 			</header>
 
@@ -351,7 +351,8 @@ export default function TermsOfServicePage() {
 				<h3>8.1 AI-Generated Content</h3>
 				<p>
 					Shiko uses artificial intelligence (powered by OpenAI) to provide
-					suggestions, answers, and other features. You understand that:
+					suggestions, recipe results, node search, and other features. You
+					understand that:
 				</p>
 				<ul>
 					<li>
@@ -373,10 +374,12 @@ export default function TermsOfServicePage() {
 					When you use AI features, the following data may be sent to OpenAI:
 				</p>
 				<ul>
-					<li>Mind map structure (node relationships)</li>
-					<li>Node content (text, not images or files)</li>
+					<li>Mind map structure (how nodes connect)</li>
+					<li>Node text and tags (not images or files)</li>
+					<li>The map&apos;s title and description</li>
 					<li>
-						Your chat messages and conversation history (within the session)
+						What you type for AI: the instruction in an AI recipe and node
+						search queries
 					</li>
 				</ul>
 

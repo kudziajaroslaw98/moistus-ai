@@ -5,6 +5,7 @@ import {
 	SubscriptionError,
 } from '@/helpers/api/with-subscription-check';
 import { z } from 'zod';
+import { BILLING_SETTINGS_URL } from '@/lib/billing-urls';
 
 const requestSchema = z.object({
 	mapId: z.string().uuid(),
@@ -79,7 +80,7 @@ export const POST = withApiValidation(
 					'Pro subscription required for JSON export.',
 					403,
 					error.code,
-					{ upgradeUrl: '/dashboard/settings/billing' }
+					{ upgradeUrl: BILLING_SETTINGS_URL }
 				);
 			}
 			throw error;

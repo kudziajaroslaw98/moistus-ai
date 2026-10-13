@@ -5,6 +5,7 @@ import { Check, Circle, Minimize2 } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from '../ui/button';
 import {
+	ONBOARDING_CANVAS_SAFE_OFFSET,
 	ONBOARDING_DESKTOP_TOP_OFFSET,
 	ONBOARDING_MOBILE_TOP_OFFSET,
 } from './onboarding-layout';
@@ -84,6 +85,7 @@ function ChecklistItem({
 function ChecklistContent({
 	checklistContinueTaskId,
 	completedCount,
+	maxHeight,
 	onMinimize,
 	onSkip,
 	onTaskAction,
@@ -91,14 +93,15 @@ function ChecklistContent({
 }: {
 	checklistContinueTaskId: OnboardingTaskId | null;
 	completedCount: number;
+	maxHeight: string;
 	onMinimize: () => void;
 	onSkip: () => void;
 	onTaskAction: (taskId: OnboardingTaskId) => void;
 	tasks: Record<OnboardingTaskId, boolean>;
 }) {
 	return (
-		<div>
-			<div className='flex items-start justify-between gap-4'>
+		<div className='flex flex-col' style={{ maxHeight }}>
+			<div className='flex shrink-0 items-start justify-between gap-4'>
 				<div>
 					<p className='text-xs font-medium uppercase tracking-[0.2em] text-text-tertiary'>
 						Getting Started
@@ -127,7 +130,11 @@ function ChecklistContent({
 				</div>
 			</div>
 
-			<div className='mt-4 space-y-3'>
+			{/* Task list scrolls when the viewport is short (landscape phones). */}
+			<div
+				className='mt-4 min-h-0 space-y-3 overflow-y-auto overscroll-contain'
+				data-testid='onboarding-checklist-tasks'
+			>
 				{TASK_ITEMS.map((task) => (
 					<ChecklistItem
 						key={task.id}
@@ -285,6 +292,12 @@ export function WalkthroughSurface({
 					},
 				},
 			};
+	const topOffset = isMobile
+		? ONBOARDING_MOBILE_TOP_OFFSET
+		: ONBOARDING_DESKTOP_TOP_OFFSET;
+	// Viewport height minus the top offset, the bottom canvas clearance, and the
+	// surface's own 16px vertical padding.
+	const checklistMaxHeight = `calc(100dvh - ${topOffset} - ${ONBOARDING_CANVAS_SAFE_OFFSET} - 2rem)`;
 	const surfaceStyle = isChecklist
 		? {
 				width: 'calc(100vw - 2rem)',
@@ -309,14 +322,10 @@ export function WalkthroughSurface({
 	return (
 		<div
 			className={wrapperClassName}
+			style={{ top: topOffset }}
 			data-testid={
 				isChecklist ? 'onboarding-checklist' : 'onboarding-minimized-pill'
 			}
-			style={{
-				top: isMobile
-					? ONBOARDING_MOBILE_TOP_OFFSET
-					: ONBOARDING_DESKTOP_TOP_OFFSET,
-			}}
 		>
 			<motion.div
 				animate={{
@@ -356,6 +365,7 @@ export function WalkthroughSurface({
 							<ChecklistContent
 								checklistContinueTaskId={checklistContinueTaskId}
 								completedCount={completedCount}
+								maxHeight={checklistMaxHeight}
 								onMinimize={onMinimize}
 								onSkip={onSkip}
 								onTaskAction={onTaskAction}

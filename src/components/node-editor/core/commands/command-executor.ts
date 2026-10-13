@@ -114,8 +114,10 @@ export function processNodeTypeSwitch(text: string): NodeTypeSwitchResult {
 		};
 	}
 
-	// Get the command to determine node type
-	const command = triggerResult.matches?.[0];
+	// Exact trigger only: substring matching would read `$metric` as `$metrics`.
+	const command = triggerResult.fullTrigger
+		? commandRegistry.getCommandByTrigger(triggerResult.fullTrigger)
+		: undefined;
 
 	if (!command || !command.nodeType) {
 		return {
@@ -134,6 +136,7 @@ export function processNodeTypeSwitch(text: string): NodeTypeSwitchResult {
 	return {
 		hasSwitch: true,
 		nodeType: command.nodeType,
+		extension: command.extension,
 		processedText,
 		originalText: text,
 		cursorPosition: processedText.length,

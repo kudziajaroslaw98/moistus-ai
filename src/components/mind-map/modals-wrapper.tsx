@@ -3,9 +3,12 @@ import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { generateFunName } from '@/helpers/user-profile-helpers';
 import useAppStore from '@/store/mind-map-store';
 import { HistorySidebar } from '../history/history-sidebar';
+import { CommandPalette } from '../mind-map/command-palette';
 import { MapSettingsPanel } from '../mind-map/map-settings-panel';
+import { PluginsPanel } from '../plugins/plugins-panel';
 import EdgeEditModal from '../modals/edge-edit-modal';
 import { ReferenceSearchModal } from '../modals/reference-search-modal';
+import { RecipesPanel } from '../recipes/recipes-panel';
 import { SharePanel } from '../sharing/share-panel';
 
 export function ModalsWrapper() {
@@ -17,11 +20,13 @@ export function ModalsWrapper() {
 
 	return (
 		<>
-			{popoverOpen.edgeEdit && <EdgeEditModal />}
+			<EdgeEditModal />
+
+			<CommandPalette />
 
 			{canEdit && <HistorySidebar />}
 
-			{popoverOpen.sharePanel && mindMap && currentUser && (
+			{mindMap && currentUser && (
 				<SharePanel
 					isOpen={popoverOpen.sharePanel}
 					mapId={mindMap.id}
@@ -43,6 +48,10 @@ export function ModalsWrapper() {
 				isOpen={popoverOpen.mapSettings}
 				onClose={() => setPopoverOpen({ mapSettings: false })}
 			/>
+
+			<RecipesPanel />
+
+			<PluginsPanel />
 
 			{popoverOpen.referenceSearch && <ReferenceSearchModal />}
 		</>

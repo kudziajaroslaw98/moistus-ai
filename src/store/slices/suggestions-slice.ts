@@ -1,9 +1,18 @@
+import {
+	computeAnchorOffset,
+	getAnchorHostIds,
+	getAnchorNodeId,
+	isAnnotationNode,
+} from '@/helpers/anchored-annotations';
 import generateUuid from '@/helpers/generate-uuid';
+import { applyGraphOps } from '@/lib/extensions/graph-ops';
+import type { RecipeRef } from '@/lib/extensions/recipe-schema';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AiConnectionSuggestion } from '@/types/ai-connection-suggestion';
 import type { AiMergeSuggestion } from '@/types/ai-merge-suggestion';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
+import type { GraphActor, GraphOp } from '@/types/extensions';
 import type {
 	NodeSuggestion,
 	SuggestionContext,
@@ -743,8 +752,12 @@ export interface SuggestionsSlice {
 	acceptMerge: (suggestion: AiMergeSuggestion) => Promise<void>;
 	rejectMerge: (suggestion: AiMergeSuggestion) => void;
 
-	// Counterpoints
-	generateCounterpointsForNode: (nodeId: string) => void;
+	/**
+	 * Runs an AI recipe (saved, starter or unsaved draft). Results replace current
+	 * ghost suggestions once the stream starts. `sourceNodeId` is ignored for
+	 * map-scoped recipes and required otherwise.
+	 */
+	runRecipe: (recipe: RecipeRef, sourceNodeId: string | null) => void;
 
 	triggerStream: (
 		api: string,
@@ -943,25 +956,78 @@ export const createSuggestionsSlice: StateCreator<
 			}
 		});
 
-		// Add the new node to the main nodes array using the proper method signature
-		await state.addNode({
-			parentNode: null,
-			nodeId: approvedNodeId,
-			content: approvedNodeInput.content,
-			nodeType: approvedNodeInput.nodeType,
-			position: { x: ghostNode.position.x, y: ghostNode.position.y },
-			data: approvedNodeInput.data,
-		});
+		// An anchored annotation takes no connections, so as a source it stands
+		// in for its host.
+		const sourceNode = ghostMetadata.context?.sourceNodeId
+			? state.nodes.find((node) => node.id === ghostMetadata.context?.sourceNodeId)
+			: undefined;
+		const sourceHostId = sourceNode
+			? getAnchorNodeId(sourceNode, getAnchorHostIds(state.nodes))
+			: null;
+		const sourceNodeId = sourceHostId ?? ghostMetadata.context?.sourceNodeId;
+		const effectiveSource = sourceHostId
+			? state.nodes.find((node) => node.id === sourceHostId)
+			: sourceNode;
 
-		// Remove the ghost node
-		state.removeGhostNode(nodeId);
+		// An approved AI annotation anchors to its source node instead of
+		// getting an edge (annotations are notes about a node, not peers), and
+		// is never linked to another annotation.
+		const isAnnotationApproval = approvedNodeInput.nodeType === 'annotationNode';
+		const anchorHost =
+			isAnnotationApproval && effectiveSource && !isAnnotationNode(effectiveSource)
+				? effectiveSource
+				: undefined;
+		const skipEdge =
+			Boolean(anchorHost) ||
+			(isAnnotationApproval &&
+				effectiveSource !== undefined &&
+				isAnnotationNode(effectiveSource));
+		const approvedData = anchorHost
+			? {
+					...approvedNodeInput.data,
+					metadata: {
+						...approvedNodeInput.data?.metadata,
+						anchorNodeId: anchorHost.id,
+						anchorOffset: computeAnchorOffset(
+							ghostNode.position,
+							anchorHost.position
+						),
+					},
+				}
+			: approvedNodeInput.data;
 
-		// If there's a connection context, create the edge
-		if (ghostMetadata.context?.sourceNodeId) {
-			await state.addEdge(ghostMetadata.context.sourceNodeId, approvedNodeId, {
-				label: ghostMetadata.context.relationshipType || null,
-				animated: false,
+		const ops: GraphOp[] = [
+			{
+				type: 'createNode',
+				nodeId: approvedNodeId,
+				content: approvedNodeInput.content,
+				nodeType: approvedNodeInput.nodeType,
+				position: { x: ghostNode.position.x, y: ghostNode.position.y },
+				data: approvedData,
+			},
+		];
+		if (sourceNodeId && !skipEdge) {
+			ops.push({
+				type: 'createEdge',
+				source: sourceNodeId,
+				target: approvedNodeId,
+				data: {
+					label: ghostMetadata.context?.relationshipType || null,
+					animated: false,
+				},
 			});
+		}
+
+		// One history event per approval, attributed to the recipe when there is one.
+		const recipe = ghostMetadata.context?.recipe;
+		const actor: GraphActor = recipe
+			? { kind: 'recipe', id: recipe.id, label: recipe.title }
+			: { kind: 'user', id: state.currentUser?.id ?? 'unknown' };
+		const result = await applyGraphOps(get, ops, actor, { label: 'addNode' });
+
+		// Keep the ghost when the node itself couldn't be created, so it can be retried.
+		if (result.applied > 0) {
+			state.removeGhostNode(nodeId);
 		}
 	},
 
@@ -1361,26 +1427,28 @@ export const createSuggestionsSlice: StateCreator<
 		}));
 	},
 
-	generateCounterpointsForNode: (nodeId: string) => {
+	runRecipe: (recipe, sourceNodeId) => {
 		const {
 			nodes,
 			edges,
 			mapId,
+			mindMap,
+			reactFlowInstance,
 			triggerStream,
+			clearGhostNodes,
+			addGhostNode,
 			showStreamingToast,
 			updateStreamingToast,
 			setStreamingToastError,
 			setStreamSteps,
-			addGhostNode,
 		} = get();
 
-		if (!mapId) {
-			console.error('Cannot generate counterpoints without a mapId.');
+		const isMapScoped = recipe.definition.scope === 'map';
+		if (!mapId || (!isMapScoped && !sourceNodeId)) {
 			return;
 		}
 
-		const sourceNode = nodes.find((n) => n.id === nodeId);
-
+		const anchorSuggestionCounts = new Map<string, number>();
 		const handleChunk = (chunk: any) => {
 			if (!chunk || !chunk.type) return;
 
@@ -1392,39 +1460,49 @@ export const createSuggestionsSlice: StateCreator<
 					if (chunk.data?.error) setStreamingToastError(chunk.data.error);
 					else updateStreamingToast(chunk.data);
 					break;
-				case 'data-node-suggestion':
-					if (chunk.data) {
-						const suggestion = chunk.data;
-						addGhostNode({
-							...suggestion,
-							position: {
-								x:
-									(sourceNode?.position.x ?? 0) +
-									(suggestion.index || 0) * 300 +
-									(suggestion.index || 0) * 25,
-								y:
-									(sourceNode?.position.y ?? 0) +
-									(sourceNode?.height ?? sourceNode?.data.height ?? 0) +
-									50,
-							},
-						});
-					}
+				case 'data-node-suggestion': {
+					if (!chunk.data) break;
+					const placement = getStreamedSuggestionPlacement({
+						nodes,
+						suggestionContext: chunk.data.context,
+						reactFlowInstance,
+						anchorSuggestionCounts,
+					});
+					addGhostNode({
+						...chunk.data,
+						context: {
+							...chunk.data.context,
+							sourceNodeId: placement.resolvedAnchorNodeId,
+						},
+						position: placement.position,
+					});
 					break;
+				}
 				default:
 					break;
 			}
 		};
 
-		showStreamingToast('Generating Counterpoints');
+		const streamStarted = triggerStream(
+			'/api/ai/recipes/run',
+			{
+				mapId,
+				mapMeta: mindMap
+					? { title: mindMap.title, description: mindMap.description }
+					: null,
+				recipe,
+				sourceNodeId: isMapScoped ? null : sourceNodeId,
+				nodes,
+				edges,
+			},
+			handleChunk
+		);
+		if (!streamStarted) {
+			return;
+		}
 
-		const body = {
-			nodes,
-			edges,
-			mapId,
-			context: { sourceNodeId: nodeId, trigger: 'magic-wand' as const },
-		};
-
-		triggerStream('/api/ai/counterpoints', body, handleChunk);
+		clearGhostNodes();
+		showStreamingToast(recipe.definition.title);
 	},
 
 	generateMergeSuggestions: (sourceNodeId?: string) => {

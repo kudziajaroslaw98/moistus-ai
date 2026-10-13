@@ -46,6 +46,27 @@ export class CommandRegistry {
 	}
 
 	/**
+	 * Register an extra command (e.g. a `$trigger` for a plugin node kind).
+	 * Throws if the id or trigger is already taken, so built-ins like `$task` can't be
+	 * hijacked. Returns a function that removes exactly this registration.
+	 */
+	public register(command: Command): () => void {
+		if (this.commands.has(command.id)) {
+			throw new Error(`Command id "${command.id}" is already registered`);
+		}
+		if (this.getCommandByTrigger(command.trigger)) {
+			throw new Error(`Command trigger "${command.trigger}" is already registered`);
+		}
+
+		this.commands.set(command.id, command);
+		return () => {
+			if (this.commands.get(command.id) === command) {
+				this.commands.delete(command.id);
+			}
+		};
+	}
+
+	/**
 	 * Get a command by ID
 	 */
 	public getCommand(commandId: string): Command | undefined {

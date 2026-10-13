@@ -186,6 +186,15 @@ describe('MarkdownContent', () => {
 			expect(screen.getByText('This is a paragraph.')).toBeInTheDocument()
 		})
 
+		it('shows each typed line break inside a paragraph', () => {
+			render(<MarkdownContent content={'Tab to create a child\nEnter to create a sibling'} />)
+
+			const paragraph = screen.getByText(/Tab to create a child/)
+			expect(paragraph.tagName).toBe('P')
+			// Without this, the browser shows the newline as a space and the lines run together.
+			expect(paragraph).toHaveStyle({ whiteSpace: 'pre-line' })
+		})
+
 		it('renders unordered lists', () => {
 			render(
 				<MarkdownContent

@@ -4,6 +4,7 @@
 
 import type { LucideIcon } from 'lucide-react';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
+import type { PluginKindRef } from '@/types/plugins';
 
 /**
  * Command categories for grouping related commands
@@ -124,6 +125,8 @@ export interface Command {
 	category: CommandCategory;
 	triggerType: CommandTriggerType;
 	nodeType?: AvailableNodeTypes;
+	/** Plugin node kind this trigger creates (nodeType is then `extensionNode`). */
+	extension?: PluginKindRef;
 	action?: CommandAction;
 	keywords?: string[];
 	shortcuts?: string[];
@@ -169,6 +172,8 @@ export interface CommandTriggerResult {
 export interface NodeTypeSwitchResult {
 	hasSwitch: boolean;
 	nodeType: AvailableNodeTypes | null;
+	/** Set when the trigger names a plugin node kind (`$metric`). */
+	extension?: PluginKindRef;
 	processedText: string;
 	originalText: string;
 	cursorPosition: number;

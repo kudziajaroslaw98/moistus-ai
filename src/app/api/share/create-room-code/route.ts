@@ -2,6 +2,7 @@ import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { checkCollaboratorLimit } from '@/helpers/api/with-subscription-check';
 import { z } from 'zod';
+import { BILLING_SETTINGS_URL } from '@/lib/billing-urls';
 
 const CreateRoomCodeSchema = z.object({
 	map_id: z.string().uuid(),
@@ -41,7 +42,7 @@ export const POST = withAuthValidation(
 					currentCount,
 					limit,
 					remaining,
-					upgradeUrl: '/dashboard/settings/billing',
+					upgradeUrl: BILLING_SETTINGS_URL,
 				}
 			);
 		}

@@ -7,6 +7,7 @@
  * Token reduction: ~97% compared to raw JSON.stringify
  */
 
+import { foldAnchoredAnnotationData } from '@/helpers/ai-anchored-annotations';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
@@ -104,8 +105,10 @@ function extractSemanticContent(node: NodeData): string {
  * Filters out non-semantic nodes and extracts only relevant content.
  */
 export function extractNodesForConnections(
-	nodes: NodeData[]
+	allNodes: NodeData[]
 ): MinimalNodeForConnections[] {
+	// Anchored annotations cannot be connected; their text rides on the host.
+	const { nodes } = foldAnchoredAnnotationData(allNodes);
 	return nodes
 		.filter((n) => {
 			const type = (n.node_type || 'defaultNode') as AvailableNodeTypes;

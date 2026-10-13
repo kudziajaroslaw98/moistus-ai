@@ -1,8 +1,16 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
 import { checkUsageLimit } from '@/helpers/api/with-subscription-check';
+import {
+	groupMapCollaborators,
+	type CollaboratorRow,
+	type MapCollaboratorSummary,
+} from '@/helpers/dashboard/map-collaborators';
 import generateUuid from '@/helpers/generate-uuid';
+import { isCopyBlockedMetadata } from '@/lib/plugins/node-copy';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
+import { BILLING_SETTINGS_URL } from '@/lib/billing-urls';
 
 // Define schema for creating a new map
 const requestBodySchema = z.object({
@@ -12,6 +20,74 @@ const requestBodySchema = z.object({
 	template_category: z.string().optional().nullable(),
 	template_id: z.string().optional().nullable(),
 });
+
+/**
+ * Loads everyone with access to each map (owner first, then active shares)
+ * for dashboard avatars. Non-fatal: returns {} when profiles can't be read.
+ */
+async function fetchMapCollaborators(
+	maps: { id: string; ownerId: string }[],
+	currentUserId: string
+): Promise<Record<string, MapCollaboratorSummary>> {
+	if (maps.length === 0) return {};
+
+	try {
+		const adminClient = createServiceRoleClient();
+		const mapIds = maps.map((map) => map.id);
+		const ownerIds = [
+			...new Set(
+				maps.map((map) => map.ownerId).filter((id) => id !== currentUserId)
+			),
+		];
+
+		const [shareResult, ownerResult] = await Promise.all([
+			adminClient
+				.from('share_access_with_profiles')
+				.select('map_id, user_id, display_name, full_name, avatar_url, email')
+				.in('map_id', mapIds)
+				.eq('status', 'active'),
+			ownerIds.length > 0
+				? adminClient
+						.from('user_profiles')
+						.select('user_id, display_name, full_name, avatar_url, email')
+						.in('user_id', ownerIds)
+				: Promise.resolve({ data: [], error: null }),
+		]);
+
+		if (shareResult.error || ownerResult.error) {
+			console.error(
+				'Error fetching map collaborators:',
+				shareResult.error ?? ownerResult.error
+			);
+			return {};
+		}
+
+		const ownerProfiles = new Map(
+			(ownerResult.data ?? []).map((profile) => [profile.user_id, profile])
+		);
+		const ownerRows: CollaboratorRow[] = maps
+			.filter((map) => map.ownerId !== currentUserId)
+			.map((map) => {
+				const profile = ownerProfiles.get(map.ownerId);
+				return {
+					map_id: map.id,
+					user_id: map.ownerId,
+					display_name: profile?.display_name ?? null,
+					full_name: profile?.full_name ?? null,
+					avatar_url: profile?.avatar_url ?? null,
+					email: profile?.email ?? null,
+				};
+			});
+
+		return groupMapCollaborators(
+			[...ownerRows, ...((shareResult.data ?? []) as CollaboratorRow[])],
+			currentUserId
+		);
+	} catch (error) {
+		console.error('Error fetching map collaborators:', error);
+		return {};
+	}
+}
 
 export const GET = withApiValidation(
 	z.any().nullish(),
@@ -107,9 +183,22 @@ export const GET = withApiValidation(
 					new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
 			);
 
+			// 4. Collaborators for card avatars. Service role because user_profiles
+			// RLS hides co-collaborators; scoped to map IDs the user-session
+			// queries above already returned, so nothing new is exposed.
+			const collaboratorsByMap = await fetchMapCollaborators(
+				allMaps.map((map) => ({ id: map.id, ownerId: map.user_id })),
+				user.id
+			);
+
 			return respondSuccess(
 				{
-					maps: allMaps,
+					maps: allMaps.map((map) => ({
+						...map,
+						collaborators: collaboratorsByMap[map.id]?.collaborators ?? [],
+						collaboratorCount:
+							collaboratorsByMap[map.id]?.collaboratorCount ?? 0,
+					})),
 				},
 				200,
 				'Mind maps fetched successfully.'
@@ -163,7 +252,7 @@ export const POST = withApiValidation(
 						currentUsage: currentMapsCount,
 						limit,
 						remaining: remaining,
-						upgradeUrl: '/dashboard/settings/billing',
+						upgradeUrl: BILLING_SETTINGS_URL,
 					}
 				);
 			}
@@ -255,7 +344,7 @@ export const POST = withApiValidation(
 							currentUsage: templateNodeCount,
 							limit: nodeLimit,
 							remaining: Math.max(0, nodeLimit - templateNodeCount),
-							upgradeUrl: '/dashboard/settings/billing',
+							upgradeUrl: BILLING_SETTINGS_URL,
 						}
 					);
 				}
@@ -281,6 +370,22 @@ export const POST = withApiValidation(
 				.single();
 
 			if (insertError) {
+				// The database trigger is the backstop for two requests passing the
+				// count above at the same time.
+				if (insertError.message?.includes('MAP_LIMIT_REACHED')) {
+					return respondError(
+						'Mind map limit reached. Upgrade to Pro for unlimited maps.',
+						402,
+						'LIMIT_REACHED',
+						{
+							currentUsage: currentMapsCount,
+							limit,
+							remaining: 0,
+							upgradeUrl: BILLING_SETTINGS_URL,
+						}
+					);
+				}
+
 				console.error('Error creating new mind map:', insertError);
 				return respondError(
 					'Error creating new mind map.',
@@ -307,13 +412,19 @@ export const POST = withApiValidation(
 					// Create ID mapping (old template ID -> new UUID)
 					const idMap = new Map<string, string>();
 
+					// Nodes whose data links to other nodes (Threads) can't be copied: the copy
+					// would point at the template's nodes. Their edges drop out below.
+					const seedNodes = (templateNodes || []).filter(
+						(node) => !isCopyBlockedMetadata(node.metadata)
+					);
+
 					// Generate new IDs for all nodes
-					(templateNodes || []).forEach((node) => {
+					seedNodes.forEach((node) => {
 						idMap.set(node.id, generateUuid());
 					});
 
 					// Create nodes with new IDs
-					const nodesToInsert = (templateNodes || []).map((node) => ({
+					const nodesToInsert = seedNodes.map((node) => ({
 						id: idMap.get(node.id),
 						map_id: newMap.id,
 						user_id: user.id,
@@ -356,7 +467,7 @@ export const POST = withApiValidation(
 									metadata: edge.metadata || {},
 								};
 							})
-							.filter(Boolean);
+							.filter((edge) => edge !== null);
 
 						if (edgesToInsert.length > 0) {
 							const { error: edgesInsertError } = await supabase
@@ -372,8 +483,8 @@ export const POST = withApiValidation(
 						}
 					}
 
-					// Increment template usage count
-					await supabase.rpc('increment_usage_count', {
+					// Increment template usage count (service_role-only RPC)
+					await createServiceRoleClient().rpc('increment_usage_count', {
 						template_id: templateMapForSeed.id,
 					});
 				}

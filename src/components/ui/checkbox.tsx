@@ -12,6 +12,7 @@ interface CheckboxProps {
 	className?: string;
 	size?: 'sm' | 'md' | 'lg';
 	variant?: 'default' | 'card';
+	'aria-label'?: string;
 }
 
 export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
@@ -23,6 +24,7 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
 			className,
 			size = 'md',
 			variant = 'default',
+			'aria-label': ariaLabel,
 		},
 		ref
 	) => {
@@ -41,6 +43,7 @@ export const Checkbox = forwardRef<HTMLButtonElement, CheckboxProps>(
 		return (
 			<button
 				aria-checked={checked}
+				aria-label={ariaLabel}
 				disabled={disabled}
 				onClick={handleClick}
 				ref={ref}

@@ -1,3 +1,4 @@
+import generateUuid from '@/helpers/generate-uuid';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
 import { createPrivateChannel } from '@/lib/realtime/broadcast-channel';
 import useAppStore from '@/store/mind-map-store';
@@ -81,9 +82,9 @@ export const useRealtimeCursors = ({
 	);
 
 	// Use authenticated user ID if available, otherwise generate stable session UUID
-	// SECURITY: Uses crypto.randomUUID() instead of Math.random() to prevent collisions
+	// SECURITY: Uses generateUuid() (crypto-backed, works without a secure context) instead of Math.random() to prevent collisions
 	const userId = useMemo(
-		() => currentUser?.id || crypto.randomUUID(),
+		() => currentUser?.id || generateUuid(),
 		[currentUser?.id]
 	);
 	const [cursors, setCursors] = useState<Record<string, CursorEventPayload>>(

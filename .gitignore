@@ -17,6 +17,8 @@
 # playwright
 /playwright-report/
 /playwright/.cache/
+.playwright-cli
+.playwright-mcp
 /test-results/
 e2e/.auth/
 e2e/**/__snapshots__/

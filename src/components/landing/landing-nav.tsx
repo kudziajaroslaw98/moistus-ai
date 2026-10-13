@@ -1,12 +1,6 @@
 'use client';
 
-import {
-	Sheet,
-	SheetContent,
-	SheetFooter,
-	SheetHeader,
-	SheetTrigger,
-} from '@/components/ui/sheet';
+import { Panel, PanelRow, PanelSection } from '@/components/ui/panel';
 import { Menu } from 'lucide-react';
 import {
 	motion,
@@ -14,11 +8,12 @@ import {
 	useScroll,
 	useTransform,
 } from 'motion/react';
+import Image from 'next/image';
 import { useCallback, useRef, useState } from 'react';
 import { StartMappingLink } from './start-mapping-link';
 
 const navLinks = [
-	{ label: 'Features', href: '#features' },
+	{ label: 'How a map grows', href: '#story' },
 	{ label: 'Pricing', href: '#pricing' },
 	{ label: 'FAQ', href: '#faq' },
 ];
@@ -61,7 +56,7 @@ export function LandingNav() {
 	return (
 		<motion.header className='fixed left-0 right-0 top-0 z-50'>
 			<motion.div
-				className='absolute inset-0 bg-background/90 backdrop-blur-xl'
+				className='absolute inset-0 bg-zinc-950/90 backdrop-blur-xl'
 				style={{ opacity: shouldReduceMotion ? 1 : backgroundOpacity }}
 			/>
 			<motion.div
@@ -73,8 +68,9 @@ export function LandingNav() {
 				<div className='flex h-16 items-center justify-between'>
 					<a
 						href='/'
-						className='text-lg font-semibold text-text-primary hover:text-primary-400 transition-colors duration-200'
+						className='flex items-center gap-2.5 text-lg font-semibold text-text-primary hover:text-primary-400 transition-colors duration-200'
 					>
+						<Image alt='' height={22} src='/images/shiko-logo.svg' width={22} />
 						Shiko
 					</a>
 
@@ -96,57 +92,55 @@ export function LandingNav() {
 							<StartMappingLink className='inline-flex h-10 items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-neutral-900 shadow-[0_12px_30px_rgba(255,255,255,0.14)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[0_18px_36px_rgba(255,255,255,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background' />
 						</div>
 
-						<Sheet
-							open={mobileMenuOpen}
-							onOpenChange={handleMobileMenuOpenChange}
+						<button
+							aria-expanded={mobileMenuOpen}
+							aria-label='Open navigation menu'
+							className='-mr-2 rounded-xl border border-white/8 bg-white/[0.04] p-2 text-text-secondary transition-colors duration-200 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:hidden'
+							onClick={() => handleMobileMenuOpenChange(true)}
+							ref={mobileMenuTriggerRef}
+							type='button'
 						>
-							<SheetTrigger
-								render={
-									<button
-										ref={mobileMenuTriggerRef}
-										type='button'
-										className='-mr-2 rounded-xl border border-white/8 bg-white/[0.04] p-2 text-text-secondary transition-colors duration-200 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:hidden'
-										aria-label='Open navigation menu'
-										aria-expanded={mobileMenuOpen}
-									>
-										<Menu aria-hidden='true' className='h-6 w-6' />
-									</button>
-								}
-							/>
+							<Menu aria-hidden='true' className='h-6 w-6' />
+						</button>
 
-							<SheetContent
-								side='right'
-								className='w-[280px] border-l border-border-subtle p-0'
-							>
-								<SheetHeader className='px-6 pt-6 pb-4 border-b border-border-subtle'>
-									<span className='text-lg font-semibold text-text-primary'>
-										Shiko
-									</span>
-								</SheetHeader>
-
-								<nav className='flex flex-col px-4 py-4'>
-									{navLinks.map((link) => (
-										<a
-											key={link.label}
-											href={link.href}
-											onClick={(e) => handleNavClick(e, link.href)}
-											className='block py-3 px-2 text-base text-text-secondary hover:text-text-primary hover:bg-elevated/50 rounded-md transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'
-										>
-											{link.label}
-										</a>
-									))}
-								</nav>
-
-								<SheetFooter className='px-6 pb-6 mt-auto border-t border-border-subtle pt-4'>
-									<StartMappingLink
-										className='inline-flex h-11 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-neutral-900 shadow-[0_12px_30px_rgba(255,255,255,0.14)] transition-all duration-200 hover:shadow-[0_18px_36px_rgba(255,255,255,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
-										onNavigateStart={() =>
-											handleMobileMenuOpenChange(false)
+						<Panel
+							closeLabel='Close menu'
+							onOpenChange={handleMobileMenuOpenChange}
+							open={mobileMenuOpen}
+							title='Shiko'
+							footer={
+								<StartMappingLink
+									className='inline-flex h-10 w-full items-center justify-center rounded-xl bg-white px-4 text-sm font-semibold text-neutral-900 shadow-[0_12px_30px_rgba(255,255,255,0.14)] transition-all duration-200 hover:shadow-[0_18px_36px_rgba(255,255,255,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+									onNavigateStart={() => handleMobileMenuOpenChange(false)}
+								/>
+							}
+							leading={
+								<Image
+									alt=''
+									className='shrink-0'
+									height={24}
+									src='/images/shiko-logo.svg'
+									width={24}
+								/>
+							}
+						>
+							<PanelSection className='pt-2'>
+								{navLinks.map((link) => (
+									<PanelRow
+										chevron
+										href={link.href}
+										key={link.label}
+										onClick={(e) =>
+											handleNavClick(
+												e as React.MouseEvent<HTMLAnchorElement>,
+												link.href
+											)
 										}
+										title={link.label}
 									/>
-								</SheetFooter>
-							</SheetContent>
-						</Sheet>
+								))}
+							</PanelSection>
+						</Panel>
 					</div>
 				</div>
 			</nav>

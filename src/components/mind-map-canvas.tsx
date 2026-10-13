@@ -17,6 +17,8 @@ import { useParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { AIStreamMediator } from './ai/ai-stream-mediator';
+import { PluginRegistrar } from './plugins/plugin-registrar';
+import { RecipeContributionsRegistrar } from './recipes/recipe-contributions-registrar';
 import { ContextMenuWrapper } from './mind-map/context-menu-wrapper';
 import { StreamingToast } from './streaming-toast';
 import { AnonymousUserBanner } from './auth/anonymous-user-banner';
@@ -44,6 +46,8 @@ export function MindMapCanvas() {
 		createGroupFromSelected,
 		ungroupNodes,
 		toggleNodeCollapse,
+		openCanvasSearch,
+		setPopoverOpen,
 		openNodeEditor,
 		userProfile,
 		mapAccessError,
@@ -66,6 +70,8 @@ export function MindMapCanvas() {
 			createGroupFromSelected: state.createGroupFromSelected,
 			ungroupNodes: state.ungroupNodes,
 			toggleNodeCollapse: state.toggleNodeCollapse,
+			openCanvasSearch: state.openCanvasSearch,
+			setPopoverOpen: state.setPopoverOpen,
 			openNodeEditor: state.openNodeEditor,
 			userProfile: state.userProfile,
 			mapAccessError: state.mapAccessError,
@@ -178,6 +184,10 @@ export function MindMapCanvas() {
 		}
 	}, [selectedNodes, toggleNodeCollapse]);
 
+	const openCommandPalette = useCallback(() => {
+		setPopoverOpen({ commandPalette: true });
+	}, [setPopoverOpen]);
+
 	useKeyboardShortcuts({
 		onCopy: handleCopy,
 		onPaste: handlePaste,
@@ -188,6 +198,8 @@ export function MindMapCanvas() {
 		onUngroup: handleUngroup,
 		onToggleCollapse: handleToggleCollapse,
 		onLayout: canEdit ? applyLayout : undefined,
+		onOpenSearch: isRequestedMapReady ? openCanvasSearch : undefined,
+		onOpenPalette: isRequestedMapReady ? openCommandPalette : undefined,
 	});
 
 	// Keyboard navigation (arrow keys, Ctrl+Arrow creation, Enter edit)
@@ -221,6 +233,10 @@ export function MindMapCanvas() {
 				<AnonymousUserBanner />
 
 				<AIStreamMediator />
+
+				<RecipeContributionsRegistrar />
+
+				<PluginRegistrar />
 
 				<StreamingToast />
 

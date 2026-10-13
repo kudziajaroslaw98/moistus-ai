@@ -1,3 +1,4 @@
+import { DASHBOARD_PATH_HEADER } from '@/helpers/dashboard/dashboard-path-header';
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
@@ -9,6 +10,8 @@ import { NextResponse, type NextRequest } from 'next/server';
  *
  * Note: OAuth callbacks go directly to `/auth/callback` (configured in Supabase dashboard),
  * so this only handles magic link flows.
+ *
+ * Also forwards the pathname of `/dashboard` requests to the dashboard layout.
  */
 export function proxy(request: NextRequest) {
 	const { pathname, searchParams } = request.nextUrl;
@@ -21,6 +24,14 @@ export function proxy(request: NextRequest) {
 		url.pathname = '/auth/verify';
 		url.searchParams.set('code', code!);
 		return NextResponse.redirect(url);
+	}
+
+	// The dashboard layout gets no pathname; pass it along for its sign-in redirect.
+	// `set` overwrites any value the client sent.
+	if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
+		const requestHeaders = new Headers(request.headers);
+		requestHeaders.set(DASHBOARD_PATH_HEADER, pathname);
+		return NextResponse.next({ request: { headers: requestHeaders } });
 	}
 
 	return NextResponse.next();

@@ -330,6 +330,11 @@ export const nodeEditorTheme = EditorView.theme(
 			backgroundColor: 'rgba(236, 72, 153, 0.08)',
 		},
 
+		// "More node types…" in the `$` list
+		'.cm-completionIcon-browse-plugins::after': {
+			content: '"+"',
+		},
+
 		// Pattern-specific completion type icons
 		'.completion-type-keyword::before': {
 			content: '"📅"',

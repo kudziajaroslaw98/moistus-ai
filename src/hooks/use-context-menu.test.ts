@@ -64,4 +64,17 @@ describe('useContextMenu', () => {
 			edgeId: null,
 		});
 	});
+	it.each(['collapsed-proxy:a->b', 'annotation-tether:note-1'])(
+		'ignores display-only edge %s',
+		(edgeId) => {
+			const { result } = renderHook(() => useContextMenu());
+
+			act(() => {
+				result.current.contextMenuHandlers.openContextMenuAt({ x: 1, y: 2, edgeId });
+			});
+
+			expect(setPopoverOpen).not.toHaveBeenCalled();
+			expect(setContextMenuState).not.toHaveBeenCalled();
+		}
+	);
 });

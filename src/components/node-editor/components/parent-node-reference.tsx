@@ -8,6 +8,8 @@ import { getNodeTypeIcon } from '../core/config/node-type-config';
 
 interface ParentNodeReferenceProps {
 	parentNode: AppNode;
+	/** Prefix label; annotations show "Anchored to:" since they are not children. */
+	label?: string;
 }
 
 /**
@@ -39,6 +41,7 @@ const getContentSnippet = (content: string | null | undefined): string => {
  */
 export const ParentNodeReference: React.FC<ParentNodeReferenceProps> = ({
 	parentNode,
+	label = 'Adding to:',
 }) => {
 	// Get parent node type configuration for icon
 	const nodeType = (parentNode.data?.node_type ||
@@ -76,7 +79,7 @@ export const ParentNodeReference: React.FC<ParentNodeReferenceProps> = ({
 				className="text-xs shrink-0"
 				style={{ color: 'rgba(255, 255, 255, 0.38)' }}
 			>
-				Adding to:
+				{label}
 			</span>
 
 			{/* Parent content snippet */}

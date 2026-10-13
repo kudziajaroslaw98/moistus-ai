@@ -140,6 +140,7 @@ type MockStoreState = {
 				push_reactions?: boolean;
 			};
 			defaultNodeType: 'defaultNode' | 'textNode';
+			developerMode?: boolean;
 			privacy: {
 				profile_visibility: 'public' | 'private' | 'connections';
 			};
@@ -324,7 +325,9 @@ describe('SettingsPanel', () => {
 		expect(screen.getByText('Appearance')).toBeInTheDocument();
 		expect(screen.getByText('Security')).toBeInTheDocument();
 		expect(await screen.findByText('Background sync')).toBeInTheDocument();
-		expect(screen.getByText('One-off replay supported')).toBeInTheDocument();
+		expect(
+			await screen.findByText('One-off replay supported')
+		).toBeInTheDocument();
 		expect(screen.getByText('Periodic refresh unavailable')).toBeInTheDocument();
 
 		await user.click(screen.getByRole('tab', { name: /billing/i }));
@@ -341,7 +344,7 @@ describe('SettingsPanel', () => {
 
 		render(<SettingsPanel isOpen onClose={jest.fn()} />);
 
-		const saveButton = screen.getByRole('button', { name: 'Save Changes' });
+		const saveButton = screen.getByRole('button', { name: 'Save changes' });
 		const fullNameInput = screen.getByLabelText(/full name/i);
 		const displayNameInput = screen.getByLabelText(/display name/i);
 		const bioInput = screen.getByLabelText(/bio/i);
@@ -375,7 +378,7 @@ describe('SettingsPanel', () => {
 
 		const fullNameInput = screen.getByLabelText(/full name/i);
 		const bioInput = screen.getByLabelText(/bio/i);
-		const saveButton = screen.getByRole('button', { name: 'Save Changes' });
+		const saveButton = screen.getByRole('button', { name: 'Save changes' });
 
 		await user.clear(fullNameInput);
 		await user.type(fullNameInput, '  New Full Name  ');
@@ -406,7 +409,7 @@ describe('SettingsPanel', () => {
 		});
 		await user.click(emailNotificationsToggle);
 
-		const saveButton = screen.getByRole('button', { name: 'Save Changes' });
+		const saveButton = screen.getByRole('button', { name: 'Save changes' });
 		await user.click(saveButton);
 
 		await waitFor(() => {
@@ -420,6 +423,34 @@ describe('SettingsPanel', () => {
 						email: false,
 					}),
 				}),
+			})
+		);
+	});
+
+	it('keeps Developer mode when saving other preferences, and can turn it off', async () => {
+		mockState.userProfile.preferences.developerMode = true;
+		const user = userEvent.setup();
+
+		render(<SettingsPanel isOpen onClose={jest.fn()} />);
+
+		await user.click(screen.getByRole('button', { name: /email notifications/i }));
+		await user.click(screen.getByRole('button', { name: 'Save changes' }));
+		await waitFor(() => expect(mockState.updateUserProfile).toHaveBeenCalledTimes(1));
+		// Saving replaces all preferences, so a missing key would turn Developer mode off.
+		expect(mockState.updateUserProfile).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				preferences: expect.objectContaining({ developerMode: true }),
+			})
+		);
+
+		const toggle = screen.getByRole('switch', { name: 'Developer mode' });
+		expect(toggle).toBeChecked();
+		await user.click(toggle);
+		await user.click(screen.getByRole('button', { name: 'Save changes' }));
+		await waitFor(() => expect(mockState.updateUserProfile).toHaveBeenCalledTimes(2));
+		expect(mockState.updateUserProfile).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				preferences: expect.objectContaining({ developerMode: false }),
 			})
 		);
 	});

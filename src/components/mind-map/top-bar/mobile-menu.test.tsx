@@ -1,6 +1,6 @@
 import type { UseNotificationsResult } from '@/components/notifications/use-notifications';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps } from 'react';
 
 import { MobileMenu } from './mobile-menu';
 
@@ -49,46 +49,6 @@ jest.mock('@/components/notifications/use-notifications', () => ({
 
 jest.mock('@/components/realtime/realtime-avatar-stack', () => ({
 	RealtimeAvatarStack: () => <div data-testid='realtime-avatar-stack' />,
-}));
-
-jest.mock('@/components/ui/sheet', () => ({
-	Sheet: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-	SheetClose: ({
-		children,
-		className,
-		...props
-	}: {
-		children: ReactNode;
-		className?: string;
-	}) => (
-		<button className={className} {...props}>
-			{children}
-		</button>
-	),
-	SheetContent: ({
-		children,
-		className,
-		...props
-	}: {
-		children: ReactNode;
-		className?: string;
-	}) => (
-		<div className={className} {...props}>
-			{children}
-		</div>
-	),
-	SheetTitle: ({
-		children,
-		className,
-		...props
-	}: {
-		children: ReactNode;
-		className?: string;
-	}) => (
-		<div className={className} {...props}>
-			{children}
-		</div>
-	),
 }));
 
 jest.mock('@/store/mind-map-store', () => ({

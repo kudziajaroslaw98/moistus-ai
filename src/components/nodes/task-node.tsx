@@ -1,5 +1,6 @@
 'use client';
 
+import generateUuid from '@/helpers/generate-uuid';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import useAppStore from '@/store/mind-map-store';
 import { CheckCheck, CheckSquare, Eye, EyeOff, Plus, Square } from 'lucide-react';
@@ -97,7 +98,7 @@ const TaskNodeComponent = (props: TaskNodeProps) => {
 
 	const handleAddTask = useCallback(async () => {
 		const newTask = {
-			id: crypto.randomUUID(),
+			id: generateUuid(),
 			text: '',
 			isComplete: false,
 		};

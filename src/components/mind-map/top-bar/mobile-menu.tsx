@@ -11,19 +11,13 @@ import {
 } from '@/components/notifications/use-notifications';
 import { RealtimeAvatarStack } from '@/components/realtime/realtime-avatar-stack';
 import { Button } from '@/components/ui/button';
-import {
-	Sheet,
-	SheetClose,
-	SheetContent,
-	SheetTitle,
-} from '@/components/ui/sheet';
+import { Panel, PanelRow, PanelSection } from '@/components/ui/panel';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { type ActivityState } from '@/hooks/realtime/use-realtime-presence-room';
 import { getMindMapRoomName } from '@/lib/realtime/room-names';
 import { runWithViewTransition } from '@/lib/view-transitions';
 import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
-import { ChevronRight, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -232,245 +226,209 @@ export function MobileMenu({
 
 	return (
 		<>
-			<Sheet onOpenChange={onOpenChange} open={open}>
-				<SheetContent
-					className='w-full max-w-[min(92vw,24rem)] gap-0 border-l border-white/10 p-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.12),transparent_32%),linear-gradient(180deg,rgba(14,14,18,0.98),rgba(8,8,10,0.99))] [&>button:last-child]:hidden'
-					side='right'
-				>
-					<div className='flex h-full flex-col'>
-						<div className='sticky top-0 z-10 flex min-h-14 items-center justify-between gap-3 border-b border-white/8 bg-base/90 px-4 py-2 backdrop-blur-xl'>
-							<SheetTitle
-								className='min-w-0 truncate text-[1.5rem] font-semibold tracking-[-0.04em] text-text-primary'
-								title={mapTitle || 'Menu'}
-							>
-								{drawerTitle}
-							</SheetTitle>
+			<Panel
+				bodyClassName='pb-[calc(env(safe-area-inset-bottom)+24px)]'
+				closeLabel='Close menu'
+				onOpenChange={onOpenChange}
+				open={open}
+				title={drawerTitle}
+				titleAttr={mapTitle || 'Menu'}
+			>
+				<section className='pt-4'>
+					<div className='grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5'>
+						<UserAvatar className='row-span-2 size-12' size='md' user={user} />
 
-							<SheetClose className='inline-flex size-8 shrink-0 items-center justify-center rounded-sm bg-transparent text-text-secondary transition-colors hover:bg-white/5 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'>
-								<X className='size-5' />
-								<span className='sr-only'>Close menu</span>
-							</SheetClose>
+						<p className='truncate text-[0.95rem] font-semibold text-text-primary'>
+							{name}
+						</p>
+
+						<div className='shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-text-secondary'>
+							{unreadSummary}
 						</div>
 
-						<div className='flex-1 overflow-y-auto px-5 pb-[calc(env(safe-area-inset-bottom)+24px)]'>
-							<section className='pt-4'>
-								<div className='grid grid-cols-[3rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5'>
-									<UserAvatar
-										className='row-span-2 size-12'
-										size='md'
-										user={user}
-									/>
-									<p className='truncate text-[0.95rem] font-semibold text-text-primary'>
-										{name}
-									</p>
-
-									<div className='shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-text-secondary'>
-										{unreadSummary}
-									</div>
-
-									<p className='truncate text-[13px] text-text-secondary'>
-										{subtitle}
-									</p>
-								</div>
-
-								{isAnonymous && (
-									<p
-										className={cn(
-											'mt-2 text-[11px] leading-4 text-primary-300'
-										)}
-									>
-										Upgrade to keep this workspace.
-									</p>
-								)}
-							</section>
-
-							<div>
-								<section className='mt-5 border-t border-white/8 pt-4'>
-									<SectionHeading title='Collaboration' />
-
-									<div className='mt-1.5 space-y-2.5'>
-										{isMapReady && isMapOwner && (
-											<MenuRow
-												description='Invite people into this map.'
-												label='Share map'
-												onClick={handleShareMap}
-											/>
-										)}
-
-										<div className='flex items-center gap-3'>
-											<RealtimeAvatarStack
-												activityState={activityState}
-												fallbackAvatars={collaboratorAvatars}
-												mapOwnerId={mapOwnerId}
-												roomName={getMindMapRoomName(mapId, 'presence')}
-											/>
-											<p className='min-w-0 text-[12px] leading-4 text-text-secondary'>
-												{collaboratorAvatars.length > 0
-													? collaboratorSummary
-													: 'Only you are here right now.'}
-											</p>
-										</div>
-									</div>
-								</section>
-
-								<section className='mt-5 border-t border-white/8 pt-4'>
-									<SectionHeading
-										meta={unreadSummary}
-										title='Recent activity'
-									/>
-
-									{error ? (
-										<p className='mt-2 text-[12px] leading-4 text-red-400'>
-											{error}
-										</p>
-									) : activityPreview.length === 0 ? (
-										<p className='mt-2 text-[12px] leading-4 text-text-secondary'>
-											No activity on this map yet.
-										</p>
-									) : (
-										<ul className='mt-2 divide-y divide-white/8 border-y border-white/8'>
-											{activityPreview.map((notification) => (
-												<li key={notification.id}>
-													<div className='flex items-start gap-2.5 py-2.5'>
-														<span
-															className={cn(
-																'mt-1 size-2 rounded-full',
-																notification.is_read
-																	? 'bg-white/10'
-																	: 'bg-primary-400 shadow-[0_0_14px_rgba(59,130,246,0.65)]'
-															)}
-														/>
-
-														<button
-															type='button'
-															className='flex min-w-0 flex-1 items-start justify-between gap-3 rounded-2xl pr-1 text-left transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'
-															onClick={() =>
-																void handleNotificationClick(
-																	notification.id,
-																	notification.map_id
-																)
-															}
-														>
-															<div className='min-w-0'>
-																<p className='truncate text-[13px] font-medium text-text-primary'>
-																	{notification.title}
-																</p>
-																<p className='mt-0.5 line-clamp-2 text-[12px] leading-4 text-text-secondary'>
-																	{notification.body}
-																</p>
-															</div>
-
-															<div className='shrink-0 pt-0.5 text-right'>
-																<p className='text-[10px] uppercase tracking-[0.16em] text-text-disabled'>
-																	{formatRelativeNotificationTime(
-																		notification.created_at
-																	)}
-																</p>
-																{notification.map_id && (
-																	<p className='mt-1.5 text-[10px] uppercase tracking-[0.14em] text-text-secondary'>
-																		Open
-																	</p>
-																)}
-															</div>
-														</button>
-													</div>
-												</li>
-											))}
-										</ul>
-									)}
-
-									{visibleUnreadCount > 0 && (
-										<Button
-											className='mt-2 h-8 px-0 text-[12px] text-text-secondary hover:text-text-primary'
-											onClick={handleMarkAllAsRead}
-											variant='ghost'
-										>
-											Mark all as read
-										</Button>
-									)}
-								</section>
-
-								<section className='mt-5 border-t border-white/8 pt-4'>
-									<SectionHeading title='Workspace' />
-
-									<div className='mt-1.5 space-y-0.5'>
-										{isMapReady && canEdit && !isTemplateAdmin && (
-											<MenuRow
-												description='Browse the map timeline.'
-												label='View history'
-												onClick={handleViewHistory}
-											/>
-										)}
-
-										{isMapReady && (isMapOwner || isTemplateAdmin) && (
-											<MenuRow
-												description={
-													isSettingsActive
-														? 'Settings are already open.'
-														: 'Access map permissions and metadata.'
-												}
-												label='Map settings'
-												onClick={handleOpenMapSettings}
-											/>
-										)}
-
-										{!isAnonymous && (
-											<MenuRow
-												description='Replay the editor walkthrough.'
-												label='Restart walkthrough'
-												onClick={handleRestartWalkthrough}
-											/>
-										)}
-									</div>
-								</section>
-
-								<section className='mt-5 border-t border-white/8 pt-4'>
-									<SectionHeading title='Account' />
-
-									<div className='mt-1.5 space-y-0.5'>
-										<MenuRow
-											description='Profile details and preferences.'
-											label='Account'
-											onClick={handleOpenAccount}
-										/>
-
-										{!isAnonymous && (
-											<MenuRow
-												description='Plans, invoices, and billing.'
-												label='Billing'
-												onClick={handleOpenBilling}
-											/>
-										)}
-
-										{isAnonymous ? (
-											<MenuRow
-												description='Save this temporary account.'
-												label='Upgrade Account'
-												onClick={handleUpgradeAccount}
-												tone='accent'
-											/>
-										) : hasResolvedSubscription && !isPro ? (
-											<MenuRow
-												description='Unlock higher limits and deeper tools.'
-												label='Upgrade to Pro'
-												onClick={handleUpgradePro}
-												tone='accent'
-											/>
-										) : null}
-
-										<MenuRow
-											description='Leave this session.'
-											label={isLoggingOut ? 'Signing out...' : 'Sign out'}
-											onClick={handleSignOut}
-											tone='danger'
-										/>
-									</div>
-								</section>
-							</div>
-						</div>
+						<p className='truncate text-[13px] text-text-secondary'>{subtitle}</p>
 					</div>
-				</SheetContent>
-			</Sheet>
+
+					{isAnonymous && (
+						<p className='mt-2 text-[11px] leading-4 text-primary-300'>
+							Upgrade to keep this workspace.
+						</p>
+					)}
+				</section>
+
+				<PanelSection className='mt-5' label='Collaboration'>
+					{isMapReady && isMapOwner && (
+						<PanelRow
+							chevron
+							description='Invite people into this map.'
+							onClick={handleShareMap}
+							title='Share map'
+						/>
+					)}
+
+					<div className='mt-1.5 flex items-center gap-3'>
+						<RealtimeAvatarStack
+							activityState={activityState}
+							fallbackAvatars={collaboratorAvatars}
+							mapOwnerId={mapOwnerId}
+							roomName={getMindMapRoomName(mapId, 'presence')}
+						/>
+
+						<p className='min-w-0 text-[12px] leading-4 text-text-secondary'>
+							{collaboratorAvatars.length > 0
+								? collaboratorSummary
+								: 'Only you are here right now.'}
+						</p>
+					</div>
+				</PanelSection>
+
+				<PanelSection label='Recent activity' meta={unreadSummary}>
+					{error ? (
+						<p className='text-[12px] leading-4 text-error-400'>{error}</p>
+					) : activityPreview.length === 0 ? (
+						<p className='text-[12px] leading-4 text-text-secondary'>
+							No activity on this map yet.
+						</p>
+					) : (
+						<ul className='divide-y divide-white/8 border-y border-white/8'>
+							{activityPreview.map((notification) => (
+								<li key={notification.id}>
+									<div className='flex items-start gap-2.5 py-2.5'>
+										<span
+											className={cn(
+												'mt-1 size-2 rounded-full',
+												notification.is_read
+													? 'bg-white/10'
+													: 'bg-primary-400 shadow-[0_0_14px_rgba(59,130,246,0.65)]'
+											)}
+										/>
+
+										<button
+											type='button'
+											className='flex min-w-0 flex-1 items-start justify-between gap-3 rounded-2xl pr-1 text-left transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500'
+											onClick={() =>
+												void handleNotificationClick(
+													notification.id,
+													notification.map_id
+												)
+											}
+										>
+											<div className='min-w-0'>
+												<p className='truncate text-[13px] font-medium text-text-primary'>
+													{notification.title}
+												</p>
+
+												<p className='mt-0.5 line-clamp-2 text-[12px] leading-4 text-text-secondary'>
+													{notification.body}
+												</p>
+											</div>
+
+											<div className='shrink-0 pt-0.5 text-right'>
+												<p className='text-[10px] uppercase tracking-[0.16em] text-text-disabled'>
+													{formatRelativeNotificationTime(notification.created_at)}
+												</p>
+
+												{notification.map_id && (
+													<p className='mt-1.5 text-[10px] uppercase tracking-[0.14em] text-text-secondary'>
+														Open
+													</p>
+												)}
+											</div>
+										</button>
+									</div>
+								</li>
+							))}
+						</ul>
+					)}
+
+					{visibleUnreadCount > 0 && (
+						<Button
+							className='mt-2 h-8 px-0 text-[12px] text-text-secondary hover:text-text-primary'
+							onClick={handleMarkAllAsRead}
+							variant='ghost'
+						>
+							Mark all as read
+						</Button>
+					)}
+				</PanelSection>
+
+				<PanelSection label='Workspace'>
+					{isMapReady && canEdit && !isTemplateAdmin && (
+						<PanelRow
+							chevron
+							description='Browse the map timeline.'
+							onClick={handleViewHistory}
+							title='View history'
+						/>
+					)}
+
+					{isMapReady && (isMapOwner || isTemplateAdmin) && (
+						<PanelRow
+							chevron
+							onClick={handleOpenMapSettings}
+							title='Map settings'
+							description={
+								isSettingsActive
+									? 'Settings are already open.'
+									: 'Access map permissions and metadata.'
+							}
+						/>
+					)}
+
+					{!isAnonymous && (
+						<PanelRow
+							chevron
+							description='Replay the editor walkthrough.'
+							onClick={handleRestartWalkthrough}
+							title='Restart walkthrough'
+						/>
+					)}
+				</PanelSection>
+
+				<PanelSection label='Account'>
+					<PanelRow
+						chevron
+						description='Profile details and preferences.'
+						onClick={handleOpenAccount}
+						title='Account'
+					/>
+
+					{!isAnonymous && (
+						<PanelRow
+							chevron
+							description='Plans, invoices, and billing.'
+							onClick={handleOpenBilling}
+							title='Billing'
+						/>
+					)}
+
+					{isAnonymous ? (
+						<PanelRow
+							chevron
+							description='Save this temporary account.'
+							onClick={handleUpgradeAccount}
+							title='Upgrade Account'
+							tone='accent'
+						/>
+					) : hasResolvedSubscription && !isPro ? (
+						<PanelRow
+							chevron
+							description='Unlock higher limits and deeper tools.'
+							onClick={handleUpgradePro}
+							title='Upgrade to Pro'
+							tone='accent'
+						/>
+					) : null}
+
+					<PanelRow
+						chevron
+						description='Leave this session.'
+						onClick={handleSignOut}
+						title={isLoggingOut ? 'Signing out...' : 'Sign out'}
+						tone='danger'
+					/>
+				</PanelSection>
+			</Panel>
 
 			{showUpgradeAnonymous && (
 				<UpgradeAnonymousPrompt
@@ -485,49 +443,3 @@ export function MobileMenu({
 	);
 }
 
-function SectionHeading({ title, meta }: { title: string; meta?: string }) {
-	return (
-		<div className='flex items-center justify-between gap-3'>
-			<p className='text-[10px] font-medium uppercase tracking-[0.22em] text-text-disabled'>
-				{title}
-			</p>
-			{meta ? (
-				<span className='text-[10px] uppercase tracking-[0.18em] text-text-disabled'>
-					{meta}
-				</span>
-			) : null}
-		</div>
-	);
-}
-
-function MenuRow({
-	label,
-	description,
-	onClick,
-	tone = 'default',
-}: {
-	label: string;
-	description: string;
-	onClick: () => void;
-	tone?: 'default' | 'accent' | 'danger';
-}) {
-	return (
-		<button
-			type='button'
-			className={cn(
-				'flex w-full items-center justify-between gap-3 rounded-[18px] py-2.5 pr-1 text-left transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
-				tone === 'accent' && 'text-primary-300 hover:text-primary-200',
-				tone === 'danger' && 'text-red-300 hover:text-red-200'
-			)}
-			onClick={onClick}
-		>
-			<div className='min-w-0'>
-				<p className='text-[15px] font-medium leading-5'>{label}</p>
-				<p className='mt-0.5 text-[12px] leading-4 text-text-secondary'>
-					{description}
-				</p>
-			</div>
-			<ChevronRight className='size-4 shrink-0 text-text-disabled' />
-		</button>
-	);
-}

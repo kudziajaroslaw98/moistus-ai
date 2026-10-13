@@ -9,6 +9,7 @@ import {
 	PERIODIC_NOTIFICATIONS_SYNC_TAG,
 	refreshGlobalNotificationsCache,
 } from '@/lib/offline/offline-sync-core';
+import { isLeftToBrowser } from '@/lib/offline/sw-browser-requests';
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist';
 import { Serwist } from 'serwist';
 
@@ -40,6 +41,14 @@ const serwist = new Serwist({
 			},
 		],
 	},
+});
+
+// Requests left to the browser (registered before Serwist's listener, so stopping here
+// skips it). The rules and why are in `isLeftToBrowser`.
+self.addEventListener('fetch', (event) => {
+	if (isLeftToBrowser(event.request, self.location.origin)) {
+		event.stopImmediatePropagation();
+	}
 });
 
 serwist.addEventListeners();

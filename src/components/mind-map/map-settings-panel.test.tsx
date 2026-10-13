@@ -4,6 +4,10 @@ import userEvent from '@testing-library/user-event';
 import type { TextareaHTMLAttributes } from 'react';
 import { MapSettingsPanel } from './map-settings-panel';
 
+// Tested on its own (plugins-settings-section.test.tsx).
+jest.mock('@/components/plugins/plugins-settings-link', () => ({
+	PluginsSettingsLink: () => null,
+}));
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
 	default: jest.fn(),
@@ -83,7 +87,6 @@ type StoreState = {
 		template_category?: string | null;
 	};
 	permissions?: { can_edit?: boolean };
-	userProfile?: { role?: string | null } | null;
 	updateMindMap: jest.Mock;
 	deleteMindMap: jest.Mock;
 	loadingStates: {
@@ -94,6 +97,11 @@ type StoreState = {
 	edges: unknown[];
 	updatePreferences: jest.Mock;
 	getDefaultNodeType: jest.Mock;
+	userProfile: {
+		role?: string | null;
+		is_anonymous?: boolean;
+		preferences?: { developerMode?: boolean };
+	};
 };
 
 const mockUseAppStore = useAppStore as unknown as jest.Mock;
@@ -116,6 +124,7 @@ const createMockState = (): StoreState => ({
 	edges: [],
 	updatePreferences: jest.fn(),
 	getDefaultNodeType: jest.fn(() => 'textNode'),
+	userProfile: { is_anonymous: false, preferences: {} },
 });
 
 describe('MapSettingsPanel', () => {
@@ -135,9 +144,20 @@ describe('MapSettingsPanel', () => {
 		expect(screen.getByText('General')).toBeInTheDocument();
 		expect(screen.getByText('Organization')).toBeInTheDocument();
 		expect(screen.getByText('Appearance')).toBeInTheDocument();
-		expect(screen.getByText('Editor Preferences')).toBeInTheDocument();
-		expect(screen.getByText('Danger Zone')).toBeInTheDocument();
+		expect(screen.getByText('Editor preferences')).toBeInTheDocument();
+		expect(screen.getByText('Danger zone')).toBeInTheDocument();
 		expect(screen.queryByText('Mark as template')).not.toBeInTheDocument();
+	});
+
+	it('turns Developer mode on for the account right away', async () => {
+		const user = userEvent.setup();
+
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+		const toggle = screen.getByRole('switch', { name: 'Developer mode' });
+		expect(toggle).not.toBeChecked();
+		await user.click(toggle);
+
+		expect(mockState.updatePreferences).toHaveBeenCalledWith({ developerMode: true });
 	});
 
 	it('disables save and shows validation feedback for empty title and invalid thumbnail URL', async () => {
@@ -145,7 +165,7 @@ describe('MapSettingsPanel', () => {
 
 		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
 
-		const saveButton = screen.getByRole('button', { name: 'Save Changes' });
+		const saveButton = screen.getByRole('button', { name: 'Save changes' });
 		const titleInput = screen.getByLabelText(/title/i);
 		const thumbnailInput = screen.getByLabelText(/thumbnail url/i);
 
@@ -184,7 +204,7 @@ describe('MapSettingsPanel', () => {
 		await user.type(thumbnailInput, '  https://example.com/thumb.jpg  ');
 		await user.tab();
 
-		await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+		await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
 		await waitFor(() => {
 			expect(mockState.updateMindMap).toHaveBeenCalledTimes(1);
@@ -211,7 +231,10 @@ describe('MapSettingsPanel', () => {
 		expect(screen.getByTestId('discard-dialog')).toBeInTheDocument();
 		expect(onClose).not.toHaveBeenCalled();
 
-		await user.click(screen.getByRole('button', { name: 'Discard changes' }));
+		// The mocked dialog renders inside the test container, which a modal panel hides.
+		await user.click(
+			screen.getByRole('button', { name: 'Discard changes', hidden: true })
+		);
 
 		expect(onClose).toHaveBeenCalledTimes(1);
 	});
@@ -263,7 +286,7 @@ describe('MapSettingsPanel template admin', () => {
 
 		expect(screen.getByRole('heading', { name: 'Template' })).toBeInTheDocument();
 		expect(global.fetch).toHaveBeenCalledWith('/api/templates/template-1');
-		expect(screen.getByRole('button', { name: 'Delete Template' })).toBeInTheDocument();
+		expect(screen.getByText('Delete template')).toBeInTheDocument();
 
 		const lightbulb = await screen.findByRole('radio', { name: 'Lightbulb' });
 		expect(screen.getByRole('radio', { name: 'Briefcase' })).toHaveAttribute(
@@ -272,7 +295,7 @@ describe('MapSettingsPanel template admin', () => {
 		);
 
 		await user.click(lightbulb);
-		await user.click(screen.getByRole('button', { name: 'Save Changes' }));
+		await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
 		await waitFor(() => {
 			expect(mockState.updateMindMap).toHaveBeenCalledWith('template-1', {
@@ -297,7 +320,8 @@ describe('MapSettingsPanel publish as template', () => {
 
 	it('offers publishing to admins on their own maps', async () => {
 		const user = userEvent.setup();
-		const state = { ...createMockState(), userProfile: { role: 'admin' } };
+		const base = createMockState();
+		const state = { ...base, userProfile: { ...base.userProfile, role: 'admin' } };
 		mockUseAppStore.mockImplementation(
 			(selector: (s: StoreState) => unknown) => selector(state)
 		);
@@ -309,7 +333,8 @@ describe('MapSettingsPanel publish as template', () => {
 	});
 
 	it('does not offer publishing to non-admins', () => {
-		const state = { ...createMockState(), userProfile: { role: 'user' } };
+		const base = createMockState();
+		const state = { ...base, userProfile: { ...base.userProfile, role: 'user' } };
 		mockUseAppStore.mockImplementation(
 			(selector: (s: StoreState) => unknown) => selector(state)
 		);

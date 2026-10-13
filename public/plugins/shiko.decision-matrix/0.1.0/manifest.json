@@ -1,0 +1,94 @@
+{
+	"id": "shiko.decision-matrix",
+	"name": "Decision matrix",
+	"version": "0.1.0",
+	"apiVersion": 1,
+	"author": "Shiko",
+	"description": "Score options against your criteria and see which one wins.",
+	"icon": "scale",
+	"permissions": ["node:own"],
+	"main": "plugin.js",
+	"nodeKinds": [
+		{
+			"kind": "decision",
+			"label": "Decision",
+			"description": "Options scored on criteria",
+			"icon": "scale",
+			"labelField": "label",
+			"fields": {
+				"label": {
+					"type": "string",
+					"title": "Decision",
+					"description": "What you're deciding",
+					"required": true,
+					"maxLength": 80
+				},
+				"criteria": {
+					"type": "list",
+					"title": "Criteria",
+					"description": "What matters, up to 4",
+					"maxItems": 4,
+					"columns": [
+						{
+							"name": "name",
+							"type": "string",
+							"title": "Criterion",
+							"required": true,
+							"maxLength": 30
+						}
+					]
+				},
+				"options": {
+					"type": "list",
+					"title": "Options",
+					"description": "Each option with a score per criterion",
+					"maxItems": 8,
+					"columns": [
+						{
+							"name": "name",
+							"type": "string",
+							"title": "Option",
+							"required": true,
+							"maxLength": 40
+						},
+						{
+							"name": "s1",
+							"type": "integer",
+							"title": "Score 1",
+							"description": "For criterion 1, 1 to 5",
+							"min": 1,
+							"max": 5
+						},
+						{
+							"name": "s2",
+							"type": "integer",
+							"title": "Score 2",
+							"description": "For criterion 2, 1 to 5",
+							"min": 1,
+							"max": 5
+						},
+						{
+							"name": "s3",
+							"type": "integer",
+							"title": "Score 3",
+							"description": "For criterion 3, 1 to 5",
+							"min": 1,
+							"max": 5
+						},
+						{
+							"name": "s4",
+							"type": "integer",
+							"title": "Score 4",
+							"description": "For criterion 4, 1 to 5",
+							"min": 1,
+							"max": 5
+						}
+					]
+				}
+			},
+			"examples": [
+				"Pick a laptop criteria:[\"Price\", \"Battery\", \"Weight\"] options:[[\"Air\", 3, 5, 4], [\"ThinkPad\", 4, 3, 3]]"
+			]
+		}
+	]
+}

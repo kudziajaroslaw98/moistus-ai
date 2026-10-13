@@ -1,3 +1,4 @@
+import { foldAnchoredAnnotationNodes } from '@/helpers/ai-anchored-annotations';
 import {
 	createAiIdAliasMap,
 	resolveAliasedNodeId,
@@ -43,7 +44,8 @@ const EXCLUDED_PROMPT_ALIAS_NODE_TYPES = new Set([
 	'group',
 ]);
 
-function isPromptAliasCandidate(node: SuggestionPromptInput['nodes'][number]) {
+/** Nodes the model may see and reference: no ghosts, comments, groups or system-only types. */
+export function isPromptAliasCandidate(node: SuggestionPromptInput['nodes'][number]) {
 	const nodeType = node.data.node_type || node.type || 'defaultNode';
 	const userCreatable = (node as { userCreatable?: boolean }).userCreatable;
 	return (
@@ -77,8 +79,24 @@ function resolveValidSourceNodeId(
 }
 
 export function buildSuggestionPromptContext(
-	input: SuggestionPromptInput
+	rawInput: SuggestionPromptInput
 ): SuggestionPromptContext {
+	// Anchored annotations become notes on their host; a suggestion requested
+	// from an anchored annotation is treated as a request on its host.
+	const { nodes: foldedNodes, hostByAnnotationId } = foldAnchoredAnnotationNodes(
+		rawInput.nodes
+	);
+	const rawSourceNodeId = rawInput.context.sourceNodeId;
+	const input: SuggestionPromptInput = {
+		...rawInput,
+		nodes: foldedNodes,
+		context: {
+			...rawInput.context,
+			sourceNodeId: rawSourceNodeId
+				? (hostByAnnotationId.get(rawSourceNodeId) ?? rawSourceNodeId)
+				: rawSourceNodeId,
+		},
+	};
 	const aliasableNodes = input.nodes.filter(isPromptAliasCandidate);
 	const aliasMap = createAiIdAliasMap(aliasableNodes);
 	const nodeIds = new Set(aliasableNodes.map((node) => node.id));

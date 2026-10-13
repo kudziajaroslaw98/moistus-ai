@@ -21,6 +21,7 @@ import AnnotationNode from '@/components/nodes/annotation-node';
 import CodeNode from '@/components/nodes/code-node';
 import CommentNode from '@/components/nodes/comment-node';
 import DefaultNode from '@/components/nodes/default-node';
+import ExtensionNode from '@/components/nodes/extension-node';
 import { GhostNode } from '@/components/nodes/ghost-node';
 import GroupNode from '@/components/nodes/group-node';
 import ImageNode from '@/components/nodes/image-node';
@@ -44,6 +45,7 @@ import {
 	Link,
 	MessageCircle,
 	MessageSquare,
+	Puzzle,
 	Sparkles,
 	SquareStack,
 	Type,
@@ -192,7 +194,7 @@ export const NODE_REGISTRY = {
 		category: 'structure',
 		commandTrigger: '$task',
 		keywords: ['task', 'todo', 'checklist', 'checkbox', 'action'],
-		examples: ['$task Review PR', '$task Buy milk; Send email'],
+		examples: ['$task [ ] Review PR', '$task [ ] Buy milk\n[ ] Send email'],
 		defaultMetadata: {
 			tasks: [],
 			status: 'pending',
@@ -537,6 +539,36 @@ export const NODE_REGISTRY = {
 			inlineCreatable: false,
 		},
 		status: 'active',
+	},
+	extensionNode: {
+		component: ExtensionNode,
+		label: 'Extension',
+		description: 'Plugin-defined node; shows a fallback card when the plugin is unavailable',
+		icon: Puzzle,
+		category: 'structure',
+		commandTrigger: null, // Created by plugins, not by users
+		keywords: [],
+		examples: [],
+		defaultMetadata: {},
+		metadataSchema: nodeValidationSchemas.extensionNode,
+		behavior: {
+			selectable: true,
+			deletable: true,
+			connectable: true,
+			draggable: true,
+		},
+		features: {
+			markdown: false,
+			richText: false,
+			media: false,
+			requiresInput: false,
+		},
+		availability: {
+			userCreatable: false,
+			aiSuggestable: false,
+			inlineCreatable: false,
+		},
+		status: 'experimental',
 	},
 } as const satisfies Record<string, NodeRegistryConfig<any>>;
 

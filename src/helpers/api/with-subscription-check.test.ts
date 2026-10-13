@@ -10,12 +10,19 @@ jest.mock('next/server', () => ({
 	},
 }));
 
+// AI usage RPCs are service_role-only; route them to the mock built by the test.
+let mockServiceRoleClient: unknown;
+jest.mock('@/helpers/supabase/server', () => ({
+	createServiceRoleClient: () => mockServiceRoleClient,
+}));
+
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import {
 	checkAIQuota,
 	checkCollaboratorLimit,
 	checkMapNodeLimit,
 	getAIUsageCount,
+	trackAIUsage,
 } from './with-subscription-check';
 
 type RpcResponse = {
@@ -83,7 +90,9 @@ function createSupabaseMock(options: SupabaseMockOptions = {}): SupabaseClient {
 		.fn()
 		.mockResolvedValue(userSubscriptionResult);
 
-	const shareAccessBuilder = Promise.resolve(shareAccessResult) as Promise<typeof shareAccessResult> & {
+	const shareAccessBuilder = Promise.resolve(shareAccessResult) as Promise<
+		typeof shareAccessResult
+	> & {
 		select: jest.Mock;
 		eq: jest.Mock;
 		neq: jest.Mock;
@@ -138,10 +147,12 @@ function createSupabaseMock(options: SupabaseMockOptions = {}): SupabaseClient {
 		return { data: 0, error: null };
 	});
 
-	return {
+	const client = {
 		from,
 		rpc,
 	} as unknown as SupabaseClient;
+	mockServiceRoleClient = client;
+	return client;
 }
 
 function createUser(userId = '11111111-1111-4111-8111-111111111111'): User {
@@ -149,6 +160,24 @@ function createUser(userId = '11111111-1111-4111-8111-111111111111'): User {
 }
 
 describe('with-subscription-check', () => {
+	it('reads AI usage through the service-role client, not the user session', async () => {
+		const userClient = createSupabaseMock();
+		const serviceClient = createSupabaseMock({
+			rpcResponses: {
+				get_ai_usage: { data: 3, error: null },
+			},
+		});
+		mockServiceRoleClient = serviceClient;
+
+		await expect(getAIUsageCount(createUser(), userClient)).resolves.toBe(3);
+		expect(
+			(serviceClient as unknown as { rpc: jest.Mock }).rpc
+		).toHaveBeenCalledWith('get_ai_usage', expect.any(Object));
+		expect(
+			(userClient as unknown as { rpc: jest.Mock }).rpc
+		).not.toHaveBeenCalled();
+	});
+
 	it('throws when get_ai_usage RPC returns error', async () => {
 		const supabase = createSupabaseMock({
 			rpcResponses: {
@@ -184,8 +213,8 @@ describe('with-subscription-check', () => {
 			userSubscriptionResult: {
 				data: {
 					plan: {
-						name: 'free',
-						limits: { aiSuggestions: 3 },
+						name: 'pro',
+						limits: { aiSuggestions: 100 },
 					},
 				},
 				error: null,
@@ -201,8 +230,8 @@ describe('with-subscription-check', () => {
 		const result = await checkAIQuota(createUser(), supabase);
 
 		expect(result.allowed).toBe(false);
-		expect(result.isPro).toBe(false);
-		expect(result.limit).toBe(3);
+		expect(result.isPro).toBe(true);
+		expect(result.limit).toBe(100);
 		expect(result.remaining).toBe(0);
 		expect(result.error).toBeDefined();
 		expect(result.error?.status).toBe(503);
@@ -246,12 +275,85 @@ describe('with-subscription-check', () => {
 			code: 'LIMIT_REACHED',
 			limit: 0,
 			remaining: 0,
-			upgradeUrl: '/dashboard/settings/billing',
+			upgradeUrl: '/dashboard?settings=billing',
 		});
 
 		expect(
 			(supabase as unknown as { rpc: jest.Mock }).rpc
 		).not.toHaveBeenCalled();
+	});
+
+	it('gives Free no AI actions even when a stale plan row says 10', async () => {
+		const supabase = createSupabaseMock({
+			userSubscriptionResult: {
+				data: { plan: { name: 'free', limits: { aiSuggestions: 10 } } },
+				error: null,
+			},
+		});
+
+		const result = await checkAIQuota(createUser(), supabase);
+
+		expect(result.allowed).toBe(false);
+		expect(result.limit).toBe(0);
+		expect(result.error?.status).toBe(402);
+		const payload = await (result.error as Response).json();
+		expect(payload.error).toMatch(/part of Pro/);
+	});
+
+	it('caps Pro at 100 per billing period', async () => {
+		const pro = {
+			plan: { name: 'pro', limits: { aiSuggestions: 100 } },
+		};
+		const atLimit = createSupabaseMock({
+			userSubscriptionResult: { data: pro, error: null },
+			rpcResponses: { get_ai_usage: { data: 100, error: null } },
+		});
+
+		const blocked = await checkAIQuota(createUser(), atLimit);
+
+		expect(blocked.allowed).toBe(false);
+		expect(blocked.isPro).toBe(true);
+		expect(blocked.error?.status).toBe(402);
+		expect((await (blocked.error as Response).json()).error).toMatch(
+			/all 100 AI actions/
+		);
+
+		const underLimit = createSupabaseMock({
+			userSubscriptionResult: { data: pro, error: null },
+			rpcResponses: { get_ai_usage: { data: 99, error: null } },
+		});
+
+		await expect(checkAIQuota(createUser(), underLimit)).resolves.toMatchObject(
+			{
+				allowed: true,
+				remaining: 1,
+				limit: 100,
+			}
+		);
+	});
+
+	it('counts Pro AI usage against the subscription billing period', async () => {
+		const supabase = createSupabaseMock({
+			userSubscriptionResult: {
+				data: {
+					current_period_start: '2026-09-16T11:00:00.000Z',
+					current_period_end: '2026-10-16T11:00:00.000Z',
+					plan: { name: 'pro', limits: { aiSuggestions: 100 } },
+				},
+				error: null,
+			},
+		});
+
+		await trackAIUsage(createUser(), supabase, true);
+
+		expect(
+			(supabase as unknown as { rpc: jest.Mock }).rpc
+		).toHaveBeenCalledWith(
+			'increment_ai_usage',
+			expect.objectContaining({
+				p_user_id: '11111111-1111-4111-8111-111111111111',
+			})
+		);
 	});
 
 	it('uses explicit safe cap for paid plans missing collaboratorsPerMap', async () => {

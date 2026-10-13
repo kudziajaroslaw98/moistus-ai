@@ -22,8 +22,7 @@ export class SharePanelPage {
 	readonly roomCodeTab: Locator;
 	readonly manageTab: Locator;
 
-	// Settings section
-	readonly settingsToggle: Locator;
+	// New room code section (always visible on the Room code tab)
 	readonly maxUsersInput: Locator;
 	readonly generateButton: Locator;
 	readonly roleSelector: Locator;
@@ -48,9 +47,6 @@ export class SharePanelPage {
 		this.manageTab = this.panel.locator('[role="tab"]:has-text("Manage")');
 
 		// Settings
-		this.settingsToggle = this.panel.locator(
-			'button:has-text("Room Code Settings")'
-		);
 		this.maxUsersInput = this.panel.locator('[data-testid="max-users-input"]');
 		this.generateButton = this.panel.locator(
 			'[data-testid="generate-room-code-btn"]'
@@ -91,30 +87,14 @@ export class SharePanelPage {
 	}
 
 	/**
-	 * Opens the settings collapsible section if it's closed.
-	 * The "Generate Code" button is inside this collapsible section.
-	 * Settings are expanded by default, so this just ensures they're open.
+	 * Makes sure the Room code tab is showing. The room code settings (permission,
+	 * max users, expiry) and the "Generate room code" button are always visible there.
 	 */
 	async openSettings() {
-		// First make sure we're on the Room Code tab
 		const isRoomCodeTabSelected =
-			await this.roomCodeTab.getAttribute('data-state');
-		if (isRoomCodeTabSelected !== 'active') {
+			(await this.roomCodeTab.getAttribute('data-active')) !== null;
+		if (!isRoomCodeTabSelected) {
 			await this.roomCodeTab.click();
-			await this.page.waitForTimeout(200);
-		}
-
-		// Wait for settings toggle to be visible
-		await this.settingsToggle.waitFor({ state: 'visible', timeout: 5000 });
-
-		// Check if settings are already expanded
-		const isExpanded =
-			(await this.settingsToggle.getAttribute('aria-expanded')) === 'true';
-
-		if (!isExpanded) {
-			await this.settingsToggle.click();
-			// Wait for animation
-			await this.page.waitForTimeout(300);
 		}
 
 		// Verify generate button is visible

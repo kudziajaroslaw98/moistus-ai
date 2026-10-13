@@ -1,4 +1,8 @@
 import generateUuid from '@/helpers/generate-uuid';
+import {
+	describeBlockedNodes,
+	isNodeCopyBlocked,
+} from '@/lib/plugins/node-copy';
 import type { AppNode } from '@/types/app-node';
 import type { XYPosition } from '@xyflow/react';
 import { toast } from 'sonner';
@@ -17,8 +21,19 @@ export const createClipboardSlice: StateCreator<
 
 	// actions
 	copySelectedNodes: () => {
-		const { selectedNodes } = get();
+		const { selectedNodes: selected } = get();
 		const { edges } = get();
+
+		// Nodes whose data links to other nodes (a Threads node) stay behind: a copy would
+		// keep pointing at the originals.
+		const left = selected.filter((node) => isNodeCopyBlocked(node));
+		const selectedNodes = selected.filter((node) => !isNodeCopyBlocked(node));
+		if (left.length > 0 && selectedNodes.length === 0) {
+			toast.warning(
+				`${describeBlockedNodes(left)} can’t be copied. What ${left.length === 1 ? 'it links' : 'they link'} to is in this map.`
+			);
+			return;
+		}
 
 		const toastId = toast.loading('Copying nodes...');
 		if (selectedNodes.length === 0) return;
@@ -37,7 +52,14 @@ export const createClipboardSlice: StateCreator<
 			copiedEdges: internalEdges,
 		});
 
-		toast.success('Nodes copied!', { id: toastId });
+		if (left.length > 0) {
+			toast.warning(
+				`Copied ${selectedNodes.length} ${selectedNodes.length === 1 ? 'node' : 'nodes'}. ${describeBlockedNodes(left)} stayed behind, because what ${left.length === 1 ? 'it links' : 'they link'} to is in this map.`,
+				{ id: toastId }
+			);
+		} else {
+			toast.success('Nodes copied!', { id: toastId });
+		}
 	},
 	pasteNodes: async (position?: XYPosition) => {
 		const { copiedNodes, copiedEdges, reactFlowInstance, addNode, addEdge } =
@@ -120,8 +142,10 @@ export const createClipboardSlice: StateCreator<
 		if (nodeIds.length === 0) return { nodes: [], edges: [] };
 
 		// Find the nodes to duplicate
-		const nodesToDuplicate = nodes.filter((node) => nodeIds.includes(node.id));
-		const nodeIdSet = new Set(nodeIds);
+		const nodesToDuplicate = nodes.filter(
+			(node) => nodeIds.includes(node.id) && !isNodeCopyBlocked(node)
+		);
+		const nodeIdSet = new Set(nodesToDuplicate.map((node) => node.id));
 
 		// Find internal edges
 		const edgesToDuplicate = edges.filter(

@@ -6,12 +6,20 @@ const eslintConfig = [
 	...nextVitals,
 	...nextTypescript,
 	{
-		ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts', 'globals.css'],
+		ignores: [
+			'.next/**',
+			'.worktrees/**',
+			'node_modules/**',
+			'next-env.d.ts',
+			'globals.css',
+			// Vendored third-party worker bundle (elkjs), synced from node_modules
+			'public/elk-worker.min.js',
+		],
 	},
 	{
 		settings: {
 			react: {
-				version: '19.2',
+				version: '19.3',
 			},
 		},
 	},
@@ -26,6 +34,9 @@ const eslintConfig = [
 				},
 			],
 			'@typescript-eslint/no-explicit-any': 'warn',
+			// Raw HTML is the main way script injection gets in. Each use needs a
+			// sanitizer and an eslint-disable comment saying which one.
+			'react/no-danger': 'error',
 		},
 	},
 	stylistic.configs['disable-legacy'],

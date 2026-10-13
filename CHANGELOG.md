@@ -5,22 +5,466 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-12]
+
+### Changed
+
+- **side panels**: Every side panel is now one component, `Panel` (`src/components/ui/panel.tsx`), with the mobile menu's look: sticky header with the map name as subtitle, underline tabs where there are real modes (Share, Account), flat sections with small caps labels instead of cards, 52px rows, one field style and one pinned footer. Map Settings, Share, History, Account, Edge edit, Recipes, Plugins, the mobile menu, the landing drawer and the plugin sheets (versions, submission and report review) all use it
+  - Form panels and menus are modal (dim, Esc and a click outside close them). Recipes, Plugins and History stay docked beside the canvas, so the map stays usable. On a phone History is modal, and "Focus on canvas" closes it before panning
+  - Share and Edge edit now slide out when closed. Share's room code settings are always visible instead of in a collapsible, and the room codes are flat rows. Share keeps working with the same test ids
+  - Why: the panels had drifted into three shells with different headers, sections, footers and colors
+- **side panels**: A panel could slide out of view when something inside it was scrolled into view (the Plugins panel's Developer form did this): the panel now clips instead of hiding its overflow
+- **dialogs**: Confirm dialogs (discard changes, delete map, cancel subscription, command palette) now sit above every panel (z-90 over the panels' z-80)
+  - Why: the sheet layer was above the dialog layer, so a confirm opened from a panel would have rendered behind it
+
+- **plugin-review**: The preview of a submitted plugin is live: a reviewer can press its buttons and watch the view change, with a Reset link back to the example (nothing is saved, and the code only loads in the sandbox when the first button is pressed). The checks now return each example's data with its preview
+  - Why: the preview was a static picture, so a reviewer couldn't see what the buttons do
+
+### Fixed
+
+- **plugins/playground**: "Load the newer version" after a revision conflict now shows the newer manifest. The locked `"id"` line is a change filter, and the editor replaced the whole document, so the filter dropped the entire change and the editor kept the old text; the next keystroke then overwrote the newer manifest on autosave. Loading from outside now skips the filter (typing is still filtered)
+- **plugins/playground**: A save the server turns down (400, 403, 404 and other 4xx except 408/429) no longer retries every 5 seconds forever behind "Couldn't save. Trying again…". It stops, shows the server's reason in the status line, and tries once more after the next edit; network errors, 5xx and 429 still retry
+- **plugins/playground**: The sample data box for a list field followed only its first value, so a row added by a button in the preview, or a loaded newer draft, left it showing old JSON that the next edit would write back over the change. It now follows outside changes and leaves typing alone
+- **plugins/playground**: A button that opens the node editor (`edit: true`) no longer runs its action in the preview (an "unknown action" error for plugins with no such action); the preview says it opens the node editor on a map. The same button does nothing in any host without a node editor
+- **plugins/threads**: A node you just picked for a stop no longer shows "This node was deleted" for about 300 ms. `usePluginRefs` debounced changes to which nodes are linked as well as to their content, so a plugin saw the new link without its node. Link changes now apply at once, content changes still wait. It also reads only the linked nodes, so dragging other nodes no longer rebuilds and compares their descriptions for every Threads node
+- **plugins/my-plugins**: With Developer mode off, someone whose plugins are all drafts saw "You haven't written a plugin yet" with no hint that drafts are hidden. The "Drafts are hidden while Developer mode is off" note now shows on the empty page too
+- **plugins/threads**: Reaching a stop limit is no longer silent. The pick bar's hint and the open thread now say "This thread has 12 of 12 stops" or "This node holds 100 stops, the most it can", where a click on a new node used to do nothing and the bar kept saying "N stops so far". Stops left behind when a thread's line is deleted in the node editor no longer count toward the 100, and the next pick or removal drops them
+  - Why: edited `shiko.threads` 0.1.0 in place (new fingerprint in `catalog.ts`), because it isn't on `main` or in production yet; once it ships, a change like this needs a new version folder
+- **plugins/my-plugins**: "Edit as new draft" says when it opens a draft you already had, based on another version ("You already have a draft of this plugin, based on 0.3.0. Opened that one."). It used to open it with no word. There is still one draft per plugin
+
+### Removed
+
+- **ai/chat**: The AI chat panel is gone (panel, toolbar button, `chat-slice`, `POST /api/ai/chat`, the `NEXT_PUBLIC_ENABLE_AI_CHAT` flag). It was behind a flag and not shipping
+  - Why: the feature is dropped. `NEXT_PUBLIC_ENABLE_AI_CHAT` can be deleted from Vercel and `.env` files
+- **side panels**: Deleted the old `SidePanel` shell and its test (no panel uses it any more)
+- **ai/context**: Removed `buildContextPrompt` and `buildFullMapContext` (only the removed chat used them) and their tests
+- **ai/modals**: Removed the unused "generate from nodes" and "AI content prompt" modals and the unused `POST /api/generate-answer` route. Nothing opened them or called the route
+
+### Refactored
+
+- **plugins/drafts**: One `hasAccount` predicate for the palette commands that need a signed-in account (it was written twice, as `canSaveRecipes` too); `parseObject` and a `utf8ByteLength` helper shared by the draft routes instead of local copies; "Edit as new draft" reads the plugin, its versions and the chosen version in one `Promise.all` instead of three round trips in a row
+
+### Docs
+
+- **database**: `plugin_drafts` (table, RLS, constraints, `guard_plugin_drafts` trigger) applied to production through the Supabase MCP as `create_plugin_drafts` (20261012081504), with the migration's own `begin`/`commit` left out because the MCP wraps it. Its catalog was compared with the local database and matches; prod has no drafts yet
+- **legal**: Privacy (§6 Data Retention) and Terms (§8.2 Data Sent to AI) no longer mention AI chat history or chat messages, and both "Last updated" dates read October 12, 2026
+- **legal/ai**: Terms §8.1–8.2, Privacy §4 and its OpenAI row, and the subprocessors page now list what is actually sent to OpenAI (map title and description, node text and tags, how nodes connect, recipe instructions and node search queries) and no longer mention "answers" or "Q&A"; the subprocessors date is now October 12, 2026
+  - Why: the wording only listed structure and node content, and described features that were removed
+
+---
+
+## [2026-10-11]
+
+### Added
+
+- **plugins/playground**: Write a plugin inside Shiko instead of in VS Code. A two-pane page (`/dashboard/plugins/playground/<draft>`) with `plugin.js` and `manifest.json` editors (syntax colors, error markers, `ui.` / `ctx.` completion), the node drawn live with working buttons (Normal / Wide, "Can edit" off to see it as a viewer), typed sample data built from the manifest's fields, the submit checks updating as you type, and a Network panel for plugins that reach a site (a typed answer by default, so nothing leaves your browser; a switch sends the real request). It runs in its own plugin worker, so a draft can't disturb plugins on a map
+  - Why: building a plugin meant a local server, an editor and the Developer mode loader before seeing anything
+- **plugins/drafts**: Drafts are saved to your account (autosave; a second tab that saved first offers "Load the newer version" or "Keep mine"), at most 20, only you see them. Shiko sets each plugin's id when the draft is created and locks that line in `manifest.json`. New `plugin_drafts` table (migration applied to the local database; not applied to prod yet) and `/api/plugins/drafts` routes
+- **plugins/entry**: My plugins has a Drafts group, a "Write a plugin" button and a "Write a plugin" tile; the start dialog offers Blank, Counter, Branch progress and GitHub issue templates or an import of your two files; "Edit as new draft" on any version of a plugin you published; "Write a plugin" in the map's Plugins panel and in Ctrl/Cmd+K; a callout at the top of the Build guide
+- **plugins/code-view**: "View code" in a plugin card's ⋯ menu (Library and the map's Plugins panel) and in the "Turn on …?" box opens a read-only side sheet with the plugin's `plugin.js` and `manifest.json`, a picker for its published versions, a Copy button, and a check that the code still matches the fingerprint it was reviewed with ("Matches the reviewed fingerprint", or a plain warning if it doesn't or the browser can't check). It reads the same files the map loader runs, which signed-in people could already fetch; this just makes them easy to see
+  - Why: "reviewed code, fingerprint checked on every load" and "reaches only the sites it lists" are now something people can verify themselves
+- **plugins/write-tab**: "Write a plugin" is now the second tab of the Plugins page (Library, Write a plugin, My plugins). Its top is a "Start a plugin" section with the four templates, the import link and the Developer mode switch right there (an amber box while it's off, a green status line with the switch once it's on); the localhost steps follow as "Use your own editor", then the guide. Ctrl/Cmd+K "Write a plugin", the map Plugins panel, the Library's last tile and the empty My plugins page all lead to it
+  - Why: the button lived on My plugins (a list of submissions), and with Developer mode off nothing on that page said how to start
+- **plugins/my-plugins**: My plugins is one list with one row per plugin: submitted plugins and their drafts together (a draft started with "Edit as new draft" shares the plugin's id, so it's one row with Published 0.1.0 and Draft chips), plus drafts that were never submitted. Plugins that need a look come first (changes requested, turned off, an open report, a draft failing its checks), then the most recently touched. Filter chips (All, Needs attention, Drafts, In review, Published, with counts), the top-bar search, and the grid/list switch (list by default). One "Open" button per row opens a side sheet with its Drafts (Open, Delete) above its Versions
+  - Why: Drafts and Submitted were two stacked card grids that got long fast, and the same plugin showed up in both
+
+- **plugins/threads**: Threads, a first-party plugin for open questions and the nodes where each one comes up. Type threads as `[ ] open`, `[x] resolved` and `[-] dropped` lines; "Add a stop" in a thread's ⋯ menu lets you click nodes on the map, numbered 1, 2, 3 while you pick; stops show the node's text, and a deleted node shows as "This node was deleted" with a "needs a look" count. Open threads are blue, resolved green, dropped struck through, warnings amber. Turning it on asks the owner first (it reads the nodes it links to; nothing leaves the browser)
+  - Why: stories, research and product maps all have questions raised in one place and settled in another
+- **plugins/powers**: New power `nodes:refs`: render and actions get `ctx.refs` for only the nodes the plugin's own data links to (fields or list columns with `ref: "node"`, set by actions). It can't be combined with `network:<host>`, like `branch:read`. `/privacy` 5.3 says so
+- **plugins/views**: Plugin views got status colors (text tones, strike-through, tinted panels, a green or blue progress bar), a `ui.menu` ⋯ menu, buttons that ask for a node to be picked on the canvas (`pick`) or open the node editor (`edit`), and more icons; list fields can be typed as a checklist (`syntax: "checklist"`) and take up to 100 rows
+- **plugins/try-and-submit**: "Try on a map" opens one of your maps with the draft loaded as a developer plugin (the Plugins panel lists it as a draft, with a link back to the editor); "Submit for review" saves the draft and runs the usual checks and review request on it
+
+### Changed
+
+- **plugins/actions**: Plugin actions now run from the store (`runNodeAction`), one after the other per node, so a pick bar outside the node can run them and quick clicks don't overwrite each other. `setBy` accepts `"action"` as well as `"refresh"` (`keepRefreshFields` is now `keepSetByFields`)
+- **copy**: Nodes whose data links to other nodes (Threads) can't be copied: Cmd/Ctrl+C leaves them behind with a toast, and map templates skip them. Pasted nodes get new ids, so a copy would have pointed at the originals
+- **plugins/developer-mode**: Developer mode now also covers writing plugins. While it's off, the playground, the start dialog, the panel and the versions sheet say so and hold the switch right there instead of sending you to settings. The switch's description says it
+- **plugins/entry**: The start dialog is gone: its templates live on the Write a plugin tab (`PluginStartPanel`), and `?write=1` no longer opens anything. Drafts need Developer mode, so with it off My plugins shows only submitted plugins and a line saying drafts are hidden
+- **plugins/submit**: The submit sheet now tells authors that anyone signed in can read the published code
+- **ui/side-sheet**: `SideSheet` takes `raised` to open above popovers and menus (the code view opens from inside the Choose maps popover)
+- **dashboard/catalog-card**: `CatalogCard` takes `wrapChips`: in list view the chips stay visible and wrap under the title on a phone (the description hides there)
+- **plugins/api**: The Developer mode check for the developer network worker moved to `isDeveloperModeOn` (same behavior)
+
+### Fixed
+
+- **offline**: `queueMutation` no longer throws "crypto.randomUUID is not a function" (seen when saving preferences). That function only exists in secure contexts, so it was missing on plain-http LAN dev (and old browsers); the operation id now comes from `generateUuid`, which falls back to `getRandomValues`
+  - Why: every queued mutation (preferences, comments, nodes) goes through this call
+- **ids**: Same fix for the other browser call sites that used `crypto.randomUUID()` unguarded: default node ids in `node-factory`, new task ids in the task node, and the cursor session id (`use-realtime-cursor`)
+
+- **plugins/start**: The Developer mode switch on the Write a plugin tab did nothing when clicked: `Switch` is a hidden checkbox with a drawn track beside it, and the track only works inside a `<label>` for that id. It also got a stable id (without one `Switch` makes a random id, which broke hydration)
+
+- **dashboard/shell**: Leaving Plugin review for another dashboard page no longer reloads the whole layout (entry skeleton, sidebar, top bar). The page sat outside `/dashboard` with its own shell, so every way out mounted the dashboard layout from scratch. It now lives at `/dashboard/admin/plugins` inside the shell (sidebar entry, title and loading screen included); `/admin/plugins` redirects there
+  - Why: moving between dashboard pages keeps the shell mounted, and this was the one dashboard-looking page that didn't. Admin checks are unchanged (page `isPluginAdmin` → 404, `requirePluginAdmin` on the API routes)
+
+- **offline/service-worker**: A plugin draft's files (`/api/plugins/drafts/<id>/files/*`) are no longer served from the service worker's cache. Serwist answers any same-origin `.js` from Cache Storage first and ignores `no-store`, so "Try on a map" and "Submit for review" could read the code from the save before. The "leave to the browser" rules moved into `isLeftToBrowser` (`src/lib/offline/sw-browser-requests.ts`, tested) so they can be tested; the three existing rules are unchanged
+  - Why: production only (in development the caching is off), and found by reading Serwist's `defaultCache`, not seen in a browser
+
+### Removed
+
+- **dashboard/sidebar**: The "Teams" and "Archive" entries marked Coming Soon. Neither had a page (`/dashboard/teams` and `/dashboard/archive` never existed) and neither is planned for now; the entry loading skeleton draws four sidebar rows instead of six to match
+
+### Docs
+
+- CLAUDE.md: "Plugin playground" gotcha; the migration note now says migrations stay local-only and are applied through the Supabase MCP (the old "must be force-added" was wrong)
+- CODEBASE_MAP.md: drafts routes, playground files, dashboard frame note, Plugins tabs and My plugins rows
+- CLAUDE.md: Plugin playground entry paths now describe the Write a plugin tab and the one-list My plugins
+---
+
+## [2026-10-10]
+
+### Changed
+
+- **recipes/dashboard**: The Recipes page shows your recipes and the starters as the same cards as Templates (cover with the icon picked when the recipe was created, scope and "Shared" chips, "Edit" or "Duplicate", a "…" menu, a dashed "New recipe · n of 50 saved" tile), with All / Your recipes / Starters tabs, the top-bar search and a grid/list switch. The editor is full width in two columns with a preview of the recipe's card. The recipes side panel inside a map is unchanged
+- **plugins/dashboard**: Library, My plugins and the guide use the Templates page frame (title, tabs, full width). Every Library card has the same single "Choose maps" button; how many maps use the plugin sits in the card's footer ("v0.2.0 · On in 2 maps") and the map switches (with a search) are in a popover. Cover icon and colour come from the plugin's manifest icon and its powers. "Update N maps" boxes stay above the cards, and "Build a plugin" ends the page as a dashed row
+- **plugins/my-plugins**: Your plugins are cards with status chips (Published, in review, Changes requested, Turned off) and Shiko's message when changes were requested; "Versions" opens a side sheet with live version, map and report counts, and every version's notes and review messages. "Submit a version" sits next to the title and a dashed tile submits a new plugin
+- **plugin-review**: Plugin review uses the dashboard page frame, tabs and card grid. "Review" opens a wide side sheet for a submission (checks, previews, code changes, approve or request changes) or for a plugin's reports (reasons, each report, dismiss or turn off). A "New power" chip flags submissions that ask for more
+- **limits/source**: Plan limits have one copy in `src/constants/plan-limits.ts` (pricing page, client hook, API checks); `subscription_plans.limits` still holds paid plans' numbers
+- **dashboard/shared**: Templates, Recipes, Plugins and Plugin review share one card (`CatalogCard`), tab strip, view toggle, create tile and side sheet
+
+### Fixed
+
+- **billing/portal**: "Manage billing" opened `/api/user/billing/portal` in the browser and ended on a page that doesn't exist when the Polar call failed. The settings panel now asks the server for the portal link and goes to polar.sh, shows an error toast if it can't, and the server falls back to the app user as the Polar customer when the stored customer id fails. API errors that told clients to upgrade at `/dashboard/settings/billing` (no such page) now point to `/dashboard?settings=billing`
+  - Why: the Polar adapter answers a failed call with an empty error response, which the browser showed as a missing page
+- **dashboard/mobile**: The Templates category tabs scroll from the first tab (the first entry was cut off), map list rows keep their menu button and avatars when the description is long, the "new map" panel stacks (input, full-width button, and a single "or start with a template" link instead of template chips), and the mobile sidebar closes after you pick a page, open Settings/Billing or press New map
+- **pwa**: Page navigations to `/api/*` routes bypass the service worker
+- **ai/limits**: Pro AI actions are now counted, so the cap of 100 per billing period actually applies (Pro usage was skipped before). Free users get no AI actions; a stale Free plan row that said 10 no longer counts. Limit messages say what applies to your plan instead of "unlimited"
+  - Why: `trackAIUsage` returned early for Pro and the Free plan limit lived in four places that disagreed
+- **maps/limit**: The Free map limit is also enforced by a database trigger (`enforce_map_limit`), so two requests at once can't create a fourth map. `POST /api/maps` answers 402 when the trigger blocks one
+- **billing**: The usage check picks the newest active subscription instead of failing back to Free limits when a user has two
+
+## [2026-10-08]
+
+### Fixed
+
+- **plugins/runtime**: Plugins failed to load in production builds ("Upcoming couldn't load: … Octal escape sequences are not allowed in template strings") as soon as a map turned one on. The plugin engine now loads its WebAssembly as a separate file instead of a string embedded in the script, which the production minifier was corrupting
+  - Why: development builds aren't minified, so the bug only showed up in production
+
+## [2026-10-07]
+
+### Changed
+
+- **plugins/network**: Plugin refresh requests run in a network worker whose script (`/api/plugins/network-worker`) carries its own Content Security Policy listing only that plugin's reviewed sites (or a developer plugin's sites, with Developer mode on). The page's policy no longer lists any plugin site, so library plugins keep working once the policy is enforced, and a plugin published after the page opened needs no reload
+  - Why: the page's policy only knew Shiko's own plugins' sites at build time; listing every library site there would let any script on the page reach them
+- **security/csp**: The page's policy allows `http://localhost:*` and `http://127.0.0.1:*` for developer plugin files, and is no longer sent with the network worker or the service worker script
+- **lint**: `react/no-danger` is an error; the one existing use (AI chat, sanitized with `sanitize-html`) carries a disable comment saying so
+- **plugins/guide**: "Build a plugin" is now the third tab of the dashboard Plugins page and covers the whole flow: Powers (refresh with `ctx.request`, `ctx.branch`, why a plugin can't have both) with a GitHub issue example that tests run through both refresh passes, request and branch limits, versions and updates, publishing to the library, what happens when a plugin is reported, and what plugins can't do. The out-of-date "Sharing a plugin" section is gone
+- **plugins/guide**: The "On this page" list highlights the last heading scrolled past, keeps a clicked entry while the page can't scroll it to the top, and reaches the last sections at the bottom of the page
+- **dashboard/navigation**: Moving between Home, Templates, Recipes and Plugins keeps the sidebar and the top bar (search, notifications) in place; only the page content changes, with a skeleton shaped like the page while it loads. The sign-in check and plan lookup run once when you open the dashboard, not on every click
+  - Why: Every click rebuilt the whole dashboard, refetched notifications and flashed a full-page skeleton
+- **dashboard/plan**: The plan card and Free/Pro label load in after the rest of the dashboard instead of holding it back
+- **dashboard/plugins**: The Plugins title and tabs stay in place when you switch between Library, My plugins and Build a plugin
+- **dashboard/home-loading**: While Home loads, the "Your maps" heading and the "Start a map from a thought" bar show right away; the map count line and the map list show skeletons until your maps arrive
+- **templates/search**: Ctrl+F (Cmd+F) jumps to the Templates search too, and its field shows the shortcut like Home's
+- **dashboard/map-cards**: Map cards are all the same height, like template cards: maps without a description say "No description available" in dark grey (dimmer than the date line), and "Show more" sits at the end of the second line instead of adding a row. List rows show the description (or the same note) under the title and the date and node count on the right
+- **dashboard/skeletons**: The loading screens also show placeholders for the "Have a room code?" box and the keyboard shortcut hints, and the card placeholders match the real card size, so nothing shifts when your maps arrive
+
+### Fixed
+
+- **pwa/plugins**: With the service worker installed, plugins failed to load ("The plugin runtime could not start"): the service worker re-fetched worker scripts and lost the URL fragment Turbopack's worker bootstrap reads. Worker scripts and plugin requests now bypass the service worker, so a refresh can't save a cached answer as fresh data either
+- **dashboard/width**: Dashboard content now spans up to 1760px instead of stopping at 1240px
+  - Why: It left a wide empty strip on the right of large screens
+- **dashboard/mobile-height**: The dashboard shell (and its loading skeleton) is pinned to the visible viewport (`fixed inset-0`) instead of `h-screen` (100vh)
+  - Why: On phones 100vh doesn't match the visible screen, which could leave blank space below the scrolling map list
+- **dashboard/descriptions**: Map descriptions wrap to two lines (one in list view) with a Show more / Show less toggle that appears only when text is cut off
+  - Why: Long descriptions were truncated with no way to read them
+- **landing/story-rail**: Chapter rail dots are now centered on the divider line under each step name
+  - Why: They sat on the label line and looked misaligned with the steps
+- **templates/performance**: Removed the per-card staggered entry animation, `backdrop-blur` layers, `transition-all`, the no-op `AnimatePresence` and per-card hover state; cards use `content-visibility: auto`
+  - Why: All cards mounted and animated at once (stutter), blur layers made scrolling slow, and cards below the fold were still fading in when scrolled to
+- **templates/header**: The top bar now says "Templates" instead of the default "Home"
+- **recipes/sanitize**: Recipe results are cleaned until nothing more changes, so text like `!<b>[x]<i>(url)` can no longer turn back into an image (or `<<b>script>` into a tag) after one pass
+  - Why: Images in approved nodes load their URL right away and could send map text to another site (CodeQL incomplete multi-character sanitization)
+- **plugins/tests**: The sandbox's eval/Function lockdown test builds its probes as plain closures instead of a `JSON.stringify` switch (CodeQL improper code sanitization)
+- **dashboard/sidebar**: A collapsed sidebar stays collapsed when you move between dashboard pages or reload
+- **dashboard/top-bar**: The search field stays in the same place and size on every dashboard page instead of shifting with the page name
+- **dashboard/map-cards**: Clicking anywhere on a map card opens the map; clicks on the description and collaborator avatars used to do nothing
+
+### Removed
+
+- **dashboard/previews**: Removed the map card mini-map previews and `POST /api/maps/previews`
+  - Why: A layout guess from stored positions never matched the canvas, and an editor-captured snapshot still looked wrong
+- **dashboard/selection**: Removed selecting maps on Home (the card checkboxes, Space to select, select all and the bulk-delete bar). Delete a map from its "…" menu, or press Delete on a focused card
+
+### Added
+
+- **templates/page**: Templates page restyled to match the dashboard (underline category tabs, segmented grid/list toggle, `#0e0f12` cards, header search, card skeletons, always-visible "Use template" button) with new `TemplateCover` icon covers (dot grid, per-category accent color, four trailing outline echoes of the category's icon, sunk so the bottom is cut off)
+- **dashboard/join-code**: The "Have a room code?" box (previously first-run only) now also sits under the map grid, so joining a shared map by code works from the main dashboard
+- **dashboard/covers**: Map, list-row and template cards get an outline-echo cover: the title's first letter as thin outlines trailing up and to the right (bleeding off the right edge) over the dot grid, in one of six accents picked from the map id (`src/helpers/dashboard/map-cover.ts`, `src/components/dashboard/map-cover.tsx`)
+  - Why: Cards were too empty without a preview, and a real layout preview never matched the canvas
+
+## [2026-10-06]
+
+### Added
+
+- **plugins/lists**: Plugin fields can be lists of typed columns, typed like JSON across any number of lines (`items:[["Flights", 640, paid], ["Hotel", 520]]`, or `todo:["Build it"]` for one column); the editor highlights them, checks every row ("Items, row 3: Amount is required") and lists the columns in Syntax Help. Each row gets a stable id from Shiko, so buttons act on the row you pressed even when someone else changed the list
+  - Why: Kanban, budgets and OKRs need lists, and arrays are easy to read and to check
+- **plugins/dates**: A `date` field type (`date:2026-11-12`), and plugins get the viewer's date as `ctx.today`
+- **plugins**: Five Shiko plugins: Countdown (days to a date), Kanban (move cards between To do, Doing and Done), Decision matrix (score options on your criteria; the best one is marked), OKR (key results with progress) and Budget (items against a limit; tick what you've paid)
+- **plugins/layout**: Plugin node kinds can be wide (`"width": "wide"`, 700px), rows can split their width equally (`equal: true`) and buttons can show only their icon (`iconOnly`, the label stays as the accessible name and tooltip). Kanban uses all three: a wide node with To do, Doing and Done side by side and arrow buttons on each card
+  - Why: A board with its columns stacked on top of each other doesn't read as a board
+- **plugins/powers**: Plugins can ask for one power beyond their own nodes: read the branch under their node (`branch:read`, `ctx.branch`), or reach up to three named sites (`network:<host>`), never both. A network plugin's `refresh` asks for addresses with `ctx.request` and Shiko fetches them from the editor's browser, locked down (approved host only, no cookies or referrer, redirects not followed, JSON only, size and time limits). Refresh runs after an editor creates or edits the node and from the node's Refresh button; viewers never send anything and see "Updated …"
+  - Why: Plugins that show live data or summarize a branch, without letting a plugin send other people's text anywhere
+- **plugins**: Five more Shiko plugins. Branch progress (tasks done under it), Upcoming (dated nodes under it, soonest first) and Workload (open tasks per person under it) read the branch; GitHub issue (title, state and labels of a public issue or pull request, from api.github.com) and Wikipedia summary (a topic's first paragraph, from en.wikipedia.org) fetch when an editor saves or refreshes them
+- **plugins/library**: A plugin library in the database for plugins other people publish: the browser loads published versions and anything Shiko turned off (`GET /api/plugins/catalog`), library plugins' files are served by `GET /api/plugins/files/…` (never as runnable scripts), and owners turn them on like Shiko's own from the Plugins panel's and dashboard's new Library group
+- **plugins/publish**: Authors submit a Developer-mode plugin to the library from the Plugins panel ("Submit to the library…") or My plugins: the browser loads it from localhost and runs the automatic checks in the sandbox (manifest, size, every example draws a valid view, every button returns valid data, refresh asks only for its own sites, the previous version's data still fits, no eval/Function), then sends it with an agreement and notes. The server checks the manifest, size, id ownership (the first submission claims the id; `shiko.` is reserved) and that the version is new, stores the exact code and its fingerprint, and shows the account's name as the author
+- **plugins/review**: Plugin review for Shiko's reviewers (`/admin/plugins`, a "Plugin review" sidebar entry with what's waiting; 404 for everyone else): each submission shows its powers and power changes, who runs each site (with "the author runs this site"), the author's notes, the automatic checks run again on the stored code, previews of its examples drawn by the sandbox, and the code changes since the published version; Approve publishes that exact code and fingerprint, Request changes sends the message, and the author gets a notification either way
+- **plugins/reports**: Every plugin card has a "…" menu with Report…: a reason, optional details and, when one of its nodes is selected, an opt-in copy of that node's plugin data; authors never see who reported. Reviewers see reports grouped by version in Plugin review › Reports and can dismiss them, turn one version or the whole plugin off everywhere (owners of affected maps get a notification saying why and that only its nodes changed), or turn it back on
+- **plugins/mine**: Dashboard Plugins page tabs (Library, My plugins, Build a plugin); My plugins lists each version as In review, Published or Changes requested with Shiko's message, how many maps use it and open reports
+- **plugins/turned-off**: A plugin Shiko turns off everywhere stops loading on every map; its nodes show their last saved view with "Turned off by Shiko: <reason>", and it can't be turned on until Shiko turns it back on
+- **legal/plugins**: The FAQ, the privacy policy (new "5.3 Plugins" section) and the subprocessors page say what plugins that connect to other sites send, to whom and when, and that viewing a map never contacts them
+- **plugins/approval**: Turning on a plugin with a power asks the owner first ("Turn on …?", in the Plugins panel and the dashboard map picker) and says what it reads or sends, to whom and when; every plugin card says what it can reach; the editor and the first Refresh say where the data goes. The API refuses a turn-on or update that doesn't confirm the version's powers
+- **dashboard/collaborators**: `GET /api/maps` now returns up to 3 collaborators per map plus a total count for card avatars
+- **dashboard/first-run**: New users get a first-map input, keyboard hints, template cards and a room-code join box
+
+### Fixed
+
+- **plugins**: A node of a library plugin no longer says "Needs the … plugin" while the library is still loading
+- **nodes/note**: Note nodes show each line you type on its own line instead of running lines together; Markdown formatting is unchanged
+  - Why: Markdown treats a single line break inside a paragraph as a space
+- **node-editor**: Saving a node from the node editor keeps its line breaks and blank lines (the parser turned every line break into a space, so new notes were saved as one line)
+- **node-editor**: Task examples now use the syntax that works (`[ ] Review PR` lines); the old ones (`Review PR; Fix bugs`, comma lists, `- [ ]`) made task nodes with no tasks
+- **node-editor**: A `^date` or `#tag` typed on a task line no longer stays in that task's text
+- **node-editor**: Typing a `$` command no longer logs a "NOT AvailableNodeTypes" warning
+- **history**: A refresh that fetched the same data shows as "Last refresh changed" instead of "Extension.fetched At changed"
+- **node-editor**: Create/Update looks dimmed while it can't be used (for example while a plugin field has an error); the entrance animation's inline opacity was hiding the disabled style
+- **dashboard/templates-cache**: Dashboard template chips cache `/api/templates` in the same raw shape as the Templates page and template picker
+  - Why: A different shape under the same SWR key made the other screens read zero templates
+
+### Changed
+
+- **dashboard/redesign**: Rebuilt the dashboard per the design canvas: sidebar with New map, Recent maps, plan card (maps used on Free, AI suggestions on Pro) and account row; top bar with search and notifications; quick-create bar with template chips; filter tabs with counts; sort menu; new map cards and list rows (no mini-map previews)
+  - Why: Faster path from opening the app to a new map, and cards that show what each map actually looks like
+- **dashboard/plan-card**: Reset date is hidden when the usage billing period has already ended
+  - Why: Stale usage rows would otherwise promise a reset in the past
+
+### Removed
+
+- **ui/unused**: Deleted `sidebar-item.tsx`, `sidebar-section.tsx` and `search-input.tsx`
+  - Why: The dashboard redesign was their last user
+
+## [2026-10-05]
+
+### Added
+
+- **plugins**: Plugin nodes (Phase 2, first milestone). Plugins are a manifest plus code that runs in a QuickJS sandbox in a Web Worker (memory and time limits, no DOM or network) and draws its node from safe primitives (text, badge, progress, buttons, checkboxes); every view and action result is validated
+  - Why: Custom node types without letting third-party code touch the map, the network or the page
+- **plugins/metric**: First-party Metric plugin: a number against a target with progress and −/+ buttons; each press is one History entry credited to Metric
+- **plugins/editor**: Plugin kinds in the node editor: `$metric` under "Plugins on this map", typed fields (`Weekly active users value:1240 target:2000`) with highlighting, autocomplete and generated Syntax Help, a live preview from the plugin, and double-click editing; Ctrl/Cmd+K "Add Metric"
+- **plugins/settings**: Turning first-party plugins on per map (`map_plugins`), with a confirm when nodes would fall back to their saved view; developer plugins load from localhost for the owner only
+- **plugins/canvas**: Plugin nodes keep a saved view (snapshot) shown while the plugin loads, when it's off on the map, when it fails, or when it isn't available
+- **plugins/panel**: Plugins side panel in the map: the owner turns Shiko plugins on or off and loads developer plugins; everyone else sees which plugins the map uses. Opens from Ctrl/Cmd+K "Plugins", a "More node types…" row at the end of the `$` list, and "Manage plugins" in Map Settings; a running plugin's card says how to add its nodes
+  - Why: Plugins were only a section at the bottom of Map Settings and nothing pointed to it
+- **plugins/dashboard**: Plugins page in the dashboard sidebar (`/dashboard/plugins`): Shiko plugins with what they add and can access, and an "On in N maps" picker to turn each one on for any map you own (`GET /api/plugins/maps`)
+- **plugins/guide**: "Build a plugin" guide (`/dashboard/plugins/build`): a five-step quick start (starting with Developer mode) with a downloadable Counter starter, then manifest, typed fields, plugin.js API, UI pieces, limits and the security model; the starter is tested in the real sandbox and the tables read the runtime's own limits
+- **plugins/versions**: Each map is pinned to one version of each plugin, and the owner approves every update. The Plugins panel shows "Update available" with the release notes, any new powers and how many nodes the new version won't accept, with Update, Later and "Roll back to <version>" (`PATCH /api/maps/[id]/plugins/[pluginId]`); the dashboard Plugins page offers "Update N maps"; Ctrl/Cmd+K "Plugins" and Map Settings mention waiting updates. Collaborators switch versions when they meet a node saved by a newer one
+  - Why: Plugins need fixes after release, but a map shouldn't change under its owner without their say
+- **plugins/developer-mode**: Developer mode, an account setting that's off by default, shows the Plugins panel's Developer section and is required to load plugins from localhost. Switch it on in Map Settings › Editor Preferences, Settings › Editor, or the first step of the "Build a plugin" guide; with it off, owners see a one-line pointer to it in the Plugins panel
+  - Why: Loading localhost code is an authoring tool, not something every map owner should see
+- **plugins/metric**: Metric 0.2.0 adds a trend arrow (set by − and +, or `trend:up`) and fixes rounding for decimals; it reads 0.1.0 data unchanged
+- **ai/recipes**: Recipes page in the dashboard sidebar (`/dashboard/recipes`): your recipes and starters with search, create, edit, duplicate, share and delete outside a map; the in-map recipes panel links to it and keeps Try; the shared recipe page links to it after adding
+  - Why: Recipes were only reachable from the bottom of the AI menu
+- **landing/product-frames**: Shared static mocks under `src/components/landing/product/` (canvas surface, node card, task node, AI ghost card, edge layer, cursor, editor chrome)
+- **landing/mobile**: Phone layouts for the hero, Grow (root plus AI card) and Clarity frames, plus a menu button in the nav
+
+### Changed
+
+- **map-settings**: The Plugins section is now a short row with "Manage plugins", which opens the Plugins panel (unsaved title/description edits still ask before closing)
+- **history**: Plugin nodes are named by their kind ("Added metric", "Metric #7c1e…"), and their changes list only the plugin's data fields, not the derived summary and saved view
+- **graph-ops**: Plugin actors may only change their own extension nodes (content and plugin data), their `metadata.ext` namespace, and no connections
+- **node-editor**: `$` type triggers match exactly
+- **security/csp**: Report-only CSP allows `'wasm-unsafe-eval'` for the plugin sandbox
+- **ui/context-menu**: Right-click menus no longer list AI actions or recipes; they keep editing actions only (AI stays on the node AI button, the toolbar AI menu and Ctrl/Cmd+K)
+  - Why: Every recipe (up to 50) and future plugin entry made the menu bloat quickly
+- **ai/models**: All OpenAI calls (suggestions, recipes, chat, connections, merges, node search, generate answer, URL processing) use `gpt-6-luna` (was `gpt-5.4-mini` / `gpt-5.4-nano`)
+- **ai/recipes**: "Generate counterpoints" now runs the Counterpoints starter recipe through `POST /api/ai/recipes/run`: its suggestions show the recipe name and accepting one records a single history entry attributed to "Counterpoints"
+  - Why: Counterpoints was already recipe-shaped; one engine means one set of guardrails (fixed system prompt, output sanitisation, type/label/count checks)
+- **landing/redesign**: Rebuilt the landing page as one scroll story (hero, Capture, Grow, Share, Clarity, use cases, pricing with trust strip, FAQ, closing CTA)
+  - Why: Show what a map becomes instead of listing features; every product frame uses the app's real node, edge, ghost and toolbar styling
+- **landing/quick-input-demo**: The Capture chapter plays a pre-scripted typing timeline once when scrolled into view (typed text mirrors into the task preview, progress eases, strike-through draws), then stops with a Replay button
+  - Why: A looping state-swap flashed; the script is static data so the real parser and CodeMirror stay out of the landing bundle
+- **landing/copy**: Removed the offline claim and the app-menu inventory (layout presets, AI action grid, editor hints)
+  - Why: Offline editing is only partly true today and the page should stay outcome-led
+- **landing/quick-input-examples**: The Capture demo now shows three real quick-input examples (Tasks, Question, Note) with example tabs; it plays Tasks on scroll, then advances once through the other two, then stops (Replay restarts)
+  - Why: Show that one typing flow covers different node types, with only verified real syntax
+- **landing/quick-input-accuracy**: The task preview now shows the app's always-present amber `pending` chip and a relative `Tomorrow` date chip (`^tomorrow`) instead of a fixed past date
+  - Why: A fixed 2026-03-12 date would render as red "Overdue" in the real app today
+- **landing/story-rail**: Chapter rail dots are anchored to each chapter's label row, so they line up with the step labels; the final chapter shows the inverted (filled) dot instead of an invisible one
+- **landing/faq**: FAQ matches the design: no card box, "Straight answers." heading, plus/close icon, first answer open, tighter answer copy
+  - Why: The FAQ and the closing CTA were both boxed back to back; only the CTA keeps its box
+- **landing/final-cta**: Removed the decorative "What are you planning?" node from the closing CTA
+  - Why: It looked like a text field people could type into
+
+### Fixed
+
+- **plugins/loader**: A plugin load that finishes after a newer one (another version or map) no longer unloads the newer code from the sandbox
+- **plugins/security**: Plugins can no longer run code built from text (`eval` and the Function constructors are removed inside the sandbox), and first-party plugin code must match its reviewed SHA-256 fingerprint before it loads
+- **plugins/dev**: Reloading a developer plugin now redraws its nodes with the new code (views were cached by plugin id and version)
+- **plugins/editor**: Typing `$metric` while editing an existing node now turns it into a Metric node (and `$note` turns a Metric node back into a note, clearing its plugin data); before, the editor highlighted the trigger but silently kept the old type
+
+### Removed
+
+- **ai/counterpoints**: `POST /api/ai/counterpoints`, `src/helpers/ai-counterpoint-{request,context,prompts,postprocess}.ts` and `generateCounterpointsForNode` (replaced by the starter recipe)
+- **landing/legacy-sections**: Deleted the unused problem/solution, features, hero demo, hero scene, hero background and grain overlay components plus the three old screenshot PNGs
+  - Why: Replaced by the scroll story; nothing imports them
+- **landing/noise-texture**: Deleted `public/images/noise-blue.png`, whose only user was the removed grain overlay
+
+## [2026-10-04]
+
+### Added
+
+- **ai/recipes**: AI recipe engine: `POST /api/ai/recipes/run` runs a recipe (instruction + scope `node` / `branch` / `map` + allowed node types, labels and result count) and streams ghost suggestions attributed to the recipe; `runRecipe()` in `suggestions-slice` drives it
+  - Why: Phase 1 of the extensibility roadmap; recipes reuse the existing ghost approval loop so nothing changes the map until accepted
+- **ai/recipes**: Starter recipes "SWOT this branch" and "Study questions" listed under a "Recipes" heading in the AI popover, a titled "Recipes" section in the context menu, and the Ctrl/Cmd+K palette ("Recipe ·"); ghost cards show the recipe name
+- **ai/recipes**: Recipe output is sanitised (markdown images, link targets and HTML removed) and limited to the recipe's node types, labels and count
+  - Why: Approved nodes render markdown, so a shared recipe could otherwise load an image URL carrying map text
+- **ai/recipes**: Saved recipes: `ai_recipes` table (owner-only RLS; install fields and a 50-recipe cap enforced by the `guard_ai_recipes` trigger) and `/api/recipes` (list, create, update, delete), `/api/recipes/shared/[id]` (read an unlisted recipe by link) and `/api/recipes/[id]/install` (add your own copy); saved recipes appear in the AI menus via `RecipeContributionsRegistrar`
+  - Why: Copies instead of live links, so an instruction someone reviewed can't change after they add it
+- **account**: Data export includes AI recipes; account deletion removes them
+- **ai/recipes**: Recipes panel (Manage in the AI menu, Ctrl/Cmd+K "Manage recipes"): your recipes and starters with search, Edit / Duplicate / Copy share link / Turn off link / Delete, and an editor in the Map Settings layout (name, icon, description, runs on, instruction, result count, node types, connection labels) with Try, which runs the unsaved recipe on the selected node; "New recipe…" in the AI menu and "Create recipe" in the palette open it directly
+  - Why: Designed from the existing UI (design canvas linked in the Phase 1 plan); the panel is non-modal so Try results and node selection stay on the canvas
+- **ai/recipes**: Shared recipe page `/recipes/[id]` (unlisted, `noindex`): the full instruction, what it creates and who shared it, in Templates card styling; signed-in accounts add their own copy inside the dashboard layout, signed-out visitors and guests get a sign-in link that returns to the recipe
+- **extensions/graph-ops**: `applyGraphOps()` (`src/lib/extensions/graph-ops.ts`) is the single entry point for programmatic graph changes: it checks edit permission and extension data limits, reuses the existing store actions, and records one history event per batch attributed to the actor (`user` / `plugin` / `recipe`)
+  - Why: Foundation for plugins and AI recipes; store actions alone don't enforce permissions or group changes
+- **extensions/command-palette**: Ctrl/Cmd+K command palette listing AI actions plus Search canvas, Open history (editors) and Map settings (owner); acts on the selected node when one is selected
+- **extensions/registry**: Contribution registry (`extensions-slice`) feeding the AI popover, context menu and command palette from one list; node-editor `commandRegistry.register()` for future plugin `$` triggers
+- **extensions/extension-node**: `extensionNode` host type for plugin-defined nodes, with a fallback card naming the required plugin
+- **extensions/metadata**: Reserved `metadata.extension` (extension node data) and `metadata.ext[pluginId]` (per-plugin data on any node) in `NodeData` and the metadata validation schemas
+
+### Changed
+
+- **ui/side-panel**: `SidePanel` accepts `modal={false}` (no dimmed backdrop, canvas stays interactive); `TagInput` accepts an `id` for label association
+- **ai/suggestions**: Accepting an AI suggestion goes through `applyGraphOps`: node and connection are one history entry (was two), attributed to the recipe when it came from one; the history row shows the recipe name ("Added note · Note #… · Pre-mortem")
+- **ai/suggestions**: If the approved node can't be saved (for example the node limit), the suggestion stays on the canvas instead of disappearing
+- **ai/actions**: AI actions are defined once; the context menu now shares the popover's labels, icons and AI quota check and gains Expand ideas / Expand map
+  - Why: Three divergent definitions; the context menu skipped the quota check
+
+### Fixed
+
+- **extensions/graph-ops**: `applyGraphOps` now notices when `addNode`/`addEdge` fail (they show a toast and resolve instead of throwing) and stops the batch, so later steps never reference a node that wasn't created
+- **context-menu**: Removed the canvas (pane) "Generate Counterpoints" item, which did nothing because a pane click has no target node
+- **history/revert**: Reverting to a checkpoint or event restores deleted nodes in place and keeps layout working
+  - Why: Reverted nodes got a React Flow `parentId`, which made child positions render relative to their parents and scattered the map
+- **edges/hierarchy**: Setting a node's parent no longer shifts it on the canvas
+  - Why: The explicit hierarchy action set the same React Flow `parentId`
+
+### Refactored
+
+- **history/revert-state**: Revert node/edge canonicalization moved to `src/helpers/history/server/revert-state.ts` with unit tests
+
 ## [2026-10-03]
 
 ### Added
 
+- **annotations**: Annotations can be anchored to a host node (`metadata.anchorNodeId` + `anchorOffset`): created anchored from a node, Attach/Detach in the toolbar, follow host moves, dashed tether, cascade-delete with host (one undo step), hidden with host, excluded from all layouts, no new connections
+  - Why: An annotation is a note *about* a node; free-floating annotations linked by edges polluted the graph, layouts and AI context
+- **ai**: Anchored annotations are folded into their host's context (`note(<type>): <text>`) for chat, suggestions, counterpoints, merges, connections and search; approved AI annotation ghosts anchor to their source instead of adding an edge
+- **collapse**: Collapsed-branch redesign: stacked collapsed card with "N nodes hidden" pill, branch roll-up (task progress, pending chip, red/amber severity dot), hover/tap peek outline with expand-path rows, Shift+click expand all, add-child expands, cross-links re-attach to the collapsed ancestor as dashed proxy edges
+- **search**: Ctrl/Cmd+F canvas search that reaches inside collapsed branches ("N matches inside"), with Enter/Shift+Enter navigation that opens the collapsed branch containing a hidden match
+- **groups/drag-membership**: Drag a node over a group and hold to add it, or drag a member outside its group and hold to remove it; release applies the change, and the group's label shows hold/release progress
+  - Why: Group membership could only be changed from menus before
 - **templates/admin-edit**: Admins can edit system templates in the full canvas editor, with realtime sync, plus template category, gallery icon and preview colors in Map Settings
   - Why: Templates were read-only for everyone, so fixing or improving them required raw SQL
 - **templates/admin-publish**: Admins can publish a copy of one of their own maps as a new template (`POST /api/templates`)
 - **templates/admin-delete**: Admins can delete templates from the template gallery or from Map Settings
+
+### Changed
+
+- **deps/security**: Removed `braces` (GHSA-vfj7-8cjw-p6xm, no patched release) from the dependency tree: `@next/eslint-plugin-next>fast-glob` is aliased to `tinyglobby`, and the `shadcn` CLI is no longer a devDependency (use `pnpm dlx shadcn@latest`)
+  - Why: Fixes the high-severity audit failure without suppressing the advisory; the Next plugin only uses `globSync` with `onlyDirectories`, which tinyglobby supports
+- **collapse**: Hidden count now covers the whole subtree (was direct children only); batch collapse changes are a single history step
+- **collapse**: Removed the on-node collapse button; collapsing is done from the node context menu or `Ctrl/Cmd+-`, expanding via the "N nodes hidden" pill
+  - Why: The round collapse button duplicated the look of the add / AI buttons on the same side of the node
+- **history**: Redesigned history panel: compact rows (icon, short title like "Resized group", colored node type with name or `#id`, time), day headers, runs of identical changes collapsed into one expandable row (`×N`), filter chips with counts (All / Edits / Added / Links, plus Removed when there are any), Checkpoint button in the header, Load older in the footer
+  - Why: ~110px cards showed ~6 changes at a time, duplicate runs filled the list, and titles repeated themselves ("Width & Height updated, Node resized")
+- **history**: Focus and Revert are small icon buttons that appear on hover or keyboard focus; Revert now asks "Restore map to this point? N newer changes will be undone." before doing anything
+  - Why: Revert restores the whole map to that point, and it was a loud one-click button on every row
+- **history**: Expanded changes show one line per property (`not set → 400`) instead of stacked Before/After boxes
+- **mobile**: `useIsMobile` now also matches landscape phones (`(pointer: coarse) and (max-height: 500px)`), so they get the mobile toolbar, top bar, onboarding path and editor instead of desktop UI
+  - Why: Landscape phones (~844-932px wide) passed the width-only 768px check
+- **node-editor**: The node editor opens full screen on phones (portrait and landscape) instead of as an inset dialog
+- **api/service-role-calls**: AI usage counters, template usage counts, history cleanup (including cron) and subscription cancel/reactivate writes now use the service-role client
+- **security/headers**: Responses now send nosniff, Referrer-Policy and frame-ancestors protection, plus a report-only Content Security Policy in production
 
 ### Fixed
 
 - **security/profile-role**: Signed-in users can no longer promote themselves to admin by updating or re-inserting their own `user_profiles.role`
 - **security/create-template**: `create_template()` is no longer callable by anonymous or signed-in clients
 - **templates/rls-drift**: The authenticated template read policies on nodes/edges, previously only in the live database, are now in a migration
+- **mobile**: Keyboard-shortcut hints (shortcuts help button, `Ctrl+Enter to create`) are hidden on touch-first devices via the new shared `useTouchFirst` hook
+- **onboarding**: The walkthrough checklist is height-capped with a scrolling task list and no longer stacks on the canvas hint in landscape; the mobile intro sheet scrolls on short screens
+- **map-settings**: Map Settings content scrolls again and the side panel footer is opaque, so it no longer overlaps panel content
+- **node-editor**: The full-screen phone editor has a footer Cancel button to close without saving
+  - Why: Full screen removed the backdrop tap, and touch users have no Escape key
+- **share**: On short (mobile) screens the Room Code tab scrolls as one area (settings + codes), so expanded settings no longer squeeze the codes list to nothing
+- **ui/tabs**: The selected tab is visibly highlighted again (share panel, dashboard settings)
+  - Why: Base UI 1.8 marks the selected tab with `data-active`; the primitive still styled the old `data-selected` attribute, so no tab ever looked selected
 
----
+- **collapse**: Right-click, long-press and double-click on dashed collapsed-branch lines and annotation tethers no longer open the edge menu or Edge Edit (they are display-only, with no stored edge behind them)
+- **collapse**: Adding a child to a collapsed node records one history step (the expand is part of "Added"), and the parent stays collapsed if the insert fails
+- **collapse**: The "N nodes hidden" pill uses the shared `useTouchFirst` hook, so desktop-mode iPads get the tap peek instead of an instant expand
+- **search**: Matches in annotations anchored to a hidden node now count as "N matches inside" their collapsed ancestor
+- **search**: The match counter and active highlight stay in range when matches disappear (no more "5 of 3")
+- **annotations**: An annotation anchored to another annotation (or itself) is shown as free in its toolbar, matching how it behaves on the canvas
+- **ai**: Approving an AI annotation whose source is an anchored annotation anchors it to that annotation's host; an AI annotation is never linked to another annotation by an edge
+- **security/db-functions**: SECURITY DEFINER functions are no longer callable by anonymous or signed-in users unless they verify the caller themselves; node creation now runs under the caller's RLS
+  - Why: A production audit found 24 functions exposed through the default EXECUTE grant, several trusting caller-supplied user/map IDs
+- **security/rls**: Users can no longer change their own profile role, subscription rows, AI usage counters, map template flags, or history attribution
+  - Why: These writes were allowed by own-row RLS policies and enabled privilege and billing escalation
+- **security/profiles**: Profiles (including email) are visible only to their owner and to users who share a map with them
+  - Why: Every authenticated user, including anonymous guests, could read all non-private profiles
+- **limits/nodes**: The owner-scoped per-map node limit is now enforced in the database as well as in the client preflight
+  - Why: Direct inserts, offline replay and RPC calls could exceed the limit
+- **history/checkpoints**: `create_history_checkpoint_and_prune` is now service-role-only
+  - Why: Revoking from PUBLIC alone left it callable by anon/authenticated on Supabase
+- **history/checkpoints**: Manual checkpoints no longer fail with `COALESCE types text and boolean cannot be matched`
+  - Why: The checkpoint function treated `edges.animated` (a text column) as a boolean
+- **ai/structured-outputs**: AI suggestions (expand) and counterpoints no longer fail with `invalid_json_schema`
+  - Why: `@ai-sdk/openai` 3.x enables OpenAI strict structured outputs by default, which rejects optional (`.partial()`/`.optional()`) keys and the `uri` string format
+- **billing/webhooks**: A `subscription.canceled`, `uncanceled` or `revoked` event that arrives before the subscription row exists is now saved from its payload (revoked as `canceled`) instead of updating nothing
+  - Why: A late `subscription.created` retry then had no stored version to compare against and re-granted Pro after a revoke
+- **billing/webhooks**: `subscription.created` / `active` on an existing row merges into stored metadata, so plan-change fields (`previous_plan`, `last_plan_change`, `previous_period_start`) are no longer wiped
+- **groups/member-interaction**: Nodes inside a group can be clicked, selected and edited again, even while the group is selected
+  - Why: Groups rendered above their members and captured every click
+- **groups/multi-remove**: Removing several nodes from the same group no longer leaves some of them listed in the group's children
+- **groups/create-from-selection**: Groups created from a selection now share one id with their members, so the original members can be dragged out of the group
+  - Why: The group node was created with a different id than the one written to its members; existing groups with that mismatch are repaired the next time a member is dragged in or out
+
+### Removed
+
+- **history**: Unused history components and helpers left over from earlier panel versions (`history-entry-card`, `history-actions`, `history-group`, `change-item`, `git-diff-view`, `grouping-utils`)
+- **history**: Unused `formatTimeRange`, `diff-formatter`, `text-diff-utils` helpers and the direct `diff` dependency
+- **hooks**: `useCoarsePointer` (duplicate of `useTouchFirst` without iPad detection)
+- **groups/html5-drop**: Removed unused HTML5 drop handlers from the group node (React Flow node drags never fired them)
+
+## [2026-10-02]
+
+### Changed
+
+- **deps**: Updated all dependencies to latest within their current major (Next 16.3.8, React 19.3, supabase-js 2.117, Base UI 1.8, AI SDK 6.0.300, Motion 12.43, ESLint 10.11, Jest 30.5, Playwright 1.63, etc.) and refreshed transitive lockfile versions
+  - Why: Resolves all open Dependabot alerts, including critical Next.js RCE advisories; `pnpm audit` is clean
+- **deps/overrides**: Bumped `partykit>esbuild` to 0.25.12 and `miniflare>undici` to 6.29.0, added `@serwist/turbopack>browserslist` 4.29.3, removed the global `postcss` override
+  - Why: Previous pins were themselves vulnerable; Next now ships a patched PostCSS
+
+- **deps/majors**: AI SDK 7 (`ai` 7, `@ai-sdk/openai` 4, `@ai-sdk/react` 4), Motion 14, `@supabase/ssr` 0.12, `diff` 9, `uuid` 14, `elkjs` 0.12 (vendored `public/elk-worker.min.js` synced), `dotenv` 18, `jest-dom` 7, Polar sdk 0.49 / nextjs 0.9.6
+- **tooling/typescript**: TypeScript 6 + 7 side-by-side: `tsc` (and `pnpm type-check`) runs TS 7 native (~2s vs ~11s), while `typescript` stays on the TS 6 API via `@typescript/typescript6` for ESLint, Next build and Jest
+  - Why: TS 7 has no JS API yet and typescript-eslint supports TS <6.1; this is the setup recommended by the TypeScript team
+- **billing**: Migrated to Polar SDK 1.0 / `@polar-sh/nextjs` 1.0 (snake_case webhook payloads typed by SDK `Subscription`; checkout links `external_customer_id`; `paused` = no Pro access)
+  - Why: Verified live against Polar sandbox (7/7 webhook deliveries 200, DB state correct) plus signed real-payload regression tests
+- **ai/routes**: System prompts moved from `messages` to the top-level `instructions` option across suggestions, counterpoints, merges, connections, and chat
+  - Why: AI SDK 7 rejects system messages in `messages` at runtime, silently producing empty streams
+- **ci**: Security-audit workflow runs on Node 24 (AI SDK 7 and jest-dom 7 require Node >= 22)
+
+### Fixed
+
+- **api/maps, api/share/join-room**: Explicit null-narrowing and payload typing for stricter supabase-js insert/upsert generics
+- **billing/webhook-ordering**: Late Polar retries (e.g. a `subscription.created` delivered after a revoke) can no longer re-grant Pro access; handlers store the last applied Polar version and skip older events
+  - Why: Sandbox delivery logs showed 15-minute-late retries; verified live by replaying a July event against a newer row (skipped, 200)
+- **tooling**: ESLint and Jest now ignore nested `.worktrees/`
+  - Why: Lint crashed on a worktree's stale node_modules; Jest reported duplicate manual mocks
+- **tests/settings-panel**: Await async background-sync status before asserting badges (React 19.3 scheduling)
+- **tests/ai-routes**: AI route tests run under `@jest-environment node` (were failing with `Request is not defined`); fixed two stale assertions
+- **ai/suggestions**: `reasoningSummary: null` keeps v6 behaviour after AI SDK 7 began defaulting reasoning summaries to `detailed`
+- **billing/webhook**: Polar subscription payloads now allow a null `customer.email`
 
 ## [2026-07-18]
 

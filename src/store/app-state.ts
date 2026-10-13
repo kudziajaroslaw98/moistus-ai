@@ -1,10 +1,8 @@
 // eslint-disable-file @typescript-eslint/no-unused-vars
 
-import type { Command } from '@/components/node-editor/core/commands/command-types';
 import type { RealtimeUserSelection } from '@/hooks/realtime/use-realtime-selection-presence-room';
 import type { CollaboratorRealtimeEvent } from '@/lib/realtime/collaborator-events';
 import { AvailableNodeTypes } from '@/registry/node-registry';
-import type { ChatSlice } from '@/store/slices/chat-slice';
 import type { CommentsSlice } from '@/store/slices/comments-slice';
 import type { OnboardingSlice } from '@/store/slices/onboarding-slice';
 import type { QuickInputSlice } from '@/store/slices/quick-input-slice';
@@ -15,6 +13,8 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { ContextMenuState } from '@/types/context-menu-state';
 import type { EdgeData } from '@/types/edge-data';
+import type { ExtensionsSlice, GraphActor } from '@/types/extensions';
+import type { PluginKindRef, PluginsSlice } from '@/types/plugins';
 import type {
 	AttributedHistoryDelta,
 	HistoryItem,
@@ -22,6 +22,7 @@ import type {
 import { LoadingStates } from '@/types/loading-states';
 import type { MindMapData, MindMapUpdates } from '@/types/mind-map-data';
 import type { NodeData } from '@/types/node-data';
+import type { GroupDragIntent } from '@/utils/group/group-utils';
 import type { PermissionEvent } from '@/types/permission-events';
 import {
 	SharedUser,
@@ -156,9 +157,20 @@ export interface EdgesSlice {
 }
 
 // Groups Slice
+export interface GroupDragState extends GroupDragIntent {
+	/** True once the drag has dwelled long enough; drop then commits it. */
+	armed: boolean;
+}
+
 export interface GroupsSlice {
+	// Transient drag-to-group feedback (not persisted)
+	groupDragIntent: GroupDragState | null;
+	setGroupDragIntent: (intent: GroupDragState | null) => void;
+
 	// Group actions
 	createGroupFromSelected: (label?: string) => Promise<void>;
+	/** Move nodes into `groupId` (detaching from old groups), or out of any group when null. No toasts. */
+	setNodesGroup: (nodeIds: string[], groupId: string | null) => Promise<void>;
 	addNodesToGroup: (groupId: string, nodeIds: string[]) => Promise<void>;
 	removeNodesFromGroup: (nodeIds: string[]) => Promise<void>;
 	deleteGroup: (groupId: string, preserveChildren?: boolean) => Promise<void>;
@@ -196,8 +208,13 @@ export interface HistorySlice {
 	persistDeltaEvent: (
 		actionName: string,
 		prev: { nodes: AppNode[]; edges: AppEdge[] },
-		next: { nodes: AppNode[]; edges: AppEdge[] }
+		next: { nodes: AppNode[]; edges: AppEdge[] },
+		options?: { actor?: GraphActor }
 	) => Promise<void>;
+	/** While > 0, per-action history events are suppressed so a batch records one event. */
+	historyBatchDepth: number;
+	beginHistoryBatch: () => void;
+	endHistoryBatch: () => void;
 	subscribeToHistoryCurrent: (mapId: string) => Promise<void>;
 	unsubscribeFromHistoryCurrent: () => Promise<void>;
 
@@ -261,6 +278,12 @@ export interface NodesSlice {
 	getDescendantNodeIds: (nodeId: string) => string[];
 	getVisibleNodes: () => AppNode[];
 	toggleNodeCollapse: (nodeId: string) => Promise<void>;
+	/** Batch collapse/expand as one history step (shared state). */
+	setNodesCollapsed: (nodeIds: string[], collapsed: boolean) => void;
+	/** Expand one level, or the whole subtree with `all` (Shift+click). */
+	expandBranch: (nodeId: string, options?: { all?: boolean }) => void;
+	/** Expand every collapsed ancestor hiding `targetId`. */
+	expandPathTo: (targetId: string) => void;
 
 	// System update tracking
 	markNodeAsSystemUpdate: (nodeId: string) => void;
@@ -454,18 +477,21 @@ export interface Popovers {
 	edgeEdit: boolean;
 	history: boolean;
 	mergeSuggestions: boolean;
-	aiContent: boolean;
-	generateFromNodesModal: boolean;
 	contextMenu: boolean;
 	sharePanel: boolean;
 	joinRoom: boolean;
 	permissionManager: boolean;
 	roomCodeDisplay: boolean;
 	guestSignup: boolean;
-	aiChat: boolean;
 	referenceSearch: boolean;
 	mapSettings: boolean;
 	upgradeUser: boolean;
+	/** Ctrl/Cmd+K command palette */
+	commandPalette: boolean;
+	/** AI recipes side panel (list + editor) */
+	recipes: boolean;
+	/** Plugins side panel (turn plugins on/off, developer plugins) */
+	plugins: boolean;
 }
 
 // InlineNodeCreator types
@@ -496,6 +522,8 @@ export interface NodeEditorState {
 	parentNode: AppNode | null;
 	existingNodeId: string | null; // For edit mode
 	suggestedType: AvailableNodeTypes | null;
+	/** Plugin kind to create when suggestedType is `extensionNode`. */
+	extensionKind: PluginKindRef | null;
 	initialValue: string | null;
 	onboardingSource: 'onboarding-pattern' | null;
 }
@@ -507,28 +535,10 @@ export interface NodeEditorOptions {
 	parentNode?: AppNode | null;
 	existingNodeId?: string | null;
 	suggestedType?: AvailableNodeTypes | null;
+	extensionKind?: PluginKindRef | null;
 	initialValue?: string | null;
 	onboardingSource?: 'onboarding-pattern' | null;
 	openTypePicker?: boolean;
-}
-
-// CommandPalette types
-export interface CommandPaletteState {
-	isOpen: boolean;
-	position: XYPosition;
-	searchQuery: string;
-	selectedIndex: number;
-	filteredCommands: Command[];
-	trigger: '/' | '$' | null;
-	anchorPosition: number;
-	activeNodeType: string;
-}
-
-export interface CommandPaletteOptions {
-	position: XYPosition;
-	trigger: '/' | '$' | null;
-	anchorPosition: number;
-	activeNodeType?: string;
 }
 
 export interface UIStateSlice {
@@ -542,7 +552,8 @@ export interface UIStateSlice {
 	// editingNodeId: string | null; // Removed - replaced by NodeEditor system
 	snapLines: SnapLine[];
 	nodeEditor: NodeEditorState;
-	commandPalette: CommandPaletteState;
+	/** Canvas find (Ctrl/Cmd+F); matches are derived from nodes + query. */
+	canvasSearch: { isOpen: boolean; query: string; activeIndex: number };
 
 	// UI setters
 	setPopoverOpen: (popover: Partial<Popovers>) => void;
@@ -557,13 +568,11 @@ export interface UIStateSlice {
 	openNodeEditor: (options: NodeEditorOptions) => void;
 	closeNodeEditor: () => void;
 
-	// CommandPalette actions
-	openCommandPalette: (options: CommandPaletteOptions) => void;
-	closeCommandPalette: () => void;
-	setCommandPaletteSearch: (query: string) => void;
-	setCommandPaletteSelection: (index: number) => void;
-	navigateCommandPalette: (direction: 'up' | 'down') => void;
-	executeCommand: (command: Command) => void;
+	// Canvas search actions
+	openCanvasSearch: () => void;
+	closeCanvasSearch: () => void;
+	setCanvasSearchQuery: (query: string) => void;
+	setCanvasSearchActiveIndex: (index: number) => void;
 }
 
 // Realtime Slice
@@ -638,7 +647,6 @@ export interface AppState
 		PermissionsSlice,
 		RealtimeSlice,
 		SuggestionsSlice,
-		ChatSlice,
 		CommentsSlice,
 		StreamingToastSlice,
 		SubscriptionSlice,
@@ -647,4 +655,6 @@ export interface AppState
 		QuickInputSlice,
 		LayoutSlice,
 		ExportSlice,
-		GuidedTourSlice {}
+		GuidedTourSlice,
+		ExtensionsSlice,
+		PluginsSlice {}

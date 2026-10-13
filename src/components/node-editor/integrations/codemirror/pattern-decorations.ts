@@ -7,6 +7,7 @@
  * - Text color applied only to value part
  */
 
+import { scanPluginFieldTokens } from '@/lib/plugins/plugin-fields';
 import { StateEffect, StateField } from '@codemirror/state';
 import {
 	Decoration,
@@ -15,6 +16,12 @@ import {
 	ViewPlugin,
 	ViewUpdate,
 } from '@codemirror/view';
+import { scanChecklistMarkers } from '@/lib/plugins/plugin-fields';
+import {
+	readPluginFields,
+	setPluginFieldsEffect,
+	type PluginFieldSpecLite,
+} from './plugin-fields';
 
 // ============================================================================
 // PATTERN STYLE CONSTANTS
@@ -312,6 +319,38 @@ const decorationsField = StateField.define<DecorationSet>({
  * Create pattern decorations from text
  * Handles both two-part and single-part patterns
  */
+/**
+ * Plugin node types only understand their own typed fields, so built-in patterns aren't
+ * highlighted (in `unit:users`, `:users` is not a status here).
+ */
+function createPluginFieldDecorations(text: string, fields: PluginFieldSpecLite[]): DecorationSet {
+	const marks: Array<{ from: number; to: number; className: string }> = [];
+	for (const match of text.matchAll(/\$[a-zA-Z]+/g)) {
+		const from = match.index ?? 0;
+		marks.push({ from, to: from + match[0].length, className: PATTERN_STYLES.nodeType });
+	}
+	// A checklist is typed as lines (`[x] text`), not as `name:`; its markers carry the status color.
+	const typed = fields.filter((field) => !field.checklist);
+	const names = new Set(typed.map((field) => field.name));
+	const listNames = new Set(typed.filter((field) => field.type === 'list').map((field) => field.name));
+	for (const token of scanPluginFieldTokens(text, names, listNames)) {
+		marks.push({ from: token.from, to: token.to, className: 'cm-pattern-plugin-field' });
+	}
+	if (fields.some((field) => field.checklist)) {
+		for (const marker of scanChecklistMarkers(text)) {
+			marks.push({
+				from: marker.from,
+				to: marker.to,
+				className: `cm-pattern-plugin-check cm-pattern-plugin-check-${marker.index}`,
+			});
+		}
+	}
+	marks.sort((a, b) => a.from - b.from);
+	return Decoration.set(
+		marks.map((mark) => Decoration.mark({ class: mark.className }).range(mark.from, mark.to))
+	);
+}
+
 function createDecorations(view: EditorView): DecorationSet {
 	const decorations: Array<{
 		from: number;
@@ -319,6 +358,8 @@ function createDecorations(view: EditorView): DecorationSet {
 		decoration: Decoration;
 	}> = [];
 	const text = view.state.doc.toString();
+	const pluginFields = readPluginFields(view.state);
+	if (pluginFields) return createPluginFieldDecorations(text, pluginFields);
 
 	// Process two-part patterns (background + value color)
 	for (const pattern of TWO_PART_PATTERNS) {
@@ -400,7 +441,10 @@ const decorationPlugin = ViewPlugin.fromClass(
 		}
 
 		update(update: ViewUpdate) {
-			if (update.docChanged || update.viewportChanged) {
+			const pluginFieldsChanged = update.transactions.some((transaction) =>
+				transaction.effects.some((effect) => effect.is(setPluginFieldsEffect))
+			);
+			if (update.docChanged || update.viewportChanged || pluginFieldsChanged) {
 				if (this.timeout) clearTimeout(this.timeout);
 				this.timeout = setTimeout(() => {
 					this.updateDecorations(update.view);
@@ -433,6 +477,32 @@ export function createPatternDecorations() {
 		decorationsField,
 		decorationPlugin,
 		EditorView.baseTheme({
+			// Plugin node fields (`target:2000`)
+			'.cm-pattern-plugin-field': {
+				color: 'rgb(20, 184, 166)',
+				backgroundColor: 'rgba(20, 184, 166, 0.082)',
+				borderRadius: '3px',
+				padding: '0 2px',
+			},
+
+			// Checklist markers: open (blue), done (green), dropped (grey)
+			'.cm-pattern-plugin-check': {
+				borderRadius: '3px',
+				padding: '0 3px',
+			},
+			'.cm-pattern-plugin-check-0': {
+				color: '#60a5fa',
+				backgroundColor: 'rgba(96, 165, 250, 0.14)',
+			},
+			'.cm-pattern-plugin-check-1': {
+				color: '#34d399',
+				backgroundColor: 'rgba(52, 211, 153, 0.14)',
+			},
+			'.cm-pattern-plugin-check-2': {
+				color: '#a1a1aa',
+				backgroundColor: 'rgba(161, 161, 170, 0.16)',
+			},
+
 			// ================================================================
 			// SINGLE-PART PATTERN STYLES
 			// ================================================================

@@ -1,12 +1,13 @@
 'use client';
 
+import { GROUP_DRAG_DWELL_MS } from '@/constants/group';
 import { GRID_SIZE, ceilToGrid } from '@/constants/grid';
 import useAppStore from '@/store/mind-map-store';
 import { NodeData } from '@/types/node-data';
 import { cn } from '@/utils/cn';
 import { Node, NodeProps } from '@xyflow/react';
-import { AnimatePresence, motion } from 'motion/react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/shallow';
 
 interface GroupNodeProps extends NodeProps<Node<NodeData>> {
@@ -16,13 +17,12 @@ interface GroupNodeProps extends NodeProps<Node<NodeData>> {
 
 const GroupNodeComponent = (props: GroupNodeProps) => {
 	const { data, selected, id } = props;
-	const [isDragOver, setIsDragOver] = useState(false);
+	const shouldReduceMotion = useReducedMotion();
 	const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 	const {
 		reactFlowInstance: reactFlow,
 		nodes,
-		addNodesToGroup,
 		selectedNodes,
 		isDraggingNodes,
 		loadingStates,
@@ -30,12 +30,18 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 		useShallow((state) => ({
 			reactFlowInstance: state.reactFlowInstance,
 			nodes: state.nodes,
-			addNodesToGroup: state.addNodesToGroup,
 			selectedNodes: state.selectedNodes,
 			isDraggingNodes: state.isDraggingNodes,
 			loadingStates: state.loadingStates,
 		}))
 	);
+	// Narrow selector: only the group targeted by the current drag re-renders.
+	const dragIntent = useAppStore((state) =>
+		state.groupDragIntent?.groupId === id ? state.groupDragIntent : null
+	);
+	const isAddTarget = dragIntent?.type === 'add';
+	const isRemoveSource = dragIntent?.type === 'remove';
+	const isArmed = dragIntent?.armed ?? false;
 
 	const backgroundColor =
 		(data.metadata?.backgroundColor as string) || 'rgba(113, 113, 122, 0.1)';
@@ -165,48 +171,17 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 		};
 	}, []);
 
-	const handleDoubleClick = useCallback(() => {
-	}, []);
-
-	// Handle drag and drop for adding nodes to group
-	const handleDragOver = useCallback((e: React.DragEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
-		setIsDragOver(true);
-	}, []);
-
-	const handleDragLeave = useCallback((e: React.DragEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
-		setIsDragOver(false);
-	}, []);
-
-	const handleDrop = useCallback(
-		(e: React.DragEvent) => {
-			e.preventDefault();
-			e.stopPropagation();
-			setIsDragOver(false);
-
-			try {
-				const dragData = e.dataTransfer.getData('application/reactflow');
-
-				if (dragData) {
-					const { nodeId } = JSON.parse(dragData);
-
-					if (nodeId && nodeId !== id) {
-						addNodesToGroup(id, [nodeId]);
-					}
-				}
-			} catch (error) {
-				console.error('Error handling drop:', error);
-			}
-		},
-		[id, addNodesToGroup]
-	);
-
 	// Show child count in the label
 	const displayLabel =
 		childNodes.length > 0 ? `${label} (${childNodes.length})` : label;
+
+	const intentLabel = dragIntent
+		? `${isArmed ? 'Release' : 'Hold'} to ${isAddTarget ? 'add to' : 'remove from'} group`
+		: null;
+	const intentBorderColor = isAddTarget ? '#38bdf8' : '#fb7185';
+	const intentBackgroundColor = isAddTarget
+		? `rgba(56, 189, 248, ${isArmed ? 0.16 : 0.08})`
+		: `rgba(251, 113, 133, ${isArmed ? 0.12 : 0.06})`;
 
 	// Check if any selected nodes belong to this group
 	const hasSelectedChildren = useMemo(() => {
@@ -218,29 +193,25 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 
 	return (
 		<div
-			onDoubleClick={handleDoubleClick}
-			onDragLeave={handleDragLeave}
-			onDragOver={handleDragOver}
-			onDrop={handleDrop}
+			data-group-drag-intent={dragIntent?.type}
+			data-group-drag-armed={dragIntent ? isArmed : undefined}
 			className={cn(
-				'relative rounded-lg border-2 shadow-inner w-full h-full bg-opacity-50 transition-all duration-200',
-				selected ? 'border-sky-600' : 'border-dashed',
+				'relative rounded-lg border-2 shadow-inner w-full h-full bg-opacity-50 transition-colors duration-200',
+				selected && !dragIntent ? 'border-sky-600' : 'border-dashed',
 				'pointer-events-auto', // Ensure group can be selected/moved
-				isDragOver && 'border-solid border-sky-400 bg-sky-900/20',
+				dragIntent && isArmed && 'border-solid',
 				hasSelectedChildren &&
 					!selected &&
 					'ring-2 ring-yellow-400/50 ring-offset-2 ring-offset-zinc-900'
 			)}
 			style={{
 				padding: `${groupPadding}px`,
-				borderColor: selected
-					? undefined
-					: isDragOver
-						? '#38bdf8'
+				borderColor: dragIntent
+					? intentBorderColor
+					: selected
+						? undefined
 						: borderColor,
-				backgroundColor: isDragOver
-					? 'rgba(56, 189, 248, 0.1)'
-					: backgroundColor,
+				backgroundColor: dragIntent ? intentBackgroundColor : backgroundColor,
 				zIndex: 0, // Keep groups at base level
 			}}
 		>
@@ -258,31 +229,52 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 			</AnimatePresence>
 
 			{displayLabel && (
-				<motion.div
-					transition={{ duration: 0.2 }}
-					animate={{
-						scale: isDragOver ? 1.05 : 1,
-					}}
+				<div
 					className={cn(
-						'absolute -top-6 left-2 rounded-t-md px-2 py-0.5 text-xs font-medium shadow-md z-10 pointer-events-none transition-colors duration-200',
-						selected
-							? 'bg-sky-700 text-sky-100'
-							: hasSelectedChildren
-								? 'bg-yellow-700 text-yellow-100'
-								: 'bg-zinc-700 text-zinc-200'
+						'absolute -top-6 left-2 overflow-hidden rounded-t-md px-2 py-0.5 text-xs font-medium shadow-md z-10 pointer-events-none transition-colors duration-200',
+						isAddTarget
+							? 'bg-sky-700 text-sky-50'
+							: isRemoveSource
+								? 'bg-rose-700 text-rose-50'
+								: selected
+									? 'bg-sky-700 text-sky-100'
+									: hasSelectedChildren
+										? 'bg-yellow-700 text-yellow-100'
+										: 'bg-zinc-700 text-zinc-200'
 					)}
 				>
-					{displayLabel}
+					{intentLabel ?? displayLabel}
 
-					{hasSelectedChildren && !selected && (
+					{!dragIntent && hasSelectedChildren && !selected && (
 						<span className='ml-1 text-yellow-300'>●</span>
 					)}
-				</motion.div>
+
+					{/* Dwell progress: fills over the hold duration, full once armed */}
+					{dragIntent && (
+						<motion.span
+							aria-hidden
+							key={`${dragIntent.type}:${dragIntent.nodeIds.join(',')}`}
+							className='absolute inset-x-0 bottom-0 h-0.5 origin-left bg-white/80'
+							initial={{ scaleX: shouldReduceMotion || isArmed ? 1 : 0 }}
+							animate={{
+								scaleX: 1,
+								opacity: shouldReduceMotion && !isArmed ? 0.4 : 1,
+							}}
+							transition={{
+								scaleX: {
+									duration: GROUP_DRAG_DWELL_MS / 1000,
+									ease: 'linear',
+								},
+								opacity: { duration: 0.15 },
+							}}
+						/>
+					)}
+				</div>
 			)}
 
-			{/* Show group info when empty or during drag */}
+			{/* Show hint when the group is empty */}
 			<AnimatePresence>
-				{(childNodes.length === 0 || isDragOver) && (
+				{childNodes.length === 0 && !dragIntent && (
 					<motion.div
 						animate={{ opacity: 1, y: 0 }}
 						className='absolute inset-0 flex items-center justify-center pointer-events-none'
@@ -290,23 +282,9 @@ const GroupNodeComponent = (props: GroupNodeProps) => {
 						initial={{ opacity: 0, y: 10 }}
 						transition={{ duration: 0.2 }}
 					>
-						<motion.div
-							transition={{ duration: 0.2 }}
-							animate={{
-								scale: isDragOver ? 1.05 : 1,
-								borderColor: isDragOver ? '#0ea5e9' : '#374151',
-							}}
-							className={cn(
-								'text-sm font-medium px-3 py-2 rounded-md border transition-all duration-200',
-								isDragOver
-									? 'text-sky-300 bg-sky-900/50 border-sky-600'
-									: 'text-zinc-500 bg-zinc-800/50 border-zinc-700'
-							)}
-						>
-							{isDragOver
-								? 'Drop node here to add to group'
-								: 'Empty Group - Drop nodes here'}
-						</motion.div>
+						<div className='text-sm font-medium px-3 py-2 rounded-md border text-zinc-500 bg-zinc-800/50 border-zinc-700'>
+							Empty group – drag a node here and hold
+						</div>
 					</motion.div>
 				)}
 			</AnimatePresence>

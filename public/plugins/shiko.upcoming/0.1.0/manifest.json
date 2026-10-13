@@ -1,0 +1,37 @@
+{
+	"id": "shiko.upcoming",
+	"name": "Upcoming",
+	"version": "0.1.0",
+	"apiVersion": 1,
+	"author": "Shiko",
+	"description": "What's due next in the branch under it, soonest first.",
+	"icon": "calendar",
+	"permissions": ["node:own", "branch:read"],
+	"main": "plugin.js",
+	"nodeKinds": [
+		{
+			"kind": "upcoming",
+			"label": "Upcoming",
+			"description": "Dated nodes under it, soonest first",
+			"icon": "calendar",
+			"labelField": "label",
+			"fields": {
+				"label": {
+					"type": "string",
+					"title": "Name",
+					"description": "What's listed, like Release dates",
+					"maxLength": 80
+				},
+				"limit": {
+					"type": "integer",
+					"title": "Show",
+					"description": "How many dates to list, 1 to 10",
+					"default": 5,
+					"min": 1,
+					"max": 10
+				}
+			},
+			"examples": ["Release dates", "This week limit:3"]
+		}
+	]
+}

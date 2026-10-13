@@ -204,15 +204,12 @@ export async function POST(req: Request) {
 						await wait(1000);
 
 						const result = streamObject({
-							model: openai('gpt-5.4-nano'),
+							model: openai('gpt-6-luna'),
 							abortSignal,
 							output: 'array',
 							schema: mergeSuggestionSchema,
+							instructions: getMergeSystemPrompt(),
 							messages: [
-								{
-									role: 'system',
-									content: getMergeSystemPrompt(),
-								},
 								{
 									role: 'user',
 									content: buildMergeUserPrompt(promptContext.nodeRows),

@@ -1,3 +1,4 @@
+import { isDerivedDisplayEdgeId } from '@/helpers/derived-display-edges';
 import generateUuid from '@/helpers/generate-uuid';
 import useAppStore from '@/store/mind-map-store';
 import { ContextMenuState } from '@/types/context-menu-state';
@@ -70,6 +71,8 @@ export function useContextMenu(): UseContextMenuResult {
 
 	const openContextMenuAt = useCallback(
 		({ x, y, nodeId = null, edgeId = null }: OpenContextMenuAtParams) => {
+			// Proxy/tether edges are display-only; there is no stored edge to act on.
+			if (edgeId && isDerivedDisplayEdgeId(edgeId)) return;
 			setPopoverOpen({
 				contextMenu: true,
 			});

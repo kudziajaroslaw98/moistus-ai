@@ -35,6 +35,23 @@ const baseMetadataSchema = z.object({
 	showBackground: z.boolean().optional(),
 	label: z.string().optional(),
 	title: z.string().optional(),
+
+	// Extensions (reserved namespaces; listed explicitly so validation never strips them)
+	extension: z
+		.object({
+			pluginId: z.string(),
+			kind: z.string(),
+			kindLabel: z.string().max(30).optional(),
+			width: z.enum(['normal', 'wide']).optional(),
+			version: z.string(),
+			data: z.record(z.string(), z.unknown()),
+			snapshot: z.unknown().optional(),
+			fetchedAt: z.string().max(40).optional(),
+			noCopy: z.boolean().optional(),
+		})
+		.nullable()
+		.optional(),
+	ext: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 // ═══════════════════════════════════════════════
@@ -169,6 +186,8 @@ const annotationNodeSchema = baseMetadataSchema.extend({
 	fontWeight: z.union([z.string(), z.number()]).optional(),
 	author: z.string().optional(),
 	timestamp: z.string().optional(),
+	anchorNodeId: z.string().optional(),
+	anchorOffset: z.object({ x: z.number(), y: z.number() }).optional(),
 });
 
 /**
@@ -205,6 +224,11 @@ const commentNodeSchema = baseMetadataSchema.extend({
 /**
  * ghostNode - AI-generated node suggestions (system-only)
  */
+/**
+ * extensionNode - plugin-defined node; plugin data lives in metadata.extension (base schema)
+ */
+const extensionNodeSchema = baseMetadataSchema.extend({});
+
 const ghostNodeSchema = z.object({
 	suggestedContent: z.string(),
 	suggestedType: z.enum([
@@ -269,6 +293,7 @@ export const nodeValidationSchemas = {
 	referenceNode: referenceNodeSchema,
 	commentNode: commentNodeSchema,
 	ghostNode: ghostNodeSchema,
+	extensionNode: extensionNodeSchema,
 } as const;
 
 // Type-safe schema access

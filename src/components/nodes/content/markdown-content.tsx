@@ -91,7 +91,8 @@ const MarkdownContentComponent = ({
 							{children}
 						</h3>
 					),
-					// Paragraphs with proper line height
+					// Paragraphs with proper line height. pre-line shows each typed line break
+					// (Markdown keeps single newlines inside a paragraph as plain whitespace).
 					p: ({ children }) => (
 						<p
 							className='mb-3'
@@ -100,6 +101,7 @@ const MarkdownContentComponent = ({
 								fontSize: '14px',
 								lineHeight: 1.7,
 								letterSpacing: '0.01em',
+								whiteSpace: 'pre-line',
 							}}
 						>
 							{children}

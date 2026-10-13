@@ -110,7 +110,7 @@ export const POST = withApiValidation(
 
 					try {
 						const result = await generateText({
-							model: openai('gpt-5.4-mini'),
+							model: openai('gpt-6-luna'),
 							prompt: aiPrompt,
 						});
 						summary = result.text.trim();

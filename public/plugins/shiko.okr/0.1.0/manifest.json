@@ -1,0 +1,61 @@
+{
+	"id": "shiko.okr",
+	"name": "OKR",
+	"version": "0.1.0",
+	"apiVersion": 1,
+	"author": "Shiko",
+	"description": "An objective and its key results, each with progress.",
+	"icon": "target",
+	"permissions": ["node:own"],
+	"main": "plugin.js",
+	"nodeKinds": [
+		{
+			"kind": "okr",
+			"label": "OKR",
+			"description": "An objective with key results",
+			"icon": "target",
+			"labelField": "label",
+			"fields": {
+				"label": {
+					"type": "string",
+					"title": "Objective",
+					"description": "What you want to achieve",
+					"required": true,
+					"maxLength": 120
+				},
+				"results": {
+					"type": "list",
+					"title": "Key results",
+					"description": "How you'll measure it, up to 6",
+					"maxItems": 6,
+					"columns": [
+						{
+							"name": "name",
+							"type": "string",
+							"title": "Key result",
+							"required": true,
+							"maxLength": 80
+						},
+						{
+							"name": "at",
+							"type": "number",
+							"title": "Now",
+							"description": "Where it is now",
+							"default": 0
+						},
+						{
+							"name": "target",
+							"type": "number",
+							"title": "Target",
+							"description": "Where it should get to",
+							"required": true
+						}
+					]
+				}
+			},
+			"examples": [
+				"Grow the beta results:[[\"300 signups\", 120, 300], [\"NPS of 50\", 42, 50]]"
+			]
+		}
+	]
+}

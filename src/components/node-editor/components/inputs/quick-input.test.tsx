@@ -1187,7 +1187,8 @@ describe('QuickInput', () => {
 
 			expect(mockInitializeQuickInput).toHaveBeenCalledWith(
 				'$task Review PR ^tomorrow #backend',
-				'defaultNode'
+				'defaultNode',
+				null
 			);
 		});
 
