@@ -185,7 +185,8 @@ export default function PrivacyPolicyPage() {
 					</li>
 					<li>
 						<strong>Process AI features</strong> — Send relevant content to our
-						AI provider (OpenAI) to generate suggestions and answers
+						AI provider (OpenAI) to generate suggestions and recipe results and
+						to search your nodes
 					</li>
 					<li>
 						<strong>Process payments</strong> — Manage subscriptions through our
@@ -292,7 +293,10 @@ export default function PrivacyPolicyPage() {
 								<td className='py-3 px-4'>OpenAI</td>
 								<td className='py-3 px-4'>AI features</td>
 								<td className='py-3 px-4'>US</td>
-								<td className='py-3 px-4'>Node content for AI processing</td>
+								<td className='py-3 px-4'>
+									Map title and description, node text and tags, recipe
+									instructions, search queries
+								</td>
 							</tr>
 							<tr className='border-b border-border-subtle/50'>
 								<td className='py-3 px-4'>Vercel</td>
