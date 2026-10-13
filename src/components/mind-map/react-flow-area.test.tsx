@@ -8,6 +8,11 @@ const mockReactFlowRenderHistory: Array<{ nodes: AppNode[]; edges: AppEdge[] }> 
 interface MockReactFlowProps {
 	className?: string;
 	deleteKeyCode?: string[] | null;
+	onBeforeDelete: (change: {
+		nodes: AppNode[];
+		edges: AppEdge[];
+	}) => Promise<boolean | { nodes: AppNode[]; edges: AppEdge[] }>;
+	onNodesDelete: (nodes: AppNode[]) => void;
 	onEdgeDoubleClick: (event: unknown, edge: unknown) => void;
 	onPaneContextMenu: (event: { preventDefault: () => void }) => void;
 	onSelectionContextMenu: (event: { preventDefault: () => void }) => void;
@@ -23,6 +28,7 @@ const mockSetCenter = jest.fn();
 const mockFitView = jest.fn();
 let mockStoreState: Record<string, unknown>;
 let mockCanEdit = true;
+let mockCanComment = false;
 
 jest.mock('@/registry/node-registry', () => ({
 	NodeRegistry: {
@@ -127,7 +133,7 @@ jest.mock('@/components/mind-map/top-bar', () => ({
 }));
 
 jest.mock('@/hooks/collaboration/use-permissions', () => ({
-	usePermissions: () => ({ canEdit: mockCanEdit }),
+	usePermissions: () => ({ canEdit: mockCanEdit, canComment: mockCanComment }),
 }));
 jest.mock('@/hooks/realtime/use-activity-tracker', () => ({
 	useActivityTracker: () => ({
@@ -277,6 +283,7 @@ function createMockStore(overrides: Partial<Record<string, unknown>> = {}) {
 		addNode: mockNoop,
 		fetchMindMapData: jest.fn().mockResolvedValue(undefined),
 		deleteNodes: mockNoop,
+		deleteComment: mockNoop,
 		isDraggingNodes: false,
 		deleteEdges: mockNoop,
 		setIsDraggingNodes: mockNoop,
@@ -335,6 +342,7 @@ describe('ReactFlowArea', () => {
 		mockSetCenter.mockReset();
 		mockFitView.mockReset();
 		mockCanEdit = true;
+		mockCanComment = false;
 		mockStoreState = createMockStore();
 		mockAnimateGraphToState.mockImplementation(
 			async ({
@@ -738,6 +746,103 @@ describe('ReactFlowArea', () => {
 			latestProps().onEdgeDoubleClick({ clientX: 0, clientY: 0 }, edge);
 
 			expect(setEdgeInfo).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('deleting with the Delete key', () => {
+		const latestProps = () => mockReactFlowProps.at(-1) as MockReactFlowProps;
+		const thread = (id: string, userId: string) =>
+			({
+				id,
+				type: 'commentNode',
+				position: { x: 0, y: 0 },
+				data: { id, user_id: userId },
+			}) as unknown as AppNode;
+		const note = (id: string) =>
+			({
+				id,
+				type: 'defaultNode',
+				position: { x: 0, y: 0 },
+				data: { id, user_id: 'user-1' },
+			}) as unknown as AppNode;
+
+		beforeEach(() => {
+			mockCanEdit = false;
+			mockCanComment = true;
+		});
+
+		it('is on for a commenter, who may delete their own threads', () => {
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(latestProps().deleteKeyCode).toEqual(['Delete']);
+		});
+
+		it('stays off for a viewer', () => {
+			mockCanComment = false;
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(latestProps().deleteKeyCode).toBeNull();
+		});
+
+		it('only lets a commenter delete threads they started', async () => {
+			render(<ReactFlowArea isMapReady={true} />);
+			const mine = thread('thread-mine', 'user-1');
+
+			const approved = await latestProps().onBeforeDelete({
+				nodes: [mine, thread('thread-theirs', 'user-2'), note('note-1')],
+				edges: [{ id: 'edge-1' } as AppEdge],
+			});
+
+			expect(approved).toEqual({ nodes: [mine], edges: [] });
+		});
+
+		it('cancels the delete for a commenter when nothing selected is their thread', async () => {
+			render(<ReactFlowArea isMapReady={true} />);
+
+			const approved = await latestProps().onBeforeDelete({
+				nodes: [note('note-1'), thread('thread-theirs', 'user-2')],
+				edges: [],
+			});
+
+			expect(approved).toBe(false);
+		});
+
+		it('deletes the thread and its comment for a commenter, nothing else', () => {
+			const deleteComment = jest.fn();
+			const deleteNodes = jest.fn();
+			mockStoreState = createMockStore({ deleteComment, deleteNodes });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			latestProps().onNodesDelete([thread('thread-mine', 'user-1')]);
+
+			expect(deleteComment).toHaveBeenCalledWith('thread-mine');
+			expect(deleteNodes).not.toHaveBeenCalled();
+		});
+
+		it('does not approve a delete for an editor differently than before', async () => {
+			mockCanEdit = true;
+			render(<ReactFlowArea isMapReady={true} />);
+
+			const approved = await latestProps().onBeforeDelete({
+				nodes: [note('note-1')],
+				edges: [],
+			});
+
+			expect(approved).toBe(true);
+		});
+
+		it('sends an editor\'s threads through deleteComment and other nodes through deleteNodes', () => {
+			mockCanEdit = true;
+			const deleteComment = jest.fn();
+			const deleteNodes = jest.fn();
+			mockStoreState = createMockStore({ deleteComment, deleteNodes });
+			render(<ReactFlowArea isMapReady={true} />);
+			const other = note('note-1');
+
+			latestProps().onNodesDelete([thread('thread-theirs', 'user-2'), other]);
+
+			expect(deleteComment).toHaveBeenCalledWith('thread-theirs');
+			expect(deleteNodes).toHaveBeenCalledWith([other]);
 		});
 	});
 });

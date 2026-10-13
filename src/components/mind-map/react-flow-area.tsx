@@ -43,6 +43,7 @@ import { useNotifications } from '@/components/notifications/use-notifications';
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
 import { ShortcutsHelpFab } from '@/components/shortcuts-help/shortcuts-help-fab';
 import { buildAnnotationTetherEdges } from '@/helpers/anchored-annotations';
+import { canDeleteCommentThread } from '@/helpers/comment-thread-permissions';
 import { isDerivedDisplayEdgeId } from '@/helpers/derived-display-edges';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
@@ -120,6 +121,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		setEdgeInfo,
 		addNode: addNode,
 		deleteNodes,
+		deleteComment,
 		isDraggingNodes,
 		deleteEdges,
 		setIsDraggingNodes,
@@ -175,6 +177,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 			setEdgeInfo: state.setEdgeInfo,
 			addNode: state.addNode,
 			deleteNodes: state.deleteNodes,
+			deleteComment: state.deleteComment,
 			deleteEdges: state.deleteEdges,
 			setIsDraggingNodes: state.setIsDraggingNodes,
 			unsubscribeFromRealtimeUpdates: state.unsubscribeFromRealtimeUpdates,
@@ -215,7 +218,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
 	const { animateGraphToState, cancelAnimation } = useAnimatedLayout();
-	const { canEdit } = usePermissions();
+	const { canEdit, canComment } = usePermissions();
 	// Pan only moves the pane: nothing on the canvas reacts to clicks, keys or touch.
 	const isPanningMode = activeTool === 'pan';
 	const isMobile = useIsMobile();
@@ -350,14 +353,46 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	}, []);
 
 	// Permission-gated delete handlers
-	// Viewers should not be able to delete nodes/edges via Delete key
+	// Viewers should not be able to delete nodes/edges via Delete key.
+	// Commenters may delete the comment threads they started, nothing else.
+	const handleBeforeDelete = useCallback(
+		async ({ nodes: nodesToDelete }: { nodes: AppNode[]; edges: AppEdge[] }) => {
+			if (canEdit) return true;
+
+			const ownThreads = nodesToDelete.filter((node) =>
+				canDeleteCommentThread({ canEdit, canComment }, node, currentUser?.id)
+			);
+
+			return ownThreads.length > 0
+				? { nodes: ownThreads, edges: [] }
+				: false;
+		},
+		[canEdit, canComment, currentUser?.id]
+	);
+
 	const handleNodesDelete = useCallback(
 		(nodesToDelete: Node[]) => {
-			if (!canEdit) return;
 			// Cast is safe: React Flow returns same objects we passed in
-			deleteNodes(nodesToDelete as AppNode[]);
+			const requested = nodesToDelete as AppNode[];
+
+			// A thread is a node plus its comments row: delete both.
+			for (const node of requested) {
+				if (
+					canDeleteCommentThread(
+						{ canEdit, canComment },
+						node,
+						currentUser?.id
+					)
+				) {
+					void deleteComment(node.id);
+				}
+			}
+
+			if (!canEdit) return;
+			const others = requested.filter((node) => node.type !== 'commentNode');
+			if (others.length > 0) deleteNodes(others);
 		},
-		[canEdit, deleteNodes]
+		[canEdit, canComment, currentUser?.id, deleteComment, deleteNodes]
 	);
 
 	const handleEdgesDelete = useCallback(
@@ -707,7 +742,10 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	);
 
 	const isSelectMode = activeTool === 'default';
-	const deleteKeyCode = isMapReady && canEdit && !isPanningMode ? ['Delete'] : null;
+	const deleteKeyCode =
+		isMapReady && (canEdit || canComment) && !isPanningMode
+			? ['Delete']
+			: null;
 	const isMobileTapMultiSelectActive =
 		isMobile && canEdit && isSelectMode && mobileTapMultiSelectEnabled;
 	const renderNodes = isMapReady ? displayNodes : [];
@@ -1023,6 +1061,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
 					onEdgeDoubleClick={handleEdgeDoubleClick}
 					onEdgesChange={onEdgesChange}
+					onBeforeDelete={handleBeforeDelete}
 					onEdgesDelete={handleEdgesDelete}
 					onNodeClick={handleNodeClick}
 					onNodeDoubleClick={handleNodeDoubleClick}
