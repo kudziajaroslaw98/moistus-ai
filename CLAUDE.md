@@ -34,6 +34,7 @@ You are a senior software engineer in an agentic coding workflow. The human is t
 
 - **UPDATE CLAUDE.md**: Before ending work, ask: "Did I change anything CLAUDE.md describes?" If yes → update it. No exceptions.
 - **NEVER READ .env FILES**: `.env`, `.env.local`, `.env.e2e` are BANNED. No `Read`, `cat`, `grep`, or any tool. These contain secrets.
+- **NEVER GIT-ADD `supabase/`**: The `supabase/` folder (migrations included) is gitignored and stays that way. Never `git add -f`, `git add --force`, un-ignore it in `.gitignore`, or track anything under it by any other route, whatever the need (new migration, "so it's versioned", fixing a missing file). Write migrations locally, apply them via the Supabase MCP, and say in the summary that the file is local-only. If something under `supabase/` shows up as tracked, untrack it with `git rm --cached`.
 - **NO BARREL FILES**: Never create `index.ts` re-export files. Use direct imports (`@/components/landing/hero-section` not `@/components/landing`). Barrels hurt build perf, break tree-shaking, slow tests.
 - **PROACTIVELY use agents and mcp tools**
 - **NEVER run `pnpm run dev`** - Use: `pnpm type-check`, `pnpm build`, `pnpm test`
