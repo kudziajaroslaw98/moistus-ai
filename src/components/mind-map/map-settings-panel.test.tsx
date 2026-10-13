@@ -262,44 +262,56 @@ describe('MapSettingsPanel template admin', () => {
 		mockUseAppStore.mockImplementation(
 			(selector: (state: StoreState) => unknown) => selector(mockState)
 		);
-		global.fetch = jest.fn().mockResolvedValue({
-			ok: true,
-			json: async () => ({
-				data: {
-					template: {
-						category: 'business',
-						icon: 'Briefcase',
-						previewColors: ['#111111', '#222222', '#333333'],
-					},
-				},
-			}),
-		}) as unknown as typeof fetch;
+		global.fetch = jest.fn() as unknown as typeof fetch;
 	});
 
 	afterEach(() => {
 		global.fetch = originalFetch;
 	});
 
-	it('shows template section for admins and saves icon changes', async () => {
-		const user = userEvent.setup();
+	it('shows the category picker with a locked icon/colors preview', () => {
 		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
 
 		expect(screen.getByRole('heading', { name: 'Template' })).toBeInTheDocument();
-		expect(global.fetch).toHaveBeenCalledWith('/api/templates/template-1');
+		expect(screen.getByText('Category')).toBeInTheDocument();
+		expect(screen.getByTestId('template-category-preview')).toBeInTheDocument();
+		expect(
+			screen.getByText('The gallery icon and colors are set by the category.')
+		).toBeInTheDocument();
 		expect(screen.getByText('Delete template')).toBeInTheDocument();
+	});
 
-		const lightbulb = await screen.findByRole('radio', { name: 'Lightbulb' });
-		expect(screen.getByRole('radio', { name: 'Briefcase' })).toHaveAttribute(
-			'aria-checked',
-			'true'
-		);
+	it('offers no icon or color controls and loads nothing extra', () => {
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
 
-		await user.click(lightbulb);
+		expect(screen.queryByText('Gallery icon')).not.toBeInTheDocument();
+		expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+		expect(screen.queryByLabelText(/preview color/i)).not.toBeInTheDocument();
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
+
+	it('hides tags and thumbnail for templates', () => {
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+
+		expect(screen.queryByText('Organization')).not.toBeInTheDocument();
+		expect(screen.queryByText('Appearance')).not.toBeInTheDocument();
+		expect(screen.queryByLabelText(/thumbnail url/i)).not.toBeInTheDocument();
+		expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+		// Title and description stay editable.
+		expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
+	});
+
+	it('saves a category change as template_category only', async () => {
+		const user = userEvent.setup();
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+
+		await user.click(screen.getByRole('combobox', { name: /category/i }));
+		await user.click(await screen.findByRole('option', { name: 'Education' }));
 		await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
 		await waitFor(() => {
 			expect(mockState.updateMindMap).toHaveBeenCalledWith('template-1', {
-				template_icon: 'Lightbulb',
+				template_category: 'education',
 			});
 		});
 	});
@@ -309,7 +321,6 @@ describe('MapSettingsPanel template admin', () => {
 		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
 
 		expect(screen.queryByRole('heading', { name: 'Template' })).not.toBeInTheDocument();
-		expect(global.fetch).not.toHaveBeenCalled();
 	});
 });
 

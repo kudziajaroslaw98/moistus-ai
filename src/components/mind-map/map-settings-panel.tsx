@@ -3,10 +3,7 @@
 import { DeleteMapConfirmationDialog } from '@/components/mind-map/delete-map-confirmation-dialog';
 import { DiscardSettingsChangesDialog } from '@/components/mind-map/discard-settings-changes-dialog';
 import { PublishTemplateDialog } from '@/components/mind-map/publish-template-dialog';
-import {
-	TemplateSettingsSection,
-	type TemplateSettingsValue,
-} from '@/components/mind-map/template-settings-section';
+import { TemplateSettingsSection } from '@/components/mind-map/template-settings-section';
 import { DeveloperModeSetting } from '@/components/plugins/developer-mode-switch';
 import { PluginsSettingsLink } from '@/components/plugins/plugins-settings-link';
 import { NodeTypeSelector } from '@/components/settings/node-type-selector';
@@ -50,6 +47,7 @@ interface FormData {
 	description: string;
 	tags: string[];
 	thumbnailUrl: string;
+	templateCategory: TemplateCategoryValue | null;
 }
 
 function normalizeText(value: string | null | undefined): string {
@@ -62,18 +60,6 @@ function toTemplateCategory(
 	return TEMPLATE_CATEGORY_VALUES.includes(value as TemplateCategoryValue)
 		? (value as TemplateCategoryValue)
 		: null;
-}
-
-function isSameTemplateSettings(
-	a: TemplateSettingsValue | null,
-	b: TemplateSettingsValue | null
-): boolean {
-	if (!a || !b) return a === b;
-	return (
-		a.category === b.category &&
-		a.icon === b.icon &&
-		JSON.stringify(a.previewColors) === JSON.stringify(b.previewColors)
-	);
 }
 
 function isValidUrl(value: string): boolean {
@@ -117,17 +103,15 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 	);
 
 	// Only admins receive can_edit on system templates (see /api/maps/[id]/permissions).
-	const isTemplateAdmin = Boolean(mindMap?.is_template) && canEditMap;
-	const [templateSettings, setTemplateSettings] =
-		useState<TemplateSettingsValue | null>(null);
-	const [initialTemplateSettings, setInitialTemplateSettings] =
-		useState<TemplateSettingsValue | null>(null);
+	const isTemplate = Boolean(mindMap?.is_template);
+	const isTemplateAdmin = isTemplate && canEditMap;
 
 	const [formData, setFormData] = useState<FormData>({
 		title: '',
 		description: '',
 		tags: [],
 		thumbnailUrl: '',
+		templateCategory: null,
 	});
 
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -179,13 +163,12 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			normalizedDescription !== initialDescription ||
 			JSON.stringify(formData.tags) !== JSON.stringify(mindMap.tags || []) ||
 			normalizedThumbnail !== initialThumbnail ||
-			!isSameTemplateSettings(templateSettings, initialTemplateSettings)
+			formData.templateCategory !== toTemplateCategory(mindMap.template_category)
 		);
 	}, [
 		formData.tags,
-		initialTemplateSettings,
+		formData.templateCategory,
 		mindMap,
-		templateSettings,
 		normalizedDescription,
 		normalizedThumbnail,
 		normalizedTitle,
@@ -199,6 +182,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 				description: mindMap.description || '',
 				tags: mindMap.tags || [],
 				thumbnailUrl: mindMap.thumbnailUrl || '',
+				templateCategory: toTemplateCategory(mindMap.template_category),
 			});
 			setHasChanges(false);
 			setShowDiscardDialog(false);
@@ -207,51 +191,6 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			setThumbnailTouched(false);
 		}
 	}, [mindMap, isOpen]);
-
-	// Template metadata (icon/preview colors) lives in mind_maps.metadata, which the
-	// editor's map payload doesn't carry, so admins load it from the template API.
-	const mapId = mindMap?.id;
-	const mapTemplateCategory = mindMap?.template_category;
-	useEffect(() => {
-		if (!isOpen || !isTemplateAdmin || !mapId) return;
-
-		let cancelled = false;
-		const fallback: TemplateSettingsValue = {
-			category: toTemplateCategory(mapTemplateCategory),
-			icon: 'FileText',
-			previewColors: ['#6366f1', '#8b5cf6', '#a855f7'],
-		};
-
-		fetch(`/api/templates/${mapId}`)
-			.then((res) => (res.ok ? res.json() : null))
-			.then((result) => {
-				if (cancelled) return;
-				const template = result?.data?.template;
-				const loaded: TemplateSettingsValue = template
-					? {
-							category: toTemplateCategory(template.category),
-							icon: template.icon || fallback.icon,
-							previewColors: Array.isArray(template.previewColors)
-								? template.previewColors
-								: fallback.previewColors,
-						}
-					: fallback;
-				setTemplateSettings(loaded);
-				setInitialTemplateSettings(loaded);
-			})
-			.catch(() => {
-				if (cancelled) return;
-				setTemplateSettings(fallback);
-				setInitialTemplateSettings(fallback);
-			});
-
-		return () => {
-			cancelled = true;
-			// Clear on close or map change so a reopened panel never shows the last map's values.
-			setTemplateSettings(null);
-			setInitialTemplateSettings(null);
-		};
-	}, [isOpen, isTemplateAdmin, mapId, mapTemplateCategory]);
 
 	// Track changes
 	useEffect(() => {
@@ -307,23 +246,14 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			updates.tags = formData.tags;
 		if (normalizedThumbnail !== currentThumbnail)
 			updates.thumbnailUrl = normalizedThumbnail || null;
-		if (isTemplateAdmin && templateSettings && initialTemplateSettings) {
-			if (
-				templateSettings.category &&
-				templateSettings.category !== initialTemplateSettings.category
-			)
-				updates.template_category = templateSettings.category;
-			if (templateSettings.icon !== initialTemplateSettings.icon)
-				updates.template_icon = templateSettings.icon;
-			if (
-				JSON.stringify(templateSettings.previewColors) !==
-				JSON.stringify(initialTemplateSettings.previewColors)
-			)
-				updates.template_preview_colors = templateSettings.previewColors;
-		}
+		if (
+			isTemplateAdmin &&
+			formData.templateCategory &&
+			formData.templateCategory !== toTemplateCategory(mindMap.template_category)
+		)
+			updates.template_category = formData.templateCategory;
 
 		await updateMindMap(mindMap.id, updates);
-		setInitialTemplateSettings(templateSettings);
 		setFormData((prev) => ({
 			...prev,
 			title: normalizedTitle,
@@ -459,70 +389,77 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 				{isTemplateAdmin && (
 					<PanelSection
-						description='Admin only. Controls how this template appears in the template gallery.'
+						description='Admin only. The category sets the gallery icon and colors.'
 						label='Template'
 					>
 						<TemplateSettingsSection
+							category={formData.templateCategory}
 							disabled={isSaving}
-							onChange={setTemplateSettings}
-							value={templateSettings}
+							onChange={(templateCategory) =>
+								setFormData((prev) => ({ ...prev, templateCategory }))
+							}
 						/>
 					</PanelSection>
 				)}
 
-				<PanelSection
-					description='Use tags to group related maps and improve search.'
-					label='Organization'
-				>
-					<PanelField
-						hint='Press Enter or comma to add tags.'
-						htmlFor='tags'
-						label='Tags'
-					>
-						<TagInput
-							className={isSaving ? 'pointer-events-none opacity-60' : ''}
-							maxTags={20}
-							onChange={(tags) => setFormData({ ...formData, tags })}
-							placeholder='Add tags...'
-							value={formData.tags}
-						/>
-					</PanelField>
-				</PanelSection>
+				{/* Templates are grouped by category and get a fixed cover, so tags and thumbnail don't apply. */}
+				{!isTemplate && (
+					<>
+						<PanelSection
+							description='Use tags to group related maps and improve search.'
+							label='Organization'
+						>
+							<PanelField
+								hint='Press Enter or comma to add tags.'
+								htmlFor='tags'
+								label='Tags'
+							>
+								<TagInput
+									className={isSaving ? 'pointer-events-none opacity-60' : ''}
+									maxTags={20}
+									onChange={(tags) => setFormData({ ...formData, tags })}
+									placeholder='Add tags...'
+									value={formData.tags}
+								/>
+							</PanelField>
+						</PanelSection>
 
-				<PanelSection
-					description='A preview image used in map cards and link previews.'
-					label='Appearance'
-				>
-					<PanelField
-						error={
-							thumbnailTouched && !isThumbnailValid ? thumbnailError : undefined
-						}
-						errorId={thumbnailErrorId}
-						hint='Optional preview image for your mind map.'
-						htmlFor='thumbnail'
-						label='Thumbnail URL'
-					>
-						<Input
-							aria-describedby={
-								thumbnailTouched && !isThumbnailValid
-									? thumbnailErrorId
-									: undefined
-							}
-							aria-invalid={thumbnailTouched && !isThumbnailValid}
-							className={panelInputClass}
-							disabled={isSaving}
-							error={thumbnailTouched && !isThumbnailValid}
-							id='thumbnail'
-							placeholder='https://example.com/thumbnail.jpg'
-							type='url'
-							value={formData.thumbnailUrl}
-							onBlur={() => setThumbnailTouched(true)}
-							onChange={(e) =>
-								setFormData({ ...formData, thumbnailUrl: e.target.value })
-							}
-						/>
-					</PanelField>
-				</PanelSection>
+						<PanelSection
+							description='A preview image used in map cards and link previews.'
+							label='Appearance'
+						>
+							<PanelField
+								error={
+									thumbnailTouched && !isThumbnailValid ? thumbnailError : undefined
+								}
+								errorId={thumbnailErrorId}
+								hint='Optional preview image for your mind map.'
+								htmlFor='thumbnail'
+								label='Thumbnail URL'
+							>
+								<Input
+									aria-describedby={
+										thumbnailTouched && !isThumbnailValid
+											? thumbnailErrorId
+											: undefined
+									}
+									aria-invalid={thumbnailTouched && !isThumbnailValid}
+									className={panelInputClass}
+									disabled={isSaving}
+									error={thumbnailTouched && !isThumbnailValid}
+									id='thumbnail'
+									placeholder='https://example.com/thumbnail.jpg'
+									type='url'
+									value={formData.thumbnailUrl}
+									onBlur={() => setThumbnailTouched(true)}
+									onChange={(e) =>
+										setFormData({ ...formData, thumbnailUrl: e.target.value })
+									}
+								/>
+							</PanelField>
+						</PanelSection>
+					</>
+				)}
 
 				{isAdmin && !mindMap.is_template && (
 					<PanelSection

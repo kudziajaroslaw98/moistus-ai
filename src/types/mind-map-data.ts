@@ -18,13 +18,4 @@ export interface MindMapData {
 	updated_at: string;
 }
 
-/**
- * Admin-only template metadata accepted by PUT /api/maps/[id] (stored in
- * `mind_maps.metadata`); not part of the loaded map row.
- */
-export interface TemplateMetadataUpdates {
-	template_icon?: string;
-	template_preview_colors?: string[];
-}
-
-export type MindMapUpdates = Partial<MindMapData> & TemplateMetadataUpdates;
+export type MindMapUpdates = Partial<MindMapData>;

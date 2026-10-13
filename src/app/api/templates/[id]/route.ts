@@ -1,6 +1,7 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
+import { getTemplateCategoryStyle } from '@/constants/template-options';
 import { z } from 'zod';
 
 /**
@@ -133,19 +134,17 @@ export const GET = withAuthValidation(
 				(edge) => validNodeIds.has(edge.source) && validNodeIds.has(edge.target)
 			);
 
-			// Transform to the format expected by instantiation
+			// Transform to the format expected by instantiation. Icon and colors are
+			// category-locked: derived from the category, never from stored metadata.
+			const categoryStyle = getTemplateCategoryStyle(template.template_category);
 			const formattedTemplate = {
 				id: template.metadata?.templateId || template.id,
 				dbId: template.id,
 				name: template.title,
 				description: template.description,
 				category: template.template_category,
-				icon: template.metadata?.icon || 'FileText',
-				previewColors: template.metadata?.previewColors || [
-					'#6366f1',
-					'#8b5cf6',
-					'#a855f7',
-				],
+				icon: categoryStyle.icon,
+				previewColors: categoryStyle.previewColors,
 				nodes: filteredNodes.map((n) => ({
 					id: n.id,
 					type: n.node_type || 'defaultNode',

@@ -1,9 +1,6 @@
 'use client';
 
-import {
-	TemplateSettingsSection,
-	type TemplateSettingsValue,
-} from '@/components/mind-map/template-settings-section';
+import { TemplateSettingsSection } from '@/components/mind-map/template-settings-section';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -16,7 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { DEFAULT_TEMPLATE_PREVIEW_COLORS } from '@/constants/template-options';
+import type { TemplateCategoryValue } from '@/constants/template-options';
 import { Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -28,12 +25,6 @@ interface PublishTemplateDialogProps {
 	defaultTitle: string;
 	defaultDescription: string | null;
 }
-
-const DEFAULT_SETTINGS: TemplateSettingsValue = {
-	category: null,
-	icon: 'Lightbulb',
-	previewColors: DEFAULT_TEMPLATE_PREVIEW_COLORS,
-};
 
 /**
  * Admin-only: publishes a copy of the current map as a system template.
@@ -48,20 +39,19 @@ export function PublishTemplateDialog({
 }: PublishTemplateDialogProps) {
 	const [title, setTitle] = useState(defaultTitle);
 	const [description, setDescription] = useState(defaultDescription ?? '');
-	const [settings, setSettings] =
-		useState<TemplateSettingsValue>(DEFAULT_SETTINGS);
+	const [category, setCategory] = useState<TemplateCategoryValue | null>(null);
 	const [isPublishing, setIsPublishing] = useState(false);
 
 	useEffect(() => {
 		if (!open) return;
 		setTitle(defaultTitle);
 		setDescription(defaultDescription ?? '');
-		setSettings(DEFAULT_SETTINGS);
+		setCategory(null);
 	}, [open, defaultTitle, defaultDescription]);
 
 	const trimmedTitle = title.trim();
 	const canPublish =
-		trimmedTitle.length > 0 && settings.category !== null && !isPublishing;
+		trimmedTitle.length > 0 && category !== null && !isPublishing;
 
 	const handlePublish = async () => {
 		if (!canPublish) return;
@@ -75,9 +65,7 @@ export function PublishTemplateDialog({
 					sourceMapId,
 					title: trimmedTitle,
 					description: description.trim() || null,
-					category: settings.category,
-					icon: settings.icon,
-					previewColors: settings.previewColors,
+					category,
 				}),
 			});
 			const result = await response.json().catch(() => null);
@@ -164,9 +152,9 @@ export function PublishTemplateDialog({
 					</div>
 
 					<TemplateSettingsSection
+						category={category}
 						disabled={isPublishing}
-						onChange={setSettings}
-						value={settings}
+						onChange={setCategory}
 					/>
 				</div>
 

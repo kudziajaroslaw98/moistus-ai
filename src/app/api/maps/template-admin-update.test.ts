@@ -16,44 +16,47 @@ jest.mock('@/helpers/supabase/server', () => ({
 import { buildTemplateAdminUpdate } from './[id]/route';
 
 describe('buildTemplateAdminUpdate', () => {
-	it('maps template fields and merges metadata without dropping templateId', () => {
-		const update = buildTemplateAdminUpdate(
-			{
-				title: 'SWOT',
-				template_category: 'business',
-				template_icon: 'Briefcase',
-				template_preview_colors: ['#111111'],
-			},
-			{ templateId: 'swot', icon: 'Lightbulb', previewColors: ['#000000'] }
-		);
+	it('maps title, description and category', () => {
+		const update = buildTemplateAdminUpdate({
+			title: 'SWOT',
+			description: null,
+			template_category: 'business',
+		});
 
 		expect(update).toMatchObject({
 			title: 'SWOT',
+			description: null,
 			template_category: 'business',
-			metadata: {
-				templateId: 'swot',
-				icon: 'Briefcase',
-				previewColors: ['#111111'],
-			},
 		});
 		expect(typeof update.updated_at).toBe('string');
 	});
 
-	it('leaves metadata alone when no template metadata changes', () => {
-		const update = buildTemplateAdminUpdate(
-			{ description: null },
-			{ templateId: 'swot' }
-		);
+	it('never writes metadata, so icon and colors stay category-locked', () => {
+		// A stale client may still send the removed fields; they must not reach the row.
+		const update = buildTemplateAdminUpdate({
+			template_category: 'business',
+			template_icon: 'Briefcase',
+			template_preview_colors: ['#111111'],
+		} as Parameters<typeof buildTemplateAdminUpdate>[0]);
 
 		expect(update).not.toHaveProperty('metadata');
-		expect(update).toHaveProperty('description', null);
+		expect(update).not.toHaveProperty('template_icon');
+		expect(update).not.toHaveProperty('template_preview_colors');
+	});
+
+	it('ignores tags and thumbnail', () => {
+		const update = buildTemplateAdminUpdate({
+			tags: ['a'],
+			thumbnailUrl: 'https://example.com/x.png',
+		});
+
+		expect(update).not.toHaveProperty('tags');
+		expect(update).not.toHaveProperty('thumbnail_url');
+		expect(update).not.toHaveProperty('thumbnailUrl');
 	});
 
 	it('never sets is_template', () => {
-		const update = buildTemplateAdminUpdate(
-			{ is_template: false, title: 'x' },
-			null
-		);
+		const update = buildTemplateAdminUpdate({ is_template: false, title: 'x' });
 
 		expect(update).not.toHaveProperty('is_template');
 	});

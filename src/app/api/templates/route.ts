@@ -12,11 +12,8 @@ import {
 	type TemplateSourceEdgeRow,
 	type TemplateSourceNodeRow,
 } from '@/helpers/templates/clone-template-graph';
-import {
-	templateCategorySchema,
-	templateIconSchema,
-	templatePreviewColorsSchema,
-} from '@/lib/validations/map-settings-schema';
+import { getTemplateCategoryStyle } from '@/constants/template-options';
+import { templateCategorySchema } from '@/lib/validations/map-settings-schema';
 import { z } from 'zod';
 
 /**
@@ -63,19 +60,24 @@ export const GET = withPublicApiValidation(z.any().nullish(), async (req, _body,
 			return respondError('Error fetching templates.', 500, error.message);
 		}
 
-		// Transform to expected shape
-		const formattedTemplates = (templates || []).map((t) => ({
-			id: t.id,
-			templateId: t.metadata?.templateId || t.id,
-			name: t.title,
-			description: t.description,
-			category: t.template_category,
-			icon: t.metadata?.icon || 'FileText',
-			previewColors: t.metadata?.previewColors || ['#6366f1', '#8b5cf6', '#a855f7'],
-			nodeCount: t.node_count || 0,
-			edgeCount: t.edge_count || 0,
-			usageCount: t.usage_count || 0,
-		}));
+		// Transform to expected shape. Icon and colors are category-locked: derived from
+		// the category, never from stored metadata.
+		const formattedTemplates = (templates || []).map((t) => {
+			const style = getTemplateCategoryStyle(t.template_category);
+
+			return {
+				id: t.id,
+				templateId: t.metadata?.templateId || t.id,
+				name: t.title,
+				description: t.description,
+				category: t.template_category,
+				icon: style.icon,
+				previewColors: style.previewColors,
+				nodeCount: t.node_count || 0,
+				edgeCount: t.edge_count || 0,
+				usageCount: t.usage_count || 0,
+			};
+		});
 
 		return respondSuccess({ templates: formattedTemplates }, 200, 'Templates fetched successfully.');
 	} catch (error) {
@@ -89,8 +91,6 @@ const publishTemplateSchema = z.object({
 	title: z.string().trim().min(1).max(255),
 	description: z.string().trim().max(2000).nullable().optional(),
 	category: templateCategorySchema,
-	icon: templateIconSchema,
-	previewColors: templatePreviewColorsSchema,
 });
 
 type PublishTemplateResponse = { templateId: string; slug: string };
@@ -164,11 +164,7 @@ export const POST = withAuthValidation<
 			description: body.description || null,
 			is_template: true,
 			template_category: body.category,
-			metadata: {
-				templateId: slug,
-				icon: body.icon,
-				previewColors: body.previewColors,
-			},
+			metadata: { templateId: slug },
 			node_count: graph.nodes.length,
 			edge_count: graph.edges.length,
 			usage_count: 0,

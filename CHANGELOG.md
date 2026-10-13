@@ -5,6 +5,14 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-13]
+
+### Changed
+
+- **templates/category-look**: A template's icon and colors now come from its category everywhere (template gallery and the create-map template picker), not from per-template values
+  - Why: Keeps every template in a category looking the same; admins pick the category and cannot override the icon or colors
+- **templates/admin-settings**: Editing a system template in Map Settings shows the category (with a read-only icon/colors preview) and no longer offers Tags or Thumbnail URL
+
 ## [2026-10-12]
 
 ### Changed
@@ -362,7 +370,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **search**: Ctrl/Cmd+F canvas search that reaches inside collapsed branches ("N matches inside"), with Enter/Shift+Enter navigation that opens the collapsed branch containing a hidden match
 - **groups/drag-membership**: Drag a node over a group and hold to add it, or drag a member outside its group and hold to remove it; release applies the change, and the group's label shows hold/release progress
   - Why: Group membership could only be changed from menus before
-- **templates/admin-edit**: Admins can edit system templates in the full canvas editor, with realtime sync, plus template category, gallery icon and preview colors in Map Settings
+- **templates/admin-edit**: Admins can edit system templates in the full canvas editor, with realtime sync, plus template category in Map Settings
   - Why: Templates were read-only for everyone, so fixing or improving them required raw SQL
 - **templates/admin-publish**: Admins can publish a copy of one of their own maps as a new template (`POST /api/templates`)
 - **templates/admin-delete**: Admins can delete templates from the template gallery or from Map Settings

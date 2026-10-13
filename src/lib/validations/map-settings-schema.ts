@@ -1,7 +1,4 @@
-import {
-	TEMPLATE_CATEGORY_VALUES,
-	TEMPLATE_PREVIEW_COLOR_COUNT,
-} from '@/constants/template-options';
+import { TEMPLATE_CATEGORY_VALUES } from '@/constants/template-options';
 import { z } from 'zod';
 
 const layoutDirectionSchema = z.enum([
@@ -13,16 +10,6 @@ const layoutDirectionSchema = z.enum([
 ]);
 
 export const templateCategorySchema = z.enum(TEMPLATE_CATEGORY_VALUES);
-
-/** Lucide icon component name (e.g. `Lightbulb`). Unknown names render a fallback icon. */
-export const templateIconSchema = z
-	.string()
-	.regex(/^[A-Za-z0-9]{1,50}$/, 'Invalid icon name');
-
-export const templatePreviewColorsSchema = z
-	.array(z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Invalid hex color'))
-	.min(TEMPLATE_PREVIEW_COLOR_COUNT.min)
-	.max(TEMPLATE_PREVIEW_COLOR_COUNT.max);
 
 /**
  * Schema for updating mind map metadata
@@ -50,10 +37,9 @@ export const updateMapSchema = z.object({
 
 	is_template: z.boolean().optional(),
 
-	// Template-only fields: applied only on the admin template branch of PUT /api/maps/[id]
+	// Template-only field: applied only on the admin template branch of PUT /api/maps/[id].
+	// A template's icon and colors follow its category and are never client-settable.
 	template_category: templateCategorySchema.optional(),
-	template_icon: templateIconSchema.optional(),
-	template_preview_colors: templatePreviewColorsSchema.optional(),
 
 	layout_direction: layoutDirectionSchema.nullable().optional(),
 });

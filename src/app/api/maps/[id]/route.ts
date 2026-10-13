@@ -196,7 +196,6 @@ type TemplateAdminContext = {
 	template: {
 		id: string;
 		title: string;
-		metadata: Record<string, unknown> | null;
 	};
 };
 
@@ -213,7 +212,7 @@ async function resolveTemplateAdminContext(
 
 	const { data: template } = await serviceClient
 		.from('mind_maps')
-		.select('id, title, metadata')
+		.select('id, title')
 		.eq('id', mapId)
 		.eq('is_template', true)
 		.maybeSingle();
@@ -224,9 +223,14 @@ async function resolveTemplateAdminContext(
 	return { serviceClient, template };
 }
 
+/**
+ * Builds the service-role update for an admin editing a system template.
+ * Only title, description, layout direction and category are writable. Tags and
+ * thumbnail are ignored (the gallery doesn't use them), and the gallery icon and
+ * colors are derived from the category on read, so they are never stored or accepted.
+ */
 export function buildTemplateAdminUpdate(
-	body: z.infer<typeof updateMapSchema>,
-	currentMetadata: Record<string, unknown> | null
+	body: z.infer<typeof updateMapSchema>
 ): Record<string, unknown> {
 	const updateData: Record<string, unknown> = {
 		updated_at: new Date().toISOString(),
@@ -235,7 +239,6 @@ export function buildTemplateAdminUpdate(
 	if (body.title !== undefined) updateData.title = body.title;
 	if (body.description !== undefined)
 		updateData.description = body.description;
-	if (body.tags !== undefined) updateData.tags = body.tags;
 	if (body.layout_direction !== undefined)
 		updateData.layout_direction =
 			body.layout_direction === null
@@ -243,20 +246,6 @@ export function buildTemplateAdminUpdate(
 				: normalizeLayoutDirection(body.layout_direction);
 	if (body.template_category !== undefined)
 		updateData.template_category = body.template_category;
-
-	if (
-		body.template_icon !== undefined ||
-		body.template_preview_colors !== undefined
-	) {
-		// Preserve metadata.templateId (slug used by /api/templates/[id]).
-		updateData.metadata = {
-			...(currentMetadata ?? {}),
-			...(body.template_icon !== undefined && { icon: body.template_icon }),
-			...(body.template_preview_colors !== undefined && {
-				previewColors: body.template_preview_colors,
-			}),
-		};
-	}
 
 	// is_template is never writable here: templates stay templates.
 	return updateData;
@@ -272,7 +261,7 @@ async function updateTemplateAsAdmin(
 
 	const { data: updatedMap, error } = await context.serviceClient
 		.from('mind_maps')
-		.update(buildTemplateAdminUpdate(body, context.template.metadata))
+		.update(buildTemplateAdminUpdate(body))
 		.eq('id', mapId)
 		.eq('is_template', true)
 		.select('*')
