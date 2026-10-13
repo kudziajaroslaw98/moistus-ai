@@ -1,3 +1,4 @@
+import { toEdgeAnimated, toEdgeMarker } from '@/helpers/edge-values';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
@@ -139,15 +140,10 @@ export function canonicalizeEdge(edge: AppEdge): AppEdge | null {
 
 	if (!source || !target) return null;
 
-	const animated =
-		toBooleanOrNull(edgeRecord.animated) ??
-		toBooleanOrNull(edgeData.animated) ??
-		false;
+	const animated = toEdgeAnimated(edgeRecord.animated ?? edgeData.animated);
 	const style = toRecord(edgeRecord.style) ?? toRecord(edgeData.style) ?? null;
-	const markerEnd =
-		toTextOrNull(edgeRecord.markerEnd) ?? toTextOrNull(edgeData.markerEnd);
-	const markerStart =
-		toTextOrNull(edgeRecord.markerStart) ?? toTextOrNull(edgeData.markerStart);
+	const markerEnd = toEdgeMarker(edgeRecord.markerEnd) ?? toEdgeMarker(edgeData.markerEnd);
+	const markerStart = toEdgeMarker(edgeRecord.markerStart) ?? toEdgeMarker(edgeData.markerStart);
 	const label =
 		toStringOrNull(edgeRecord.label) ?? toStringOrNull(edgeData.label);
 	const metadata = toRecord(edgeData.metadata) ?? {};

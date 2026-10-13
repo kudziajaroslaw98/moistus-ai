@@ -1,5 +1,6 @@
 'use client';
 
+import { toEdgeAnimated, toEdgeMarker } from '@/helpers/edge-values';
 import useAppStore from '@/store/mind-map-store';
 import { EdgeData } from '@/types/edge-data';
 import { cn } from '@/utils/cn';
@@ -74,10 +75,10 @@ export default function EdgeEditModal() {
 	useEffect(() => {
 		if (edge) {
 			setLabel((edge.label as string) || (edge.data?.label as string) || '');
-			setAnimated(String(edge.data?.animated) === 'true');
+			setAnimated(toEdgeAnimated(edge.data?.animated));
 			setColor(edge.data?.style?.stroke || '#6c757d');
 			setStrokeWidth(edge.data?.style?.strokeWidth || undefined);
-			setMarkerEnd(edge.data?.markerEnd || 'none');
+			setMarkerEnd(toEdgeMarker(edge.data?.markerEnd) ?? 'none');
 		}
 	}, [edge, isOpen]);
 

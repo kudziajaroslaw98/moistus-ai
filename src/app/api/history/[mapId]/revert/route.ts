@@ -1,3 +1,4 @@
+import { toEdgeAnimated, toEdgeMarker } from '@/helpers/edge-values';
 import { applyDelta } from '@/helpers/history/delta-calculator';
 import {
 	isInCurrentCheckpointScope,
@@ -7,11 +8,9 @@ import {
 	canonicalizeEdge,
 	canonicalizeNode,
 	inferEdgeTypeFromData,
-	toBooleanOrNull,
 	toNumberOrNull,
 	toRecord,
 	toStringOrNull,
-	toTextOrNull,
 } from '@/helpers/history/server/revert-state';
 import {
 	createClient,
@@ -382,17 +381,12 @@ export async function POST(
 					toStringOrNull(edgeData.label) ??
 					null,
 				type: edgeType,
-				animated:
-					toBooleanOrNull(edgeRecord.animated) ??
-					toBooleanOrNull(edgeData.animated) ??
-					false,
+				animated: toEdgeAnimated(edgeRecord.animated ?? edgeData.animated),
 				style: toRecord(edgeRecord.style) ?? toRecord(edgeData.style) ?? null,
 				markerEnd:
-					toTextOrNull(edgeRecord.markerEnd) ??
-					toTextOrNull(edgeData.markerEnd),
+					toEdgeMarker(edgeRecord.markerEnd) ?? toEdgeMarker(edgeData.markerEnd) ?? null,
 				markerStart:
-					toTextOrNull(edgeRecord.markerStart) ??
-					toTextOrNull(edgeData.markerStart),
+					toEdgeMarker(edgeRecord.markerStart) ?? toEdgeMarker(edgeData.markerStart) ?? null,
 				metadata: toRecord(edgeData.metadata) ?? {},
 				aiData: toRecord(edgeData.aiData) ?? {},
 				created_at: toStringOrNull(edgeData.created_at),
@@ -516,10 +510,10 @@ export async function POST(
 							metadata: toRecord(existing.metadata) ?? {},
 							aiData: toRecord(existing.aiData) ?? {},
 						}),
-					animated: toBooleanOrNull(existing.animated) ?? false,
+					animated: toEdgeAnimated(existing.animated),
 					style: toRecord(existing.style) ?? null,
-					markerEnd: toTextOrNull(existing.markerEnd),
-					markerStart: toTextOrNull(existing.markerStart),
+					markerEnd: toEdgeMarker(existing.markerEnd) ?? null,
+					markerStart: toEdgeMarker(existing.markerStart) ?? null,
 					metadata: toRecord(existing.metadata) ?? {},
 					aiData: toRecord(existing.aiData) ?? {},
 				};

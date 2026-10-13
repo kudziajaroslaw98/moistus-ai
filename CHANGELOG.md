@@ -20,6 +20,16 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - OAuth (AI app) tokens can't delete maps, change sharing or read billing tables, even through the raw API (restrictive RLS policies on `client_id`)
   - Why: agents need to build and update maps, not only read them
 
+### Fixed
+
+- **edges**: Edges no longer turn animated (dashed) on their own. `edges.animated` was a text column holding 'true' / 'false' / 'null', every reader parsed it differently, and `'false' || false` is truthy. It is now a boolean, markers and style use real NULLs instead of 'null' placeholders, and every reader goes through `toEdgeAnimated` / `toEdgeMarker`, including Yjs records, offline caches and history revert, which still carry old strings
+  - Why: fixing single readers never held; the strings kept coming back from rooms and history
+  - Database change: untracked migration `20261013110000_edges_typed_columns.sql`, applied locally; production after review (before the MCP migration)
+- **history**: Manual checkpoints failed on any map with links (`coalesce(text, boolean)` in `create_history_checkpoint_and_prune`); fixed by the boolean column
+- **security**: Database functions that took a user id from the caller and never checked it (cross-map search, node creation from the canvas, reference nodes, AI usage counters) now require the caller's own id, check map access, cap search results at 50, and are no longer callable by signed-out visitors. Server-only and unused functions can only be run by the server
+  - Why: on production anyone could read another user's node text through search or write nodes into other people's maps
+  - Database change: untracked migration `20261013113000_definer_functions_use_auth_uid.sql`, applied locally; production after review
+
 ## [2026-10-12]
 
 ### Changed

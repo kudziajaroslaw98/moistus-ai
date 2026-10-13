@@ -1,3 +1,4 @@
+import { toEdgeAnimated, toEdgeMarker } from '@/helpers/edge-values';
 import { asNonEmptyString } from '@/lib/realtime/util';
 import { AvailableNodeTypes } from '@/registry/node-registry';
 import type { AppEdge } from '@/types/app-edge';
@@ -101,13 +102,13 @@ export function serializeEdgeForRealtime(
 		source,
 		target,
 		label: edgeData.label ?? edge.label ?? null,
-		markerEnd: edgeData.markerEnd ?? edge.markerEnd ?? null,
-		markerStart: edgeData.markerStart ?? null,
+		markerEnd: toEdgeMarker(edgeData.markerEnd ?? edge.markerEnd) ?? null,
+		markerStart: toEdgeMarker(edgeData.markerStart) ?? null,
 		style:
 			edgeData.style ??
 			(edge.style as unknown as Record<string, unknown> | undefined) ??
 			null,
-		animated: edgeData.animated ?? edge.animated ?? false,
+		animated: toEdgeAnimated(edgeData.animated ?? edge.animated),
 		metadata: edgeData.metadata ?? null,
 		aiData: edgeData.aiData ?? null,
 		updated_at: new Date().toISOString(),

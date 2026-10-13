@@ -25,22 +25,12 @@ import { stableStringify } from '@/lib/realtime/util';
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import type { EdgeData } from '@/types/edge-data';
+import { toEdgeAnimated, toEdgeMarker } from '@/helpers/edge-values';
 import { debouncePerKey } from '@/utils/debounce-per-key';
 import { applyEdgeChanges } from '@xyflow/react';
 import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
 import type { AppState, EdgesSlice } from '../app-state';
-
-/** Safely parses a value that may be boolean, string "true"/"false", or undefined. */
-function safeParseBooleanish(value: unknown): boolean {
-	if (typeof value === 'boolean') return value;
-	if (typeof value === 'string') {
-		const trimmed = value.trim().toLowerCase();
-		if (trimmed === 'true') return true;
-		if (trimmed === 'false') return false;
-	}
-	return false;
-}
 
 // Utility function to determine edge type based on data
 const getEdgeType = (edgeData: Partial<EdgeData>): string => {
@@ -64,9 +54,9 @@ function normalizeEdgeForComparison(edge: AppEdge): Record<string, unknown> {
 		target: edge.target,
 		type: edge.type ?? data.type ?? null,
 		label: edge.label ?? data.label ?? null,
-		animated: edge.animated ?? data.animated ?? false,
-		markerEnd: edge.markerEnd ?? data.markerEnd ?? null,
-		markerStart: edge.markerStart ?? data.markerStart ?? null,
+		animated: toEdgeAnimated(edge.animated ?? data.animated),
+		markerEnd: toEdgeMarker(edge.markerEnd ?? data.markerEnd) ?? null,
+		markerStart: toEdgeMarker(edge.markerStart ?? data.markerStart) ?? null,
 		style:
 			(edge.style as unknown as Record<string, unknown> | undefined) ??
 			(data.style as Record<string, unknown> | undefined) ??
@@ -196,13 +186,13 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 			source: newRecord.source,
 			target: newRecord.target,
 			type: getEdgeType(newRecord),
-			animated: newRecord.animated || false,
+			animated: toEdgeAnimated(newRecord.animated),
 			label: newRecord.label,
 			style: {
 				stroke: newRecord.style?.stroke || '#6c757d',
 				strokeWidth: newRecord.style?.strokeWidth || 2,
 			},
-			markerEnd: newRecord.markerEnd,
+			markerEnd: toEdgeMarker(newRecord.markerEnd),
 			data: newRecord,
 		};
 
@@ -229,14 +219,14 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					source: newRecord.source,
 					target: newRecord.target,
 					type: getEdgeType(newRecord),
-					animated: newRecord.animated || false,
+					animated: toEdgeAnimated(newRecord.animated),
 					label: newRecord.label,
 					style: {
 						stroke: newRecord.style?.stroke || edge.style?.stroke || '#6c757d',
 						strokeWidth:
 							newRecord.style?.strokeWidth || edge.style?.strokeWidth || 2,
 					},
-					markerEnd: newRecord.markerEnd,
+					markerEnd: toEdgeMarker(newRecord.markerEnd),
 					data: newRecord,
 				};
 			}
@@ -298,7 +288,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				source: edge.source || '',
 				target: edge.target || '',
 				updated_at: new Date().toISOString(),
-				animated: edge.data?.animated || defaultEdge.animated,
+				animated: toEdgeAnimated(edge.data?.animated ?? defaultEdge.animated),
 				metadata: {
 					...defaultEdge.metadata!,
 					...edge.data?.metadata,
@@ -356,7 +346,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					return {
 						...edge,
 						data: mergeEdgeData(edge.data ?? {}, dbEdge),
-						animated: safeParseBooleanish(dbEdge.animated),
+						animated: toEdgeAnimated(dbEdge.animated),
 						style: dbEdge.style,
 					};
 				}
@@ -602,13 +592,13 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					source: normalizedEdgeData.source,
 					target: normalizedEdgeData.target,
 					type: edgeType,
-					animated: normalizedEdgeData.animated || false,
+					animated: toEdgeAnimated(normalizedEdgeData.animated),
 					label: normalizedEdgeData.label,
 					style: {
 						stroke: normalizedEdgeData.style?.stroke || '#6c757d',
 						strokeWidth: normalizedEdgeData.style?.strokeWidth || 2,
 					},
-					markerEnd: normalizedEdgeData.markerEnd,
+					markerEnd: toEdgeMarker(normalizedEdgeData.markerEnd),
 					data: normalizedEdgeData,
 				};
 				const routeNodes = nodes;
@@ -1001,10 +991,10 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 					id: edgeId,
 					type: edgeType, // Update the React Flow edge type
 					label: mergedData.label ?? null,
-					animated: mergedData.animated ?? false,
+					animated: toEdgeAnimated(mergedData.animated),
 					style: mergedStyle,
-					markerEnd: mergedData.markerEnd,
-					markerStart: mergedData.markerStart,
+					markerEnd: toEdgeMarker(mergedData.markerEnd),
+					markerStart: toEdgeMarker(mergedData.markerStart),
 					data: mergedData,
 				};
 			}) as AppEdge[];

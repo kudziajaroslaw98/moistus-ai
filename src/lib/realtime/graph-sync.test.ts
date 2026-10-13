@@ -87,4 +87,19 @@ describe('graph-sync helpers', () => {
 		expect(payload.target).toBe('node-b');
 		expect(payload.label).toBe('Edge label');
 	});
+
+	it('writes clean edge values into Yjs even when the edge still holds legacy strings', () => {
+		const edge = {
+			id: 'edge-legacy',
+			source: 'node-a',
+			target: 'node-b',
+			data: { id: 'edge-legacy', animated: 'false', markerEnd: 'null', markerStart: 'null' },
+		} as unknown as AppEdge;
+
+		expect(serializeEdgeForRealtime(edge, 'map', 'user')).toMatchObject({
+			animated: false,
+			markerEnd: null,
+			markerStart: null,
+		});
+	});
 });

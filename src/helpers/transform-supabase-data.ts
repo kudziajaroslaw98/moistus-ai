@@ -1,6 +1,7 @@
 import { AppEdge } from '@/types/app-edge';
 import { EdgeData } from '@/types/edge-data';
 import type { EdgeDbData } from '@/types/edge-db-data';
+import { toEdgeAnimated, toEdgeMarker } from '@/helpers/edge-values';
 import { normalizeLayoutDirection } from '@/types/layout-types';
 import { MindMapData } from '@/types/mind-map-data';
 import { NodeData } from '@/types/node-data';
@@ -107,14 +108,16 @@ export const transformSupabaseData = (
 					strokeWidth: normalizedEdge.style?.strokeWidth || 2,
 				},
 				aiData: normalizedEdge.aiData,
-				animated: JSON.parse(String(normalizedEdge.animated)),
+				animated: toEdgeAnimated(normalizedEdge.animated),
+				markerEnd: toEdgeMarker(normalizedEdge.markerEnd),
+				markerStart: toEdgeMarker(normalizedEdge.markerStart),
 			} as unknown as EdgeData,
 			type: getEdgeType(normalizedEdge), // Determine edge type from metadata
 			label: normalizedEdge.label || undefined,
 			// Handle potential JSON string or object for style
-			animated: JSON.parse(String(normalizedEdge.animated)),
-			markerEnd: normalizedEdge.markerEnd,
-			markerStart: normalizedEdge.markerStart,
+			animated: toEdgeAnimated(normalizedEdge.animated),
+			markerEnd: toEdgeMarker(normalizedEdge.markerEnd),
+			markerStart: toEdgeMarker(normalizedEdge.markerStart),
 			// Include user_id and map_id if needed by AppEdge type
 			user_id: normalizedEdge.user_id,
 			map_id: normalizedEdge.map_id,

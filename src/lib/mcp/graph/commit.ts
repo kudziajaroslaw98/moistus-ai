@@ -1,3 +1,4 @@
+import { toEdgeAnimated, toEdgeMarker } from '@/helpers/edge-values';
 import { calculateDelta } from '@/helpers/history/delta-calculator';
 import { pushGraphMutation } from '@/helpers/partykit/admin';
 import { BILLING_SETTINGS_URL } from '@/lib/billing-urls';
@@ -121,7 +122,9 @@ export function toHistoryNode(node: NodeData, mapId: string): AppNode {
 }
 
 export function toHistoryEdge(edge: EdgeData, mapId: string): AppEdge {
-	const animated = edge.animated === undefined || edge.animated === null ? 'false' : String(edge.animated);
+	const animated = toEdgeAnimated(edge.animated);
+	const markerEnd = toEdgeMarker(edge.markerEnd);
+	const markerStart = toEdgeMarker(edge.markerStart);
 	return stripNulls({
 		id: edge.id,
 		source: edge.source,
@@ -130,8 +133,8 @@ export function toHistoryEdge(edge: EdgeData, mapId: string): AppEdge {
 		label: edge.label,
 		animated,
 		style: edge.style,
-		markerEnd: edge.markerEnd,
-		markerStart: edge.markerStart,
+		markerEnd,
+		markerStart,
 		data: {
 			id: edge.id,
 			map_id: mapId,
@@ -142,8 +145,8 @@ export function toHistoryEdge(edge: EdgeData, mapId: string): AppEdge {
 			type: edge.type,
 			animated,
 			style: edge.style,
-			markerEnd: edge.markerEnd,
-			markerStart: edge.markerStart,
+			markerEnd,
+			markerStart,
 			metadata: { ...(edge.metadata ?? {}), pathType: edge.metadata?.pathType ?? 'waypoint' },
 			aiData: edge.aiData ?? {},
 			created_at: edge.created_at,
@@ -191,7 +194,7 @@ const edgeRow = (edge: EdgeData) => ({
 	type: edge.type ?? 'waypointEdge',
 	metadata: edge.metadata ?? {},
 	style: edge.style ?? null,
-	animated: String(edge.animated ?? false),
+	animated: toEdgeAnimated(edge.animated),
 });
 
 /** Database errors as instructions the agent can act on. */

@@ -16,6 +16,7 @@ import {
 	readAuthToken,
 	verifySupabaseJwt,
 } from './auth';
+import { toEdgeAnimated } from './edge-values';
 import { applyGraphMutationToDoc, parseGraphMutationPayload } from './graph-mutation';
 
 type MapAccess = {
@@ -842,16 +843,6 @@ function toStringOrNull(value: unknown): string | null {
 	return typeof value === 'string' ? value : null;
 }
 
-function toBoolean(value: unknown): boolean {
-	if (typeof value === 'boolean') return value;
-	if (typeof value === 'string') {
-		const normalized = value.trim().toLowerCase();
-		if (normalized === 'true') return true;
-		if (normalized === 'false') return false;
-	}
-	return Boolean(value);
-}
-
 function normalizeNodeRow(value: Record<string, unknown>): NodeRow | null {
 	const id = toStringOrNull(value.id);
 	const mapId = toStringOrNull(value.map_id);
@@ -959,7 +950,7 @@ function graphSnapshotNodeFromRow(row: NodeRow): GraphSnapshotNode {
 }
 
 function graphSnapshotEdgeFromRow(row: EdgeRow): GraphSnapshotEdge {
-	const animated = toBoolean(row.animated);
+	const animated = toEdgeAnimated(row.animated);
 	const style = row.style ?? { stroke: '#6c757d', strokeWidth: 2 };
 
 	const data: Record<string, unknown> = {
@@ -1075,7 +1066,7 @@ function toEdgeProjectionComparable(
 		source: row.source,
 		target: row.target,
 		label: row.label,
-		animated: toBoolean(row.animated),
+		animated: toEdgeAnimated(row.animated),
 		style: row.style ?? null,
 		markerEnd: row.markerEnd,
 		markerStart: row.markerStart,
@@ -1230,7 +1221,7 @@ function minimizeEdge(edge: GraphSnapshotEdge): Record<string, unknown> {
 	const animated =
 		typeof edge.animated === 'boolean'
 			? edge.animated
-			: toBoolean(edgeData.animated);
+			: toEdgeAnimated(edgeData.animated);
 
 	return {
 		id: edge.id,
