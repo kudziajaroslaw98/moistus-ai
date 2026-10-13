@@ -14,8 +14,25 @@ const byCreatedAt = (a: EdgeData, b: EdgeData) =>
 	(a.created_at ?? '').localeCompare(b.created_at ?? '') || a.id.localeCompare(b.id);
 
 /**
- * Builds the outline tree for a map. A node's parent is its `parent_id` when
- * that node exists, otherwise the source of its first incoming edge. Maps can
+ * Host of an anchored annotation (see helpers/anchored-annotations.ts): the
+ * annotation follows the host on the canvas with no edge and no parent_id.
+ * Annotations never anchor to annotations.
+ */
+export function anchorHostId(
+	node: NodeData,
+	nodesById: ReadonlyMap<string, NodeData>
+): string | null {
+	if (node.node_type !== 'annotationNode') return null;
+	const hostId = node.metadata?.anchorNodeId;
+	if (typeof hostId !== 'string' || hostId === node.id) return null;
+	const host = nodesById.get(hostId);
+	return host && host.node_type !== 'annotationNode' ? hostId : null;
+}
+
+/**
+ * Builds the outline tree for a map. A node's parent is the host it is
+ * anchored to (annotations), else its `parent_id` when that node exists,
+ * else the source of its first incoming edge. Maps can
  * contain cycles, so any node not reachable from a root becomes a root.
  * Siblings are ordered the way they sit on the canvas.
  */
@@ -39,9 +56,10 @@ export function buildMapTree(
 	for (const node of nodes) {
 		const edgesIn = incoming.get(node.id) ?? [];
 		const parentId =
-			node.parent_id && node.parent_id !== node.id && nodesById.has(node.parent_id)
+			anchorHostId(node, nodesById) ??
+			(node.parent_id && node.parent_id !== node.id && nodesById.has(node.parent_id)
 				? node.parent_id
-				: edgesIn[0]?.source;
+				: edgesIn[0]?.source);
 		if (!parentId) continue;
 		parentOf.set(node.id, parentId);
 		const parentEdge = edgesIn.find((edge) => edge.source === parentId);

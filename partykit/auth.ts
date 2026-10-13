@@ -326,8 +326,13 @@ export function isAdminNotificationEventPath(pathname: string): boolean {
 	return pathname.endsWith('/admin/notification-event');
 }
 
+export function isAdminGraphMutationPath(pathname: string): boolean {
+	return pathname.endsWith('/admin/graph-mutation');
+}
+
 export function isAdminPath(pathname: string): boolean {
 	return (
+		isAdminGraphMutationPath(pathname) ||
 		isAdminRevokePath(pathname) ||
 		isAdminPermissionsUpdatePath(pathname) ||
 		isAdminAccessRevokedPath(pathname) ||

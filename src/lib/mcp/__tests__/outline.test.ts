@@ -41,6 +41,18 @@ describe('buildMapTree', () => {
 		expect(tree.treeEdgeIds).toEqual(new Set(['e1', 'e2', 'e3']));
 	});
 
+	it('nests an anchored annotation under its host', () => {
+		const host = uuidFrom('a10000');
+		const note = uuidFrom('a20000');
+		const nodes = [
+			makeNode(host),
+			makeNode(note, { node_type: 'annotationNode', metadata: { anchorNodeId: host } }),
+		];
+		const tree = buildMapTree(nodes, [], 'LEFT_RIGHT');
+		expect(tree.roots).toEqual([host]);
+		expect(tree.children.get(host)).toEqual([note]);
+	});
+
 	it('turns a cycle into a root instead of losing nodes', () => {
 		const a = uuidFrom('a00000');
 		const b = uuidFrom('b00000');

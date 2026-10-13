@@ -14,6 +14,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - `read_map` prints the map as an indented outline in quick-input syntax with short hex ids (`[a1b2c3]`), links after `---`, and picks nodes level by level up to `maxNodes` so big maps still show their top
   - Why: users want their own AI agent to build and maintain maps (e.g. map a novel's characters, events and plot holes)
 - **oauth**: Consent page at `/oauth/consent` where a signed-in user allows or denies an AI app, with the app's redirect host shown. Signed-out users go through sign-in and come back; guests are told to create an account
+- **mcp**: Write tools `create_map`, `edit_map` and `update_map_info`. `edit_map` takes ops (outline, add, update, move, delete, link, unlink, label) that run against an in-memory copy of the map; every op must pass or nothing is written. New and moved nodes are placed beside their parent with the app's tree layout; nothing else moves. Annotations written under a node are anchored to it, like in the app
+  - Each write goes through one `apply_graph_changes` SQL call (runs as the user, so RLS applies) that saves nodes, links and a History event together, so agent edits can be undone from the History panel. A PartyKit `/admin/graph-mutation` push makes open canvases show the change live
+  - Limits come from `subscription_plans.limits` (`mcpAccess`, `mcpWritesPerMonth`, `mcpWritesPerMinute`; Free 50 a month and 10 a minute during beta) with monthly counters in `user_usage_quotas`. Plan node and map limits are the existing database triggers; their errors come back as plain instructions
+  - OAuth (AI app) tokens can't delete maps, change sharing or read billing tables, even through the raw API (restrictive RLS policies on `client_id`)
+  - Why: agents need to build and update maps, not only read them
 
 ## [2026-10-12]
 

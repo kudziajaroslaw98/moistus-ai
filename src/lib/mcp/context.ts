@@ -2,12 +2,15 @@ import type { AuthInfo } from '@modelcontextprotocol/server';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { getInternalSupabaseUrl } from '@/helpers/local-dev-url';
 import { readMcpCaller, type McpCaller } from './auth';
+import { createUsageGate, type McpUsageGate } from './plan-gate';
 
 export interface McpToolContext extends McpCaller {
 	/** Acts as the user through their OAuth access token, so RLS applies. */
 	supabase: SupabaseClient;
 	/** Shiko origin for links back into the app, e.g. https://shiko.app */
 	appOrigin: string;
+	/** Plan limits before a tool runs, usage counts after it succeeds. */
+	gate: McpUsageGate;
 }
 
 export function createMcpToolContext(
@@ -24,5 +27,10 @@ export function createMcpToolContext(
 		}
 	);
 
-	return { ...caller, supabase, appOrigin };
+	return {
+		...caller,
+		supabase,
+		appOrigin,
+		gate: createUsageGate(supabase, caller.userId, appOrigin),
+	};
 }

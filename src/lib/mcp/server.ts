@@ -12,8 +12,9 @@ export const MCP_SERVER_INFO = { name: 'shiko', title: 'Shiko', version: '1.0.0'
  * straight away instead of searching first.
  */
 export const MCP_INSTRUCTIONS = `Shiko is a mind-map app. Its tools sit behind four meta tools: search_tools finds a tool, describe_tools shows its arguments, run_read runs a read tool, run_write runs a tool that changes maps.
-Common read tools: list_maps, read_map, read_nodes. You can describe them without searching.
-Maps and nodes use short hex ids such as a1b2c3. read_map prints an indented outline; guide {topic:"syntax"} explains the format.`;
+Common tools: list_maps, read_map, read_nodes (read); create_map, edit_map (write). You can describe them without searching.
+Maps and nodes use short hex ids such as a1b2c3. read_map prints an indented outline; create_map and edit_map take the same format. Read guide {topic:"editing"} before your first write.
+Each write is atomic and the user can undo it from the map's History panel.`;
 
 const textResult = (text: string): CallToolResult => ({
 	content: [{ type: 'text', text }],
@@ -62,7 +63,10 @@ export async function runCatalogTool(
 	}
 
 	try {
-		return textResult(await tool.run(parsed.data, ctx));
+		await ctx.gate.before(tool.kind);
+		const text = await tool.run(parsed.data, ctx);
+		await ctx.gate.after(tool.kind);
+		return textResult(text);
 	} catch (error) {
 		if (error instanceof McpToolError) return errorResult(error.message);
 		console.error(`[mcp] ${name} failed`, error);

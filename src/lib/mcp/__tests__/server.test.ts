@@ -5,7 +5,7 @@ import type { McpToolContext } from '../context';
 import { McpToolError } from '../errors';
 import { describeTool, runCatalogTool } from '../server';
 
-const ctx = {} as McpToolContext;
+const ctx = { gate: { before: async () => {}, after: async () => {} } } as unknown as McpToolContext;
 
 const textOf = (result: Awaited<ReturnType<typeof runCatalogTool>>) =>
 	result.content.map((block) => ('text' in block ? block.text : '')).join('');

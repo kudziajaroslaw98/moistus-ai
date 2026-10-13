@@ -354,7 +354,7 @@ function normalizeGraphRecord(
 	};
 }
 
-function mergeGraphRecordForUpdate(
+export function mergeGraphRecordForUpdate(
 	currentRecord: Record<string, unknown> | null,
 	nextRecord: Record<string, unknown>
 ): Record<string, unknown> {

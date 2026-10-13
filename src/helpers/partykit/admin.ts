@@ -63,6 +63,17 @@ export type PartyKitNotificationEventResult = {
 	delivered: boolean;
 };
 
+/** Rows written outside the browser (Shiko MCP), to mirror into the map's live Yjs room. */
+export type PartyKitGraphMutationPayload = {
+	mapId: string;
+	/** Not a user id ("agent:<clientId>"), so every open tab, the user's own included, applies it. */
+	actorId: string;
+	upsertNodes: Array<Record<string, unknown>>;
+	upsertEdges: Array<Record<string, unknown>>;
+	deleteNodeIds: string[];
+	deleteEdgeIds: string[];
+};
+
 const DEFAULT_ROOM_SUFFIXES: ReadonlyArray<MindMapRealtimeChannel> = [
 	'sync',
 	'cursor',
@@ -84,6 +95,7 @@ function buildAdminEndpoints(
 		| 'access-revoked'
 		| 'collaborator-event'
 		| 'notification-event'
+		| 'graph-mutation'
 ): string[] {
 	const roomVariants = Array.from(
 		new Set([encodeURIComponent(roomName), roomName])
@@ -349,4 +361,24 @@ export async function pushPartyKitNotificationEvent(
 		attempted: true,
 		delivered,
 	};
+}
+
+/**
+ * Mirrors a server-side graph write into the map's sync room so open canvases
+ * show it without a reload. Returns false when PartyKit isn't configured or
+ * didn't take it; the database write has already happened either way.
+ */
+export async function pushGraphMutation(
+	payload: PartyKitGraphMutationPayload
+): Promise<boolean> {
+	const config = getAdminConfig();
+	if (!config || !payload.mapId) return false;
+
+	const endpoints = buildAdminEndpoints(
+		config.baseUrl,
+		config.partyName,
+		getMindMapRoomName(payload.mapId, 'sync'),
+		'graph-mutation'
+	);
+	return postToFirstWorkingEndpoint(endpoints, config.adminToken, payload);
 }

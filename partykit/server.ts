@@ -1,9 +1,10 @@
 import type * as Party from 'partykit/server';
-import { onConnect as onYjsConnect } from 'y-partykit';
+import { onConnect as onYjsConnect, unstable_getYDoc } from 'y-partykit';
 import * as Y from 'yjs';
 import {
 	isAdminAccessRevokedPath,
 	isAdminCollaboratorEventPath,
+	isAdminGraphMutationPath,
 	isAdminNotificationEventPath,
 	isAdminPath,
 	isAdminPermissionsUpdatePath,
@@ -15,6 +16,7 @@ import {
 	readAuthToken,
 	verifySupabaseJwt,
 } from './auth';
+import { applyGraphMutationToDoc, parseGraphMutationPayload } from './graph-mutation';
 
 type MapAccess = {
 	role: string;
@@ -1779,7 +1781,9 @@ export default class MindMapRealtimeServer implements Party.Server {
 		const isAccessRevokedRequest = isAdminAccessRevokedPath(url.pathname);
 		const isCollaboratorEventRequest = isAdminCollaboratorEventPath(url.pathname);
 		const isNotificationEventRequest = isAdminNotificationEventPath(url.pathname);
+		const isGraphMutationRequest = isAdminGraphMutationPath(url.pathname);
 		if (
+			!isGraphMutationRequest &&
 			!isRevokeRequest &&
 			!isPermissionUpdateRequest &&
 			!isAccessRevokedRequest &&
@@ -1900,6 +1904,33 @@ export default class MindMapRealtimeServer implements Party.Server {
 		const mapId = typeof body.mapId === 'string' ? body.mapId : undefined;
 		if (mapId && mapId !== parsedRoom.mapId) {
 			return badRequest('Map ID does not match room');
+		}
+
+		if (isGraphMutationRequest) {
+			if (parsedRoom.channel !== 'sync') {
+				return badRequest('Invalid room');
+			}
+			const mutation = parseGraphMutationPayload(body);
+			if (!mutation || mutation.mapId !== parsedRoom.mapId) {
+				return badRequest('Invalid graph mutation payload');
+			}
+
+			// Options must match onConnect's sync-channel options: whichever call
+			// creates the room's doc decides how it loads and persists.
+			const doc = await unstable_getYDoc(this.room, {
+				persist: { mode: 'snapshot' },
+				load: async () => this.loadSyncDocFromDatabase(parsedRoom.mapId),
+				callback: undefined,
+			});
+			applyGraphMutationToDoc(doc, mutation);
+
+			return Response.json({
+				success: true,
+				mapId: parsedRoom.mapId,
+				nodes: mutation.upsertNodes.length,
+				edges: mutation.upsertEdges.length,
+				deleted: mutation.deleteNodeIds.length + mutation.deleteEdgeIds.length,
+			});
 		}
 
 		if (isCollaboratorEventRequest) {

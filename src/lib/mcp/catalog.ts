@@ -1,9 +1,12 @@
 import type { McpToolDefinition } from './tool-types';
+import { createMapTool } from './tools/create-map';
+import { editMapTool } from './tools/edit-map';
 import { guideTool } from './tools/guide';
 import { listMapsTool } from './tools/list-maps';
 import { readMapTool } from './tools/read-map';
 import { readNodesTool } from './tools/read-nodes';
 import { searchNodesTool } from './tools/search-nodes';
+import { updateMapInfoTool } from './tools/update-map-info';
 
 /** Every tool behind the meta tools. Order is the order search_tools lists them in. */
 export const MCP_TOOL_CATALOG: McpToolDefinition[] = [
@@ -12,6 +15,9 @@ export const MCP_TOOL_CATALOG: McpToolDefinition[] = [
 	readNodesTool,
 	searchNodesTool,
 	guideTool,
+	createMapTool,
+	editMapTool,
+	updateMapInfoTool,
 ];
 
 export function findCatalogTool(name: string): McpToolDefinition | undefined {

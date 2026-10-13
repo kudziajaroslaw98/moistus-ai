@@ -18,7 +18,7 @@ interface RateLimitConfig {
  * - Cleanup based on firstAttempt to avoid premature deletions
  * - Proper cleanup interval management to prevent memory leaks
  */
-class InMemoryRateLimiter {
+export class InMemoryRateLimiter {
 	private cache = new Map<string, RateLimitEntry>();
 
 	private cleanupInterval: NodeJS.Timeout | null = null;
@@ -31,6 +31,8 @@ class InMemoryRateLimiter {
 			},
 			5 * 60 * 1000
 		);
+		// Cleanup alone shouldn't keep a process (or a Jest run) alive.
+		this.cleanupInterval.unref?.();
 	}
 
 	private cleanup(): void {

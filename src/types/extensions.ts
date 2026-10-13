@@ -11,7 +11,9 @@ export type GraphActor =
 	| { kind: 'user'; id: string }
 	/** `label` is the display name at the time of the change (survives uninstall/deletion). */
 	| { kind: 'plugin'; id: string; label?: string }
-	| { kind: 'recipe'; id: string; label?: string };
+	| { kind: 'recipe'; id: string; label?: string }
+	/** An AI app connected over Shiko MCP: `id` is its OAuth client id, `label` its name. */
+	| { kind: 'agent'; id: string; label?: string };
 
 /**
  * Data owned by an extension node (`extensionNode`), stored at `metadata.extension`.

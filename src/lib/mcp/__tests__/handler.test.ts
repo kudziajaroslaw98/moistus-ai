@@ -3,7 +3,7 @@ import { createMcpHandler } from '@modelcontextprotocol/server';
 import type { McpToolContext } from '../context';
 import { createShikoMcpServer, MCP_INSTRUCTIONS } from '../server';
 
-const handler = createMcpHandler(() => createShikoMcpServer({} as McpToolContext));
+const handler = createMcpHandler(() => createShikoMcpServer({ gate: { before: async () => {}, after: async () => {} } } as unknown as McpToolContext));
 
 async function rpc(method: string, params: Record<string, unknown> = {}) {
 	const response = await handler.fetch(
