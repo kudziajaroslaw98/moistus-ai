@@ -291,12 +291,13 @@ export class ToolbarPage {
 	}
 
 	/**
-	 * Asserts that only Pan mode is available (viewer mode).
+	 * Asserts that only Select and Pan are available (viewer/commentator mode).
 	 */
-	async expectOnlyPanModeAvailable() {
+	async expectOnlySelectAndPanModesAvailable() {
 		const options = await this.getCursorModeOptions();
-		expect(options).toHaveLength(1);
-		expect(options[0]).toContain('Pan');
+		expect(options).toHaveLength(2);
+		expect(options[0]).toContain('Select');
+		expect(options[1]).toContain('Pan');
 	}
 
 	/**

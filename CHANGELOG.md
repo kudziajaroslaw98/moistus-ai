@@ -5,6 +5,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-13]
+
+### Changed
+
+- **toolbar/permissions**: Viewers and commenters now get Select and Pan in the cursor dropdown (they had only Pan, while actually working in Select). Turning on comment mode switches to Select, and someone left on an editing tool after losing edit rights is moved back to Select
+  - Why: Pan is about to become pane-only, so non-editors need a tool for opening links and commenting
+
 ## [2026-10-12]
 
 ### Fixed

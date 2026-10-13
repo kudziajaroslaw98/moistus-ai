@@ -181,14 +181,14 @@ export const Toolbar = ({
 	}, [isStreaming]);
 
 	// Get user permissions for feature gating
-	const { canEdit, canComment } = usePermissions();
+	const { canEdit, canComment, isLoading: isPermissionsLoading } =
+		usePermissions();
 
 	// Filter cursor tools based on permissions
-	// Non-editors: only Pan (no Select for dragging, no Connect for edges)
+	// Non-editors: Select (links, comments; nothing is editable) and Pan, no Connect
 	const availableCursorTools = useMemo(() => {
 		if (!canEdit) {
-			// Only allow Pan mode for viewers/commentators
-			return cursorTools.filter((t) => t.id === 'pan');
+			return cursorTools.filter((t) => t.id === 'default' || t.id === 'pan');
 		}
 		if (!isMapReady) {
 			// Before map payload is ready, keep only non-map-dependent cursor modes.
@@ -196,6 +196,16 @@ export const Toolbar = ({
 		}
 		return cursorTools;
 	}, [canEdit, isMapReady]);
+
+	// A role downgrade mid-session can leave a non-editor on an editing tool
+	// (Add Node, Connect, AI), whose pane click would call the API.
+	useEffect(() => {
+		if (canEdit || isPermissionsLoading) return;
+
+		if (activeTool !== 'default' && activeTool !== 'pan') {
+			setActiveTool('default');
+		}
+	}, [activeTool, canEdit, isPermissionsLoading, setActiveTool]);
 
 	// Filter tools based on permissions, removing hidden items and cleaning up separators
 	const visibleTools = useMemo(() => {
@@ -294,7 +304,11 @@ export const Toolbar = ({
 		} else if (toolId === 'zoom') {
 			reactFlowInstance?.zoomTo(1);
 		} else if (toolId === 'comments') {
-			// Toggle comment mode
+			// Toggle comment mode. Commenting happens in Select; Pan only moves the pane.
+			if (!isCommentMode && activeTool !== 'default') {
+				setActiveTool('default');
+			}
+
 			setCommentMode(!isCommentMode);
 		} else if (toolId === 'present') {
 			// Start guided tour (auto path)
