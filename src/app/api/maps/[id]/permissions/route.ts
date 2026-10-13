@@ -1,4 +1,5 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
+import { isUserAdmin } from '@/helpers/auth/is-admin';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { withAuthValidation } from '@/helpers/api/with-auth-validation';
 import { z } from 'zod';
@@ -35,6 +36,20 @@ export function buildTemplateViewerPermissions(
 		can_view: true,
 		can_edit: false,
 		can_comment: false,
+		updated_at: updatedAt ?? new Date().toISOString(),
+		isOwner: false,
+	};
+}
+
+/** Admins edit system templates with editor rights (they never own them). */
+export function buildTemplateAdminPermissions(
+	updatedAt: string | null | undefined
+): PermissionsResponse {
+	return {
+		role: 'editor',
+		can_view: true,
+		can_edit: true,
+		can_comment: true,
 		updated_at: updatedAt ?? new Date().toISOString(),
 		isOwner: false,
 	};
@@ -94,8 +109,16 @@ export const GET = withAuthValidation<
 			);
 		}
 
-		// Templates are viewable by any authenticated user as read-only viewers
+		// Templates: admins edit, everyone else views read-only
 		if (map.is_template) {
+			if (await isUserAdmin(adminClient, user.id)) {
+				return respondSuccess<PermissionsResponse>(
+					buildTemplateAdminPermissions(map.updated_at),
+					200,
+					'Template admin permissions'
+				);
+			}
+
 			return respondSuccess<PermissionsResponse>(
 				buildTemplateViewerPermissions(map.updated_at),
 				200,

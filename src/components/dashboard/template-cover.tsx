@@ -24,8 +24,8 @@ export function getEchoTransform(
 
 interface TemplateCoverProps {
 	icon: LucideIcon;
-	/** Accent hue (0-360); templates in one category share it. */
-	hue: number;
+	/** Accent hue (0-360); templates in one category share it. `null` = no category (a blank map): grey. */
+	hue: number | null;
 	/** Tighter crop around the icon for small swatches. */
 	compact?: boolean;
 	className?: string;
@@ -43,7 +43,8 @@ export function TemplateCover({
 	className,
 }: TemplateCoverProps) {
 	const patternId = useId();
-	const stroke = `hsl(${hue} 80% 68%)`;
+	const stroke = hue === null ? 'hsl(0 0% 70%)' : `hsl(${hue} 80% 68%)`;
+	const tint = hue === null ? 'hsl(0 0% 60%)' : `hsl(${hue} 70% 50%)`;
 	const originX = compact ? 150 : 185;
 
 	return (
@@ -69,12 +70,7 @@ export function TemplateCover({
 
 				<rect fill={`url(#${patternId})`} height='112' width='280' />
 
-				<rect
-					fill={`hsl(${hue} 70% 50%)`}
-					fillOpacity='0.05'
-					height='112'
-					width='280'
-				/>
+				<rect fill={tint} fillOpacity='0.05' height='112' width='280' />
 
 				{TEMPLATE_COVER_ECHOES.map((echo) => (
 					<g key={echo.dx} transform={getEchoTransform(originX, echo)}>

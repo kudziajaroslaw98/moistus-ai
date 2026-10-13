@@ -2,6 +2,8 @@
 
 import { DeleteMapConfirmationDialog } from '@/components/mind-map/delete-map-confirmation-dialog';
 import { DiscardSettingsChangesDialog } from '@/components/mind-map/discard-settings-changes-dialog';
+import { PublishTemplateDialog } from '@/components/mind-map/publish-template-dialog';
+import { TemplateSettingsSection } from '@/components/mind-map/template-settings-section';
 import { DeveloperModeSetting } from '@/components/plugins/developer-mode-switch';
 import { PluginsSettingsLink } from '@/components/plugins/plugins-settings-link';
 import { NodeTypeSelector } from '@/components/settings/node-type-selector';
@@ -21,8 +23,12 @@ import {
 } from '@/components/ui/panel';
 import { TagInput } from '@/components/ui/tag-input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+	TEMPLATE_CATEGORY_VALUES,
+	type TemplateCategoryValue,
+} from '@/constants/template-options';
 import useAppStore from '@/store/mind-map-store';
-import type { MindMapData } from '@/types/mind-map-data';
+import type { MindMapUpdates } from '@/types/mind-map-data';
 import { cn } from '@/utils/cn';
 import { Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -41,10 +47,19 @@ interface FormData {
 	description: string;
 	tags: string[];
 	thumbnailUrl: string;
+	templateCategory: TemplateCategoryValue | null;
 }
 
 function normalizeText(value: string | null | undefined): string {
 	return (value || '').trim();
+}
+
+function toTemplateCategory(
+	value: string | null | undefined
+): TemplateCategoryValue | null {
+	return TEMPLATE_CATEGORY_VALUES.includes(value as TemplateCategoryValue)
+		? (value as TemplateCategoryValue)
+		: null;
 }
 
 function isValidUrl(value: string): boolean {
@@ -69,6 +84,8 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 		updatePreferences,
 		getDefaultNodeType,
 		openPluginsPanel,
+		canEditMap,
+		isAdmin,
 	} = useAppStore(
 		useShallow((state) => ({
 			mindMap: state.mindMap,
@@ -80,18 +97,26 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			updatePreferences: state.updatePreferences,
 			getDefaultNodeType: state.getDefaultNodeType,
 			openPluginsPanel: state.openPluginsPanel,
+			canEditMap: Boolean(state.permissions?.can_edit),
+			isAdmin: state.userProfile?.role === 'admin',
 		}))
 	);
+
+	// Only admins receive can_edit on system templates (see /api/maps/[id]/permissions).
+	const isTemplate = Boolean(mindMap?.is_template);
+	const isTemplateAdmin = isTemplate && canEditMap;
 
 	const [formData, setFormData] = useState<FormData>({
 		title: '',
 		description: '',
 		tags: [],
 		thumbnailUrl: '',
+		templateCategory: null,
 	});
 
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+	const [showPublishDialog, setShowPublishDialog] = useState(false);
 	const [hasChanges, setHasChanges] = useState(false);
 	const [titleTouched, setTitleTouched] = useState(false);
 	const [descriptionTouched, setDescriptionTouched] = useState(false);
@@ -137,10 +162,12 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			normalizedTitle !== initialTitle ||
 			normalizedDescription !== initialDescription ||
 			JSON.stringify(formData.tags) !== JSON.stringify(mindMap.tags || []) ||
-			normalizedThumbnail !== initialThumbnail
+			normalizedThumbnail !== initialThumbnail ||
+			formData.templateCategory !== toTemplateCategory(mindMap.template_category)
 		);
 	}, [
 		formData.tags,
+		formData.templateCategory,
 		mindMap,
 		normalizedDescription,
 		normalizedThumbnail,
@@ -155,6 +182,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 				description: mindMap.description || '',
 				tags: mindMap.tags || [],
 				thumbnailUrl: mindMap.thumbnailUrl || '',
+				templateCategory: toTemplateCategory(mindMap.template_category),
 			});
 			setHasChanges(false);
 			setShowDiscardDialog(false);
@@ -206,7 +234,7 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 		if (!hasLatestChanges || !isFormValid || isSaving) return;
 
 		// Build updates object (only changed fields)
-		const updates: Partial<MindMapData> = {};
+		const updates: MindMapUpdates = {};
 		const currentTitle = normalizeText(mindMap.title);
 		const currentDescription = normalizeText(mindMap.description);
 		const currentThumbnail = normalizeText(mindMap.thumbnailUrl);
@@ -218,6 +246,12 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 			updates.tags = formData.tags;
 		if (normalizedThumbnail !== currentThumbnail)
 			updates.thumbnailUrl = normalizedThumbnail || null;
+		if (
+			isTemplateAdmin &&
+			formData.templateCategory &&
+			formData.templateCategory !== toTemplateCategory(mindMap.template_category)
+		)
+			updates.template_category = formData.templateCategory;
 
 		await updateMindMap(mindMap.id, updates);
 		setFormData((prev) => ({
@@ -353,59 +387,95 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 					</PanelField>
 				</PanelSection>
 
-				<PanelSection
-					description='Use tags to group related maps and improve search.'
-					label='Organization'
-				>
-					<PanelField
-						hint='Press Enter or comma to add tags.'
-						htmlFor='tags'
-						label='Tags'
+				{isTemplateAdmin && (
+					<PanelSection
+						description='Admin only. The category sets the gallery icon and colors.'
+						label='Template'
 					>
-						<TagInput
-							className={isSaving ? 'pointer-events-none opacity-60' : ''}
-							maxTags={20}
-							onChange={(tags) => setFormData({ ...formData, tags })}
-							placeholder='Add tags...'
-							value={formData.tags}
-						/>
-					</PanelField>
-				</PanelSection>
-
-				<PanelSection
-					description='A preview image used in map cards and link previews.'
-					label='Appearance'
-				>
-					<PanelField
-						error={
-							thumbnailTouched && !isThumbnailValid ? thumbnailError : undefined
-						}
-						errorId={thumbnailErrorId}
-						hint='Optional preview image for your mind map.'
-						htmlFor='thumbnail'
-						label='Thumbnail URL'
-					>
-						<Input
-							aria-describedby={
-								thumbnailTouched && !isThumbnailValid
-									? thumbnailErrorId
-									: undefined
-							}
-							aria-invalid={thumbnailTouched && !isThumbnailValid}
-							className={panelInputClass}
+						<TemplateSettingsSection
+							category={formData.templateCategory}
 							disabled={isSaving}
-							error={thumbnailTouched && !isThumbnailValid}
-							id='thumbnail'
-							placeholder='https://example.com/thumbnail.jpg'
-							type='url'
-							value={formData.thumbnailUrl}
-							onBlur={() => setThumbnailTouched(true)}
-							onChange={(e) =>
-								setFormData({ ...formData, thumbnailUrl: e.target.value })
+							onChange={(templateCategory) =>
+								setFormData((prev) => ({ ...prev, templateCategory }))
 							}
 						/>
-					</PanelField>
-				</PanelSection>
+					</PanelSection>
+				)}
+
+				{/* Templates are grouped by category and get a fixed cover, so tags and thumbnail don't apply. */}
+				{!isTemplate && (
+					<>
+						<PanelSection
+							description='Use tags to group related maps and improve search.'
+							label='Organization'
+						>
+							<PanelField
+								hint='Press Enter or comma to add tags.'
+								htmlFor='tags'
+								label='Tags'
+							>
+								<TagInput
+									className={isSaving ? 'pointer-events-none opacity-60' : ''}
+									maxTags={20}
+									onChange={(tags) => setFormData({ ...formData, tags })}
+									placeholder='Add tags...'
+									value={formData.tags}
+								/>
+							</PanelField>
+						</PanelSection>
+
+						<PanelSection
+							description='A preview image used in map cards and link previews.'
+							label='Appearance'
+						>
+							<PanelField
+								error={
+									thumbnailTouched && !isThumbnailValid ? thumbnailError : undefined
+								}
+								errorId={thumbnailErrorId}
+								hint='Optional preview image for your mind map.'
+								htmlFor='thumbnail'
+								label='Thumbnail URL'
+							>
+								<Input
+									aria-describedby={
+										thumbnailTouched && !isThumbnailValid
+											? thumbnailErrorId
+											: undefined
+									}
+									aria-invalid={thumbnailTouched && !isThumbnailValid}
+									className={panelInputClass}
+									disabled={isSaving}
+									error={thumbnailTouched && !isThumbnailValid}
+									id='thumbnail'
+									placeholder='https://example.com/thumbnail.jpg'
+									type='url'
+									value={formData.thumbnailUrl}
+									onBlur={() => setThumbnailTouched(true)}
+									onChange={(e) =>
+										setFormData({ ...formData, thumbnailUrl: e.target.value })
+									}
+								/>
+							</PanelField>
+						</PanelSection>
+					</>
+				)}
+
+				{isAdmin && !mindMap.is_template && (
+					<PanelSection
+						description='Admin only. Publish a copy of this map as a template for all users.'
+						label='Template gallery'
+					>
+						<Button
+							className={cn(panelButtonClass, 'w-full')}
+							disabled={isSaving}
+							onClick={() => setShowPublishDialog(true)}
+							variant='outline'
+						>
+							Publish as template
+						</Button>
+					</PanelSection>
+				)}
 
 				{/* Plugins (owner only): managed in the Plugins panel */}
 				<PluginsSettingsLink onManage={() => requestCloseThen(openPluginsPanel)} />
@@ -443,9 +513,13 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 
 				<PanelSection label='Danger zone'>
 					<PanelRow
-						description='Permanently removes this map, its nodes and its history.'
-						title='Delete mind map'
+						title={mindMap.is_template ? 'Delete template' : 'Delete mind map'}
 						tone='danger'
+						description={
+							mindMap.is_template
+								? 'Removes this template from the gallery for everyone. Maps already created from it are not affected.'
+								: 'Permanently removes this map, its nodes and its history.'
+						}
 						trailing={
 							<Button
 								className={cn(panelButtonSmClass, 'gap-1.5')}
@@ -478,6 +552,16 @@ export function MapSettingsPanel({ isOpen, onClose }: MapSettingsPanelProps) {
 				onOpenChange={setShowDeleteDialog}
 				open={showDeleteDialog}
 			/>
+
+			{isAdmin && !mindMap.is_template && (
+				<PublishTemplateDialog
+					defaultDescription={mindMap.description}
+					defaultTitle={mindMap.title}
+					onOpenChange={setShowPublishDialog}
+					open={showPublishDialog}
+					sourceMapId={mindMap.id}
+				/>
+			)}
 
 			<DiscardSettingsChangesDialog
 				onDiscardChanges={handleDiscardChanges}
