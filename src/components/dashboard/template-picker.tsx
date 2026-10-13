@@ -33,6 +33,9 @@ const CATEGORY_LABELS = Object.fromEntries(
 	TEMPLATE_CATEGORY_OPTIONS.map((option) => [option.value, option.label])
 ) as Record<TemplateCategoryValue, string>;
 
+// Every row, blank map included, leads with the same swatch.
+const SWATCH_CLASS = 'h-10 w-14 shrink-0 rounded-lg border border-white/8';
+
 const fetcher = async (url: string) => {
 	const res = await fetch(url);
 	if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -82,7 +85,7 @@ const TemplateOption = memo(function TemplateOption({
 			leading={
 				<TemplateCover
 					compact
-					className='h-10 w-14 shrink-0 rounded-lg border border-white/8'
+					className={SWATCH_CLASS}
 					hue={CATEGORY_HUES[template.category] ?? 214}
 					icon={CATEGORY_ICONS[template.category] ?? FileText}
 				/>
@@ -218,7 +221,14 @@ export function TemplatePicker({
 					onClick={() => onSelectTemplate(null)}
 					title='Blank map'
 					trailing={<SelectMark selected={selectedTemplateId === null} />}
-					icon={<FileText />}
+					leading={
+						<TemplateCover
+							compact
+							className={SWATCH_CLASS}
+							hue={null}
+							icon={FileText}
+						/>
+					}
 				/>
 
 				{visibleTemplates.map((template) => (
