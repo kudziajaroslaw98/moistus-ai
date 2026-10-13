@@ -18,28 +18,11 @@ export function toStringOrNull(value: unknown): string | null {
 	return typeof value === 'string' ? value : null;
 }
 
-export function toTextOrNull(value: unknown): string | null {
-	if (typeof value !== 'string') return null;
-	const trimmed = value.trim();
-	if (trimmed.length === 0 || trimmed.toLowerCase() === 'null') return null;
-	return value;
-}
-
 export function toNumberOrNull(value: unknown): number | null {
 	if (typeof value === 'number' && Number.isFinite(value)) return value;
 	if (typeof value === 'string' && value.trim().length > 0) {
 		const parsed = Number(value);
 		if (Number.isFinite(parsed)) return parsed;
-	}
-	return null;
-}
-
-export function toBooleanOrNull(value: unknown): boolean | null {
-	if (typeof value === 'boolean') return value;
-	if (typeof value === 'string') {
-		const normalized = value.trim().toLowerCase();
-		if (normalized === 'true') return true;
-		if (normalized === 'false') return false;
 	}
 	return null;
 }
