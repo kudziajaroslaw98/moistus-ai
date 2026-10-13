@@ -15,6 +15,10 @@ import {
 } from '@/components/dashboard/dashboard-page';
 import { useDashboardSearch } from '@/components/dashboard/dashboard-shell-context';
 import {
+	CATEGORY_HUES,
+	CATEGORY_ICONS,
+} from '@/components/dashboard/template-category-style';
+import {
 	UnderlineTab,
 	UnderlineTabsBar,
 	UnderlineTabsList,
@@ -31,20 +35,7 @@ import {
 import { Tabs } from '@/components/ui/tabs';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import type { DashboardViewMode } from '@/types/dashboard-map';
-import {
-	BarChart,
-	Briefcase,
-	Calendar,
-	Code,
-	FileText,
-	GraduationCap,
-	Lightbulb,
-	Pencil,
-	Trash2,
-	User,
-	Zap,
-	type LucideIcon,
-} from 'lucide-react';
+import { FileText, Pencil, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -83,31 +74,6 @@ const TEMPLATE_CATEGORIES: Record<TemplateCategory, string> = {
 	education: 'Education',
 	personal: 'Personal',
 	technical: 'Technical',
-};
-
-// One accent hue per category, shared by every template in it.
-const CATEGORY_HUES: Record<TemplateCategory, number> = {
-	creative: 270,
-	productivity: 152,
-	planning: 214,
-	analysis: 38,
-	business: 244,
-	education: 188,
-	personal: 330,
-	technical: 14,
-};
-
-// Covers are icon-per-category: the `icon` stored on each template row is
-// not used here.
-const CATEGORY_ICONS: Record<TemplateCategory, LucideIcon> = {
-	creative: Lightbulb,
-	productivity: Zap,
-	planning: Calendar,
-	analysis: BarChart,
-	business: Briefcase,
-	education: GraduationCap,
-	personal: User,
-	technical: Code,
 };
 
 // SWR fetcher with proper error handling

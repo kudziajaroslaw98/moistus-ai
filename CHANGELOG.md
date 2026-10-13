@@ -9,6 +9,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Changed
 
+- **dashboard/new-map**: The New map dialog is now a side panel built on `Panel`, like Map settings: one view with Details (title, description) and "Start from", a pinned footer that names the pick and holds Create map. Templates are rows with the category cover swatch and category filter chips, replacing the gradient tiles and the two-step wizard
+  - Why: it was the last create flow still on the old centered dialog with its own zinc/sky styling; the panel kit is the one look for forms
 - **templates/category-look**: A template's icon and colors now come from its category everywhere (template gallery and the create-map template picker), not from per-template values
   - Why: Keeps every template in a category looking the same; admins pick the category and cannot override the icon or colors
 - **templates/admin-settings**: Editing a system template in Map Settings shows the category (with a read-only icon/colors preview) and no longer offers Tags or Thumbnail URL
