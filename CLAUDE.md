@@ -98,7 +98,9 @@ Skipping this = incomplete work.
 ## Commands
 
 ```bash
-pnpm dev:lan         # LAN dev server (0.0.0.0 host binding)
+pnpm dev             # Next.js + PartyKit together (scripts/dev.mjs); realtime needs PartyKit
+pnpm party:dev       # PartyKit alone (also what pnpm dev starts)
+pnpm dev:lan         # LAN dev server (0.0.0.0 host binding), Next.js only: run pnpm party:dev beside it
 pnpm type-check      # TypeScript validation (TS 7 native tsc)
 pnpm build           # Production build
 pnpm test            # Unit tests (Jest + RTL, 727 tests)

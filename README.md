@@ -41,12 +41,11 @@ Shiko is built using modern technologies:
 1. Clone the repository
 2. Install dependencies with `pnpm install`
 3. Set up environment variables (see `.env.example`)
-4. Run Next.js in one terminal: `pnpm dev`
-5. Run PartyKit in a second terminal: `pnpm party:dev`
-6. Visit `http://localhost:3000` or `http://<your-lan-ip>:3000` to start mapping
+4. Run `pnpm dev`, which starts Next.js and PartyKit together
+5. Visit `http://localhost:3000` or `http://<your-lan-ip>:3000` to start mapping
 
 Local development runs PartyKit locally while Supabase can stay cloud-hosted. Keep JWT validation enabled in both local and production environments.
-`pnpm party:dev` automatically sources `.env.local` before starting PartyKit.
+`pnpm dev` runs PartyKit through `pnpm party:dev`, which automatically sources `.env.local`. Run `pnpm party:dev` on its own when you only need PartyKit, or alongside `pnpm dev:lan`, which starts Next.js only. Without PartyKit the map still loads, but every realtime socket fails.
 
 When local browser-facing service URLs are blank or still point at `localhost` / `127.0.0.1`, the app now derives the current browser hostname in development for:
 
