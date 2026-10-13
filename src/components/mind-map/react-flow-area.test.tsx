@@ -1,10 +1,17 @@
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { ReactFlowArea } from './react-flow-area';
 
 const mockReactFlowRenderHistory: Array<{ nodes: AppNode[]; edges: AppEdge[] }> =
 	[];
+interface MockReactFlowProps {
+	className?: string;
+	deleteKeyCode?: string[] | null;
+	onPaneContextMenu: (event: { preventDefault: () => void }) => void;
+	onSelectionContextMenu: (event: { preventDefault: () => void }) => void;
+}
+const mockReactFlowProps: MockReactFlowProps[] = [];
 const mockAnimateGraphToState = jest.fn();
 const mockCancelAnimation = jest.fn();
 const mockNoop = jest.fn();
@@ -32,22 +39,34 @@ jest.mock('@xyflow/react', () => {
 		ConnectionMode: { Loose: 'loose' },
 		Panel: ({ children }: { children: React.ReactNode }) =>
 			React.createElement(React.Fragment, null, children),
-		ReactFlow: ({
-			nodes,
-			edges,
-			children,
-		}: {
+		ReactFlow: (props: {
 			nodes: AppNode[];
 			edges: AppEdge[];
 			children: React.ReactNode;
 		}) => {
+			const { nodes, edges, children } = props;
 			mockReactFlowRenderHistory.push({ nodes, edges });
-			return React.createElement('div', { 'data-testid': 'react-flow' }, children);
+			mockReactFlowProps.push(props as unknown as MockReactFlowProps);
+			// Mirror the containers React Flow renders, which pan mode makes inert.
+			return React.createElement(
+				'div',
+				{ 'data-testid': 'react-flow' },
+				React.createElement('div', {
+					className: 'react-flow__nodes',
+					'data-testid': 'rf-nodes',
+				}),
+				React.createElement('div', {
+					className: 'react-flow__edgelabel-renderer',
+					'data-testid': 'rf-edge-labels',
+				}),
+				children
+			);
 		},
 		SelectionMode: { Partial: 'partial' },
 		useReactFlow: () => ({
 			setCenter: (...args: unknown[]) => mockSetCenter(...args),
 			fitView: (...args: unknown[]) => mockFitView(...args),
+			screenToFlowPosition: ({ x, y }: { x: number; y: number }) => ({ x, y }),
 		}),
 	};
 });
@@ -306,6 +325,7 @@ function createMockStore(overrides: Partial<Record<string, unknown>> = {}) {
 describe('ReactFlowArea', () => {
 	beforeEach(() => {
 		mockReactFlowRenderHistory.length = 0;
+		mockReactFlowProps.length = 0;
 		mockAnimateGraphToState.mockReset();
 		mockCancelAnimation.mockReset();
 		mockOpenContextMenuAt.mockReset();
@@ -510,5 +530,187 @@ describe('ReactFlowArea', () => {
 			expect.objectContaining({ id: 'b', selected: true }),
 		]);
 		expect(mockSetCenter).toHaveBeenCalledTimes(1);
+	});
+
+	describe('pan mode', () => {
+		const latestProps = () => mockReactFlowProps.at(-1) as MockReactFlowProps;
+
+		it('makes nodes and edge labels inert while panning, and restores them after', () => {
+			mockStoreState = createMockStore({ activeTool: 'pan' });
+			const { rerender } = render(<ReactFlowArea isMapReady={true} />);
+
+			expect(screen.getByTestId('rf-nodes')).toHaveAttribute('inert');
+			expect(screen.getByTestId('rf-edge-labels')).toHaveAttribute('inert');
+
+			mockStoreState = createMockStore({ activeTool: 'default' });
+			rerender(<ReactFlowArea isMapReady={true} />);
+
+			expect(screen.getByTestId('rf-nodes')).not.toHaveAttribute('inert');
+			expect(screen.getByTestId('rf-edge-labels')).not.toHaveAttribute('inert');
+		});
+
+		it('leaves nodes interactive in Select', () => {
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(screen.getByTestId('rf-nodes')).not.toHaveAttribute('inert');
+			expect(latestProps().deleteKeyCode).toEqual(['Delete']);
+			expect(latestProps().className).not.toContain('react-flow__node-toolbar');
+		});
+
+		it('turns the Delete key off while panning', () => {
+			mockStoreState = createMockStore({ activeTool: 'pan' });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(latestProps().deleteKeyCode).toBeNull();
+		});
+
+		it('hides node toolbars and the multi-selection box while panning', () => {
+			mockStoreState = createMockStore({ activeTool: 'pan' });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(latestProps().className).toContain(
+				'[&_.react-flow__node-toolbar]:hidden'
+			);
+			expect(latestProps().className).toContain(
+				'[&_.react-flow__nodesselection]:hidden'
+			);
+		});
+
+		it('clears the selection when panning starts', () => {
+			const onNodesChange = jest.fn();
+			const onEdgesChange = jest.fn();
+			const setSelectedNodes = jest.fn();
+			const selectedNode = { ...createNode('a', 0, 0), selected: true };
+			const selectedEdge = { ...createEdge('edge-1', 50), selected: true };
+			mockStoreState = createMockStore({
+				activeTool: 'pan',
+				nodes: [selectedNode, createNode('b', 200, 0)],
+				edges: [selectedEdge],
+				selectedNodes: [selectedNode],
+				onNodesChange,
+				onEdgesChange,
+				setSelectedNodes,
+			});
+
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(onNodesChange).toHaveBeenCalledWith([
+				{ id: 'a', type: 'select', selected: false },
+			]);
+			expect(onEdgesChange).toHaveBeenCalledWith([
+				{ id: 'edge-1', type: 'select', selected: false },
+			]);
+			expect(setSelectedNodes).toHaveBeenCalledWith([]);
+		});
+
+		it('does not touch the selection in Select', () => {
+			const onNodesChange = jest.fn();
+			const setSelectedNodes = jest.fn();
+			const selectedNode = { ...createNode('a', 0, 0), selected: true };
+			mockStoreState = createMockStore({
+				nodes: [selectedNode],
+				selectedNodes: [selectedNode],
+				onNodesChange,
+				setSelectedNodes,
+			});
+
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(onNodesChange).not.toHaveBeenCalled();
+			expect(setSelectedNodes).not.toHaveBeenCalled();
+		});
+
+		it('blocks the pane context menu while panning', () => {
+			mockStoreState = createMockStore({ activeTool: 'pan' });
+			render(<ReactFlowArea isMapReady={true} />);
+			mockNoop.mockClear();
+			const event = { preventDefault: jest.fn() };
+
+			latestProps().onPaneContextMenu(event);
+			latestProps().onSelectionContextMenu(event);
+
+			expect(event.preventDefault).toHaveBeenCalledTimes(2);
+			expect(mockNoop).not.toHaveBeenCalled();
+		});
+
+		it('opens the pane context menu in Select', () => {
+			render(<ReactFlowArea isMapReady={true} />);
+			mockNoop.mockClear();
+			const event = { preventDefault: jest.fn() };
+
+			latestProps().onPaneContextMenu(event);
+
+			expect(mockNoop).toHaveBeenCalledWith(event);
+		});
+
+		it('turns touch long-press menus off while panning', () => {
+			mockStoreState = createMockStore({ activeTool: 'pan' });
+			const { rerender } = render(<ReactFlowArea isMapReady={true} />);
+
+			expect(mockUseTouchContextMenuFallback.mock.calls.at(-1)?.[0]).toEqual(
+				expect.objectContaining({ enabled: false })
+			);
+
+			mockStoreState = createMockStore({ activeTool: 'default' });
+			rerender(<ReactFlowArea isMapReady={true} />);
+
+			expect(mockUseTouchContextMenuFallback.mock.calls.at(-1)?.[0]).toEqual(
+				expect.objectContaining({ enabled: true })
+			);
+		});
+
+		it('ignores undo, redo and selection gestures while panning but keeps fit view', () => {
+			const revertToHistoryState = jest.fn().mockResolvedValue(undefined);
+			const setSelectedNodes = jest.fn();
+			mockStoreState = createMockStore({
+				activeTool: 'pan',
+				historyIndex: 1,
+				historyMeta: [{ id: 'h-0' }, { id: 'h-1' }, { id: 'h-2' }],
+				revertToHistoryState,
+				setSelectedNodes,
+			});
+			render(<ReactFlowArea isMapReady={true} />);
+			setSelectedNodes.mockClear();
+
+			const gestureConfig = mockUseMultiTouchShortcuts.mock.calls.at(-1)?.[0] as {
+				onTwoFingerTap: () => void;
+				onThreeFingerTap: () => void;
+				onTwoFingerDoubleTap: () => void;
+				onThreeFingerSwipe: (direction: 'left' | 'right') => void;
+			};
+
+			act(() => {
+				gestureConfig.onTwoFingerTap();
+				gestureConfig.onThreeFingerTap();
+				gestureConfig.onThreeFingerSwipe('right');
+				gestureConfig.onTwoFingerDoubleTap();
+			});
+
+			expect(revertToHistoryState).not.toHaveBeenCalled();
+			expect(setSelectedNodes).not.toHaveBeenCalled();
+			expect(mockFitView).toHaveBeenCalledTimes(1);
+		});
+
+		it('ignores the "/" shortcut while panning', () => {
+			const openNodeEditor = jest.fn();
+			mockStoreState = createMockStore({ activeTool: 'pan', openNodeEditor });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			fireEvent.keyDown(window, { key: '/' });
+
+			expect(openNodeEditor).not.toHaveBeenCalled();
+		});
+
+		it('opens the node creator on "/" in Select', () => {
+			const openNodeEditor = jest.fn();
+			mockStoreState = createMockStore({ openNodeEditor });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			fireEvent.keyDown(window, { key: '/' });
+
+			expect(openNodeEditor).toHaveBeenCalledWith(
+				expect.objectContaining({ mode: 'create' })
+			);
+		});
 	});
 });

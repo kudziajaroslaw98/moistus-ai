@@ -5,8 +5,11 @@ let mockStoreState: Record<string, unknown>;
 
 jest.mock('@/store/mind-map-store', () => ({
 	__esModule: true,
-	default: (selector: (state: Record<string, unknown>) => unknown) =>
-		selector(mockStoreState),
+	default: Object.assign(
+		(selector: (state: Record<string, unknown>) => unknown) =>
+			selector(mockStoreState),
+		{ getState: () => ({ nodes: [] }) }
+	),
 }));
 
 jest.mock('zustand/shallow', () => ({
@@ -77,4 +80,44 @@ describe('useContextMenu', () => {
 			expect(setContextMenuState).not.toHaveBeenCalled();
 		}
 	);
+
+	describe('double-clicking the pane in comment mode', () => {
+		const paneClick = { clientX: 40, clientY: 60 } as never;
+
+		async function doubleClick() {
+			const { result } = renderHook(() => useContextMenu());
+
+			await act(async () => {
+				await result.current.contextMenuHandlers.onPaneClick(paneClick);
+				await result.current.contextMenuHandlers.onPaneClick(paneClick);
+			});
+		}
+
+		beforeEach(() => {
+			mockStoreState = {
+				...mockStoreState,
+				isCommentMode: true,
+				reactFlowInstance: {
+					screenToFlowPosition: ({ x, y }: { x: number; y: number }) => ({ x, y }),
+				},
+				addNode: jest.fn().mockResolvedValue(undefined),
+			};
+		});
+
+		it('starts a comment thread in Select', async () => {
+			await doubleClick();
+
+			expect(mockStoreState.addNode).toHaveBeenCalledWith(
+				expect.objectContaining({ nodeType: 'commentNode' })
+			);
+		});
+
+		it('does nothing in Pan', async () => {
+			mockStoreState = { ...mockStoreState, activeTool: 'pan' };
+
+			await doubleClick();
+
+			expect(mockStoreState.addNode).not.toHaveBeenCalled();
+		});
+	});
 });

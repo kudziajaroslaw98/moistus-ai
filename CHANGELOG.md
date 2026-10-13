@@ -7,6 +7,11 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ## [2026-10-13]
 
+### Fixed
+
+- **canvas/pan-mode**: With the Pan tool on you could still tick tasks, change a Metric, move a Kanban card, answer questions, open the node editor, delete a node selected earlier, and use paste, group, collapse and arrow-key shortcuts. Pan now only moves the pane (and zooms): every node, plugin control and edge label ignores clicks, hover, keyboard and long-press, selection is cleared, and edit shortcuts and the `/` creator are off. Search, the command palette and copy still work
+  - Why: one `inert` layer on the nodes and edge labels covers native nodes, plugins and edge buttons at once, and drags that start on a node now fall through to the pane
+
 ### Changed
 
 - **toolbar/permissions**: Viewers and commenters now get Select and Pan in the cursor dropdown (they had only Pan, while actually working in Select). Turning on comment mode switches to Select, and someone left on an editing tool after losing edit rights is moved back to Select
