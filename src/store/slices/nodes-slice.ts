@@ -621,7 +621,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					const response = await fetch('/api/nodes/check-limit', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ mapId }),
+						body: JSON.stringify({ mapId, nodeType }),
 					});
 					const payload = (await response.json().catch(() => null)) as
 						| {

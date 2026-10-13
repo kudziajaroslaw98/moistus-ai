@@ -197,7 +197,9 @@ describe('nodes slice permissions', () => {
 
 			expect(mockFetch).toHaveBeenCalledWith(
 				'/api/nodes/check-limit',
-				expect.anything()
+				expect.objectContaining({
+					body: JSON.stringify({ mapId: 'map-1', nodeType: 'commentNode' }),
+				})
 			);
 		});
 

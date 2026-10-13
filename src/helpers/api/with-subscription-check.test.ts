@@ -716,4 +716,93 @@ describe('with-subscription-check', () => {
 			message: 'You do not have edit permission for this map',
 		});
 	});
+
+	describe('comment threads', () => {
+		const createCommenterMock = (permissions: {
+			can_edit: boolean;
+			can_comment: boolean;
+		}) =>
+			createSupabaseMock({
+				mindMapResult: {
+					data: { id: 'map-1', user_id: 'owner-1' },
+					error: null,
+				},
+				shareAccessPermissionResult: { data: permissions, error: null },
+				nodesCountResult: { count: 1, error: null },
+				userSubscriptionResult: {
+					data: { plan: { name: 'pro', limits: { nodesPerMap: -1 } } },
+					error: null,
+				},
+			});
+
+		it('lets a commenter start a comment thread', async () => {
+			const supabase = createCommenterMock({
+				can_edit: false,
+				can_comment: true,
+			});
+
+			const result = await checkMapNodeLimit(
+				supabase,
+				'map-1',
+				'guest-1',
+				supabase,
+				{ nodeType: 'commentNode' }
+			);
+
+			expect(result).toMatchObject({ ok: true, allowed: true });
+		});
+
+		it('still refuses a commenter any other node type', async () => {
+			const supabase = createCommenterMock({
+				can_edit: false,
+				can_comment: true,
+			});
+
+			const result = await checkMapNodeLimit(
+				supabase,
+				'map-1',
+				'guest-1',
+				supabase,
+				{ nodeType: 'defaultNode' }
+			);
+
+			expect(result).toMatchObject({
+				ok: false,
+				status: 403,
+				code: 'EDIT_PERMISSION_REQUIRED',
+			});
+		});
+
+		it('still refuses a commenter who sends no node type', async () => {
+			const supabase = createCommenterMock({
+				can_edit: false,
+				can_comment: true,
+			});
+
+			const result = await checkMapNodeLimit(supabase, 'map-1', 'guest-1');
+
+			expect(result).toMatchObject({ ok: false, status: 403 });
+		});
+
+		it('refuses a viewer a comment thread', async () => {
+			const supabase = createCommenterMock({
+				can_edit: false,
+				can_comment: false,
+			});
+
+			const result = await checkMapNodeLimit(
+				supabase,
+				'map-1',
+				'guest-1',
+				supabase,
+				{ nodeType: 'commentNode' }
+			);
+
+			expect(result).toMatchObject({
+				ok: false,
+				status: 403,
+				code: 'EDIT_PERMISSION_REQUIRED',
+			});
+		});
+	});
 });
