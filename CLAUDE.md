@@ -98,7 +98,7 @@ Skipping this = incomplete work.
 ## Commands
 
 ```bash
-pnpm dev             # Next.js + PartyKit together (scripts/dev.mjs); realtime needs PartyKit
+pnpm dev             # Next.js + PartyKit together (scripts/dev.mjs); PartyKit runs on NEXT_PUBLIC_PARTYKIT_DEV_PORT (default 1999), loud banner if that port is taken
 pnpm party:dev       # PartyKit alone (also what pnpm dev starts)
 pnpm dev:lan         # LAN dev server (0.0.0.0 host binding), Next.js only: run pnpm party:dev beside it
 pnpm type-check      # TypeScript validation (TS 7 native tsc)

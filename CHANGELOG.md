@@ -14,8 +14,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Changed
 
-- **dev**: `pnpm dev` now starts PartyKit next to Next.js (`scripts/dev.mjs`, no new dependency), so there is no second terminal for `pnpm party:dev`. Ctrl+C stops both; if PartyKit can't start it prints a note and Next.js keeps running. `pnpm dev:lan` is unchanged (Next.js only)
-  - Why: without PartyKit every realtime socket fails, and an editor session looked read-only
+- **dev**: `pnpm dev` now starts PartyKit next to Next.js (`scripts/dev.mjs`, no new dependency), so there is no second terminal for `pnpm party:dev`. Ctrl+C stops both. PartyKit runs on `NEXT_PUBLIC_PARTYKIT_DEV_PORT` (default 1999), the port the browser connects to; if that port is taken (usually another worktree's PartyKit) it prints a coloured banner, skips starting a useless second one and suggests a free port to set in `.env.local`. If PartyKit stops later, a red banner says realtime is down and Next.js keeps running. `pnpm dev:lan` is unchanged (Next.js only)
+  - Why: without PartyKit every realtime socket fails, and an editor session looked read-only; a second PartyKit silently fell back to a random port nothing connects to
 - **permissions/read-only**: Viewers and commenters can no longer cause writes. Answering a question node, deleting an edge from its label, opening the edge editor, dragging a new connection, and the paste and group shortcuts now do nothing for them, and store actions drop their writes without calling the API or showing a toast (comment threads still work). Opening or closing a collapsed branch now changes only their own screen: it isn't saved, shared or sent anywhere, and resets on reload
   - Why: the database silently rejected these writes, so each click was a wasted API call and left their screen out of sync with the map
 - **toolbar/permissions**: Viewers and commenters now get Select and Pan in the cursor dropdown (they had only Pan, while actually working in Select). Turning on comment mode switches to Select, and someone left on an editing tool after losing edit rights is moved back to Select

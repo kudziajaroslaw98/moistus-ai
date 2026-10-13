@@ -47,6 +47,8 @@ Shiko is built using modern technologies:
 Local development runs PartyKit locally while Supabase can stay cloud-hosted. Keep JWT validation enabled in both local and production environments.
 `pnpm dev` runs PartyKit through `pnpm party:dev`, which automatically sources `.env.local`. Run `pnpm party:dev` on its own when you only need PartyKit, or alongside `pnpm dev:lan`, which starts Next.js only. Without PartyKit the map still loads, but every realtime socket fails.
 
+`pnpm dev` starts PartyKit on `NEXT_PUBLIC_PARTYKIT_DEV_PORT` (default `1999`), the port the browser connects to. If that port is already taken, usually by another worktree's PartyKit, it does not start a second one: it prints a coloured banner and the app uses the one already running, with that worktree's `partykit/` code and env, and shared realtime rooms. To give a worktree its own PartyKit, set `NEXT_PUBLIC_PARTYKIT_DEV_PORT` to a free port (for example `2000`) in that worktree's `.env.local` and restart `pnpm dev`.
+
 When local browser-facing service URLs are blank or still point at `localhost` / `127.0.0.1`, the app now derives the current browser hostname in development for:
 
 - Supabase browser clients
