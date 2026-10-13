@@ -20,7 +20,7 @@ export function ModalsWrapper() {
 
 	return (
 		<>
-			{popoverOpen.edgeEdit && <EdgeEditModal />}
+			{canEdit && popoverOpen.edgeEdit && <EdgeEditModal />}
 
 			<CommandPalette />
 

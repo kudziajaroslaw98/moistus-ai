@@ -1,4 +1,5 @@
 import generateUuid from '@/helpers/generate-uuid';
+import { canEditMap } from '@/lib/extensions/graph-ops';
 import type { AppNode } from '@/types/app-node';
 import type { XYPosition } from '@xyflow/react';
 import { toast } from 'sonner';
@@ -40,6 +41,8 @@ export const createClipboardSlice: StateCreator<
 		toast.success('Nodes copied!', { id: toastId });
 	},
 	pasteNodes: async (position?: XYPosition) => {
+		if (!canEditMap(get())) return;
+
 		const { copiedNodes, copiedEdges, reactFlowInstance, addNode, addEdge } =
 			get();
 

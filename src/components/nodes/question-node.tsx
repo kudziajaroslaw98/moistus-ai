@@ -60,8 +60,11 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 	const isAnswered =
 		metadata?.isAnswered || Boolean(userResponse !== undefined);
 
-	// Update metadata when parsed options change
+	// Update metadata when parsed options change. Answers and this clean-up are
+	// shared saved data, so only people who can edit write them.
 	useEffect(() => {
+		if (!canEdit) return;
+
 		const updates: Partial<QuestionNodeMetadata> = {};
 		let needsUpdate = false;
 
@@ -122,7 +125,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 				},
 			});
 		}
-	}, [data.content]); // Only depend on content changes, not on metadata
+	}, [data.content, canEdit]); // Only depend on content/permission changes, not on metadata
 
 	const handleResponseChange = useCallback(
 		async (newResponse: boolean | string | string[]) => {
@@ -252,6 +255,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 							<div>
 								{questionType === 'binary' && (
 									<BinaryResponse
+										disabled={!canEdit}
 										onChange={handleResponseChange}
 										value={userResponse as boolean}
 									/>
@@ -260,6 +264,7 @@ const QuestionNodeComponent = (props: QuestionNodeProps) => {
 								{questionType === 'multiple' && (
 									<MultipleChoiceResponse
 										allowMultiple={responseFormat.allowMultiple || false}
+										disabled={!canEdit}
 										onChange={handleResponseChange}
 										value={userResponse as string | string[]}
 										options={

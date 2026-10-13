@@ -780,7 +780,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
 		(event, edge) => {
-			if (isDerivedDisplayEdgeId(edge.id)) return;
+			if (!canEdit || isDerivedDisplayEdgeId(edge.id)) return;
 			// Waypoint edges add a bend point on double-click instead of opening edge edit.
 			if (
 				edge.type === 'waypointEdge' ||
@@ -800,7 +800,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 			setEdgeInfo(edge);
 			setPopoverOpen({ edgeEdit: true });
 		},
-		[setEdgeInfo, setPopoverOpen]
+		[canEdit, setEdgeInfo, setPopoverOpen]
 	);
 
 	const nodeTypesWithProps: NodeTypes = useMemo(

@@ -12,9 +12,15 @@ function withLoadingAndToast<
 		initialMessage?: string;
 		errorMessage?: string;
 		successMessage?: string | null;
+		/** Return true to skip the action with no loading state and no toast. */
+		skipWhen?: (...args: Parameters<T>) => boolean;
 	}
 ): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>> {
 	return async (...args) => {
+		if (options?.skipWhen?.(...args)) {
+			return;
+		}
+
 		const { setLoadingStates } = useAppStore.getState();
 		const toastId = toast.loading(options?.initialMessage || 'Loading...');
 

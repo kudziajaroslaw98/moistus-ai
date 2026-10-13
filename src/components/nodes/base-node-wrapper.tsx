@@ -112,6 +112,9 @@ const BaseNodeWrapperComponent = ({
 	const connection = useConnection();
 	const isTarget = connection?.toNode?.id === id;
 	const { canEdit } = usePermissions();
+	// React Flow's Handle ignores `nodesConnectable`, so a viewer could still drag
+	// a connection and save an edge unless the handles themselves say no.
+	const canConnect = canEdit && !disableConnections;
 
 	const nodeRef = useRef<HTMLDivElement>(null);
 
@@ -311,7 +314,7 @@ const BaseNodeWrapperComponent = ({
 							position={Position.Bottom}
 							type='source'
 							isConnectable={
-								!disableConnections &&
+								canConnect &&
 								(activeTool === 'default' || activeTool === 'connector')
 							}
 							className={cn(
@@ -336,7 +339,7 @@ const BaseNodeWrapperComponent = ({
 							}}
 						/>
 
-						{activeTool === 'connector' && !disableConnections && (
+						{activeTool === 'connector' && canConnect && (
 							<Handle
 								position={Position.Top}
 								type='source'
@@ -348,7 +351,7 @@ const BaseNodeWrapperComponent = ({
 						)}
 
 						<Handle
-							isConnectableEnd={!disableConnections}
+							isConnectableEnd={canConnect}
 							isConnectableStart={false}
 							position={Position.Top}
 							type='target'

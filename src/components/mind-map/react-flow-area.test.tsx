@@ -8,6 +8,7 @@ const mockReactFlowRenderHistory: Array<{ nodes: AppNode[]; edges: AppEdge[] }> 
 interface MockReactFlowProps {
 	className?: string;
 	deleteKeyCode?: string[] | null;
+	onEdgeDoubleClick: (event: unknown, edge: unknown) => void;
 	onPaneContextMenu: (event: { preventDefault: () => void }) => void;
 	onSelectionContextMenu: (event: { preventDefault: () => void }) => void;
 }
@@ -711,6 +712,32 @@ describe('ReactFlowArea', () => {
 			expect(openNodeEditor).toHaveBeenCalledWith(
 				expect.objectContaining({ mode: 'create' })
 			);
+		});
+	});
+
+	describe('edge double-click', () => {
+		const edge = { id: 'edge-1', type: 'floatingEdge', data: {} };
+		const latestProps = () => mockReactFlowProps.at(-1) as MockReactFlowProps;
+
+		it('opens the edge editor for someone who can edit', () => {
+			const setEdgeInfo = jest.fn();
+			mockStoreState = createMockStore({ setEdgeInfo });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			latestProps().onEdgeDoubleClick({ clientX: 0, clientY: 0 }, edge);
+
+			expect(setEdgeInfo).toHaveBeenCalledWith(edge);
+		});
+
+		it('does nothing for someone who cannot edit', () => {
+			mockCanEdit = false;
+			const setEdgeInfo = jest.fn();
+			mockStoreState = createMockStore({ setEdgeInfo });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			latestProps().onEdgeDoubleClick({ clientX: 0, clientY: 0 }, edge);
+
+			expect(setEdgeInfo).not.toHaveBeenCalled();
 		});
 	});
 });
