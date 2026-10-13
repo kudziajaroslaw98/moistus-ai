@@ -50,6 +50,7 @@
     "@hookform/resolvers": "5.9.1",
     "@jitl/quickjs-wasmfile-release-sync": "0.32.0",
     "@lezer/highlight": "1.2.5",
+    "@modelcontextprotocol/server": "2.3.1",
     "@polar-sh/nextjs": "1.0.1",
     "@polar-sh/sdk": "1.0.2",
     "@supabase/ssr": "0.12.7",

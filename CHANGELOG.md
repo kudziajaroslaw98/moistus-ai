@@ -5,6 +5,16 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-13]
+
+### Added
+
+- **mcp**: Shiko MCP server (read-only first milestone) at `/api/mcp`, so AI apps (Claude Code, Claude Desktop, Cursor, ChatGPT) can read a user's maps. OAuth only: Supabase Auth is the authorization server, `/.well-known/oauth-protected-resource` points clients at it, and tokens are checked against the Supabase JWKS. Browser session tokens (no `client_id`) and guest accounts are refused
+  - Clients see four meta tools (`search_tools`, `describe_tools`, `run_read`, `run_write`); the real tools (`list_maps`, `read_map`, `read_nodes`, `search_nodes`, `guide`) stay hidden until an agent asks, which keeps the tool list to a few hundred tokens
+  - `read_map` prints the map as an indented outline in quick-input syntax with short hex ids (`[a1b2c3]`), links after `---`, and picks nodes level by level up to `maxNodes` so big maps still show their top
+  - Why: users want their own AI agent to build and maintain maps (e.g. map a novel's characters, events and plot holes)
+- **oauth**: Consent page at `/oauth/consent` where a signed-in user allows or denies an AI app, with the app's redirect host shown. Signed-out users go through sign-in and come back; guests are told to create an account
+
 ## [2026-10-12]
 
 ### Changed
