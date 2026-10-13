@@ -866,47 +866,9 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					p_edge_metadata: edgeDefaults.metadata,
 				};
 
-				const rpcMutation = await queueMutation<CreateNodeWithEdgeResponse>({
-					entity: 'nodes',
-					action: 'rpc',
-					payload: {
-						rpc: 'create_node_with_parent_edge',
-						args: rpcArgs as Record<string, unknown>,
-					},
-					executeOnline: async () => {
-						const { data: rpcResult, error: rpcError } = await supabase.rpc(
-							'create_node_with_parent_edge',
-							rpcArgs
-						);
-						if (rpcError || !rpcResult) {
-							throw new Error(
-								rpcError?.message || 'Failed to save new node to database.'
-							);
-						}
-						return rpcResult as CreateNodeWithEdgeResponse;
-					},
-				});
-
-				if (rpcMutation.status === 'queued') {
-					persistExpandedParent();
-					get().persistDeltaEvent(
-						'addNode',
-						{ nodes, edges },
-						{ nodes: get().nodes, edges: get().edges }
-					);
-
-					if (nodeType === 'resourceNode' && data.metadata?.url) {
-						get().fetchResourceNodeMetadata(
-							newNodeId,
-							data.metadata.url as string
-						);
-					}
-
-					return;
-				}
-
-				const rpcResult = rpcMutation.data;
-				if (!rpcResult) {
+				// Take the optimistic node (and edge) back out of the canvas and the
+				// shared room when the database does not keep it.
+				const rollbackOptimisticInsert = async () => {
 					set((state) => ({
 						nodes: withParentCollapsed(
 							state.nodes.filter((node) => node.id !== newNodeId),
@@ -944,6 +906,55 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 							);
 						}
 					}
+				};
+
+				// A refused insert (RLS, node limit) rejects here; without the
+				// rollback the node stayed on screen and was never saved.
+				const rpcMutation = await queueMutation<CreateNodeWithEdgeResponse>({
+					entity: 'nodes',
+					action: 'rpc',
+					payload: {
+						rpc: 'create_node_with_parent_edge',
+						args: rpcArgs as Record<string, unknown>,
+					},
+					executeOnline: async () => {
+						const { data: rpcResult, error: rpcError } = await supabase.rpc(
+							'create_node_with_parent_edge',
+							rpcArgs
+						);
+						if (rpcError || !rpcResult) {
+							throw new Error(
+								rpcError?.message || 'Failed to save new node to database.'
+							);
+						}
+						return rpcResult as CreateNodeWithEdgeResponse;
+					},
+				}).catch(async (error: unknown) => {
+					await rollbackOptimisticInsert();
+					throw error;
+				});
+
+				if (rpcMutation.status === 'queued') {
+					persistExpandedParent();
+					get().persistDeltaEvent(
+						'addNode',
+						{ nodes, edges },
+						{ nodes: get().nodes, edges: get().edges }
+					);
+
+					if (nodeType === 'resourceNode' && data.metadata?.url) {
+						get().fetchResourceNodeMetadata(
+							newNodeId,
+							data.metadata.url as string
+						);
+					}
+
+					return;
+				}
+
+				const rpcResult = rpcMutation.data;
+				if (!rpcResult) {
+					await rollbackOptimisticInsert();
 					throw new Error('Failed to save new node to database.');
 				}
 

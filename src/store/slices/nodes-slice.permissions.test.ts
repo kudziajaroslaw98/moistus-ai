@@ -222,6 +222,71 @@ describe('nodes slice permissions', () => {
 		});
 	});
 
+	describe('addNode when the database refuses the node', () => {
+		const allowCheckLimit = () =>
+			mockFetch.mockResolvedValue({
+				status: 200,
+				ok: true,
+				json: async () => ({ data: { allowed: true } }),
+			});
+		const signIn = (harness: ReturnType<typeof createHarness>) =>
+			harness.getSession.mockResolvedValue({
+				data: { session: { user: { id: 'current-user' } } },
+			});
+
+		it('takes the node back off the canvas and out of the shared room', async () => {
+			allowCheckLimit();
+			mockQueueMutation.mockRejectedValue(
+				new Error('new row violates row-level security policy for table "nodes"')
+			);
+			const harness = createHarness('editor', []);
+			signIn(harness);
+
+			await harness.slice.addNode({
+				parentNode: null,
+				nodeType: 'commentNode',
+				nodeId: 'thread-1',
+			});
+
+			expect(harness.getState().nodes).toHaveLength(0);
+			expect(mockBroadcast).toHaveBeenCalledWith(
+				'map-1',
+				'node:delete',
+				expect.objectContaining({ id: 'thread-1' })
+			);
+		});
+
+		it('keeps the node when the database saves it', async () => {
+			allowCheckLimit();
+			mockQueueMutation.mockResolvedValue({
+				status: 'applied',
+				data: {
+					node: {
+						...createNode('thread-1', 'commentNode').data,
+						position_x: 0,
+						position_y: 0,
+					},
+					edge: null,
+				},
+			});
+			const harness = createHarness('editor', []);
+			signIn(harness);
+
+			await harness.slice.addNode({
+				parentNode: null,
+				nodeType: 'commentNode',
+				nodeId: 'thread-1',
+			});
+
+			expect(harness.getState().nodes).toHaveLength(1);
+			expect(mockBroadcast).not.toHaveBeenCalledWith(
+				'map-1',
+				'node:delete',
+				expect.anything()
+			);
+		});
+	});
+
 	describe('deleteNodes', () => {
 		it('deletes nothing for a viewer', async () => {
 			const node = createNode('a', 'defaultNode');
