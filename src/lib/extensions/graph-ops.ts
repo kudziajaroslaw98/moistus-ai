@@ -33,6 +33,11 @@ export function canEditMap(state: AppState): boolean {
 	return isOwner || state.permissions.can_edit === true;
 }
 
+/** Commenters can start and clean up comment threads without edit rights. */
+export function canCommentMap(state: AppState): boolean {
+	return state.permissions.can_comment === true;
+}
+
 /** Returns an error message when node data breaks the extension data contract. */
 function validateNodeData(
 	data: Partial<NodeData> | undefined,

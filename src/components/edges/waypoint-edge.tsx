@@ -5,6 +5,7 @@ import {
 import {
 	getWaypointPath,
 } from '@/helpers/get-waypoint-path';
+import { canEditMap } from '@/lib/extensions/graph-ops';
 import useAppStore from '@/store/mind-map-store';
 import type { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
@@ -96,9 +97,10 @@ const WaypointEdgeComponent = ({
 	selected,
 }: EdgeProps<Edge<EdgeData>>) => {
 	const [isHovered, setIsHovered] = useState(false);
-	const { deleteEdges } = useAppStore(
+	const { deleteEdges, canEdit } = useAppStore(
 		useShallow((state) => ({
 			deleteEdges: state.deleteEdges,
+			canEdit: canEditMap(state),
 		}))
 	);
 	const sourceNode = useInternalNode<Node<NodeData>>(source);
@@ -232,25 +234,27 @@ const WaypointEdgeComponent = ({
 						</div>
 					)}
 
-					<Button
-						className='!size-6'
-						initial={{ opacity: 0, y: 10, scale: 0.8 }}
-						onClick={handleDeleteEdge}
-						size='icon'
-						title='Delete connection'
-						variant='normal' state='destructive'
-						animate={
-							isHovered || selected
-								? { opacity: 1, y: 0, scale: 1 }
-								: { opacity: 0, y: 10, scale: 0.8 }
-						}
-						transition={{
-							duration: 0.2,
-							ease: 'easeOut' as const,
-						}}
-					>
-						<X className='h-3 w-3' />
-					</Button>
+					{canEdit && (
+						<Button
+							className='!size-6'
+							initial={{ opacity: 0, y: 10, scale: 0.8 }}
+							onClick={handleDeleteEdge}
+							size='icon'
+							title='Delete connection'
+							variant='normal' state='destructive'
+							animate={
+								isHovered || selected
+									? { opacity: 1, y: 0, scale: 1 }
+									: { opacity: 0, y: 10, scale: 0.8 }
+							}
+							transition={{
+								duration: 0.2,
+								ease: 'easeOut' as const,
+							}}
+						>
+							<X className='h-3 w-3' />
+						</Button>
+					)}
 				</div>
 			</EdgeLabelRenderer>
 		</>

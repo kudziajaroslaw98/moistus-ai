@@ -1,4 +1,5 @@
 import generateUuid from '@/helpers/generate-uuid';
+import { canEditMap } from '@/lib/extensions/graph-ops';
 import {
 	describeBlockedNodes,
 	isNodeCopyBlocked,
@@ -62,6 +63,8 @@ export const createClipboardSlice: StateCreator<
 		}
 	},
 	pasteNodes: async (position?: XYPosition) => {
+		if (!canEditMap(get())) return;
+
 		const { copiedNodes, copiedEdges, reactFlowInstance, addNode, addEdge } =
 			get();
 

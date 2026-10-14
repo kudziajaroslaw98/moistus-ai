@@ -1,4 +1,5 @@
 import { getFloatingEdgePath } from '@/helpers/get-floating-edge-path';
+import { canEditMap } from '@/lib/extensions/graph-ops';
 import useAppStore from '@/store/mind-map-store';
 import { EdgeData } from '@/types/edge-data';
 import type { NodeData } from '@/types/node-data';
@@ -47,9 +48,10 @@ const FloatingEdgeComponent = ({
 }: EdgeProps<Edge<EdgeData>>) => {
 	const [isHovered, setIsHovered] = useState(false);
 
-	const { deleteEdges } = useAppStore(
+	const { deleteEdges, canEdit } = useAppStore(
 		useShallow((state) => ({
 			deleteEdges: state.deleteEdges,
+			canEdit: canEditMap(state),
 		}))
 	);
 
@@ -183,27 +185,29 @@ const FloatingEdgeComponent = ({
 							</div>
 						)}
 
-						{/* Animated Delete Button */}
-						<Button
-							className='!size-6'
-							initial={{ opacity: 0, y: 10, scale: 0.8 }}
-							onClick={handleDeleteEdge}
-							size={'icon'}
-							title='Delete connection'
-							state='destructive'
-							variant='normal'
-							animate={
-								isHovered || selected
-									? { opacity: 1, y: 0, scale: 1 }
-									: { opacity: 0, y: 10, scale: 0.8 }
-							}
-							transition={{
-								duration: 0.2,
-								ease: 'easeOut' as const,
-							}}
-						>
-							<X className='w-3 h-3' />
-						</Button>
+						{/* Animated Delete Button (invisible, but clickable, until hovered) */}
+						{canEdit && (
+							<Button
+								className='!size-6'
+								initial={{ opacity: 0, y: 10, scale: 0.8 }}
+								onClick={handleDeleteEdge}
+								size={'icon'}
+								title='Delete connection'
+								state='destructive'
+								variant='normal'
+								animate={
+									isHovered || selected
+										? { opacity: 1, y: 0, scale: 1 }
+										: { opacity: 0, y: 10, scale: 0.8 }
+								}
+								transition={{
+									duration: 0.2,
+									ease: 'easeOut' as const,
+								}}
+							>
+								<X className='w-3 h-3' />
+							</Button>
+						)}
 					</div>
 				</EdgeLabelRenderer>
 			</BaseEdge>

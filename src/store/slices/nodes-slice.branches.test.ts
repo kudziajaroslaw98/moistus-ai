@@ -98,6 +98,7 @@ function createHarness(nodes: AppNode[], edges: AppEdge[] = []) {
 		edges,
 		mapId: 'map-1',
 		currentUser: { id: 'current-user' },
+		mindMap: { user_id: 'current-user' },
 		isCommentMode: false,
 		isReverting: false,
 		isLayouting: false,

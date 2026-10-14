@@ -37,6 +37,7 @@ export function MindMapCanvas() {
 
 	// Consume necessary values for keyboard shortcuts
 	const {
+		activeTool,
 		handleCopy,
 		handlePaste,
 		edges,
@@ -61,6 +62,7 @@ export function MindMapCanvas() {
 		flushPendingEdgeSaves,
 	} = useAppStore(
 		useShallow((state) => ({
+			activeTool: state.activeTool,
 			handleCopy: state.copySelectedNodes,
 			handlePaste: state.pasteNodes,
 			edges: state.edges,
@@ -188,15 +190,19 @@ export function MindMapCanvas() {
 		setPopoverOpen({ commandPalette: true });
 	}, [setPopoverOpen]);
 
+	// Pan only moves the pane, so its keyboard is look-up only (search, palette, copy).
+	const isPanning = activeTool === 'pan';
+
 	useKeyboardShortcuts({
 		onCopy: handleCopy,
 		onPaste: handlePaste,
 		selectedNodeId: selectedNodeId,
 		selectedEdgeId: selectedEdgeId,
 		isBusy: isInteractionBlocked,
+		disableEdits: isPanning || !canEdit,
 		onGroup: handleGroup,
 		onUngroup: handleUngroup,
-		onToggleCollapse: handleToggleCollapse,
+		onToggleCollapse: isPanning ? undefined : handleToggleCollapse,
 		onLayout: canEdit ? applyLayout : undefined,
 		onOpenSearch: isRequestedMapReady ? openCanvasSearch : undefined,
 		onOpenPalette: isRequestedMapReady ? openCommandPalette : undefined,
@@ -204,7 +210,7 @@ export function MindMapCanvas() {
 
 	// Keyboard navigation (arrow keys, Ctrl+Arrow creation, Enter edit)
 	useKeyboardNavigation({
-		enabled: !isInteractionBlocked,
+		enabled: !isInteractionBlocked && !isPanning,
 	});
 
 	if (isChecking) {

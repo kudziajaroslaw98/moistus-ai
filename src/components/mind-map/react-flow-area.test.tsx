@@ -1,10 +1,23 @@
 import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { ReactFlowArea } from './react-flow-area';
 
 const mockReactFlowRenderHistory: Array<{ nodes: AppNode[]; edges: AppEdge[] }> =
 	[];
+interface MockReactFlowProps {
+	className?: string;
+	deleteKeyCode?: string[] | null;
+	onBeforeDelete: (change: {
+		nodes: AppNode[];
+		edges: AppEdge[];
+	}) => Promise<boolean | { nodes: AppNode[]; edges: AppEdge[] }>;
+	onNodesDelete: (nodes: AppNode[]) => void;
+	onEdgeDoubleClick: (event: unknown, edge: unknown) => void;
+	onPaneContextMenu: (event: { preventDefault: () => void }) => void;
+	onSelectionContextMenu: (event: { preventDefault: () => void }) => void;
+}
+const mockReactFlowProps: MockReactFlowProps[] = [];
 const mockAnimateGraphToState = jest.fn();
 const mockCancelAnimation = jest.fn();
 const mockNoop = jest.fn();
@@ -15,6 +28,7 @@ const mockSetCenter = jest.fn();
 const mockFitView = jest.fn();
 let mockStoreState: Record<string, unknown>;
 let mockCanEdit = true;
+let mockCanComment = false;
 
 jest.mock('@/registry/node-registry', () => ({
 	NodeRegistry: {
@@ -32,22 +46,34 @@ jest.mock('@xyflow/react', () => {
 		ConnectionMode: { Loose: 'loose' },
 		Panel: ({ children }: { children: React.ReactNode }) =>
 			React.createElement(React.Fragment, null, children),
-		ReactFlow: ({
-			nodes,
-			edges,
-			children,
-		}: {
+		ReactFlow: (props: {
 			nodes: AppNode[];
 			edges: AppEdge[];
 			children: React.ReactNode;
 		}) => {
+			const { nodes, edges, children } = props;
 			mockReactFlowRenderHistory.push({ nodes, edges });
-			return React.createElement('div', { 'data-testid': 'react-flow' }, children);
+			mockReactFlowProps.push(props as unknown as MockReactFlowProps);
+			// Mirror the containers React Flow renders, which pan mode makes inert.
+			return React.createElement(
+				'div',
+				{ 'data-testid': 'react-flow' },
+				React.createElement('div', {
+					className: 'react-flow__nodes',
+					'data-testid': 'rf-nodes',
+				}),
+				React.createElement('div', {
+					className: 'react-flow__edgelabel-renderer',
+					'data-testid': 'rf-edge-labels',
+				}),
+				children
+			);
 		},
 		SelectionMode: { Partial: 'partial' },
 		useReactFlow: () => ({
 			setCenter: (...args: unknown[]) => mockSetCenter(...args),
 			fitView: (...args: unknown[]) => mockFitView(...args),
+			screenToFlowPosition: ({ x, y }: { x: number; y: number }) => ({ x, y }),
 		}),
 	};
 });
@@ -106,7 +132,7 @@ jest.mock('@/components/mind-map/top-bar', () => ({
 }));
 
 jest.mock('@/hooks/collaboration/use-permissions', () => ({
-	usePermissions: () => ({ canEdit: mockCanEdit }),
+	usePermissions: () => ({ canEdit: mockCanEdit, canComment: mockCanComment }),
 }));
 jest.mock('@/hooks/realtime/use-activity-tracker', () => ({
 	useActivityTracker: () => ({
@@ -256,6 +282,7 @@ function createMockStore(overrides: Partial<Record<string, unknown>> = {}) {
 		addNode: mockNoop,
 		fetchMindMapData: jest.fn().mockResolvedValue(undefined),
 		deleteNodes: mockNoop,
+		deleteComment: mockNoop,
 		isDraggingNodes: false,
 		deleteEdges: mockNoop,
 		setIsDraggingNodes: mockNoop,
@@ -305,6 +332,7 @@ function createMockStore(overrides: Partial<Record<string, unknown>> = {}) {
 describe('ReactFlowArea', () => {
 	beforeEach(() => {
 		mockReactFlowRenderHistory.length = 0;
+		mockReactFlowProps.length = 0;
 		mockAnimateGraphToState.mockReset();
 		mockCancelAnimation.mockReset();
 		mockOpenContextMenuAt.mockReset();
@@ -313,6 +341,7 @@ describe('ReactFlowArea', () => {
 		mockSetCenter.mockReset();
 		mockFitView.mockReset();
 		mockCanEdit = true;
+		mockCanComment = false;
 		mockStoreState = createMockStore();
 		mockAnimateGraphToState.mockImplementation(
 			async ({
@@ -509,5 +538,310 @@ describe('ReactFlowArea', () => {
 			expect.objectContaining({ id: 'b', selected: true }),
 		]);
 		expect(mockSetCenter).toHaveBeenCalledTimes(1);
+	});
+
+	describe('pan mode', () => {
+		const latestProps = () => mockReactFlowProps.at(-1) as MockReactFlowProps;
+
+		it('makes nodes and edge labels inert while panning, and restores them after', () => {
+			mockStoreState = createMockStore({ activeTool: 'pan' });
+			const { rerender } = render(<ReactFlowArea isMapReady={true} />);
+
+			expect(screen.getByTestId('rf-nodes')).toHaveAttribute('inert');
+			expect(screen.getByTestId('rf-edge-labels')).toHaveAttribute('inert');
+
+			mockStoreState = createMockStore({ activeTool: 'default' });
+			rerender(<ReactFlowArea isMapReady={true} />);
+
+			expect(screen.getByTestId('rf-nodes')).not.toHaveAttribute('inert');
+			expect(screen.getByTestId('rf-edge-labels')).not.toHaveAttribute('inert');
+		});
+
+		it('leaves nodes interactive in Select', () => {
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(screen.getByTestId('rf-nodes')).not.toHaveAttribute('inert');
+			expect(latestProps().deleteKeyCode).toEqual(['Delete']);
+			expect(latestProps().className).not.toContain('react-flow__node-toolbar');
+		});
+
+		it('turns the Delete key off while panning', () => {
+			mockStoreState = createMockStore({ activeTool: 'pan' });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(latestProps().deleteKeyCode).toBeNull();
+		});
+
+		it('hides node toolbars and the multi-selection box while panning', () => {
+			mockStoreState = createMockStore({ activeTool: 'pan' });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(latestProps().className).toContain(
+				'[&_.react-flow__node-toolbar]:hidden'
+			);
+			expect(latestProps().className).toContain(
+				'[&_.react-flow__nodesselection]:hidden'
+			);
+		});
+
+		it('clears the selection when panning starts', () => {
+			const onNodesChange = jest.fn();
+			const onEdgesChange = jest.fn();
+			const setSelectedNodes = jest.fn();
+			const selectedNode = { ...createNode('a', 0, 0), selected: true };
+			const selectedEdge = { ...createEdge('edge-1', 50), selected: true };
+			mockStoreState = createMockStore({
+				activeTool: 'pan',
+				nodes: [selectedNode, createNode('b', 200, 0)],
+				edges: [selectedEdge],
+				selectedNodes: [selectedNode],
+				onNodesChange,
+				onEdgesChange,
+				setSelectedNodes,
+			});
+
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(onNodesChange).toHaveBeenCalledWith([
+				{ id: 'a', type: 'select', selected: false },
+			]);
+			expect(onEdgesChange).toHaveBeenCalledWith([
+				{ id: 'edge-1', type: 'select', selected: false },
+			]);
+			expect(setSelectedNodes).toHaveBeenCalledWith([]);
+		});
+
+		it('does not touch the selection in Select', () => {
+			const onNodesChange = jest.fn();
+			const setSelectedNodes = jest.fn();
+			const selectedNode = { ...createNode('a', 0, 0), selected: true };
+			mockStoreState = createMockStore({
+				nodes: [selectedNode],
+				selectedNodes: [selectedNode],
+				onNodesChange,
+				setSelectedNodes,
+			});
+
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(onNodesChange).not.toHaveBeenCalled();
+			expect(setSelectedNodes).not.toHaveBeenCalled();
+		});
+
+		it('blocks the pane context menu while panning', () => {
+			mockStoreState = createMockStore({ activeTool: 'pan' });
+			render(<ReactFlowArea isMapReady={true} />);
+			mockNoop.mockClear();
+			const event = { preventDefault: jest.fn() };
+
+			latestProps().onPaneContextMenu(event);
+			latestProps().onSelectionContextMenu(event);
+
+			expect(event.preventDefault).toHaveBeenCalledTimes(2);
+			expect(mockNoop).not.toHaveBeenCalled();
+		});
+
+		it('opens the pane context menu in Select', () => {
+			render(<ReactFlowArea isMapReady={true} />);
+			mockNoop.mockClear();
+			const event = { preventDefault: jest.fn() };
+
+			latestProps().onPaneContextMenu(event);
+
+			expect(mockNoop).toHaveBeenCalledWith(event);
+		});
+
+		it('turns touch long-press menus off while panning', () => {
+			mockStoreState = createMockStore({ activeTool: 'pan' });
+			const { rerender } = render(<ReactFlowArea isMapReady={true} />);
+
+			expect(mockUseTouchContextMenuFallback.mock.calls.at(-1)?.[0]).toEqual(
+				expect.objectContaining({ enabled: false })
+			);
+
+			mockStoreState = createMockStore({ activeTool: 'default' });
+			rerender(<ReactFlowArea isMapReady={true} />);
+
+			expect(mockUseTouchContextMenuFallback.mock.calls.at(-1)?.[0]).toEqual(
+				expect.objectContaining({ enabled: true })
+			);
+		});
+
+		it('ignores undo, redo and selection gestures while panning but keeps fit view', () => {
+			const revertToHistoryState = jest.fn().mockResolvedValue(undefined);
+			const setSelectedNodes = jest.fn();
+			mockStoreState = createMockStore({
+				activeTool: 'pan',
+				historyIndex: 1,
+				historyMeta: [{ id: 'h-0' }, { id: 'h-1' }, { id: 'h-2' }],
+				revertToHistoryState,
+				setSelectedNodes,
+			});
+			render(<ReactFlowArea isMapReady={true} />);
+			setSelectedNodes.mockClear();
+
+			const gestureConfig = mockUseMultiTouchShortcuts.mock.calls.at(-1)?.[0] as {
+				onTwoFingerTap: () => void;
+				onThreeFingerTap: () => void;
+				onTwoFingerDoubleTap: () => void;
+				onThreeFingerSwipe: (direction: 'left' | 'right') => void;
+			};
+
+			act(() => {
+				gestureConfig.onTwoFingerTap();
+				gestureConfig.onThreeFingerTap();
+				gestureConfig.onThreeFingerSwipe('right');
+				gestureConfig.onTwoFingerDoubleTap();
+			});
+
+			expect(revertToHistoryState).not.toHaveBeenCalled();
+			expect(setSelectedNodes).not.toHaveBeenCalled();
+			expect(mockFitView).toHaveBeenCalledTimes(1);
+		});
+
+		it('ignores the "/" shortcut while panning', () => {
+			const openNodeEditor = jest.fn();
+			mockStoreState = createMockStore({ activeTool: 'pan', openNodeEditor });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			fireEvent.keyDown(window, { key: '/' });
+
+			expect(openNodeEditor).not.toHaveBeenCalled();
+		});
+
+		it('opens the node creator on "/" in Select', () => {
+			const openNodeEditor = jest.fn();
+			mockStoreState = createMockStore({ openNodeEditor });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			fireEvent.keyDown(window, { key: '/' });
+
+			expect(openNodeEditor).toHaveBeenCalledWith(
+				expect.objectContaining({ mode: 'create' })
+			);
+		});
+	});
+
+	describe('edge double-click', () => {
+		const edge = { id: 'edge-1', type: 'floatingEdge', data: {} };
+		const latestProps = () => mockReactFlowProps.at(-1) as MockReactFlowProps;
+
+		it('opens the edge editor for someone who can edit', () => {
+			const setEdgeInfo = jest.fn();
+			mockStoreState = createMockStore({ setEdgeInfo });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			latestProps().onEdgeDoubleClick({ clientX: 0, clientY: 0 }, edge);
+
+			expect(setEdgeInfo).toHaveBeenCalledWith(edge);
+		});
+
+		it('does nothing for someone who cannot edit', () => {
+			mockCanEdit = false;
+			const setEdgeInfo = jest.fn();
+			mockStoreState = createMockStore({ setEdgeInfo });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			latestProps().onEdgeDoubleClick({ clientX: 0, clientY: 0 }, edge);
+
+			expect(setEdgeInfo).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('deleting with the Delete key', () => {
+		const latestProps = () => mockReactFlowProps.at(-1) as MockReactFlowProps;
+		const thread = (id: string, userId: string) =>
+			({
+				id,
+				type: 'commentNode',
+				position: { x: 0, y: 0 },
+				data: { id, user_id: userId },
+			}) as unknown as AppNode;
+		const note = (id: string) =>
+			({
+				id,
+				type: 'defaultNode',
+				position: { x: 0, y: 0 },
+				data: { id, user_id: 'user-1' },
+			}) as unknown as AppNode;
+
+		beforeEach(() => {
+			mockCanEdit = false;
+			mockCanComment = true;
+		});
+
+		it('is on for a commenter, who may delete their own threads', () => {
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(latestProps().deleteKeyCode).toEqual(['Delete']);
+		});
+
+		it('stays off for a viewer', () => {
+			mockCanComment = false;
+			render(<ReactFlowArea isMapReady={true} />);
+
+			expect(latestProps().deleteKeyCode).toBeNull();
+		});
+
+		it('only lets a commenter delete threads they started', async () => {
+			render(<ReactFlowArea isMapReady={true} />);
+			const mine = thread('thread-mine', 'user-1');
+
+			const approved = await latestProps().onBeforeDelete({
+				nodes: [mine, thread('thread-theirs', 'user-2'), note('note-1')],
+				edges: [{ id: 'edge-1' } as AppEdge],
+			});
+
+			expect(approved).toEqual({ nodes: [mine], edges: [] });
+		});
+
+		it('cancels the delete for a commenter when nothing selected is their thread', async () => {
+			render(<ReactFlowArea isMapReady={true} />);
+
+			const approved = await latestProps().onBeforeDelete({
+				nodes: [note('note-1'), thread('thread-theirs', 'user-2')],
+				edges: [],
+			});
+
+			expect(approved).toBe(false);
+		});
+
+		it('deletes the thread and its comment for a commenter, nothing else', () => {
+			const deleteComment = jest.fn();
+			const deleteNodes = jest.fn();
+			mockStoreState = createMockStore({ deleteComment, deleteNodes });
+			render(<ReactFlowArea isMapReady={true} />);
+
+			latestProps().onNodesDelete([thread('thread-mine', 'user-1')]);
+
+			expect(deleteComment).toHaveBeenCalledWith('thread-mine');
+			expect(deleteNodes).not.toHaveBeenCalled();
+		});
+
+		it('does not approve a delete for an editor differently than before', async () => {
+			mockCanEdit = true;
+			render(<ReactFlowArea isMapReady={true} />);
+
+			const approved = await latestProps().onBeforeDelete({
+				nodes: [note('note-1')],
+				edges: [],
+			});
+
+			expect(approved).toBe(true);
+		});
+
+		it('sends an editor\'s threads through deleteComment and other nodes through deleteNodes', () => {
+			mockCanEdit = true;
+			const deleteComment = jest.fn();
+			const deleteNodes = jest.fn();
+			mockStoreState = createMockStore({ deleteComment, deleteNodes });
+			render(<ReactFlowArea isMapReady={true} />);
+			const other = note('note-1');
+
+			latestProps().onNodesDelete([thread('thread-theirs', 'user-2'), other]);
+
+			expect(deleteComment).toHaveBeenCalledWith('thread-theirs');
+			expect(deleteNodes).toHaveBeenCalledWith([other]);
+		});
 	});
 });

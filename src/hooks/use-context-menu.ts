@@ -172,9 +172,15 @@ export function useContextMenu(): UseContextMenuResult {
 			const isDoubleClick = currentTime - lastClickTime.current < DOUBLE_CLICK_DELAY;
 			lastClickTime.current = currentTime;
 
-			// Comment Mode: Only create comment on double-click
+			// Comment Mode: Only create comment on double-click (Pan never creates)
 			if (isCommentMode) {
-				if (isDoubleClick && position && mapId && currentUser) {
+				if (
+					isDoubleClick &&
+					activeTool !== 'pan' &&
+					position &&
+					mapId &&
+					currentUser
+				) {
 					try {
 						// Generate shared ID for both node and comment
 						const commentId = generateUuid();
