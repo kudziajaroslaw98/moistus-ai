@@ -1,6 +1,7 @@
 'use client';
 
 import type { HistoryFocusTarget } from '@/helpers/history/presentation';
+import { useIsMobile } from '@/hooks/use-mobile';
 import useAppStore from '@/store/mind-map-store';
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/shallow';
@@ -12,6 +13,7 @@ export function useHistoryFocusController() {
 		centerOnNode,
 		reactFlowInstance,
 		setSelectedNodes,
+		setPopoverOpen,
 	} = useAppStore(
 		useShallow((state) => ({
 			nodes: state.nodes,
@@ -19,15 +21,17 @@ export function useHistoryFocusController() {
 			centerOnNode: state.centerOnNode,
 			reactFlowInstance: state.reactFlowInstance,
 			setSelectedNodes: state.setSelectedNodes,
+			setPopoverOpen: state.setPopoverOpen,
 		}))
 	);
+	const isMobile = useIsMobile();
 
 	const nodeById = useMemo(
 		() => new Map(nodes.map((node) => [node.id, node])),
 		[nodes]
 	);
 
-	const handleFocusTarget = useCallback(
+	const focusTarget = useCallback(
 		(target: HistoryFocusTarget) => {
 			if (target.type === 'node') {
 				const currentNode = nodeById.get(target.nodeId);
@@ -68,6 +72,21 @@ export function useHistoryFocusController() {
 			}
 		},
 		[centerOnNode, nodeById, nodes, reactFlowInstance, setSelectedNodes]
+	);
+
+	// On desktop the panel is docked, so the map pans while it stays open. On a phone
+	// the panel covers the map: close it first, then pan once it starts sliding out.
+	const handleFocusTarget = useCallback(
+		(target: HistoryFocusTarget) => {
+			if (!isMobile) {
+				focusTarget(target);
+				return;
+			}
+
+			setPopoverOpen({ history: false });
+			window.requestAnimationFrame(() => focusTarget(target));
+		},
+		[focusTarget, isMobile, setPopoverOpen]
 	);
 
 	return { nodes, edges, handleFocusTarget };

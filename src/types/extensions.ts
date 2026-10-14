@@ -29,6 +29,11 @@ export interface NodeExtensionData {
 	snapshot?: unknown;
 	/** When an editor's refresh last fetched every request successfully (ISO time). */
 	fetchedAt?: string;
+	/**
+	 * The node's data links to other nodes on this map, so copying it would point the copy
+	 * at the originals. Set when it's saved; copy, paste and templates leave it behind.
+	 */
+	noCopy?: boolean;
 }
 
 export type GraphOp =

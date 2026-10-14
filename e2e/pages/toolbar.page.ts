@@ -28,7 +28,6 @@ export class ToolbarPage {
 	readonly layoutButton: Locator;
 	readonly exportButton: Locator;
 	readonly presentButton: Locator;
-	readonly chatButton: Locator;
 	readonly commentsButton: Locator;
 	readonly zoomButton: Locator;
 
@@ -56,7 +55,6 @@ export class ToolbarPage {
 		this.layoutButton = this.toolbar.locator('button[title*="Layout"]');
 		this.exportButton = this.toolbar.locator('button[title*="Export"]');
 		this.presentButton = this.toolbar.locator('button[title="Guided Tour"]');
-		this.chatButton = this.toolbar.locator('button[title="AI Chat"]');
 		this.commentsButton = this.toolbar.locator('button[title*="Comments"]');
 		this.zoomButton = this.toolbar.locator('button[title="Zoom"]');
 	}
@@ -225,13 +223,6 @@ export class ToolbarPage {
 	}
 
 	/**
-	 * Asserts that AI Chat button is hidden.
-	 */
-	async expectAiChatButtonHidden() {
-		await expect(this.chatButton).not.toBeVisible();
-	}
-
-	/**
 	 * Asserts that More button is visible.
 	 */
 	async expectMoreButtonVisible() {
@@ -320,13 +311,6 @@ export class ToolbarPage {
 	 */
 	async clickAddNode() {
 		await this.addNodeButton.click();
-	}
-
-	/**
-	 * Clicks the AI Chat button.
-	 */
-	async clickAiChat() {
-		await this.chatButton.click();
 	}
 
 	/**

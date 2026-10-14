@@ -1,3 +1,4 @@
+import generateUuid from '@/helpers/generate-uuid';
 import {
 	deleteOfflineOp,
 	enqueueOfflineOp,
@@ -49,7 +50,9 @@ const isLikelyOfflineError = (error: unknown): boolean => {
 export const queueMutation = async <T>(
 	input: QueueMutationInput<T>
 ): Promise<QueueMutationResult<T>> => {
-	const opId = crypto.randomUUID();
+	// Not crypto.randomUUID(): it only exists in secure contexts, so it is missing on
+	// plain-http LAN dev (and old browsers). uuid falls back to getRandomValues.
+	const opId = generateUuid();
 	const operation: OfflineQueuedOp = {
 		opId,
 		entity: input.entity,

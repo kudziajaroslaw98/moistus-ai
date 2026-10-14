@@ -1,10 +1,17 @@
 'use client';
 
+import { Button } from '@/components/ui/button';
+import {
+	Panel,
+	PanelFooterActions,
+	PanelFooterNote,
+	panelButtonSmClass,
+} from '@/components/ui/panel';
+import { useIsMobile } from '@/hooks/use-mobile';
 import useAppStore from '@/store/mind-map-store';
 import { Flag, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/shallow';
-import { SidePanel } from '../side-panel';
 import { HistoryEmptyState } from './history-empty-state';
 import { HistoryFilterBar } from './history-filter-bar';
 import { HistoryList } from './history-list';
@@ -13,8 +20,7 @@ import {
 	type HistoryFilter,
 } from './model/history-timeline';
 
-const secondaryButtonClass =
-	'inline-flex h-8 items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-3 text-[13px] text-white/85 transition-colors duration-200 ease hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 disabled:opacity-50';
+const outlineButtonClass = `${panelButtonSmClass} gap-1.5 border-white/12 bg-white/[0.03] text-text-primary hover:bg-white/[0.07]`;
 
 export function HistorySidebar() {
 	const {
@@ -44,6 +50,7 @@ export function HistorySidebar() {
 			isProUser: state.isProUser(),
 		}))
 	);
+	const isMobile = useIsMobile();
 	const [filter, setFilter] = useState<HistoryFilter>('all');
 
 	// Load history when sidebar opens
@@ -56,67 +63,64 @@ export function HistorySidebar() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [popoverOpen.history, mapId]);
 
-	const handleClose = () => setPopoverOpen({ history: false });
 	const isEmpty = historyMeta.length === 0 && !isLoading;
 
 	return (
-		<SidePanel
-			bodyClassName='p-0'
-			className='w-full sm:w-[460px]'
-			isOpen={popoverOpen.history}
-			onClose={handleClose}
+		<Panel
+			// Docked beside the map so "Focus on canvas" can be watched; on a phone the
+			// panel covers the screen, so it is a modal and Focus closes it first.
+			variant={isMobile ? 'modal' : 'docked'}
+			bodyClassName='flex flex-col px-3 pt-3 pb-4'
+			data-testid='history-panel'
+			onOpenChange={(open) => setPopoverOpen({ history: open })}
+			open={popoverOpen.history}
 			subtitle={mapTitle}
 			title='History'
 			headerActions={
 				isProUser ? (
-					<button
-						className={secondaryButtonClass}
+					<Button
+						className={outlineButtonClass}
 						onClick={() => createSnapshot('Manual Checkpoint', true)}
 						title='Save a checkpoint of the current map'
 						type='button'
+						variant='outline'
 					>
-						<Flag className='h-3.5 w-3.5' />
+						<Flag className='size-3.5' />
 						Checkpoint
-					</button>
+					</Button>
 				) : null
 			}
+			subbar={
+				isEmpty ? undefined : (
+					<HistoryFilterBar
+						counts={countHistoryByFilter(historyMeta)}
+						onChange={setFilter}
+						value={filter}
+					/>
+				)
+			}
 			footer={
-				<div className='flex w-full items-center justify-between gap-3'>
-					<span className='text-[12px] text-white/45'>
-						Latest changes first
-					</span>
+				<>
+					<PanelFooterNote>Latest changes first</PanelFooterNote>
 
 					{hasMore && (
-						<button
-							className={secondaryButtonClass}
-							disabled={!mapId || isLoading}
-							onClick={() => mapId && loadMoreHistory(mapId)}
-							type='button'
-						>
-							{isLoading && <Loader2 className='h-3.5 w-3.5 animate-spin' />}
-							Load older
-						</button>
+						<PanelFooterActions>
+							<Button
+								className={outlineButtonClass}
+								disabled={!mapId || isLoading}
+								onClick={() => mapId && loadMoreHistory(mapId)}
+								type='button'
+								variant='outline'
+							>
+								{isLoading && <Loader2 className='size-3.5 animate-spin' />}
+								Load older
+							</Button>
+						</PanelFooterActions>
 					)}
-				</div>
+				</>
 			}
 		>
-			{isEmpty ? (
-				<HistoryEmptyState />
-			) : (
-				<>
-					<div className='shrink-0 border-b border-border-subtle px-4 py-3'>
-						<HistoryFilterBar
-							counts={countHistoryByFilter(historyMeta)}
-							onChange={setFilter}
-							value={filter}
-						/>
-					</div>
-
-					<div className='min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3'>
-						<HistoryList filter={filter} />
-					</div>
-				</>
-			)}
-		</SidePanel>
+			{isEmpty ? <HistoryEmptyState /> : <HistoryList filter={filter} />}
+		</Panel>
 	);
 }

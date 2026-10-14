@@ -64,6 +64,8 @@ interface EnhancedInputProps {
 	pluginFields?: PluginFieldSpecLite[] | null;
 	/** Adds "More node types…" to the `$` list. Read when the editor is created. */
 	onBrowsePlugins?: () => void;
+	/** Put the caret after the text when it first fills in (a plugin's "Add thread" opens on a new line). */
+	cursorAtEnd?: boolean;
 }
 
 export const EnhancedInput = ({
@@ -87,6 +89,7 @@ export const EnhancedInput = ({
 	collaborators,
 	pluginFields = null,
 	onBrowsePlugins,
+	cursorAtEnd = false,
 	...rest
 }: EnhancedInputProps) => {
 	const editorRef = useRef<HTMLDivElement>(null);
@@ -96,6 +99,7 @@ export const EnhancedInput = ({
 	const initializedRef = useRef(false);
 	const lastKnownValueRef = useRef(value);
 	const pluginFieldsRef = useRef(pluginFields);
+	const cursorAtEndRef = useRef(cursorAtEnd);
 	const onBrowsePluginsRef = useRef(onBrowsePlugins);
 
 	// Store the latest callbacks in refs to avoid stale closures
@@ -331,6 +335,10 @@ export const EnhancedInput = ({
 
 			editorViewRef.current = view;
 			initializedRef.current = true;
+			// Opened on text that's already there: caret after it, ready to type the next line.
+			if (cursorAtEndRef.current) {
+				view.dispatch({ selection: { anchor: view.state.doc.length } });
+			}
 			if (pluginFieldsRef.current) {
 				view.dispatch({ effects: setPluginFieldsEffect.of(pluginFieldsRef.current) });
 			}
@@ -442,6 +450,10 @@ export const EnhancedInput = ({
 	}, [collaborators]); // Recreate only when the completion source changes structurally
 
 	useEffect(() => {
+		cursorAtEndRef.current = cursorAtEnd;
+	}, [cursorAtEnd]);
+
+	useEffect(() => {
 		pluginFieldsRef.current = pluginFields;
 		editorViewRef.current?.dispatch({ effects: setPluginFieldsEffect.of(pluginFields) });
 	}, [pluginFields]);
@@ -519,6 +531,9 @@ export const EnhancedInput = ({
 					to: currentContent.length,
 					insert: value || '',
 				},
+				...(cursorAtEnd && currentContent === ''
+					? { selection: { anchor: (value || '').length } }
+					: {}),
 			});
 			isInternalChange = false;
 

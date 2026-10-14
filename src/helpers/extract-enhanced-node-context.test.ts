@@ -2,7 +2,6 @@ import type { AppEdge } from '@/types/app-edge';
 import type { AppNode } from '@/types/app-node';
 import { createAiIdAliasMap } from './ai-id-alias-map';
 import {
-	buildContextPrompt,
 	buildMapSuggestionContext,
 	buildMapSummaryContext,
 } from './extract-enhanced-node-context';
@@ -249,45 +248,6 @@ describe('buildMapSuggestionContext', () => {
 });
 
 describe('compact enhanced context builders', () => {
-	it('formats focused-node context as hybrid rows without verbose labels', () => {
-		const root = createNode('root', 'Growth strategy');
-		const primary = createNode('focus', 'Launch referral program', {
-			data: { tags: ['growth', 'acquisition'] },
-		});
-		const sibling = createNode('sib', 'Improve onboarding flow');
-		const edges = [
-			createEdge('edge-1', 'root', 'focus'),
-			createEdge('edge-2', 'root', 'sib'),
-		];
-
-		const result = buildContextPrompt({
-			primary,
-			siblings: [sibling],
-			parent: root,
-			grandparent: null,
-			siblingPatterns: {
-				commonTags: ['growth'],
-				nodeTypes: ['defaultNode'],
-				avgContentLength: 24,
-				topics: ['growth', 'referral'],
-			},
-			graphTopology: {
-				isIsolated: false,
-				degree: 2,
-				inDegree: 1,
-				outDegree: 1,
-				depth: 1,
-			},
-		});
-
-		expect(result).toContain('NODE=');
-		expect(result).toContain('REL=');
-		expect(result).toContain('TOPICS=');
-		expect(result).not.toContain('Content:');
-		expect(result).not.toContain('Hierarchy:');
-		expect(result).not.toContain('Graph Position:');
-	});
-
 	it('formats map summaries as compact rows', () => {
 		const nodes = [
 			createNode('root', 'Product launch planning'),
@@ -312,43 +272,11 @@ describe('compact enhanced context builders', () => {
 		expect(result).not.toContain('Structure:');
 	});
 
-	it('aliases focused-node and summary row ids when an alias map is provided', () => {
+	it('aliases summary row ids when an alias map is provided', () => {
 		const root = createNode('root', 'Growth strategy');
 		const primary = createNode('focus', 'Launch referral program');
 		const sibling = createNode('sib', 'Improve onboarding flow');
 		const aliasMap = createAiIdAliasMap([root, primary, sibling]);
-
-		const focusedContext = buildContextPrompt(
-			{
-				primary,
-				siblings: [sibling],
-				parent: root,
-				grandparent: null,
-				siblingPatterns: {
-					commonTags: [],
-					nodeTypes: ['defaultNode'],
-					avgContentLength: 20,
-					topics: ['growth'],
-				},
-				graphTopology: {
-					isIsolated: false,
-					degree: 2,
-					inDegree: 1,
-					outDegree: 1,
-					depth: 1,
-				},
-			},
-			{ aliasMap }
-		);
-
-		expect(focusedContext).toContain('NODE=[2,');
-		expect(focusedContext).toContain('NODE=[1,');
-		expect(focusedContext).toContain('NODE=[3,');
-		expect(focusedContext).toContain('REL=["parent",1,2]');
-		expect(focusedContext).toContain('REL=["sibling",2,3]');
-		expect(focusedContext).not.toContain('"focus"');
-		expect(focusedContext).not.toContain('"root"');
-		expect(focusedContext).not.toContain('"sib"');
 
 		const summaryContext = buildMapSummaryContext(
 			[root, primary, sibling],

@@ -43,21 +43,24 @@ function SheetOverlay({
 				transitionTimingFunction: 'cubic-bezier(.215, .61, .355, 1)', // ease-out-cubic
 			}}
 			{...props}
-		/>
+			/>
 	);
 }
 
 function SheetContent({
 	className,
+	overlayClassName,
 	children,
 	side = 'right',
 	...props
 }: ComponentProps<typeof BaseDialog.Popup> & {
 	side?: 'top' | 'right' | 'bottom' | 'left';
+	/** For a sheet that has to open over a popover (z-[100]). */
+	overlayClassName?: string;
 }) {
 	return (
 		<SheetPortal>
-			<SheetOverlay />
+			<SheetOverlay className={overlayClassName} />
 
 			<BaseDialog.Popup
 				data-slot='sheet-content'

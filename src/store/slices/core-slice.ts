@@ -21,7 +21,7 @@ import {
 	DEFAULT_LAYOUT_CONFIG,
 	normalizeLayoutDirection,
 } from '@/types/layout-types';
-import type { MindMapData } from '@/types/mind-map-data';
+import type { MindMapData, MindMapUpdates } from '@/types/mind-map-data';
 import { UserProfile } from '@/types/user-profile-types';
 import type { User } from '@supabase/supabase-js';
 import { toast } from 'sonner';
@@ -135,14 +135,11 @@ export const createCoreDataSlice: StateCreator<
 				edgeEdit: false,
 				history: false,
 				mergeSuggestions: false,
-				aiContent: false,
-				generateFromNodesModal: false,
 				sharePanel: false,
 				joinRoom: false,
 				permissionManager: false,
 				roomCodeDisplay: false,
 				guestSignup: false,
-				aiChat: false,
 				referenceSearch: false,
 				mapSettings: false,
 				upgradeUser: false,
@@ -187,14 +184,6 @@ export const createCoreDataSlice: StateCreator<
 			stopStreamCallback: null,
 			lastTriggerTime: 0,
 			pendingAnimations: new Map(),
-			chatMessages: [],
-			isChatStreaming: false,
-			chatContext: {
-				mapId: null,
-				selectedNodeIds: [],
-				contextMode: 'summary',
-			},
-			isChatOpen: false,
 			shareTokens: [],
 			currentShares: [],
 			activeToken: undefined,
@@ -600,7 +589,7 @@ export const createCoreDataSlice: StateCreator<
 	),
 
 	updateMindMap: withLoadingAndToast(
-		async (mapId: string, updates: Partial<MindMapData>) => {
+		async (mapId: string, updates: MindMapUpdates) => {
 			if (!mapId) {
 				throw new Error('Map ID is required.');
 			}

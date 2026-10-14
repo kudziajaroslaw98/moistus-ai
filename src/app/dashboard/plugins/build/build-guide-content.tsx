@@ -1,6 +1,6 @@
 'use client';
 
-import { DeveloperModeSetting } from '@/components/plugins/developer-mode-switch';
+import { PluginStartPanel } from '@/components/plugins/playground/plugin-start-panel';
 import { buttonVariants } from '@/components/ui/button';
 import { useIsMac } from '@/hooks/use-platform';
 import {
@@ -32,7 +32,8 @@ const SERVE_COMMAND = 'npx serve --cors -l 5173';
 const MANIFEST_URL = 'http://localhost:5173/manifest.json';
 
 const SECTIONS = [
-	{ id: 'quick-start', label: 'Quick start' },
+	{ id: 'start', label: 'Start a plugin' },
+	{ id: 'own-editor', label: 'Use your own editor' },
 	{ id: 'manifest', label: 'manifest.json' },
 	{ id: 'fields', label: 'How people fill in fields' },
 	{ id: 'plugin-js', label: 'plugin.js' },
@@ -313,7 +314,7 @@ function useActiveSection(ids: readonly string[]) {
 
 const bodyClass = 'text-sm leading-[22px] text-zinc-400';
 
-/** Dashboard "Build a plugin" guide: a quick start with the Counter starter, then the reference. */
+/** Dashboard "Write a plugin" tab: start a draft, the localhost steps with the Counter starter, then the reference. */
 export function BuildGuideContent() {
 	const isMac = useIsMac();
 	const copy = useCopy();
@@ -324,18 +325,24 @@ export function BuildGuideContent() {
 	return (
 		<div className='mt-8 flex items-start gap-12'>
 			<article className='flex min-w-0 max-w-3xl flex-1 flex-col gap-12'>
-				<Section id='quick-start' title='Quick start'>
+				<Section id='start' title='Start a plugin'>
+					<PluginStartPanel />
+				</Section>
+
+				<Section id='own-editor' title='Use your own editor'>
+					<p className={bodyClass}>
+						Write the two files in your editor, serve the folder from localhost
+						and load it on a map you own. Only you see it.
+					</p>
+
 					<ol className='flex flex-col gap-6'>
 						<Step number={1} title='Turn on Developer mode'>
 							<p className={bodyClass}>
-								It adds a Developer section to the Plugins panel of maps you
-								own. Plugins you load there run only for you. The switch is also
-								in Map Settings › Editor Preferences and in Settings › Editor.
+								It&apos;s the switch at the top of this page. It also adds a
+								Developer section to the Plugins panel of maps you own. Plugins
+								you load there run only for you. The switch is also in Map
+								Settings › Editor Preferences and in Settings › Editor.
 							</p>
-
-							<div className='rounded-[10px] border border-zinc-800 bg-[#0b0b0b] p-3.5'>
-								<DeveloperModeSetting id='guide-developer-mode' />
-							</div>
 						</Step>
 
 						<Step number={2} title='Download the starter'>
@@ -561,6 +568,21 @@ export function BuildGuideContent() {
 							<dd className={bodyClass}>
 								With branch:read, render and actions get the nodes under yours, in
 								order. Shiko draws your node again when they change.
+							</dd>
+						</div>
+
+						<div className='flex flex-col gap-1'>
+							<dt className='font-mono text-[13px] text-zinc-200'>ctx.refs</dt>
+
+							<dd className={bodyClass}>
+								With nodes:refs, render and actions get the nodes your own data
+								links to, by id. A field or list column with ref: &quot;node&quot;
+								holds a node id (and setBy: &quot;action&quot;, so nobody types
+								it). A node that was deleted has no entry, which is how you know.
+								A button or menu item with pick lets the person click a node on
+								the canvas, then your action gets payload.nodeId. Nodes whose data
+								links to other nodes can&apos;t be copied, because the copy would
+								point at the originals.
 							</dd>
 						</div>
 					</dl>

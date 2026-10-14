@@ -5,18 +5,30 @@ import {
 	CardMenuIcon,
 	CatalogCard,
 	CatalogCardSkeleton,
+	CatalogEmptyState,
 	CatalogGrid,
 	OFF_HUE,
-	type CatalogChip,
 } from '@/components/dashboard/catalog-card';
-import { CreateTile } from '@/components/dashboard/create-tile';
 import {
 	CARD_BUTTON_CLASS,
 	PRIMARY_BUTTON_CLASS,
 } from '@/components/dashboard/dashboard-page';
+import { useDashboardSearch } from '@/components/dashboard/dashboard-shell-context';
+import { ViewToggle } from '@/components/dashboard/view-toggle';
+import { useDeveloperMode } from '@/components/plugins/developer-mode-switch';
+import {
+	buildMyPluginRows,
+	countPluginFilters,
+	matchesPluginFilter,
+	matchesPluginQuery,
+	MY_PLUGIN_FILTERS,
+	type MyPluginFilter,
+} from '@/components/plugins/my-plugin-rows';
+import { QUIET_BUTTON_CLASS } from '@/components/plugins/playground/playground-styles';
 import { PluginSubmitSheet } from '@/components/plugins/plugin-submit-sheet';
 import { PluginVersionsSheet } from '@/components/plugins/plugin-versions-sheet';
 import { PluginsSlot } from '@/components/plugins/plugins-page-tabs';
+import { RecipeConfirmDialog } from '@/components/recipes/recipe-confirm-dialog';
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -32,16 +44,28 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { compareVersions, isLocalDevPluginUrl } from '@/lib/plugins/catalog';
+import { isLocalDevPluginUrl } from '@/lib/plugins/catalog';
+import {
+	createDraftFromPublished,
+	deleteDraft,
+	listDrafts,
+	playgroundHref,
+	PLUGIN_DRAFTS_KEY,
+} from '@/lib/plugins/drafts-client';
 import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
 import {
-	describePowerKind,
 	PLUGIN_POWER_HUES,
 	powerKindOfPermissions,
 } from '@/lib/plugins/powers';
+import type { PluginDraftSummary } from '@/types/plugin-drafts';
 import type { MyPlugin } from '@/types/plugin-library';
-import { History, Plus, Puzzle, Send } from 'lucide-react';
-import { useState } from 'react';
+import { cn } from '@/utils/cn';
+import type { DashboardViewMode } from '@/types/dashboard-map';
+import { Code2, History, Pencil, Plus, Puzzle, Send } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import useSWR from 'swr';
 
 const MINE_KEY = '/api/plugins/mine';
@@ -55,47 +79,6 @@ async function fetchMine(url: string): Promise<MyPlugin[]> {
 	if (!response.ok || !body?.data)
 		throw new Error(body?.error ?? 'Could not load your plugins');
 	return body.data.plugins;
-}
-
-/** Status chips on the cover: what is live, what is waiting, what needs changes. */
-function statusChips(plugin: MyPlugin): CatalogChip[] {
-	const live = plugin.versions.find(
-		(version) => version.status === 'published'
-	);
-	const waiting = plugin.versions.find(
-		(version) => version.status === 'in_review'
-	);
-	const changes = plugin.versions.find(
-		(version) => version.status === 'changes_requested'
-	);
-	// A request for changes only matters while nothing newer is in review.
-	const showChanges =
-		changes &&
-		(!waiting || compareVersions(changes.version, waiting.version) > 0)
-			? changes
-			: null;
-	return [
-		...(plugin.disabledReason
-			? [{ label: 'Turned off', tone: 'red' as const }]
-			: []),
-		...(live
-			? [{ label: `Published ${live.version}`, tone: 'green' as const }]
-			: []),
-		...(waiting
-			? [{ label: `${waiting.version} in review`, tone: 'amber' as const }]
-			: []),
-		...(showChanges
-			? [{ label: 'Changes requested', tone: 'red' as const }]
-			: []),
-	];
-}
-
-/** Shiko's message when changes were requested, else the plugin's own description. */
-function cardDescription(plugin: MyPlugin): string {
-	const newest = plugin.versions[0];
-	if (newest?.status === 'changes_requested' && newest.reviewMessage)
-		return `Shiko: “${newest.reviewMessage}”`;
-	return plugin.description || 'Not published yet.';
 }
 
 /** Asks for the developer plugin's localhost manifest URL, then shows the submit sheet. */
@@ -166,30 +149,207 @@ function SubmitDialog({
 	);
 }
 
-/** Dashboard › Plugins › My plugins: your plugins as cards, and their versions in a side sheet. */
+/** The filter chips: counts per filter, empty ones hidden unless picked. */
+function FilterChips({
+	counts,
+	filter,
+	onChange,
+}: {
+	counts: Record<MyPluginFilter, number>;
+	filter: MyPluginFilter;
+	onChange: (filter: MyPluginFilter) => void;
+}) {
+	return (
+		<div
+			aria-label='Filter your plugins'
+			className='-mx-4 mt-5 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0'
+			role='group'
+		>
+			{MY_PLUGIN_FILTERS.filter(
+				({ id }) => id === 'all' || id === filter || counts[id] > 0
+			).map(({ id, label }) => (
+				<button
+					aria-pressed={filter === id}
+					key={id}
+					onClick={() => onChange(id)}
+					type='button'
+					className={cn(
+						'inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-3 text-[13px] transition-colors duration-200 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
+						filter === id
+							? 'border-[#3a3d46] bg-[#1c1d22] text-white'
+							: 'border-[#1d1f24] bg-[#0e0f12] text-zinc-400 [@media(hover:hover)]:hover:text-white'
+					)}
+				>
+					{id === 'attention' && (
+						<span aria-hidden className='size-1.5 rounded-full bg-amber-400' />
+					)}
+
+					{label}
+
+					<span className='font-mono text-xs text-zinc-500'>{counts[id]}</span>
+				</button>
+			))}
+		</div>
+	);
+}
+
+/** Nothing written or submitted yet: the way in is the Write a plugin tab. */
+/**
+ * Drafts are only fetched while Developer mode is on, so with it off a person whose work
+ * is all drafts would see an empty page. This says why, and where the switch is.
+ */
+function DraftsHiddenNote({ centered }: { centered: boolean }) {
+	return (
+		<p
+			className={cn(
+				'mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] leading-[19px] text-zinc-500',
+				centered && 'justify-center'
+			)}
+		>
+			<Code2 aria-hidden className='size-3.5 shrink-0' />
+			Drafts are hidden while Developer mode is off.
+
+			<Link
+				className='text-zinc-300 underline underline-offset-[3px] transition-colors duration-200 ease [@media(hover:hover)]:hover:text-white'
+				href='/dashboard/plugins/build'
+			>
+				Turn it on
+			</Link>
+		</p>
+	);
+}
+
+function NothingYet() {
+	return (
+		<div className='flex flex-col items-center px-4 py-16 text-center'>
+			<span className='flex size-11 items-center justify-center rounded-full border border-[#2a2c33] bg-[#0e0f12]'>
+				<Code2 aria-hidden className='size-[18px] text-zinc-400' />
+			</span>
+
+			<h2 className='mt-4 text-base font-semibold text-white'>
+				You haven&apos;t written a plugin yet
+			</h2>
+
+			<p className='mt-1 max-w-md text-sm leading-5 text-zinc-400'>
+				Start from a template, watch the node draw, then submit it to the
+				library. Your drafts and submitted plugins will show up here.
+			</p>
+
+			<Link
+				className={cn(PRIMARY_BUTTON_CLASS, 'mt-5')}
+				href='/dashboard/plugins/build'
+			>
+				Write a plugin
+			</Link>
+
+			<p className='mt-5 max-w-md text-xs leading-[18px] text-zinc-500'>
+				Built it in your own editor? Use Submit a version at the top of the page.
+			</p>
+		</div>
+	);
+}
+
+/**
+ * Dashboard › Plugins › My plugins: one row per plugin, whether it's a draft, in review,
+ * published or all three, with filters, and its drafts and versions in a side sheet.
+ */
 export function MyPluginsContent() {
+	const router = useRouter();
+	const { enabled: developerMode } = useDeveloperMode();
 	const {
 		data: plugins,
 		error,
 		isLoading,
 		mutate,
 	} = useSWR(MINE_KEY, fetchMine);
+	// Drafts need Developer mode, so nothing is asked for while it's off.
+	const {
+		data: drafts,
+		error: draftsError,
+		isLoading: draftsLoading,
+		mutate: mutateDrafts,
+	} = useSWR(developerMode ? PLUGIN_DRAFTS_KEY : null, listDrafts, {
+		revalidateOnFocus: false,
+	});
+	const { query, setQuery } = useDashboardSearch();
+	const [viewMode, setViewMode] = useState<DashboardViewMode>('list');
+	const [filter, setFilter] = useState<MyPluginFilter>('all');
 	const [submitOpen, setSubmitOpen] = useState(false);
 	const [openId, setOpenId] = useState<string | null>(null);
-	const openPlugin = plugins?.find((plugin) => plugin.id === openId) ?? null;
+	const [deleting, setDeleting] = useState<PluginDraftSummary | null>(null);
+
+	const loading = isLoading || (developerMode && draftsLoading);
+	const rows = useMemo(
+		() => buildMyPluginRows(plugins ?? [], drafts ?? []),
+		[plugins, drafts]
+	);
+	const counts = useMemo(() => countPluginFilters(rows), [rows]);
+	const shown = rows.filter(
+		(row) => matchesPluginFilter(row, filter) && matchesPluginQuery(row, query)
+	);
+	const openRow = rows.find((row) => row.pluginId === openId) ?? null;
+
+	const editAsDraft = async (version: string) => {
+		if (!openRow?.plugin) return;
+		try {
+			const draft = await createDraftFromPublished(openRow.plugin.id, version);
+			// There is one draft per plugin, so this may be an older one, from another version.
+			if (draft.baseVersion !== version) {
+				toast.info(
+					draft.baseVersion
+						? `You already have a draft of this plugin, based on ${draft.baseVersion}. Opened that one.`
+						: 'You already have a draft of this plugin. Opened it.'
+				);
+			}
+			router.push(playgroundHref(draft.id));
+		} catch (reason) {
+			toast.error(
+				reason instanceof Error ? reason.message : 'Could not start the draft'
+			);
+		}
+	};
+
+	const confirmDelete = async () => {
+		const draft = deleting;
+		setDeleting(null);
+		if (!draft) return;
+		try {
+			await deleteDraft(draft.id);
+			await mutateDrafts();
+			toast.success('Draft deleted');
+		} catch (reason) {
+			toast.error(
+				reason instanceof Error ? reason.message : 'Could not delete the draft'
+			);
+		}
+	};
 
 	// Title, tabs and the page width come from the plugins layout (PluginsPageFrame).
 	return (
 		<>
 			<PluginsSlot slot='heading'>
-				<button
-					className={PRIMARY_BUTTON_CLASS}
-					onClick={() => setSubmitOpen(true)}
-					type='button'
-				>
-					<Send aria-hidden className='size-3.5' />
-					Submit a version
-				</button>
+				<div className='flex flex-wrap gap-2'>
+					<button
+						className={QUIET_BUTTON_CLASS}
+						onClick={() => setSubmitOpen(true)}
+						type='button'
+					>
+						<Send aria-hidden className='size-3.5' />
+						Submit a version
+					</button>
+
+					<Link
+						className={PRIMARY_BUTTON_CLASS}
+						href='/dashboard/plugins/build'
+					>
+						<Code2 aria-hidden className='size-3.5' />
+						Write a plugin
+					</Link>
+				</div>
+			</PluginsSlot>
+
+			<PluginsSlot slot='controls'>
+				<ViewToggle onChange={setViewMode} value={viewMode} />
 			</PluginsSlot>
 
 			{error && (
@@ -204,105 +364,156 @@ export function MyPluginsContent() {
 				</div>
 			)}
 
-			<CatalogGrid className='mt-6' viewMode='grid'>
-				{isLoading && <CatalogCardSkeleton count={3} viewMode='grid' />}
+			{draftsError && (
+				<div
+					className='mt-6 flex items-center justify-between gap-3 rounded-xl border border-error-500/30 bg-error-500/10 px-3 py-2 text-sm text-error-200'
+					role='alert'
+				>
+					Couldn&apos;t load your drafts.
+					<Button
+						onClick={() => void mutateDrafts()}
+						size='sm'
+						variant='outline'
+					>
+						Try again
+					</Button>
+				</div>
+			)}
 
-				{plugins?.map((plugin) => {
-					const published = plugin.versions.some(
-						(version) => version.status === 'published'
-					);
-					return (
+			{!loading && !error && rows.length > 0 && (
+				<FilterChips counts={counts} filter={filter} onChange={setFilter} />
+			)}
+
+			{loading && (
+				<CatalogGrid className='mt-6' viewMode={viewMode}>
+					<CatalogCardSkeleton count={4} viewMode={viewMode} />
+				</CatalogGrid>
+			)}
+
+			{!loading && !error && rows.length === 0 && <NothingYet />}
+
+			{!loading && rows.length > 0 && shown.length === 0 && (
+				<CatalogEmptyState
+					actionLabel='Show all plugins'
+					hint='Try another filter or search term.'
+					title='No plugins match'
+					onAction={() => {
+						setFilter('all');
+						setQuery('');
+					}}
+				/>
+			)}
+
+			{!loading && shown.length > 0 && (
+				<CatalogGrid
+					className={rows.length > 0 ? 'mt-4' : 'mt-6'}
+					viewMode={viewMode}
+				>
+					{shown.map((row) => (
 						<CatalogCard
-							chips={statusChips(plugin)}
-							description={cardDescription(plugin)}
-							icon={
-								PLUGIN_ICONS[plugin.icon as keyof typeof PLUGIN_ICONS] ?? Puzzle
-							}
-							key={plugin.id}
-							onOpen={() => setOpenId(plugin.id)}
-							title={plugin.name}
-							viewMode='grid'
-							detail={
-								<span className='truncate font-mono text-[11.5px]'>
-									{plugin.id}
-								</span>
-							}
-							hue={
-								plugin.disabledReason
-									? OFF_HUE
-									: PLUGIN_POWER_HUES[
-											powerKindOfPermissions(plugin.permissions)
-										]
-							}
-							meta={
-								published
-									? `On in ${plugin.mapCount} ${plugin.mapCount === 1 ? 'map' : 'maps'} · ${plugin.openReports} ${plugin.openReports === 1 ? 'report' : 'reports'}`
-									: `Not published yet · ${describePowerKind(plugin.permissions)}`
-							}
+							wrapChips
+							chips={row.chips}
+							description={row.description}
+							key={row.pluginId}
+							meta={row.meta}
+							onOpen={() => setOpenId(row.pluginId)}
+							title={row.name}
+							viewMode={viewMode}
 							action={
 								<button
 									className={CARD_BUTTON_CLASS}
-									onClick={() => setOpenId(plugin.id)}
+									onClick={() => setOpenId(row.pluginId)}
 									type='button'
 								>
-									Versions
+									Open
 								</button>
 							}
+							detail={
+								<span className='truncate font-mono text-[11.5px]'>
+									{row.pluginId}
+								</span>
+							}
+							hue={
+								row.plugin?.disabledReason
+									? OFF_HUE
+									: PLUGIN_POWER_HUES[
+											row.plugin
+												? powerKindOfPermissions(row.plugin.permissions)
+												: 'own'
+										]
+							}
+							icon={
+								PLUGIN_ICONS[row.icon as keyof typeof PLUGIN_ICONS] ?? Puzzle
+							}
 							menu={
-								<DropdownMenu>
-									<DropdownMenuTrigger
-										aria-label={`Options for ${plugin.name}`}
-										className={CARD_MENU_TRIGGER_CLASS}
-									>
-										<CardMenuIcon />
-									</DropdownMenuTrigger>
+								<div className='hidden sm:block'>
+									<DropdownMenu>
+										<DropdownMenuTrigger
+											aria-label={`Options for ${row.name}`}
+											className={CARD_MENU_TRIGGER_CLASS}
+										>
+											<CardMenuIcon />
+										</DropdownMenuTrigger>
 
-									<DropdownMenuContent align='end'>
-										<DropdownMenuItem onClick={() => setOpenId(plugin.id)}>
-											<History />
-											Versions
-										</DropdownMenuItem>
+										<DropdownMenuContent align='end'>
+											<DropdownMenuItem onClick={() => setOpenId(row.pluginId)}>
+												<History />
+												Open
+											</DropdownMenuItem>
 
-										<DropdownMenuItem onClick={() => setSubmitOpen(true)}>
-											<Plus />
-											Submit a version
-										</DropdownMenuItem>
-									</DropdownMenuContent>
-								</DropdownMenu>
+											{row.drafts[0] && (
+												<DropdownMenuItem
+													onClick={() =>
+														router.push(playgroundHref(row.drafts[0].id))
+													}
+												>
+													<Pencil />
+													Edit newest draft
+												</DropdownMenuItem>
+											)}
+
+											{row.plugin && (
+												<DropdownMenuItem onClick={() => setSubmitOpen(true)}>
+													<Plus />
+													Submit a version
+												</DropdownMenuItem>
+											)}
+										</DropdownMenuContent>
+									</DropdownMenu>
+								</div>
 							}
 						/>
-					);
-				})}
+					))}
+				</CatalogGrid>
+			)}
 
-				{!isLoading && (
-					<CreateTile
-						hint='Load it from localhost, then submit it for review.'
-						onClick={() => setSubmitOpen(true)}
-						title='Submit a new plugin'
-						viewMode='grid'
-					/>
-				)}
-			</CatalogGrid>
-
-			{plugins && plugins.length === 0 && (
-				<p className='mt-4 text-sm text-zinc-400'>
-					You haven&apos;t submitted a plugin yet. Build one, load it in
-					Developer mode, then submit it here.
-				</p>
+			{!loading && !developerMode && (
+				<DraftsHiddenNote centered={rows.length === 0} />
 			)}
 
 			<PluginVersionsSheet
+				onDeleteDraft={developerMode ? setDeleting : undefined}
+				onEditAsDraft={editAsDraft}
 				onOpenChange={(open) => !open && setOpenId(null)}
 				onSubmitVersion={() => setSubmitOpen(true)}
-				plugin={openPlugin}
+				row={openRow}
+			/>
+
+			<RecipeConfirmDialog
+				confirmLabel='Delete draft'
+				description={`This deletes this draft of “${deleting?.name || 'your plugin'}” and its code. Plugins you already submitted aren’t affected. It can’t be undone.`}
+				onCancel={() => setDeleting(null)}
+				onConfirm={() => void confirmDelete()}
+				open={deleting !== null}
+				title='Delete this draft?'
 			/>
 
 			<SubmitDialog
+				open={submitOpen}
 				onOpenChange={(open) => {
 					setSubmitOpen(open);
 					if (!open) void mutate();
 				}}
-				open={submitOpen}
 			/>
 		</>
 	);

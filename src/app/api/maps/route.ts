@@ -7,6 +7,7 @@ import {
 	type MapCollaboratorSummary,
 } from '@/helpers/dashboard/map-collaborators';
 import generateUuid from '@/helpers/generate-uuid';
+import { isCopyBlockedMetadata } from '@/lib/plugins/node-copy';
 import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { z } from 'zod';
 import { BILLING_SETTINGS_URL } from '@/lib/billing-urls';
@@ -411,13 +412,19 @@ export const POST = withApiValidation(
 					// Create ID mapping (old template ID -> new UUID)
 					const idMap = new Map<string, string>();
 
+					// Nodes whose data links to other nodes (Threads) can't be copied: the copy
+					// would point at the template's nodes. Their edges drop out below.
+					const seedNodes = (templateNodes || []).filter(
+						(node) => !isCopyBlockedMetadata(node.metadata)
+					);
+
 					// Generate new IDs for all nodes
-					(templateNodes || []).forEach((node) => {
+					seedNodes.forEach((node) => {
 						idMap.set(node.id, generateUuid());
 					});
 
 					// Create nodes with new IDs
-					const nodesToInsert = (templateNodes || []).map((node) => ({
+					const nodesToInsert = seedNodes.map((node) => ({
 						id: idMap.get(node.id),
 						map_id: newMap.id,
 						user_id: user.id,

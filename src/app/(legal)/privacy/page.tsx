@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 		'Learn how Shiko collects, uses, and protects your personal information. GDPR and CCPA compliant.',
 };
 
-const EFFECTIVE_DATE = 'October 6, 2026';
+const EFFECTIVE_DATE = 'October 12, 2026';
 const CONTACT_EMAIL = 'support@shiko.app';
 
 export default function PrivacyPolicyPage() {
@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
 					Privacy Policy
 				</h1>
 				<p className='text-text-secondary'>
-					Last updated: <time dateTime='2026-10-06'>{EFFECTIVE_DATE}</time>
+					Last updated: <time dateTime='2026-10-12'>{EFFECTIVE_DATE}</time>
 				</p>
 			</header>
 
@@ -185,7 +185,8 @@ export default function PrivacyPolicyPage() {
 					</li>
 					<li>
 						<strong>Process AI features</strong> — Send relevant content to our
-						AI provider (OpenAI) to generate suggestions and answers
+						AI provider (OpenAI) to generate suggestions and recipe results and
+						to search your nodes
 					</li>
 					<li>
 						<strong>Process payments</strong> — Manage subscriptions through our
@@ -292,7 +293,10 @@ export default function PrivacyPolicyPage() {
 								<td className='py-3 px-4'>OpenAI</td>
 								<td className='py-3 px-4'>AI features</td>
 								<td className='py-3 px-4'>US</td>
-								<td className='py-3 px-4'>Node content for AI processing</td>
+								<td className='py-3 px-4'>
+									Map title and description, node text and tags, recipe
+									instructions, search queries
+								</td>
 							</tr>
 							<tr className='border-b border-border-subtle/50'>
 								<td className='py-3 px-4'>Vercel</td>
@@ -333,8 +337,9 @@ export default function PrivacyPolicyPage() {
 				<ul>
 					<li>
 						Most plugins work only with their own nodes and send nothing
-						anywhere. Plugins that read the nodes under them can&apos;t connect
-						to any site, so what they read stays in your browser.
+						anywhere. Plugins that read other nodes, whether the nodes under
+						them or the nodes you link to them, can&apos;t connect to any
+						site, so what they read stays in your browser.
 					</li>
 					<li>
 						A plugin that connects to another site, such as GitHub or
@@ -392,10 +397,6 @@ export default function PrivacyPolicyPage() {
 						<strong>Deleted accounts</strong> — When you delete your account, we
 						will delete your personal data within 30 days, except where we are
 						required to retain it for legal purposes
-					</li>
-					<li>
-						<strong>AI chat history</strong> — Chat conversations with AI are
-						ephemeral and are not stored on our servers after your session ends
 					</li>
 					<li>
 						<strong>Backups</strong> — Backups may retain deleted data for up to

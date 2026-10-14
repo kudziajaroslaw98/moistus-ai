@@ -33,6 +33,8 @@ export interface PluginCheck {
 export interface PluginPreview {
 	kind: string;
 	example: string;
+	/** The example's parsed data: what `tree` was drawn from, so a preview can be run again. */
+	data: PluginData;
 	tree: PluginUiNode;
 }
 
@@ -59,11 +61,38 @@ function utf8Bytes(text: string): number {
 	return bytes;
 }
 
-function actionsIn(node: PluginUiNode): Array<{ action: string; payload: unknown }> {
-	if (node.type === 'button' || node.type === 'checkbox')
-		return [{ action: node.action, payload: node.payload ?? null }];
-	if (node.type === 'stack' || node.type === 'row') return node.children.flatMap(actionsIn);
-	return [];
+/** What Shiko adds to the payload when the person picks a node, so checks run a pick as it would run. */
+const SAMPLE_PICKED_NODE = '00000000-0000-4000-8000-000000000000';
+
+/** Every action a view can run (buttons, checkboxes, menu items), as it would be run from the canvas. */
+export function actionsIn(node: PluginUiNode): Array<{ action: string; payload: unknown }> {
+	const withPick = (payload: unknown, picks: boolean) =>
+		picks
+			? {
+					...(typeof payload === 'object' && payload !== null ? payload : {}),
+					nodeId: SAMPLE_PICKED_NODE,
+				}
+			: (payload ?? null);
+	switch (node.type) {
+		case 'button':
+			// An edit button opens the node editor; it has no action to run.
+			return node.edit
+				? []
+				: [{ action: node.action, payload: withPick(node.payload, Boolean(node.pick)) }];
+		case 'checkbox':
+			return [{ action: node.action, payload: node.payload ?? null }];
+		case 'menu':
+			return node.items.flatMap((item) =>
+				'separator' in item
+					? []
+					: [{ action: item.action, payload: withPick(item.payload, Boolean(item.pick)) }]
+			);
+		case 'stack':
+		case 'row':
+			return node.children.flatMap(actionsIn);
+		default:
+			return [];
+	}
 }
 
 const plural = (count: number, one: string, many: string) => (count === 1 ? one : many);
@@ -154,7 +183,7 @@ export function runPluginChecks(
 					continue;
 				}
 				if (previews.length < MAX_PREVIEWS) {
-					previews.push({ kind: kind.kind, example, tree: view.tree });
+					previews.push({ kind: kind.kind, example, data, tree: view.tree });
 				}
 				for (const { action, payload } of actionsIn(view.tree)) {
 					actionCount += 1;

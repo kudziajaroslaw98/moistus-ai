@@ -7,6 +7,7 @@ import { RecipeIconPicker } from '@/components/recipes/recipe-icon-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PanelSection } from '@/components/ui/panel';
 import { TagInput } from '@/components/ui/tag-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useContributions } from '@/hooks/extensions/use-contributions';
@@ -35,7 +36,14 @@ import useAppStore from '@/store/mind-map-store';
 import { cn } from '@/utils/cn';
 import { FileText, Loader2, Lock, Play, Save } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+	createContext,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+	type ReactNode,
+} from 'react';
 import { toast } from 'sonner';
 
 export const BLANK_RECIPE: RecipeDefinition = {
@@ -77,6 +85,9 @@ function validateDraft(draft: RecipeDefinition): FieldErrors {
 	return errors;
 }
 
+/** In the side panel the editor's sections are flat; on the Recipes page they are cards. */
+const FlatSectionsContext = createContext(false);
+
 function Section({
 	title,
 	description,
@@ -91,6 +102,21 @@ function Section({
 	className?: string;
 }) {
 	const shouldReduceMotion = useReducedMotion();
+	const isFlat = useContext(FlatSectionsContext);
+
+	if (isFlat) {
+		return (
+			<PanelSection
+				className={className}
+				contentClassName='space-y-4'
+				description={description}
+				label={title}
+			>
+				{children}
+			</PanelSection>
+		);
+	}
+
 	return (
 		<motion.section
 			animate={{ opacity: 1, y: 0 }}
@@ -725,20 +751,22 @@ export function RecipeEditor({
 	}
 
 	return (
-		<div className='flex min-h-0 flex-1 flex-col'>
-			<div className='min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-6'>
-				{generalSection}
+		<FlatSectionsContext value>
+			<div className='flex min-h-0 flex-1 flex-col'>
+				<div className='min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-6 pt-4'>
+					{generalSection}
 
-				{instructionSection}
+					{instructionSection}
 
-				{resultsSection}
+					{resultsSection}
 
-				{tryBlock}
+					{tryBlock}
+				</div>
+
+				<div className='flex shrink-0 items-center justify-between gap-3 border-t border-white/8 bg-base/90 px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl'>
+					{actions}
+				</div>
 			</div>
-
-			<div className='flex h-fit shrink-0 items-center justify-between gap-3 border-t border-zinc-800 bg-base p-4 pb-[max(1rem,env(safe-area-inset-bottom))]'>
-				{actions}
-			</div>
-		</div>
+		</FlatSectionsContext>
 	);
 }

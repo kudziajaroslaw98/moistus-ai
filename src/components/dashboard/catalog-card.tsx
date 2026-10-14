@@ -78,6 +78,12 @@ interface CatalogCardProps {
 	onOpen?: () => void;
 	/** DOM id, so links like /dashboard/plugins#plugin-<id> land on the card. */
 	anchorId?: string;
+	/**
+	 * List view: always show the chips (on a phone they wrap under the title and the
+	 * description is hidden) instead of hiding them below `sm`. For pages where the
+	 * chips are the point (My plugins' status).
+	 */
+	wrapChips?: boolean;
 	viewMode: DashboardViewMode;
 }
 
@@ -98,6 +104,7 @@ export const CatalogCard = memo(function CatalogCard({
 	menu,
 	onOpen,
 	anchorId,
+	wrapChips = false,
 	viewMode,
 }: CatalogCardProps) {
 	const isOff = hue === OFF_HUE;
@@ -137,17 +144,34 @@ export const CatalogCard = memo(function CatalogCard({
 				/>
 
 				<div className='min-w-0 flex-1 basis-0'>
-					<div className='flex items-center gap-2'>
-						<h3 className='min-w-0 truncate'>{titleNode}</h3>
+					<div
+						className={cn(
+							'flex items-center gap-2',
+							wrapChips && 'flex-wrap gap-y-1'
+						)}
+					>
+						<h3 className={cn('min-w-0 truncate', wrapChips && 'max-w-full')}>
+							{titleNode}
+						</h3>
 
-						<span className='hidden shrink-0 gap-1.5 sm:flex'>
+						<span
+							className={cn(
+								'gap-1.5',
+								wrapChips ? 'flex max-w-full flex-wrap' : 'hidden shrink-0 sm:flex'
+							)}
+						>
 							{chips.map((chip) => (
 								<CatalogChipPill key={chip.label} {...chip} />
 							))}
 						</span>
 					</div>
 
-					<p className='mt-0.5 truncate text-[13px] text-zinc-400'>
+					<p
+						className={cn(
+							'mt-0.5 truncate text-[13px] text-zinc-400',
+							wrapChips && chips.length > 0 && 'hidden sm:block'
+						)}
+					>
 						{description}
 					</p>
 				</div>

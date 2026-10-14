@@ -6,9 +6,10 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Flag, Info, MoreHorizontal } from 'lucide-react';
+import { Code2, Flag, Info, MoreHorizontal } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { PluginCodeSheet } from './plugin-code-sheet';
 import { PluginReportDialog } from './plugin-report-dialog';
 
 interface PluginCardMenuProps {
@@ -24,7 +25,7 @@ interface PluginCardMenuProps {
 	triggerClassName?: string;
 }
 
-/** "…" on a plugin card: About this plugin and Report…, for everyone. */
+/** "…" on a plugin card: View code, About this plugin and Report…, for everyone. */
 export function PluginCardMenu({
 	pluginId,
 	pluginName,
@@ -37,6 +38,7 @@ export function PluginCardMenu({
 }: PluginCardMenuProps) {
 	const router = useRouter();
 	const [reporting, setReporting] = useState(false);
+	const [viewingCode, setViewingCode] = useState(false);
 
 	return (
 		<>
@@ -52,6 +54,11 @@ export function PluginCardMenu({
 				</DropdownMenuTrigger>
 
 				<DropdownMenuContent align='end' className='min-w-44'>
+					<DropdownMenuItem onClick={() => setViewingCode(true)}>
+						<Code2 aria-hidden />
+						View code
+					</DropdownMenuItem>
+
 					{showAbout && (
 						<DropdownMenuItem
 							onClick={() =>
@@ -69,6 +76,14 @@ export function PluginCardMenu({
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
+
+			<PluginCodeSheet
+				onOpenChange={setViewingCode}
+				open={viewingCode}
+				pluginId={pluginId}
+				pluginName={pluginName}
+				version={version}
+			/>
 
 			<PluginReportDialog
 				isOwner={isOwner}

@@ -16,6 +16,7 @@ import {
 	ViewPlugin,
 	ViewUpdate,
 } from '@codemirror/view';
+import { scanChecklistMarkers } from '@/lib/plugins/plugin-fields';
 import {
 	readPluginFields,
 	setPluginFieldsEffect,
@@ -328,10 +329,21 @@ function createPluginFieldDecorations(text: string, fields: PluginFieldSpecLite[
 		const from = match.index ?? 0;
 		marks.push({ from, to: from + match[0].length, className: PATTERN_STYLES.nodeType });
 	}
-	const names = new Set(fields.map((field) => field.name));
-	const listNames = new Set(fields.filter((field) => field.type === 'list').map((field) => field.name));
+	// A checklist is typed as lines (`[x] text`), not as `name:`; its markers carry the status color.
+	const typed = fields.filter((field) => !field.checklist);
+	const names = new Set(typed.map((field) => field.name));
+	const listNames = new Set(typed.filter((field) => field.type === 'list').map((field) => field.name));
 	for (const token of scanPluginFieldTokens(text, names, listNames)) {
 		marks.push({ from: token.from, to: token.to, className: 'cm-pattern-plugin-field' });
+	}
+	if (fields.some((field) => field.checklist)) {
+		for (const marker of scanChecklistMarkers(text)) {
+			marks.push({
+				from: marker.from,
+				to: marker.to,
+				className: `cm-pattern-plugin-check cm-pattern-plugin-check-${marker.index}`,
+			});
+		}
 	}
 	marks.sort((a, b) => a.from - b.from);
 	return Decoration.set(
@@ -471,6 +483,24 @@ export function createPatternDecorations() {
 				backgroundColor: 'rgba(20, 184, 166, 0.082)',
 				borderRadius: '3px',
 				padding: '0 2px',
+			},
+
+			// Checklist markers: open (blue), done (green), dropped (grey)
+			'.cm-pattern-plugin-check': {
+				borderRadius: '3px',
+				padding: '0 3px',
+			},
+			'.cm-pattern-plugin-check-0': {
+				color: '#60a5fa',
+				backgroundColor: 'rgba(96, 165, 250, 0.14)',
+			},
+			'.cm-pattern-plugin-check-1': {
+				color: '#34d399',
+				backgroundColor: 'rgba(52, 211, 153, 0.14)',
+			},
+			'.cm-pattern-plugin-check-2': {
+				color: '#a1a1aa',
+				backgroundColor: 'rgba(161, 161, 170, 0.16)',
 			},
 
 			// ================================================================

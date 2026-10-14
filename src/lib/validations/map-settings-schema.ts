@@ -1,3 +1,4 @@
+import { TEMPLATE_CATEGORY_VALUES } from '@/constants/template-options';
 import { z } from 'zod';
 
 const layoutDirectionSchema = z.enum([
@@ -7,6 +8,8 @@ const layoutDirectionSchema = z.enum([
 	'BOTTOM_TOP',
 	'RADIAL',
 ]);
+
+export const templateCategorySchema = z.enum(TEMPLATE_CATEGORY_VALUES);
 
 /**
  * Schema for updating mind map metadata
@@ -34,12 +37,9 @@ export const updateMapSchema = z.object({
 
 	is_template: z.boolean().optional(),
 
-	template_category: z
-		.string()
-		.min(1)
-		.max(100, 'Template category is too long')
-		.nullable()
-		.optional(),
+	// Template-only field: applied only on the admin template branch of PUT /api/maps/[id].
+	// A template's icon and colors follow its category and are never client-settable.
+	template_category: templateCategorySchema.optional(),
 
 	layout_direction: layoutDirectionSchema.nullable().optional(),
 });
@@ -71,7 +71,7 @@ export const mapUpdateSuccessSchema = z.object({
 	data: z.object({
 		map: z.object({
 			id: z.string().uuid(),
-			user_id: z.string().uuid(),
+			user_id: z.string().uuid().nullable(),
 			title: z.string(),
 			description: z.string().nullable(),
 			tags: z.array(z.string()).optional(),

@@ -28,7 +28,6 @@ import {
 	useState,
 } from 'react';
 
-import { ChatPanel } from '@/components/ai-chat';
 import { SettingsPanel } from '@/components/dashboard/settings-panel';
 import AnimatedGhostEdge from '@/components/edges/animated-ghost-edge';
 import AnnotationTetherEdge from '@/components/edges/annotation-tether-edge';
@@ -36,6 +35,8 @@ import CollapsedProxyEdge from '@/components/edges/collapsed-proxy-edge';
 import FloatingEdge from '@/components/edges/floating-edge';
 import SuggestedConnectionEdge from '@/components/edges/suggested-connection-edge';
 import { GuidedTourMode, PathBuilder } from '@/components/guided-tour';
+import { PluginPickBar } from '@/components/plugins/plugin-pick-bar';
+import { PluginPickMarks } from '@/components/plugins/plugin-pick-marks';
 import { UpgradeModal } from '@/components/modals/upgrade-modal';
 import { CanvasSearchBar } from '@/components/mind-map/canvas-search-bar';
 import { ModeIndicator } from '@/components/mode-indicator';
@@ -71,9 +72,6 @@ import WaypointEdge from '../edges/waypoint-edge';
 import { RealtimeCursors } from '../realtime/realtime-cursor';
 import { Toolbar } from '../toolbar';
 import { MindMapTopBar, MobileMenu } from './top-bar';
-
-// Feature flag: Set NEXT_PUBLIC_ENABLE_AI_CHAT=true to enable AI Chat
-const ENABLE_AI_CHAT = process.env.NEXT_PUBLIC_ENABLE_AI_CHAT === 'true';
 
 interface ReactFlowAreaProps {
 	isMapReady: boolean;
@@ -148,6 +146,8 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		isTourActive,
 		isPathEditMode,
 		addNodeToPath,
+		isPluginPicking,
+		pickPluginNode,
 		isCommentMode,
 		getCurrentShareUsers,
 		layoutAnimationVersion,
@@ -203,6 +203,9 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 			isTourActive: state.isTourActive,
 			isPathEditMode: state.isPathEditMode,
 			addNodeToPath: state.addNodeToPath,
+			// A plugin is waiting for the person to click nodes (see PluginPickBar)
+			isPluginPicking: Boolean(state.pluginPick),
+			pickPluginNode: state.pickPluginNode,
 			// Comment mode - needed for visibility memoization
 			isCommentMode: state.isCommentMode,
 			getCurrentShareUsers: state.getCurrentShareUsers,
@@ -753,17 +756,27 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 	const handleNodeDoubleClick = useCallback(
 		(event: React.MouseEvent, node: Node<NodeData>) => {
+			// Clicks belong to the plugin's pick while one is open.
+			if (isPluginPicking) return;
 			openNodeEditor({
 				mode: 'edit',
 				position: node.position,
 				existingNodeId: node.id,
 			});
 		},
-		[openNodeEditor]
+		[openNodeEditor, isPluginPicking]
 	);
 
 	const handleNodeClick = useCallback(
 		(event: React.MouseEvent, node: Node<NodeData>) => {
+			// A plugin is waiting for a node (add a stop): hand it the clicked one
+			if (isPluginPicking) {
+				event.preventDefault();
+				event.stopPropagation();
+				void pickPluginNode(node.id);
+				return;
+			}
+
 			// Handle path edit mode - add clicked node to path
 			if (isPathEditMode) {
 				event.preventDefault();
@@ -812,6 +825,8 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 			generateSuggestionsForNode,
 			isMobileTapMultiSelectActive,
 			isPathEditMode,
+			isPluginPicking,
+			pickPluginNode,
 			setActiveTool,
 		]
 	);
@@ -1084,6 +1099,10 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 							'cursor-grab [&_.react-flow__node-toolbar]:hidden [&_.react-flow__nodesselection]:hidden',
 						(activeTool === 'node' || activeTool === 'text') &&
 							'cursor-crosshair',
+						// Picking a node for a plugin: a click anywhere on a node picks it, so its
+						// own buttons go quiet, and the node under the pointer is outlined.
+						isPluginPicking &&
+							'[&_.react-flow__node]:cursor-pointer [&_.react-flow__node>*]:pointer-events-none [&_.react-flow__node:hover]:rounded-[10px] [&_.react-flow__node:hover]:outline-2 [&_.react-flow__node:hover]:outline-offset-2 [&_.react-flow__node:hover]:outline-blue-400',
 					])}
 					style={
 						{
@@ -1096,6 +1115,8 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 						gap={GRID_SIZE}
 						variant={BackgroundVariant.Dots}
 					/>
+
+					<PluginPickMarks />
 
 					<MindMapTopBar
 						mapId={mapId as string}
@@ -1169,6 +1190,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					canEdit={canEdit}
 					isMapReady={isMapReady}
 					isMapOwner={mindMap?.user_id === currentUser?.id}
+					isTemplateAdmin={Boolean(mindMap?.is_template) && canEdit}
 					activityState={activityState}
 					mapId={mapId as string}
 					mapOwnerId={mindMap?.user_id}
@@ -1183,8 +1205,6 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 				/>
 			)}
 
-			{ENABLE_AI_CHAT && <ChatPanel />}
-
 			<OnboardingModal />
 
 			{/* Guided Tour Mode - renders controls and spotlight overlay when active */}
@@ -1192,6 +1212,9 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 			{/* Path Builder - shows when in path edit mode */}
 			{isPathEditMode && <PathBuilder />}
+
+			{/* A plugin is waiting for clicks on nodes (add a stop) */}
+			{isPluginPicking && <PluginPickBar />}
 
 			{/* Keyboard shortcuts help FAB */}
 			<ShortcutsHelpFab />

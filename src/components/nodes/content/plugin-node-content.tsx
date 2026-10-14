@@ -4,31 +4,26 @@ import { PluginRefreshBar } from '@/components/plugins/plugin-refresh-bar';
 import { PluginUiTree } from '@/components/plugins/plugin-ui-tree';
 import { usePluginBranch } from '@/components/plugins/use-plugin-branch';
 import { usePluginLibrary } from '@/components/plugins/use-plugin-library';
-import {
-	pluginRenderKey,
-	rememberPluginRender,
-	usePluginRender,
-} from '@/components/plugins/use-plugin-render';
-import { applyGraphOps } from '@/lib/extensions/graph-ops';
-import { pluginCallContext } from '@/lib/plugins/call-context';
+import { usePluginRefs } from '@/components/plugins/use-plugin-refs';
+import { usePluginRender } from '@/components/plugins/use-plugin-render';
 import {
 	findActivePluginKind,
 	humanizeKind,
 } from '@/lib/plugins/active-plugins';
 import { compareVersions, findCatalogPlugin } from '@/lib/plugins/catalog';
 import {
+	checklistFieldOf,
+	collectNodeRefs,
 	validatePluginData,
 	type PluginData,
 } from '@/lib/plugins/plugin-fields';
 import { PLUGIN_ICONS } from '@/lib/plugins/plugin-icons';
-import { loadPluginHost } from '@/lib/plugins/runtime/load-plugin-host';
-import { validatePluginTree } from '@/lib/plugins/ui-tree';
+import { validatePluginTree, type PluginUiPick } from '@/lib/plugins/ui-tree';
 import useAppStore from '@/store/mind-map-store';
 import type { NodeExtensionData } from '@/types/extensions';
 import { cn } from '@/utils/cn';
 import { Ban, Info, Loader2, Puzzle, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 
 /** "Reported for ads" → "Reported for ads." so it reads as a sentence. */
@@ -65,13 +60,23 @@ export function PluginNodeContent({
 	preview = false,
 	branchRootId = null,
 }: PluginNodeContentProps) {
-	const { loadedPlugins, mapPlugins, mapPluginsLoaded, refreshMapPluginsSoon } =
-		useAppStore(
+	const {
+		loadedPlugins,
+		mapPlugins,
+		mapPluginsLoaded,
+		refreshMapPluginsSoon,
+		runNodeAction,
+		startPluginPick,
+		openNodeEditor,
+	} = useAppStore(
 			useShallow((state) => ({
 				loadedPlugins: state.loadedPlugins,
 				mapPlugins: state.mapPlugins,
 				mapPluginsLoaded: state.mapPluginsLoaded,
 				refreshMapPluginsSoon: state.refreshMapPluginsSoon,
+				runNodeAction: state.runNodeAction,
+				startPluginPick: state.startPluginPick,
+				openNodeEditor: state.openNodeEditor,
 			}))
 		);
 	const [busy, setBusy] = useState(false);
@@ -128,11 +133,18 @@ export function PluginNodeContent({
 		nodeId ?? branchRootId,
 		Boolean(active?.readsBranch)
 	);
+	// The nodes this node's data links to (nodes:refs plugins only).
+	const refIds = useMemo(
+		() => (active?.readsRefs && data ? collectNodeRefs(active.kind, data) : []),
+		[active, data]
+	);
+	const refs = usePluginRefs(refIds, Boolean(active?.readsRefs));
 	const render = usePluginRender({
 		active,
 		data,
 		canEdit: canEdit && !preview,
 		branch,
+		refs,
 		debounceMs: preview ? 150 : 0,
 	});
 
@@ -157,61 +169,30 @@ export function PluginNodeContent({
 		if (!active || !data || !nodeId || busy) return;
 		setBusy(true);
 		try {
-			const host = await loadPluginHost();
-			const ctx = pluginCallContext(true, branch);
-			const nextData = await host.action(
-				active.manifest.id,
-				active.kind,
-				action,
-				data,
-				payload,
-				ctx
-			);
-			const rendered = await host.render(
-				active.manifest.id,
-				active.kind,
-				nextData,
-				ctx
-			);
-			rememberPluginRender(
-				pluginRenderKey(active, nextData, true, branch),
-				rendered
-			);
-
-			const result = await applyGraphOps(
-				useAppStore.getState,
-				[
-					{
-						type: 'updateNode',
-						nodeId,
-						data: {
-							content: rendered.summary,
-							metadata: {
-								extension: {
-									...extension,
-									kindLabel: active.kind.label,
-									width: active.kind.width,
-									version: active.manifest.version,
-									data: nextData,
-									snapshot: rendered.tree,
-								},
-							},
-						},
-					},
-				],
-				{ kind: 'plugin', id: active.manifest.id, label: active.manifest.name },
-				{ label: 'updateNode' }
-			);
-			if (!result.ok) toast.error(result.error);
-		} catch (error) {
-			toast.error(
-				error instanceof Error
-					? error.message
-					: `${pluginName} couldn't do that`
-			);
+			// Runs in the store: the pick bar (outside this node) uses the same path.
+			await runNodeAction(nodeId, action, payload);
 		} finally {
 			setBusy(false);
 		}
+	};
+
+	// "Add thread": the node editor, with the cursor on a new line when the kind is a checklist.
+	const handleEdit = () => {
+		if (!active || !nodeId) return;
+		const position =
+			useAppStore.getState().nodes.find((node) => node.id === nodeId)?.position ??
+			{ x: 0, y: 0 };
+		openNodeEditor({
+			mode: 'edit',
+			position,
+			existingNodeId: nodeId,
+			initialValue: checklistFieldOf(active.kind) ? '[ ] ' : null,
+		});
+	};
+
+	const handlePick = (pick: PluginUiPick, action: string, payload: unknown) => {
+		if (!active || !nodeId) return;
+		startPluginPick(nodeId, pick, action, payload);
 	};
 
 	const dimmed =
@@ -241,6 +222,8 @@ export function PluginNodeContent({
 					<PluginUiTree
 						disabled={busy || state !== 'live' || renderError !== null}
 						tree={tree}
+						onEdit={nodeId && !preview ? handleEdit : undefined}
+						onPick={nodeId && !preview ? handlePick : undefined}
 						onAction={
 							state === 'live' && canEdit && !preview && render.result
 								? handleAction

@@ -13,6 +13,11 @@ export const SANDBOX_LIMITS = {
 /** Largest plugin.js the loader accepts. */
 export const MAX_PLUGIN_CODE_BYTES = 256 * 1024;
 
+/** Plugin playground drafts: what one person can keep and how big a draft's parts can be. */
+export const MAX_PLUGIN_DRAFTS = 20;
+export const MAX_DRAFT_MANIFEST_BYTES = 64 * 1024;
+export const MAX_DRAFT_SAMPLE_BYTES = 16 * 1024;
+
 /** Requests a plugin's `refresh` can make (fetched by Shiko, see network.ts). */
 export const PLUGIN_REQUEST_LIMITS = {
 	/** Requests one refresh can make. */
@@ -24,3 +29,6 @@ export const PLUGIN_REQUEST_LIMITS = {
 
 /** What `ctx.branch` holds for plugins with `branch:read` (built in branch-context.ts). */
 export const PLUGIN_BRANCH_LIMITS = { nodes: 150, text: 500 } as const;
+
+/** What `ctx.refs` holds for plugins with `nodes:refs` (built in ref-context.ts). */
+export const PLUGIN_REF_LIMITS = { nodes: 150 } as const;

@@ -89,13 +89,13 @@ export function HistoryList({ filter }: HistoryListProps) {
 			{sections.map((section) => (
 				<section aria-label={section.label} key={section.key}>
 					<div className='flex items-center gap-3 px-2.5 pb-1.5'>
-						<h3 className='text-[11px] font-semibold uppercase tracking-[0.12em] text-white/55'>
+						<h3 className='text-[11px] font-medium uppercase tracking-[0.16em] text-text-tertiary'>
 							{section.label}
 						</h3>
 
 						<span aria-hidden className='h-px flex-1 bg-white/[0.07]' />
 
-						<span className='text-[12px] text-white/40'>
+						<span className='text-xs tabular-nums text-text-tertiary'>
 							{`${section.changeCount} change${section.changeCount === 1 ? '' : 's'}`}
 						</span>
 					</div>

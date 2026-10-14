@@ -14,6 +14,7 @@ export interface PluginSite extends PluginNetworkHostInfo {
 export type PluginPowers =
 	| { kind: 'own' }
 	| { kind: 'branch' }
+	| { kind: 'refs' }
 	| { kind: 'network'; sites: PluginSite[] };
 
 export function pluginPowers(manifest: PluginManifest): PluginPowers {
@@ -24,6 +25,7 @@ export function pluginPowers(manifest: PluginManifest): PluginPowers {
 	});
 	if (sites.length > 0) return { kind: 'network', sites };
 	if (manifest.permissions.includes('branch:read')) return { kind: 'branch' };
+	if (manifest.permissions.includes('nodes:refs')) return { kind: 'refs' };
 	return { kind: 'own' };
 }
 
@@ -31,6 +33,7 @@ export function pluginPowers(manifest: PluginManifest): PluginPowers {
 export function describePermission(permission: PluginPermission): string {
 	if (permission === 'node:own') return 'its own nodes';
 	if (permission === 'branch:read') return 'reads the nodes under it';
+	if (permission === 'nodes:refs') return 'reads the nodes it links to';
 	return `reaches ${networkHostOf(permission)}`;
 }
 
@@ -60,10 +63,11 @@ export function listHosts(sites: readonly PluginSite[]): string {
 		: `${hosts.slice(0, -1).join(', ')} and ${hosts[hosts.length - 1]}`;
 }
 
-/** Cover accent per kind of power (HSL hue): none green, reads its branch violet, sends to a site blue. */
+/** Cover accent per kind of power (HSL hue): none green, reads other nodes violet, sends to a site blue. */
 export const PLUGIN_POWER_HUES: Record<PluginPowers['kind'], number> = {
 	own: 152,
 	branch: 270,
+	refs: 270,
 	network: 214,
 };
 
@@ -74,13 +78,15 @@ export function powerKindOfPermissions(
 	if (permissions.some((permission) => networkHostOf(permission)))
 		return 'network';
 	if (permissions.includes('branch:read')) return 'branch';
+	if (permissions.includes('nodes:refs')) return 'refs';
 	return 'own';
 }
 
-/** One short line for a card's detail row: "No powers", "Reads its branch", "Sends to api.github.com". */
+/** One short line for a card's detail row: "No powers", "Reads its branch", "Reads the nodes it links to", "Sends to api.github.com". */
 export function describePowerKind(permissions: readonly string[]): string {
 	const kind = powerKindOfPermissions(permissions);
 	if (kind === 'branch') return 'Reads its branch';
+	if (kind === 'refs') return 'Reads the nodes it links to';
 	if (kind === 'own') return 'No powers';
 	const hosts = permissions
 		.map((permission) => networkHostOf(permission))

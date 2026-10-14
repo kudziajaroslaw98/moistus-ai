@@ -9,7 +9,6 @@ import { CancelSubscriptionDialog } from '@/components/dashboard/cancel-subscrip
 import { DiscardAccountSettingsChangesDialog } from '@/components/dashboard/discard-account-settings-changes-dialog';
 import { DeveloperModeSwitch } from '@/components/plugins/developer-mode-switch';
 import { NodeTypeSelector } from '@/components/settings/node-type-selector';
-import { SidePanel } from '@/components/side-panel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,11 +22,26 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+	Panel,
+	PanelFooterActions,
+	PanelFooterNote,
+	PanelRow,
+	PanelSection,
+	PanelTab,
+	PanelTabsList,
+	panelButtonClass,
+	panelButtonSmClass,
+	panelInputClass,
+	panelSelectClass,
+	panelTextareaClass,
+} from '@/components/ui/panel';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import useAppStore from '@/store/mind-map-store';
+import { cn } from '@/utils/cn';
 import type { BackgroundSyncStatusSnapshot } from '@/types/offline';
 import type {
 	UserProfile,
@@ -39,17 +53,9 @@ import {
 	CreditCard,
 	Download,
 	Loader2,
-	Mail,
-	Palette,
-	PenTool,
-	Save,
-	Settings,
-	Shield,
 	Star,
 	Trash2,
-	User,
 } from 'lucide-react';
-import { motion, useReducedMotion } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -75,12 +81,6 @@ interface SettingsPanelProps {
 	isOpen: boolean;
 	onClose: () => void;
 	defaultTab?: 'account' | 'billing';
-}
-
-interface SectionMotionProps {
-	initial: false | { opacity: number; y?: number };
-	animate: { opacity: number; y?: number };
-	transition: { delay: number; duration: number; ease?: 'easeOut' };
 }
 
 function normalizeText(value: string | null | undefined): string {
@@ -169,7 +169,6 @@ export function SettingsPanel({
 	defaultTab = 'account',
 }: SettingsPanelProps) {
 	const router = useRouter();
-	const shouldReduceMotion = useReducedMotion();
 
 	const {
 		userProfile,
@@ -299,22 +298,6 @@ export function SettingsPanel({
 			: `Full name must be ${FULL_NAME_MAX_LENGTH} characters or less`;
 	const displayNameError = `Display name must be ${DISPLAY_NAME_MAX_LENGTH} characters or less`;
 	const bioError = `Bio must be ${BIO_MAX_LENGTH} characters or less`;
-
-	const getSectionMotionProps = (delay: number): SectionMotionProps => {
-		if (shouldReduceMotion) {
-			return {
-				initial: { opacity: 1 },
-				animate: { opacity: 1 },
-				transition: { delay: 0, duration: 0 },
-			};
-		}
-
-		return {
-			initial: { opacity: 0, y: 10 },
-			animate: { opacity: 1, y: 0 },
-			transition: { delay, duration: 0.25, ease: 'easeOut' },
-		};
-	};
 
 	// Load user profile on mount
 	useEffect(() => {
@@ -875,14 +858,21 @@ export function SettingsPanel({
 		: 'All account changes are saved';
 
 	const footer = (
-		<div className='flex w-full items-center justify-between gap-3'>
-			<p className='text-xs text-text-secondary'>{footerStatus}</p>
-			<div className='flex gap-2'>
-				<Button disabled={isSaving} onClick={requestClose} variant='ghost'>
+		<>
+			<PanelFooterNote>{footerStatus}</PanelFooterNote>
+
+			<PanelFooterActions>
+				<Button
+					className={panelButtonClass}
+					disabled={isSaving}
+					onClick={requestClose}
+					variant='ghost'
+				>
 					Cancel
 				</Button>
+
 				<Button
-					className='bg-primary text-primary-foreground hover:bg-primary/90'
+					className={panelButtonClass}
 					disabled={isSaving || isLoadingProfile || !hasChanges || !isFormValid}
 					onClick={handleSave}
 				>
@@ -891,64 +881,48 @@ export function SettingsPanel({
 							<Loader2 className='mr-2 size-4 animate-spin' /> Saving...
 						</>
 					) : (
-						<>
-							<Save className='mr-2 size-4' /> Save Changes
-						</>
+						'Save changes'
 					)}
 				</Button>
-			</div>
-		</div>
+			</PanelFooterActions>
+		</>
 	);
 
 	return (
-		<>
-			<SidePanel
-				className='w-full sm:max-w-sm md:max-w-md'
+		<Tabs
+			className='contents'
+			onValueChange={(v) => setActiveTab(v as 'account' | 'billing')}
+			value={activeTab}
+		>
+			<Panel
 				footer={footer}
-				isOpen={isOpen}
-				onClose={requestClose}
+				onOpenChange={(open) => {
+					if (!open) requestClose();
+				}}
+				open={isOpen}
 				title='Account'
+				tabs={
+					<PanelTabsList>
+						<PanelTab value='account'>Account</PanelTab>
+
+						<PanelTab value='billing'>Billing</PanelTab>
+					</PanelTabsList>
+				}
 			>
-				<Tabs
-					className='flex h-full w-full flex-col'
-					onValueChange={(v) => setActiveTab(v as 'account' | 'billing')}
-					value={activeTab}
-				>
-					<div className='px-6 pb-2 pt-4'>
-						<TabsList className='grid w-full grid-cols-2 gap-1 rounded-lg border border-border-subtle bg-surface'>
-							<TabsTrigger className='flex items-center gap-2' value='account'>
-								<Settings className='size-4' />
-								Account
-							</TabsTrigger>
-							<TabsTrigger className='flex items-center gap-2' value='billing'>
-								<CreditCard className='size-4' />
-								Billing
-							</TabsTrigger>
-						</TabsList>
+				{isLoadingProfile ? (
+					<div className='flex items-center justify-center py-12'>
+						<div className='size-8 animate-spin rounded-full border-b-2 border-primary' />
 					</div>
+				) : (
+					<>
+								<TabsContent className='pt-4' value='account'>
+									<PanelSection
+	description='Manage your identity and public profile details.'
+	label='Profile'
+	contentClassName='space-y-4'
+>
 
-					<div className='flex-1 overflow-y-auto px-6 pb-6'>
-						{isLoadingProfile ? (
-							<div className='flex items-center justify-center py-12'>
-								<div className='h-8 w-8 animate-spin rounded-full border-b-2 border-primary' />
-							</div>
-						) : (
-							<>
-								<TabsContent className='mt-0 space-y-4' value='account'>
-									<motion.section
-										{...getSectionMotionProps(0)}
-										className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
-									>
-										<div className='space-y-1'>
-											<h3 className='flex items-center gap-2 text-lg font-semibold text-text-primary'>
-												<User className='size-5 text-primary' /> Profile
-											</h3>
-											<p className='text-xs text-text-secondary'>
-												Manage your identity and public profile details.
-											</p>
-										</div>
-
-										<div className='flex items-center gap-6 rounded-lg border border-border-subtle bg-base p-3'>
+										<div className='flex items-center gap-4 pb-1'>
 											<UserAvatar size='2xl' user={userProfile} />
 											<div className='space-y-1'>
 												<p className='text-sm font-medium text-text-primary'>
@@ -963,7 +937,7 @@ export function SettingsPanel({
 										<div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
 											<div className='space-y-2'>
 												<div className='flex items-center justify-between gap-3'>
-													<Label htmlFor='full_name'>Full Name</Label>
+													<Label className='text-[13px] text-text-primary' htmlFor='full_name'>Full Name</Label>
 													<span
 														className={`text-xs tabular-nums ${
 															fullNameCharCount > FULL_NAME_MAX_LENGTH
@@ -974,7 +948,7 @@ export function SettingsPanel({
 														{fullNameCharCount}/{FULL_NAME_MAX_LENGTH}
 													</span>
 												</div>
-												<Input
+												<Input className={panelInputClass}
 													disabled={isSaving || isLoadingProfile}
 													error={fullNameTouched && !isFullNameValid}
 													id='full_name'
@@ -993,7 +967,7 @@ export function SettingsPanel({
 
 											<div className='space-y-2'>
 												<div className='flex items-center justify-between gap-3'>
-													<Label htmlFor='display_name'>Display Name</Label>
+													<Label className='text-[13px] text-text-primary' htmlFor='display_name'>Display Name</Label>
 													<span
 														className={`text-xs tabular-nums ${
 															displayNameCharCount > DISPLAY_NAME_MAX_LENGTH
@@ -1004,7 +978,7 @@ export function SettingsPanel({
 														{displayNameCharCount}/{DISPLAY_NAME_MAX_LENGTH}
 													</span>
 												</div>
-												<Input
+												<Input className={panelInputClass}
 													disabled={isSaving || isLoadingProfile}
 													error={displayNameTouched && !isDisplayNameValid}
 													id='display_name'
@@ -1024,7 +998,7 @@ export function SettingsPanel({
 
 										<div className='space-y-2'>
 											<div className='flex items-center justify-between gap-3'>
-												<Label htmlFor='bio'>Bio</Label>
+												<Label className='text-[13px] text-text-primary' htmlFor='bio'>Bio</Label>
 												<span
 													className={`text-xs tabular-nums ${
 														bioCharCount > BIO_MAX_LENGTH
@@ -1035,7 +1009,7 @@ export function SettingsPanel({
 													{bioCharCount}/{BIO_MAX_LENGTH}
 												</span>
 											</div>
-											<Textarea
+											<Textarea className={panelTextareaClass}
 												disabled={isSaving || isLoadingProfile}
 												error={bioTouched && !isBioValid}
 												id='bio'
@@ -1054,22 +1028,15 @@ export function SettingsPanel({
 												</p>
 											)}
 										</div>
-									</motion.section>
+									</PanelSection>
 
-									<motion.section
-										{...getSectionMotionProps(0.05)}
-										className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
-									>
-										<div className='space-y-1'>
-											<h3 className='flex items-center gap-2 text-lg font-semibold text-text-primary'>
-												<Shield className='size-5 text-primary' /> Privacy
-											</h3>
-											<p className='text-xs text-text-secondary'>
-												Control who can view your profile information.
-											</p>
-										</div>
+									<PanelSection
+	description='Control who can view your profile information.'
+	label='Privacy'
+	contentClassName='space-y-4'
+>
 										<div className='space-y-2'>
-											<Label>Profile visibility</Label>
+											<Label className='text-[13px] text-text-primary'>Profile visibility</Label>
 											<Select
 												disabled={isSaving || isLoadingProfile}
 												onValueChange={(value) => {
@@ -1083,7 +1050,7 @@ export function SettingsPanel({
 												}}
 												value={formData.preferences.privacy.profile_visibility}
 											>
-												<SelectTrigger>
+												<SelectTrigger className={panelSelectClass}>
 													<SelectValue />
 												</SelectTrigger>
 												<SelectContent>
@@ -1099,23 +1066,16 @@ export function SettingsPanel({
 												</SelectContent>
 											</Select>
 										</div>
-									</motion.section>
+									</PanelSection>
 
-									<motion.section
-										{...getSectionMotionProps(0.1)}
-										className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
-									>
-										<div className='space-y-1'>
-											<h3 className='flex items-center gap-2 text-lg font-semibold text-text-primary'>
-												<Palette className='size-5 text-primary' /> Appearance
-											</h3>
-											<p className='text-xs text-text-secondary'>
-												Set your interface defaults and motion preferences.
-											</p>
-										</div>
+									<PanelSection
+	description='Set your interface defaults and motion preferences.'
+	label='Appearance'
+	contentClassName='space-y-4'
+>
 										<div className='space-y-4'>
 											<div className='space-y-2'>
-												<Label>Theme</Label>
+												<Label className='text-[13px] text-text-primary'>Theme</Label>
 												<Select
 													disabled={isSaving || isLoadingProfile}
 													onValueChange={(value) => {
@@ -1128,7 +1088,7 @@ export function SettingsPanel({
 													}}
 													value={formData.preferences.theme}
 												>
-													<SelectTrigger>
+													<SelectTrigger className={panelSelectClass}>
 														<SelectValue />
 													</SelectTrigger>
 													<SelectContent>
@@ -1139,9 +1099,9 @@ export function SettingsPanel({
 												</Select>
 											</div>
 
-											<div className='flex items-center justify-between rounded-lg border border-border-subtle bg-base p-3'>
+											<div className='flex items-center justify-between gap-3 py-2.5'>
 												<div className='space-y-0.5'>
-													<Label>Reduced Motion</Label>
+													<Label className='text-[13px] text-text-primary'>Reduced Motion</Label>
 													<p className='text-xs text-text-secondary'>
 														Minimize animations
 													</p>
@@ -1168,24 +1128,17 @@ export function SettingsPanel({
 												</Button>
 											</div>
 										</div>
-									</motion.section>
+									</PanelSection>
 
-									<motion.section
-										{...getSectionMotionProps(0.15)}
-										className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
-									>
-										<div className='space-y-1'>
-											<h3 className='flex items-center gap-2 text-lg font-semibold text-text-primary'>
-												<Mail className='size-5 text-primary' /> Notifications
-											</h3>
-											<p className='text-xs text-text-secondary'>
-												Choose which account updates should reach your inbox.
-											</p>
-										</div>
+									<PanelSection
+	description='Choose which account updates should reach your inbox.'
+	label='Notifications'
+	contentClassName='space-y-4'
+>
 										<div className='space-y-3'>
-											<div className='flex items-center justify-between rounded-lg border border-border-subtle bg-base p-3'>
+											<div className='flex items-center justify-between gap-3 py-2.5'>
 												<div className='space-y-0.5'>
-													<Label>Email notifications</Label>
+													<Label className='text-[13px] text-text-primary'>Email notifications</Label>
 													<p className='text-xs text-text-secondary'>
 														Send mention/access/comment activity updates to your
 														email.
@@ -1219,9 +1172,9 @@ export function SettingsPanel({
 														: 'Off'}
 												</Button>
 											</div>
-											<div className='flex items-center justify-between rounded-lg border border-border-subtle bg-base p-3'>
+											<div className='flex items-center justify-between gap-3 py-2.5'>
 												<div className='space-y-0.5'>
-													<Label>Push notifications</Label>
+													<Label className='text-[13px] text-text-primary'>Push notifications</Label>
 													<p className='text-xs text-text-secondary'>
 														Allow browser push notifications for workspace events.
 													</p>
@@ -1279,7 +1232,7 @@ export function SettingsPanel({
 													{formData.preferences.notifications.push ? 'On' : 'Off'}
 												</Button>
 											</div>
-											<div className='grid gap-2 rounded-lg border border-border-subtle bg-base p-3 sm:grid-cols-3'>
+											<div className='grid gap-2 py-2.5 sm:grid-cols-3'>
 												<Button
 													aria-label={`Push mentions ${formData.preferences.notifications.push_mentions ? 'on' : 'off'}`}
 													aria-pressed={formData.preferences.notifications.push_mentions}
@@ -1365,10 +1318,10 @@ export function SettingsPanel({
 													Reactions
 												</Button>
 											</div>
-											<div className='space-y-3 rounded-lg border border-border-subtle bg-base p-3'>
+											<div className='space-y-3 py-2.5'>
 												<div className='flex items-center justify-between gap-3'>
 													<div className='space-y-0.5'>
-														<Label>Background sync</Label>
+														<Label className='text-[13px] text-text-primary'>Background sync</Label>
 														<p className='text-xs text-text-secondary'>
 															Queued offline edits can replay and refresh notifications in the background.
 														</p>
@@ -1445,22 +1398,15 @@ export function SettingsPanel({
 												) : null}
 											</div>
 										</div>
-									</motion.section>
+									</PanelSection>
 
-									<motion.section
-										{...getSectionMotionProps(0.2)}
-										className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
-									>
-										<div className='space-y-1'>
-											<h3 className='flex items-center gap-2 text-lg font-semibold text-text-primary'>
-												<PenTool className='size-5 text-primary' /> Editor
-											</h3>
-											<p className='text-xs text-text-secondary'>
-												Defaults applied when creating new nodes.
-											</p>
-										</div>
+									<PanelSection
+	description='Defaults applied when creating new nodes.'
+	label='Editor'
+	contentClassName='space-y-4'
+>
 										<div className='space-y-2'>
-											<Label>Default Node Type</Label>
+											<Label className='text-[13px] text-text-primary'>Default Node Type</Label>
 											<NodeTypeSelector
 												disabled={isSaving || isLoadingProfile}
 												onChange={(value) =>
@@ -1482,25 +1428,18 @@ export function SettingsPanel({
 												updateNestedFormData('preferences', 'developerMode', checked)
 											}
 										/>
-									</motion.section>
+									</PanelSection>
 
-									<motion.section
-										{...getSectionMotionProps(0.25)}
-										className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
-									>
-										<div className='space-y-1'>
-											<h3 className='flex items-center gap-2 text-lg font-semibold text-text-primary'>
-												<Shield className='size-5 text-primary' /> Security
-											</h3>
-											<p className='text-xs text-text-secondary'>
-												Manage account security and data ownership.
-											</p>
-										</div>
+									<PanelSection
+	description='Manage account security and data ownership.'
+	label='Security'
+	contentClassName='space-y-4'
+>
 
 										<div className='space-y-3'>
-											<div className='flex items-center justify-between rounded-lg border border-border-subtle bg-base p-3'>
+											<div className='flex items-center justify-between gap-3 py-2.5'>
 												<div>
-													<Label>Change Password</Label>
+													<Label className='text-[13px] text-text-primary'>Change Password</Label>
 													<p className='text-xs text-text-secondary'>
 														Update your password
 													</p>
@@ -1514,9 +1453,9 @@ export function SettingsPanel({
 												</Button>
 											</div>
 
-											<div className='flex items-center justify-between rounded-lg border border-border-subtle bg-base p-3'>
+											<div className='flex items-center justify-between gap-3 py-2.5'>
 												<div>
-													<Label>Export Your Data</Label>
+													<Label className='text-[13px] text-text-primary'>Export Your Data</Label>
 													<p className='text-xs text-text-secondary'>
 														Download all your data as JSON
 													</p>
@@ -1541,7 +1480,7 @@ export function SettingsPanel({
 												</Button>
 											</div>
 
-											<div className='flex items-center justify-between rounded-lg border border-error-900/20 bg-error-900/10 p-3'>
+											<div className='flex items-center justify-between gap-3 py-2.5'>
 												<div>
 													<Label className='text-error-500'>
 														Delete Account
@@ -1561,24 +1500,17 @@ export function SettingsPanel({
 												</Button>
 											</div>
 										</div>
-									</motion.section>
+									</PanelSection>
 								</TabsContent>
 
-								<TabsContent className='mt-0 space-y-4' value='billing'>
+								<TabsContent className='pt-4' value='billing'>
 									{isLoadingSubscription ? (
 										<div className='flex items-center justify-center py-12'>
 											<div className='h-8 w-8 animate-spin rounded-full border-b-2 border-primary' />
 										</div>
 									) : (
 										<>
-											<motion.section
-												{...getSectionMotionProps(0)}
-												className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
-											>
-												<h3 className='flex items-center gap-2 text-lg font-semibold text-text-primary'>
-													<Star className='size-5 text-primary' />
-													Current Plan
-												</h3>
+											<PanelSection contentClassName='space-y-4' label='Current Plan'>
 												<div className='space-y-4'>
 													<div className='flex items-center justify-between'>
 														<div className='flex items-center gap-4'>
@@ -1675,13 +1607,10 @@ export function SettingsPanel({
 														</>
 													)}
 												</div>
-											</motion.section>
+											</PanelSection>
 
 											{isTrialing() && (
-												<motion.div
-													{...getSectionMotionProps(0.05)}
-													className='flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/10 p-3'
-												>
+												<div className='mt-5 flex items-center gap-3 rounded-xl border border-primary-500/25 bg-primary-500/10 p-3'>
 													<Star className='size-5 shrink-0 text-primary' />
 													<div className='flex-1'>
 														<p className='text-sm font-medium text-primary'>
@@ -1703,26 +1632,17 @@ export function SettingsPanel({
 																Ending Soon
 															</Badge>
 														)}
-												</motion.div>
+												</div>
 											)}
 
-											<motion.section
-												{...getSectionMotionProps(0.1)}
-												className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
+											<PanelSection
+												label='Usage'
+												meta={
+													usage?.billingPeriod
+														? `Resets ${new Date(usage.billingPeriod.end).toLocaleDateString()}`
+														: undefined
+												}
 											>
-												<div className='flex items-center justify-between'>
-													<h3 className='flex items-center gap-2 text-lg font-semibold text-text-primary'>
-														<BarChart3 className='size-5 text-primary' /> Usage
-													</h3>
-													{usage?.billingPeriod && (
-														<span className='text-xs text-text-secondary'>
-															Resets{' '}
-															{new Date(
-																usage.billingPeriod.end
-															).toLocaleDateString()}
-														</span>
-													)}
-												</div>
 												<div className='space-y-4'>
 													{isLoadingUsage ? (
 														<div className='flex items-center justify-center py-8'>
@@ -1808,15 +1728,12 @@ export function SettingsPanel({
 														</div>
 													)}
 												</div>
-											</motion.section>
+											</PanelSection>
 
 											{currentSubscription && (
-												<motion.section
-													{...getSectionMotionProps(0.15)}
-													className='space-y-4 rounded-lg border border-border-subtle bg-base/60 p-4'
-												>
+												<PanelSection>
 													<Button
-														className='w-full'
+														className={cn(panelButtonClass, 'h-10 w-full')}
 														disabled={isOpeningPortal}
 														onClick={handleOpenBillingPortal}
 														variant='outline'
@@ -1837,49 +1754,38 @@ export function SettingsPanel({
 														Update payment methods, view invoices, and manage
 														subscription
 													</p>
-												</motion.section>
+												</PanelSection>
 											)}
 
 											{currentSubscription &&
 												currentSubscription.status === 'active' &&
 												!currentSubscription.cancelAtPeriodEnd && (
-													<motion.section
-														{...getSectionMotionProps(0.2)}
-														className='space-y-4 rounded-lg border border-error-800/30 bg-error-950/20 p-4'
-													>
-														<h3 className='text-lg font-semibold text-error-500'>
-															Cancel Subscription
-														</h3>
-														<div className='flex flex-col justify-between gap-4'>
-															<div>
-																<p className='font-medium text-error-200'>
-																	Cancel your subscription
-																</p>
-																<p className='text-sm text-error-300/70'>
-																	You&apos;ll keep access until the end of your
-																	billing period
-																</p>
-															</div>
+													<PanelSection label='Danger zone'>
+													<PanelRow
+														description='You&apos;ll keep access until the end of your billing period.'
+														title='Cancel your subscription'
+														tone='danger'
+														trailing={
 															<Button
+																className={panelButtonSmClass}
 																disabled={isCanceling}
 																onClick={openCancelSubscriptionDialog}
-																size='sm'
-																variant='normal' state='destructive'
+																state='destructive'
+																variant='outline'
 															>
 																{isCanceling
 																	? 'Canceling...'
 																	: 'Cancel Subscription'}
 															</Button>
-														</div>
-													</motion.section>
+														}
+													/>
+												</PanelSection>
 												)}
 										</>
 									)}
 								</TabsContent>
-							</>
-						)}
-					</div>
-				</Tabs>
+					</>
+				)}
 
 				<DeleteAccountDialog
 					impactStats={deleteImpactStats}
@@ -1909,7 +1815,7 @@ export function SettingsPanel({
 					open={showCancelSubscriptionDialog}
 					periodEnd={currentSubscription?.currentPeriodEnd}
 				/>
-			</SidePanel>
-		</>
+			</Panel>
+		</Tabs>
 	);
 }

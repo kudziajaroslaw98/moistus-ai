@@ -17,3 +17,5 @@ export interface MindMapData {
 	created_at: string;
 	updated_at: string;
 }
+
+export type MindMapUpdates = Partial<MindMapData>;

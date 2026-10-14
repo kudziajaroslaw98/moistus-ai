@@ -70,6 +70,33 @@ function fullText(node: AppNode): string {
 	return text.slice(0, PLUGIN_BRANCH_LIMITS.text);
 }
 
+/** What a plugin that reads other nodes sees of one: no id or depth, those depend on where it's read from. */
+export type PluginNodeInfo = Omit<PluginBranchNode, 'id' | 'depth'>;
+
+/** The read-only view of one node, shared by `ctx.branch` and `ctx.refs`. */
+export function describePluginNode(node: AppNode): PluginNodeInfo {
+	const metadata = node.data.metadata;
+	const tasks = Array.isArray(metadata?.tasks) ? metadata.tasks : [];
+	const status = metadata?.status ?? node.data.status;
+	const priority = metadata?.priority ?? node.data.priority;
+	return {
+		type: nodeTypeName(node),
+		text: fullText(node),
+		tasks:
+			tasks.length > 0
+				? {
+						done: tasks.filter((task) => task.isComplete).length,
+						total: tasks.length,
+					}
+				: null,
+		status: typeof status === 'string' && status ? status : null,
+		priority: typeof priority === 'string' && priority ? priority : null,
+		assignees: stringList(metadata?.assignee),
+		due: dueDate(metadata?.dueDate),
+		tags: stringList(metadata?.tags),
+	};
+}
+
 /** The branch under `rootId`, following the same structure as collapse (cycle-safe). */
 export function buildPluginBranch(
 	rootId: string,
@@ -92,28 +119,7 @@ export function buildPluginBranch(
 		if (!node || visited.has(id)) continue;
 		visited.add(id);
 
-		const metadata = node.data.metadata;
-		const tasks = Array.isArray(metadata?.tasks) ? metadata.tasks : [];
-		const status = metadata?.status ?? node.data.status;
-		const priority = metadata?.priority ?? node.data.priority;
-		result.push({
-			id,
-			depth,
-			type: nodeTypeName(node),
-			text: fullText(node),
-			tasks:
-				tasks.length > 0
-					? {
-							done: tasks.filter((task) => task.isComplete).length,
-							total: tasks.length,
-						}
-					: null,
-			status: typeof status === 'string' && status ? status : null,
-			priority: typeof priority === 'string' && priority ? priority : null,
-			assignees: stringList(metadata?.assignee),
-			due: dueDate(metadata?.dueDate),
-			tags: stringList(metadata?.tags),
-		});
+		result.push({ id, depth, ...describePluginNode(node) });
 
 		const children = childIdsById.get(id) ?? [];
 		for (let index = children.length - 1; index >= 0; index -= 1) {

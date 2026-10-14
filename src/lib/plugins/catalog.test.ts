@@ -24,9 +24,10 @@ import {
 	parsePluginFieldInput,
 	validatePluginData,
 } from './plugin-fields';
+import { actionsIn } from './plugin-checks';
 import { createPluginSandbox } from './runtime/sandbox';
 import { nodeTestVariant } from './runtime/test-quickjs-variant';
-import { validatePluginTree, type PluginUiNode } from './ui-tree';
+import { validatePluginTree } from './ui-tree';
 
 let QuickJS: QuickJSWASMModule;
 beforeAll(async () => {
@@ -56,14 +57,6 @@ const allVersions = FIRST_PARTY_PLUGINS.flatMap((entry) =>
 		previous: index > 0 ? entry.versions[index - 1] : undefined,
 	}))
 );
-
-function actionsIn(node: PluginUiNode): Array<{ action: string; payload: unknown }> {
-	if (node.type === 'button' || node.type === 'checkbox')
-		return [{ action: node.action, payload: node.payload ?? null }];
-	if (node.type === 'stack' || node.type === 'row')
-		return node.children.flatMap(actionsIn);
-	return [];
-}
 
 const TODAY = { canEdit: true, today: '2026-10-06' };
 

@@ -52,6 +52,21 @@ describe('runPluginChecks', () => {
 		]);
 	});
 
+	it('gives each preview the data of its example, so it can be run again', () => {
+		const result = runPluginChecks(QuickJS, {
+			manifest: metricManifest(),
+			code: metricCode,
+		});
+		const [preview] = result.previews;
+
+		expect(preview).toBeDefined();
+		// The view was drawn from exactly this data (the example text, parsed).
+		expect(preview.data).toEqual(
+			expect.objectContaining({ label: expect.any(String) })
+		);
+		expect(JSON.stringify(preview.tree)).toContain(String(preview.data.label));
+	});
+
 	it('stops at an invalid manifest and says why', () => {
 		const result = runPluginChecks(QuickJS, {
 			manifest: { ...metricManifest(), id: 'Not An Id' },

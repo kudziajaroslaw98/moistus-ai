@@ -20,13 +20,13 @@ export function ModalsWrapper() {
 
 	return (
 		<>
-			{canEdit && popoverOpen.edgeEdit && <EdgeEditModal />}
+			{canEdit && <EdgeEditModal />}
 
 			<CommandPalette />
 
 			{canEdit && <HistorySidebar />}
 
-			{popoverOpen.sharePanel && mindMap && currentUser && (
+			{mindMap && currentUser && (
 				<SharePanel
 					isOpen={popoverOpen.sharePanel}
 					mapId={mindMap.id}

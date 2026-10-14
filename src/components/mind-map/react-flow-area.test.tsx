@@ -78,7 +78,6 @@ jest.mock('@xyflow/react', () => {
 	};
 });
 
-jest.mock('@/components/ai-chat', () => ({ ChatPanel: () => null }));
 jest.mock('@/components/dashboard/settings-panel', () => ({
 	SettingsPanel: () => null,
 }));

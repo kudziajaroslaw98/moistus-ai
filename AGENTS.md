@@ -173,9 +173,16 @@ pnpm pretty          # Prettier
 
 <!-- Updated: 2026-04-01 - Documented Supabase cookie-name mismatch gotcha for LAN logins -->
 
-**Map Settings templates**: `is_template` and `template_category` are system-managed and not user-editable in the Map Settings panel.
+**Admin template management**: System templates are `mind_maps` rows with `is_template = true` and `user_id = NULL`.
+- **Who manages them:** only admins (`user_profiles.role = 'admin'`, granted manually via SQL). Owners can never toggle `is_template` or set `template_*` fields through `PUT /api/maps/[id]`.
+- **Role guard:** the `guard_user_profile_role` trigger blocks any `anon`/`authenticated` request that sets or changes `role`. Table-level grants make a column REVOKE useless, so keep the trigger.
+- **Server checks:** use `isUserAdmin(serviceClient, userId)`. Template writes from API routes go through the service role: the admin branches in `PUT`/`DELETE /api/maps/[id]` and `POST /api/templates`.
+- **Editor and realtime:** admins edit templates as `editor` through `/api/maps/[id]/permissions` and PartyKit `getMapAccess` → `getTemplateAdminAccess`. RLS on nodes/edges uses `admin_can_edit_template_map(map_id)`.
+- **Ownerless rows:** template nodes/edges must keep `user_id = NULL`, because the `user_id` FKs are `ON DELETE CASCADE`. The `null_template_graph_user_id` triggers enforce this, and the PartyKit projection mirrors it.
+- **Out of scope for templates:** map history stays owner/share-only, so History UI is hidden for template admins.
+- **Seeding:** `create_template()` is service-role only.
 
-<!-- Updated: 2026-02-27 - Removed non-persisting template controls from map settings UI -->
+<!-- Updated: 2026-10-03 - Replaced system-managed template note with admin template management contract -->
 
 **Node editor parser scope**: Parser syntax no longer supports `bg:`, `border:`, `src:"..."`, `[[...]]`, `confidence:*`, or `$reference` quick-switch in node editor flows. Syntax Help is split into `Universal` (type-filtered) and `Node-specific` sections.
 For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
@@ -221,7 +228,7 @@ For title metadata use lowercase quoted syntax `title:"..."` (not `Title:`).
 
 **Suggestion rerun replacement gating**: Connection/merge reruns should clear prior transient AI suggestion edges only when `triggerStream(...)` returns `true`. If stream start is rejected (already streaming/throttled), keep existing suggestion edges/merge state unchanged.
 
-**Row-based AI node-id aliasing**: Every compact row-based AI route (`/api/ai/suggestions`, `/api/ai/chat`, `/api/ai/counterpoints`, `/api/ai/suggest-merges`, `/api/search-nodes`) must alias model-visible node IDs through `src/helpers/ai-id-alias-map.ts` before prompt assembly. The model should see dense numeric node IDs in `NODE` / `REL` / `ANCHOR` / `RECENT` rows and any free-text request metadata that mentions node IDs; server code must resolve those aliases back to UUIDs before anchor validation, duplicate suppression, placement, merge validation, search validation, or client streaming. Do not let UUIDs leak into model-visible rows or numeric aliases leak into app-facing payloads.
+**Row-based AI node-id aliasing**: Every compact row-based AI route (`/api/ai/suggestions`, `/api/ai/counterpoints`, `/api/ai/suggest-merges`, `/api/search-nodes`) must alias model-visible node IDs through `src/helpers/ai-id-alias-map.ts` before prompt assembly. The model should see dense numeric node IDs in `NODE` / `REL` / `ANCHOR` / `RECENT` rows and any free-text request metadata that mentions node IDs; server code must resolve those aliases back to UUIDs before anchor validation, duplicate suppression, placement, merge validation, search validation, or client streaming. Do not let UUIDs leak into model-visible rows or numeric aliases leak into app-facing payloads.
 
 **Typed AI ghost approval**: `/api/ai/suggestions` may now stream an optional `nodePayload` alongside `content` for safe typed nodes. The route should only emit safe typed v1 nodes (`defaultNode`, `textNode`, `taskNode`, `questionNode`, `annotationNode`, `codeNode`), must downgrade malformed structured payloads to `defaultNode` before ghost creation, and ghost approval in `suggestions-slice` must build the final node from `nodePayload` instead of trying to infer typed metadata from `suggestedContent`. `taskNode` approval is the critical case: checklist rows live in `metadata.tasks`, so approving a task ghost without payload is a bug.
 

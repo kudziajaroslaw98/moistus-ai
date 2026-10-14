@@ -19,6 +19,12 @@ jest.mock('@/store/mind-map-store', () => ({
 jest.mock('@/hooks/use-platform', () => ({ useIsMac: () => true }));
 jest.mock('@/hooks/use-touch-first', () => ({ useTouchFirst: () => false }));
 
+// The real sheet loads CodeMirror; its own tests cover it.
+jest.mock('./plugin-code-sheet', () => ({
+	PluginCodeSheet: (props: { open: boolean; pluginId: string; version?: string }) =>
+		props.open ? <p>{`Code of ${props.pluginId} ${props.version}`}</p> : null,
+}));
+
 import { PluginsPanel } from './plugins-panel';
 
 const manifest = pluginManifestSchema.parse(issueManifest);
@@ -102,6 +108,31 @@ describe('PluginsPanel: plugins that reach a site', () => {
 
 		await user.click(confirm.getByRole('button', { name: 'Turn on' }));
 		expect(mockActions.setMapPluginEnabled).toHaveBeenCalledWith('dev.issue', true);
+	});
+
+	it('lets the owner read the plugin’s code before turning it on', async () => {
+		const user = setup();
+		const card = within(await screen.findByTestId('plugin-card-dev.issue'));
+		await card.findByTestId('plugin-powers');
+
+		await user.click(card.getByLabelText('Issue'));
+		await user.click(card.getByRole('button', { name: 'View code' }));
+
+		expect(card.getByText('Code of dev.issue 0.1.0')).toBeInTheDocument();
+		// Reading it doesn't answer the question.
+		expect(card.getByTestId('plugin-powers-confirm')).toBeInTheDocument();
+		expect(mockActions.setMapPluginEnabled).not.toHaveBeenCalled();
+	});
+
+	it('opens the code from the card’s ⋯ menu', async () => {
+		const user = setup();
+		const card = within(await screen.findByTestId('plugin-card-dev.issue'));
+		await card.findByTestId('plugin-powers');
+
+		await user.click(card.getByRole('button', { name: 'More for Issue' }));
+		await user.click(await screen.findByRole('menuitem', { name: 'View code' }));
+
+		expect(card.getByText('Code of dev.issue 0.1.0')).toBeInTheDocument();
 	});
 
 	it('leaves it off when the owner cancels', async () => {

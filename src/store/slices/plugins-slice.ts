@@ -1,5 +1,6 @@
 import { applyGraphOps, canEditMap } from '@/lib/extensions/graph-ops';
 import { findActivePluginKind } from '@/lib/plugins/active-plugins';
+import { buildPluginBranch } from '@/lib/plugins/branch-context';
 import { pluginCallContext } from '@/lib/plugins/call-context';
 import {
 	catalogManifestUrl,
@@ -11,6 +12,7 @@ import {
 } from '@/lib/plugins/catalog';
 import {
 	describeManifestError,
+	kindHasNodeRefs,
 	networkHostsOf,
 	pluginManifestSchema,
 	type PluginManifest,
@@ -18,13 +20,19 @@ import {
 import { blockedPluginHosts } from '@/lib/plugins/network';
 import { requestPluginJson } from '@/lib/plugins/network-client';
 import { refreshPluginLibrary } from '@/lib/plugins/plugin-library-client';
-import { validatePluginData } from '@/lib/plugins/plugin-fields';
+import {
+	collectNodeRefs,
+	validatePluginData,
+} from '@/lib/plugins/plugin-fields';
+import { buildPluginRefs } from '@/lib/plugins/ref-context';
+import { findPluginPick } from '@/lib/plugins/ui-tree';
 import { sha256Hex } from '@/lib/plugins/code-fingerprint';
 import { MAX_PLUGIN_CODE_BYTES } from '@/lib/plugins/limits';
 import { loadPluginHost } from '@/lib/plugins/runtime/load-plugin-host';
 import type {
 	LoadedPlugin,
 	MapPluginRecord,
+	PluginActionResult,
 	PluginRefreshState,
 	PluginSource,
 	PluginsSlice,
@@ -37,6 +45,9 @@ const DEV_PLUGINS_STORAGE_KEY = 'shiko_dev_plugins_v1';
 const REFRESH_INTERVAL_MS = 10_000;
 
 let lastRefreshAt = 0;
+
+/** Actions on one node run one after the other, so quick clicks never lose each other's change. */
+const actionQueues = new Map<string, Promise<unknown>>();
 
 const devPluginsKey = (userId: string, mapId: string) =>
 	`${DEV_PLUGINS_STORAGE_KEY}:${userId}:${mapId}`;
@@ -64,6 +75,21 @@ function writeDevPluginUrls(userId: string, mapId: string, urls: string[]) {
 		);
 	} catch {
 		// Blocked storage: developer plugins last until reload.
+	}
+}
+
+/**
+ * Remembers a developer plugin for a map without that map being open: the playground's
+ * "Try on a map" writes the draft's address where the map reads it when it opens.
+ */
+export function rememberDevPluginUrl(
+	userId: string,
+	mapId: string,
+	manifestUrl: string
+) {
+	const urls = readDevPluginUrls(userId, mapId);
+	if (!urls.includes(manifestUrl)) {
+		writeDevPluginUrls(userId, mapId, [...urls, manifestUrl]);
 	}
 }
 
@@ -385,6 +411,7 @@ export const createPluginsSlice: StateCreator<
 		loadedPlugins: {},
 		devPluginUrls: [],
 		pluginRefreshes: {},
+		pluginPick: null,
 
 		fetchMapPlugins: async (mapId, options) => {
 			// Library plugins and turn-offs come from the server; Shiko's ship with the app.
@@ -539,6 +566,7 @@ export const createPluginsSlice: StateCreator<
 				loadedPlugins: {},
 				devPluginUrls: [],
 				pluginRefreshes: {},
+				pluginPick: null,
 			});
 		},
 
@@ -663,6 +691,152 @@ export const createPluginsSlice: StateCreator<
 				});
 				return false;
 			}
+		},
+
+		runNodeAction: (nodeId, action, payload) => {
+			const run = async (): Promise<PluginActionResult> => {
+				const state = get();
+				const node = state.nodes.find((candidate) => candidate.id === nodeId);
+				const extension = node?.data.metadata?.extension;
+				// Viewers never run actions: only someone who can edit saves changes.
+				if (!node || !extension || !canEditMap(state)) return { ok: false };
+				const active = findActivePluginKind(
+					state.loadedPlugins,
+					extension.pluginId,
+					extension.kind
+				);
+				if (!active) return { ok: false };
+
+				const checked = validatePluginData(active.kind, extension.data);
+				if (!checked.ok) {
+					toast.error(`${active.kind.label} data on this node isn't valid`);
+					return { ok: false };
+				}
+				try {
+					const context = (data: typeof checked.data) =>
+						pluginCallContext(
+							true,
+							active.readsBranch
+								? buildPluginBranch(nodeId, get().nodes, get().edges)
+								: null,
+							active.readsRefs
+								? buildPluginRefs(collectNodeRefs(active.kind, data), get().nodes)
+								: null
+						);
+					const host = await loadPluginHost();
+					const nextData = await host.action(
+						active.manifest.id,
+						active.kind,
+						action,
+						checked.data,
+						payload,
+						context(checked.data)
+					);
+					const rendered = await host.render(
+						active.manifest.id,
+						active.kind,
+						nextData,
+						context(nextData)
+					);
+
+					const latest =
+						get().nodes.find((candidate) => candidate.id === nodeId)?.data
+							.metadata?.extension ?? extension;
+					const result = await applyGraphOps(
+						get,
+						[
+							{
+								type: 'updateNode',
+								nodeId,
+								data: {
+									content: rendered.summary,
+									metadata: {
+										extension: {
+											...latest,
+											kindLabel: active.kind.label,
+											width: active.kind.width,
+											version: active.manifest.version,
+											data: nextData,
+											snapshot: rendered.tree,
+											...(kindHasNodeRefs(active.kind) ? { noCopy: true } : {}),
+										},
+									},
+								},
+							},
+						],
+						{ kind: 'plugin', id: active.manifest.id, label: active.manifest.name },
+						{ label: 'updateNode' }
+					);
+					if (!result.ok) {
+						toast.error(result.error);
+						return { ok: false };
+					}
+					return { ok: true, tree: rendered.tree };
+				} catch (error) {
+					toast.error(
+						error instanceof Error
+							? error.message
+							: `${active.manifest.name} couldn't do that`
+					);
+					return { ok: false };
+				}
+			};
+
+			const queued = (actionQueues.get(nodeId) ?? Promise.resolve()).then(run);
+			actionQueues.set(
+				nodeId,
+				queued.catch(() => undefined)
+			);
+			return queued;
+		},
+
+		startPluginPick: (nodeId, pick, action, payload) => {
+			if (!canEditMap(get())) return;
+			set({
+				pluginPick: {
+					nodeId,
+					action,
+					payload,
+					title: pick.title,
+					hint: pick.hint,
+					marked: pick.marked ?? [],
+				},
+			});
+		},
+
+		stopPluginPick: () => set({ pluginPick: null }),
+
+		pickPluginNode: async (pickedNodeId) => {
+			const pick = get().pluginPick;
+			if (!pick || pickedNodeId === pick.nodeId) return;
+			const picked = get().nodes.find((node) => node.id === pickedNodeId);
+			// Suggestions that haven't been accepted yet aren't part of the map.
+			if (!picked || (picked.data.node_type ?? picked.type) === 'ghostNode') return;
+
+			const result = await get().runNodeAction(pick.nodeId, pick.action, {
+				...(typeof pick.payload === 'object' && pick.payload !== null
+					? pick.payload
+					: {}),
+				nodeId: pickedNodeId,
+			});
+			// Picking stopped (or moved on to another plugin node) while the action ran.
+			if (get().pluginPick?.nodeId !== pick.nodeId) return;
+			if (!result.ok) return;
+
+			// The plugin's new view says what is numbered now, and what to tell the person.
+			const next = findPluginPick(result.tree, pick.action, pick.payload);
+			if (!next) {
+				set({ pluginPick: null });
+				return;
+			}
+			set({
+				pluginPick: {
+					...pick,
+					title: next.title,
+					hint: next.hint,
+					marked: next.marked ?? [],
+				},
+			});
 		},
 
 		getActivePluginKind: (pluginId, kindName) =>

@@ -39,7 +39,6 @@ Current permission test coverage has gaps, particularly around **Commentator rol
 
 | Test                        | Priority  | Status      | Notes                                        |
 | --------------------------- | --------- | ----------- | -------------------------------------------- |
-| Cannot open AI Chat panel   | 🔴 High   | `test.skip` | AI Chat should be hidden/disabled            |
 | Cannot add comments         | 🔴 High   | `test.skip` | Comments button should be hidden             |
 | Cannot view comment threads | 🟡 Medium | `test.skip` | Unclear if viewers can see existing comments |
 
@@ -52,7 +51,6 @@ Current permission test coverage has gaps, particularly around **Commentator rol
 | Can reply to existing comment  | 🔴 High   | `test.skip` | Core commentator functionality          |
 | Can add emoji reactions        | 🟡 Medium | `test.skip` | Part of comment interactions            |
 | Cannot delete others' comments | 🔴 High   | `test.skip` | Permission boundary                     |
-| Cannot use AI Chat             | 🟡 Medium | `test.skip` | Should be restricted like viewer        |
 | Real-time sync for comments    | 🟡 Medium | Not added   | Owner adds comment, commentator sees it |
 
 ### Editor Role (Edit Access)
@@ -77,21 +75,16 @@ Current permission test coverage has gaps, particularly around **Commentator rol
 
 3. **Real-time considerations**: Comment sync tests need similar 2-3 second waits as node sync tests
 
-### AI Chat Test Prerequisites
-
-1. **Page Object needed**: `ai-chat.page.ts` or extend `toolbar.page.ts`
-   - Methods: `openAiChat()`, `expectAiChatHidden()`, `expectAiChatDisabled()`
-
 ---
 
 ## Quick Reference: Current Test Counts
 
 | Role        | Tested        | Missing | Total Expected |
 | ----------- | ------------- | ------- | -------------- |
-| Viewer      | 15            | 3       | 18             |
+| Viewer      | 15            | 2       | 17             |
 | Editor      | 7 (1 skipped) | 4       | 12             |
-| Commentator | 6             | 7       | 13             |
-| **Total**   | **28**        | **14**  | **43**         |
+| Commentator | 6             | 6       | 12             |
+| **Total**   | **28**        | **12**  | **40**         |
 
 ---
 

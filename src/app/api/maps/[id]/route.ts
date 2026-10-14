@@ -1,5 +1,7 @@
 import { respondError, respondSuccess } from '@/helpers/api/responses';
 import { withApiValidation } from '@/helpers/api/with-api-validation';
+import { isUserAdmin } from '@/helpers/auth/is-admin';
+import { createServiceRoleClient } from '@/helpers/supabase/server';
 import { updateMapSchema } from '@/lib/validations/map-settings-schema';
 import { normalizeLayoutDirection } from '@/types/layout-types';
 import type { MindMapData } from '@/types/mind-map-data';
@@ -29,9 +31,16 @@ export const PUT = withApiValidation<
 			.select('id, user_id, title')
 			.eq('id', mapId)
 			.eq('user_id', user.id)
-			.single();
+			.maybeSingle();
 
-		if (fetchError || !existingMap) {
+		if (!existingMap) {
+			const templateResponse = await updateTemplateAsAdmin(
+				mapId,
+				user.id,
+				validatedBody
+			);
+			if (templateResponse) return templateResponse;
+
 			return respondError(
 				'Mind map not found or unauthorized',
 				404,
@@ -56,8 +65,8 @@ export const PUT = withApiValidation<
 				validatedBody.layout_direction === null
 					? null
 					: normalizeLayoutDirection(validatedBody.layout_direction);
-		// is_template and template_category are system-managed — ignore user input
-		// Templates are created/managed through admin flows, not user API calls
+		// is_template and template_* fields are admin-managed — ignored for owners
+		// (see updateTemplateAsAdmin)
 
 		// Update the map
 		const { data: updatedMap, error: updateError } = await supabase
@@ -111,9 +120,12 @@ export const DELETE = withApiValidation<any, any, { id: string }>(
 				.select('id, user_id, title')
 				.eq('id', mapId)
 				.eq('user_id', user.id)
-				.single();
+				.maybeSingle();
 
-			if (fetchError || !existingMap) {
+			if (!existingMap) {
+				const templateResponse = await deleteTemplateAsAdmin(mapId, user.id);
+				if (templateResponse) return templateResponse;
+
 				return respondError(
 					'Mind map not found or unauthorized',
 					404,
@@ -179,9 +191,140 @@ export const DELETE = withApiValidation<any, any, { id: string }>(
 	}
 );
 
+type TemplateAdminContext = {
+	serviceClient: ReturnType<typeof createServiceRoleClient>;
+	template: {
+		id: string;
+		title: string;
+	};
+};
+
+/**
+ * Resolves a system template the user may manage as admin.
+ * Returns null when the map is not a template or the user is not an admin,
+ * so callers fall back to their normal 404.
+ */
+async function resolveTemplateAdminContext(
+	mapId: string,
+	userId: string
+): Promise<TemplateAdminContext | null> {
+	const serviceClient = createServiceRoleClient();
+
+	const { data: template } = await serviceClient
+		.from('mind_maps')
+		.select('id, title')
+		.eq('id', mapId)
+		.eq('is_template', true)
+		.maybeSingle();
+
+	if (!template) return null;
+	if (!(await isUserAdmin(serviceClient, userId))) return null;
+
+	return { serviceClient, template };
+}
+
+/**
+ * Builds the service-role update for an admin editing a system template.
+ * Only title, description, layout direction and category are writable. Tags and
+ * thumbnail are ignored (the gallery doesn't use them), and the gallery icon and
+ * colors are derived from the category on read, so they are never stored or accepted.
+ */
+export function buildTemplateAdminUpdate(
+	body: z.infer<typeof updateMapSchema>
+): Record<string, unknown> {
+	const updateData: Record<string, unknown> = {
+		updated_at: new Date().toISOString(),
+	};
+
+	if (body.title !== undefined) updateData.title = body.title;
+	if (body.description !== undefined)
+		updateData.description = body.description;
+	if (body.layout_direction !== undefined)
+		updateData.layout_direction =
+			body.layout_direction === null
+				? null
+				: normalizeLayoutDirection(body.layout_direction);
+	if (body.template_category !== undefined)
+		updateData.template_category = body.template_category;
+
+	// is_template is never writable here: templates stay templates.
+	return updateData;
+}
+
+async function updateTemplateAsAdmin(
+	mapId: string,
+	userId: string,
+	body: z.infer<typeof updateMapSchema>
+): Promise<Response | null> {
+	const context = await resolveTemplateAdminContext(mapId, userId);
+	if (!context) return null;
+
+	const { data: updatedMap, error } = await context.serviceClient
+		.from('mind_maps')
+		.update(buildTemplateAdminUpdate(body))
+		.eq('id', mapId)
+		.eq('is_template', true)
+		.select('*')
+		.single();
+
+	if (error) {
+		console.error('Error updating template:', error);
+		return respondError('Error updating template', 500, error.message);
+	}
+
+	return respondSuccess(
+		{ map: toMindMapData(updatedMap) },
+		200,
+		'Template updated successfully'
+	);
+}
+
+async function deleteTemplateAsAdmin(
+	mapId: string,
+	userId: string
+): Promise<Response | null> {
+	const context = await resolveTemplateAdminContext(mapId, userId);
+	if (!context) return null;
+
+	const { serviceClient, template } = context;
+
+	const [{ count: nodeCount }, { count: edgeCount }] = await Promise.all([
+		serviceClient
+			.from('nodes')
+			.select('*', { count: 'exact', head: true })
+			.eq('map_id', mapId),
+		serviceClient
+			.from('edges')
+			.select('*', { count: 'exact', head: true })
+			.eq('map_id', mapId),
+	]);
+
+	// CASCADE removes template nodes/edges
+	const { error } = await serviceClient
+		.from('mind_maps')
+		.delete()
+		.eq('id', mapId)
+		.eq('is_template', true);
+
+	if (error) {
+		console.error('Error deleting template:', error);
+		return respondError('Error deleting template', 500, error.message);
+	}
+
+	return respondSuccess(
+		{
+			mapId: template.id,
+			title: template.title,
+			deletedCounts: { nodes: nodeCount || 0, edges: edgeCount || 0 },
+		},
+		200,
+		'Template deleted successfully'
+	);
+}
+
 function toMindMapData(map: {
 	id: string;
-	user_id: string;
+	user_id: string | null;
 	title: string;
 	description: string | null;
 	tags: string[] | null;
@@ -194,7 +337,8 @@ function toMindMapData(map: {
 }): MindMapData {
 	return {
 		id: map.id,
-		user_id: map.user_id,
+		// System templates have no owner; MindMapData keeps the legacy string type
+		user_id: map.user_id ?? '',
 		title: map.title,
 		description: map.description,
 		tags: map.tags ?? undefined,

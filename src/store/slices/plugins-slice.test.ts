@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { TextEncoder as NodeTextEncoder } from 'node:util';
 import { create } from 'zustand';
 import type { AppState } from '../app-state';
-import { createPluginsSlice } from './plugins-slice';
+import { createPluginsSlice, rememberDevPluginUrl } from './plugins-slice';
 
 const mockHost = {
 	load: jest.fn(),
@@ -18,6 +18,7 @@ const mockHost = {
 	canRefresh: jest.fn((_pluginId: string, _kind: string) => false),
 	refresh: jest.fn(),
 	render: jest.fn(),
+	action: jest.fn(),
 };
 jest.mock('@/lib/plugins/runtime/load-plugin-host', () => ({
 	loadPluginHost: async () => mockHost,
@@ -653,5 +654,224 @@ describe('refreshPluginNode', () => {
 			status: 'error',
 			message: 'api.github.com answered 404',
 		});
+	});
+});
+
+describe('rememberDevPluginUrl', () => {
+	const key = 'shiko_dev_plugins_v1:owner-1:map-2';
+	const draftUrl = `${window.location.origin}/api/plugins/drafts/0d6f2f4e-8c1b-4a51-9d0e-2b7d3c1f5a01/files/manifest.json`;
+
+	beforeEach(() => window.localStorage.clear());
+
+	it('stores a draft’s address where that map reads its developer plugins', () => {
+		rememberDevPluginUrl('owner-1', 'map-2', draftUrl);
+		expect(JSON.parse(window.localStorage.getItem(key) as string)).toEqual([draftUrl]);
+	});
+
+	it('keeps what the map already had and does not add the same address twice', () => {
+		window.localStorage.setItem(key, JSON.stringify(['http://localhost:5173/manifest.json']));
+		rememberDevPluginUrl('owner-1', 'map-2', draftUrl);
+		rememberDevPluginUrl('owner-1', 'map-2', draftUrl);
+		expect(JSON.parse(window.localStorage.getItem(key) as string)).toEqual([
+			'http://localhost:5173/manifest.json',
+			draftUrl,
+		]);
+	});
+
+	it('is read back by a map the owner opens', async () => {
+		rememberDevPluginUrl('owner-1', 'map-1', draftUrl);
+		const store = createStore();
+		await store.getState().fetchMapPlugins('map-1');
+		expect(store.getState().devPluginUrls).toEqual([draftUrl]);
+	});
+});
+
+describe('runNodeAction and picking', () => {
+	const A = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+	const B = '3f2504e0-4f89-41d3-9a0c-0305e82c3302';
+	const manifest = pluginManifestSchema.parse({
+		id: 'dev.threads',
+		name: 'Threads',
+		version: '0.1.0',
+		apiVersion: 1,
+		author: 'Test',
+		description: 'Open questions',
+		icon: 'route',
+		permissions: ['node:own', 'nodes:refs'],
+		main: 'plugin.js',
+		nodeKinds: [
+			{
+				kind: 'threads',
+				label: 'Threads',
+				description: 'Open questions',
+				icon: 'route',
+				labelField: 'title',
+				fields: {
+					title: { type: 'string', title: 'Title' },
+					stops: {
+						type: 'list',
+						title: 'Stops',
+						setBy: 'action',
+						maxItems: 100,
+						columns: [
+							{ name: 'thread', type: 'string', title: 'Thread' },
+							{ name: 'node', type: 'string', title: 'Node', ref: 'node' },
+						],
+					},
+				},
+			},
+		],
+	});
+	const node = (id: string, extra: Record<string, unknown> = {}) => ({
+		id,
+		type: 'defaultNode',
+		position: { x: 0, y: 0 },
+		data: { id, node_type: 'defaultNode', content: id, metadata: {}, ...extra },
+	});
+	const threadsNode = {
+		id: 'threads-1',
+		type: 'extensionNode',
+		position: { x: 0, y: 0 },
+		data: {
+			id: 'threads-1',
+			node_type: 'extensionNode',
+			metadata: {
+				extension: {
+					pluginId: 'dev.threads',
+					kind: 'threads',
+					version: '0.1.0',
+					data: { title: 'Open threads', stops: [{ id: 'r1', thread: 't1', node: A }] },
+				},
+			},
+		},
+	};
+	const loaded = {
+		'http://localhost:5173/manifest.json': {
+			key: 'http://localhost:5173/manifest.json',
+			source: 'dev',
+			manifestUrl: 'http://localhost:5173/manifest.json',
+			status: 'ready',
+			manifest,
+			error: null,
+			generation: 1,
+		},
+	};
+	const pickTree = (marked: string[]) => ({
+		type: 'button',
+		label: 'Add a stop',
+		action: 'addStop',
+		payload: { thread: 't1' },
+		pick: { title: 'Adding stops', hint: `${marked.length} so far`, marked },
+	});
+	const makeStore = (overrides: Record<string, unknown> = {}) => {
+		const store = createStore({
+			nodes: [threadsNode, node(A), node(B), { ...node('ghost', { node_type: 'ghostNode' }), type: 'ghostNode' }],
+			edges: [],
+			permissions: {},
+			...overrides,
+		});
+		store.setState({ loadedPlugins: loaded } as never);
+		return store;
+	};
+
+	beforeEach(() => {
+		jest.mocked(applyGraphOps).mockClear();
+		mockHost.action.mockReset();
+		mockHost.action.mockImplementation(async (_id, _kind, _action, data, payload) => ({
+			...data,
+			stops: [...data.stops, { thread: payload.thread, node: payload.nodeId }],
+		}));
+		mockHost.render.mockReset();
+		mockHost.render.mockResolvedValue({ tree: pickTree([A, B]), summary: 'Open threads' });
+	});
+
+	it('runs the action with the linked nodes, and saves one change credited to the plugin', async () => {
+		const store = makeStore();
+		store.getState().nodes[1].data.content = 'Ch. 3 A letter arrives';
+
+		const result = await store.getState().runNodeAction('threads-1', 'addStop', { thread: 't1', nodeId: B });
+
+		expect(result.ok).toBe(true);
+		const [, , action, data, payload, ctx] = mockHost.action.mock.calls[0];
+		expect(action).toBe('addStop');
+		expect(data.stops).toEqual([{ id: 'r1', thread: 't1', node: A }]);
+		expect(payload).toEqual({ thread: 't1', nodeId: B });
+		expect(ctx.refs[A]).toMatchObject({ text: 'Ch. 3 A letter arrives' });
+		expect(ctx.refs[B]).toBeUndefined();
+
+		const [, ops, actor] = jest.mocked(applyGraphOps).mock.calls[0];
+		expect(actor).toEqual({ kind: 'plugin', id: 'dev.threads', label: 'Threads' });
+		expect(ops[0]).toMatchObject({ type: 'updateNode', nodeId: 'threads-1' });
+	});
+
+	it('never runs for people who can only view the map', async () => {
+		const store = makeStore({ mindMap: { id: 'map-1', user_id: 'someone-else' } });
+
+		await expect(store.getState().runNodeAction('threads-1', 'addStop', {})).resolves.toEqual({
+			ok: false,
+		});
+		expect(mockHost.action).not.toHaveBeenCalled();
+	});
+
+	it('runs actions on one node one after the other', async () => {
+		const order: string[] = [];
+		mockHost.action.mockImplementation(async (_id, _kind, _action, data, payload) => {
+			order.push(`start ${payload.n}`);
+			await new Promise((resolve) => setTimeout(resolve, payload.n === 1 ? 20 : 0));
+			order.push(`end ${payload.n}`);
+			return data;
+		});
+		const store = makeStore();
+
+		await Promise.all([
+			store.getState().runNodeAction('threads-1', 'noop', { n: 1 }),
+			store.getState().runNodeAction('threads-1', 'noop', { n: 2 }),
+		]);
+
+		expect(order).toEqual(['start 1', 'end 1', 'start 2', 'end 2']);
+	});
+
+	it('hands each picked node to the action and numbers the nodes the plugin lists', async () => {
+		const store = makeStore();
+		store.getState().startPluginPick('threads-1', pickTree([A]).pick, 'addStop', { thread: 't1' });
+		expect(store.getState().pluginPick).toMatchObject({ nodeId: 'threads-1', marked: [A] });
+
+		await store.getState().pickPluginNode(B);
+
+		expect(mockHost.action.mock.calls[0][4]).toEqual({ thread: 't1', nodeId: B });
+		expect(store.getState().pluginPick).toMatchObject({
+			title: 'Adding stops',
+			hint: '2 so far',
+			marked: [A, B],
+		});
+	});
+
+	it('ignores the plugin node itself and suggestions that were not accepted', async () => {
+		const store = makeStore();
+		store.getState().startPluginPick('threads-1', pickTree([]).pick, 'addStop', { thread: 't1' });
+
+		await store.getState().pickPluginNode('threads-1');
+		await store.getState().pickPluginNode('ghost');
+
+		expect(mockHost.action).not.toHaveBeenCalled();
+		expect(store.getState().pluginPick).not.toBeNull();
+	});
+
+	it('stops picking when the thread it was adding to is gone', async () => {
+		mockHost.render.mockResolvedValue({ tree: { type: 'text', value: 'No threads' }, summary: '' });
+		const store = makeStore();
+		store.getState().startPluginPick('threads-1', pickTree([]).pick, 'addStop', { thread: 't1' });
+
+		await store.getState().pickPluginNode(B);
+
+		expect(store.getState().pluginPick).toBeNull();
+	});
+
+	it('only lets people who can edit start picking', () => {
+		const store = makeStore({ mindMap: { id: 'map-1', user_id: 'someone-else' } });
+
+		store.getState().startPluginPick('threads-1', pickTree([]).pick, 'addStop', {});
+
+		expect(store.getState().pluginPick).toBeNull();
 	});
 });

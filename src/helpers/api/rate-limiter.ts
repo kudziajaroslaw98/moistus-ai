@@ -174,6 +174,17 @@ export const pluginReportRateLimiter = new InMemoryRateLimiter({
 	windowMs: 60 * 60 * 1000, // per hour
 });
 
+// Plugin playground drafts: autosave is frequent, creating a draft is not
+export const pluginDraftSaveRateLimiter = new InMemoryRateLimiter({
+	maxAttempts: 120,
+	windowMs: 60 * 1000, // per minute
+});
+
+export const pluginDraftCreateRateLimiter = new InMemoryRateLimiter({
+	maxAttempts: 20,
+	windowMs: 60 * 60 * 1000, // per hour
+});
+
 // Data export rate limiter (GDPR export is expensive, limit to 1 per hour)
 export const dataExportRateLimiter = new InMemoryRateLimiter({
 	maxAttempts: 1,
