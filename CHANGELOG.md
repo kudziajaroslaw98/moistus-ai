@@ -5,6 +5,12 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-15]
+
+### Fixed
+- **node editor**: Typing cursor sat above the placeholder line when the editor was empty
+  - Why: CodeMirror's placeholder is `vertical-align: top`, which misaligns the caret with the 1.9 line-height; the theme now sets baseline alignment
+
 ## [2026-10-13]
 
 ### Fixed
