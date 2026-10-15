@@ -92,6 +92,12 @@ export const nodeEditorTheme = EditorView.theme(
 			boxSizing: 'border-box',
 			borderRadius: '0',
 		},
+		// CodeMirror's default placeholder is `vertical-align: top`; with the
+		// 1.9 line-height that offsets the empty-document caret from the text.
+		'.cm-placeholder': {
+			verticalAlign: 'baseline',
+			lineHeight: 'inherit',
+		},
 		'.cm-scroller': {
 			fontFamily: 'inherit',
 			lineHeight: '1.9',
