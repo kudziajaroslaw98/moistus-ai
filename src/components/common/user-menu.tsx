@@ -17,9 +17,11 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import {
 	ChevronDown,
 	CreditCard,
+	FileText,
 	LogOut,
 	RefreshCw,
 	Settings,
+	ShieldCheck,
 	Sparkles,
 	User,
 } from 'lucide-react';
@@ -160,6 +162,25 @@ export function UserMenu({
 						</DropdownMenuItem>
 					</>
 				)}
+
+				<DropdownMenuSeparator />
+
+				{/* Legal pages: open in a new tab so nothing in the app is lost */}
+				<DropdownMenuItem
+					className='cursor-pointer'
+					render={<a href='/privacy' rel='noopener noreferrer' target='_blank' />}
+				>
+					<ShieldCheck className='mr-2 h-4 w-4' />
+					Privacy Policy
+				</DropdownMenuItem>
+
+				<DropdownMenuItem
+					className='cursor-pointer'
+					render={<a href='/terms' rel='noopener noreferrer' target='_blank' />}
+				>
+					<FileText className='mr-2 h-4 w-4' />
+					Terms of Service
+				</DropdownMenuItem>
 
 				<DropdownMenuSeparator />
 

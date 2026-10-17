@@ -46,6 +46,12 @@ export default function LegalLayout({
 								Privacy
 							</Link>
 							<Link
+								href='/privacy#cookies'
+								className='text-sm text-text-tertiary hover:text-text-primary transition-colors duration-200'
+							>
+								Cookies
+							</Link>
+							<Link
 								href='/terms'
 								className='text-sm text-text-tertiary hover:text-text-primary transition-colors duration-200'
 							>

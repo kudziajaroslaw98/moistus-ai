@@ -1,15 +1,15 @@
 import { BackToTopLink } from '@/components/legal/back-to-top-link';
+import { CONTACT_EMAIL } from '@/constants/legal';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
 	title: 'Subprocessors - Shiko',
 	description:
-		'List of third-party service providers that process data on behalf of Shiko.',
+		'The companies that process personal data for Shiko: what each does, what it receives and where.',
 };
 
-const EFFECTIVE_DATE = 'October 12, 2026';
-const CONTACT_EMAIL = 'support@shiko.app';
+const EFFECTIVE_DATE = 'October 18, 2026';
 
 interface Subprocessor {
 	name: string;
@@ -17,67 +17,46 @@ interface Subprocessor {
 	dataProcessed: string;
 	location: string;
 	privacyUrl: string;
-	dpaStatus: string;
 }
 
 const SUBPROCESSORS: Subprocessor[] = [
 	{
 		name: 'Supabase',
-		purpose: 'Database, Authentication, Real-time collaboration',
+		purpose: 'Database, sign-in and real-time updates',
 		dataProcessed:
-			'User accounts, mind maps, nodes, edges, comments, sessions',
+			'Accounts, maps, nodes, connections, comments, change history and sessions',
 		location: 'US (Ohio)',
 		privacyUrl: 'https://supabase.com/privacy',
-		dpaStatus: 'GDPR DPA included, SCCs for EU transfers',
-	},
-	{
-		name: 'Polar.sh',
-		purpose: 'Payment processing, Subscription management',
-		dataProcessed: 'Email, name, billing information, payment history',
-		location: 'US',
-		privacyUrl: 'https://polar.sh/legal/privacy',
-		dpaStatus: 'GDPR compliant',
-	},
-	{
-		name: 'OpenAI',
-		purpose: 'AI-powered features (suggestions, recipes, node search)',
-		dataProcessed:
-			'Map title and description, node text and tags, recipe instructions and search queries sent for AI processing (not stored by OpenAI)',
-		location: 'US',
-		privacyUrl: 'https://openai.com/policies/privacy-policy',
-		dpaStatus: 'DPA available',
 	},
 	{
 		name: 'Vercel',
-		purpose: 'Application hosting, Edge functions, CDN',
-		dataProcessed: 'Application code, request logs, IP addresses',
-		location: 'US (Global CDN)',
+		purpose: 'Hosting',
+		dataProcessed: 'Your requests to Shiko, including your IP address',
+		location: 'US (global network)',
 		privacyUrl: 'https://vercel.com/legal/privacy-policy',
-		dpaStatus: 'GDPR DPA included',
+	},
+	{
+		name: 'PartyKit (Cloudflare)',
+		purpose: 'Live collaboration',
+		dataProcessed:
+			'Live edits, cursors and presence on maps people have open, and a working copy of those maps while they are being edited',
+		location: 'Global (Cloudflare network)',
+		privacyUrl: 'https://partykit.io/privacy',
+	},
+	{
+		name: 'OpenAI',
+		purpose: 'AI features (suggestions, recipes, node search, link summaries)',
+		dataProcessed:
+			'Map title and description, node text and tags, how nodes connect, recipe instructions and search queries, and the text of web pages you ask Shiko to summarize. OpenAI keeps it up to 30 days to detect abuse and does not use it to train its models',
+		location: 'US',
+		privacyUrl: 'https://openai.com/policies/privacy-policy',
 	},
 	{
 		name: 'Resend',
-		purpose: 'Transactional email delivery',
-		dataProcessed: 'Email addresses, email content for delivery',
-		location: 'US (N. Virginia)',
+		purpose: 'Email delivery',
+		dataProcessed: 'Email addresses and the text of emails Shiko sends',
+		location: 'US',
 		privacyUrl: 'https://resend.com/legal/privacy-policy',
-		dpaStatus: 'GDPR compliant',
-	},
-	{
-		name: 'Google OAuth',
-		purpose: 'Social login authentication',
-		dataProcessed: 'Authentication tokens, email, name, profile picture',
-		location: 'US',
-		privacyUrl: 'https://policies.google.com/privacy',
-		dpaStatus: 'SCCs available',
-	},
-	{
-		name: 'GitHub OAuth',
-		purpose: 'Social login authentication',
-		dataProcessed: 'Authentication tokens, email, username, profile picture',
-		location: 'US',
-		privacyUrl: 'https://docs.github.com/en/site-policy/privacy-policies',
-		dpaStatus: 'SCCs available',
 	},
 ];
 
@@ -90,7 +69,7 @@ export default function SubprocessorsPage() {
 					Subprocessors
 				</h1>
 				<p className='text-text-secondary'>
-					Last updated: <time dateTime='2026-10-12'>{EFFECTIVE_DATE}</time>
+					Last updated: <time dateTime='2026-10-18'>{EFFECTIVE_DATE}</time>
 				</p>
 			</header>
 
@@ -98,144 +77,88 @@ export default function SubprocessorsPage() {
 			<section id='introduction' className='scroll-mt-24'>
 				<h2>About This List</h2>
 				<p>
-					Shiko uses third-party service providers (&quot;subprocessors&quot;)
-					to help deliver our service. Under GDPR Article 28, we are required to
-					disclose these subprocessors and ensure they meet our data protection
-					standards.
-				</p>
-				<p>
-					All subprocessors listed below have been vetted for security and
-					privacy practices. Where applicable, we have Data Processing
-					Agreements (DPAs) or Standard Contractual Clauses (SCCs) in place to
-					protect your data.
-				</p>
-				<p>
-					Sites that map plugins connect to, such as GitHub or Wikipedia, are
-					not on this list: Shiko doesn&apos;t send them data. A plugin&apos;s
-					site is contacted from the browser of the person who adds or
-					refreshes that plugin&apos;s node. See{' '}
-
-					<Link href='/privacy#plugins'>Plugins in our Privacy Policy</Link>.
+					Shiko uses these companies to process personal data on our behalf.
+					Each is bound by a data processing agreement. The{' '}
+					<Link href='/privacy'>Privacy Policy</Link> explains what we do with
+					your data and why.
 				</p>
 			</section>
 
-			{/* Subprocessors Table */}
+			{/* Subprocessors list */}
 			<section id='subprocessors' className='scroll-mt-24'>
 				<h2>Current Subprocessors</h2>
 
-				<div className='not-prose overflow-x-auto my-6'>
-					<table className='w-full text-sm'>
-						<thead>
-							<tr className='border-b border-border-subtle'>
-								<th className='text-left py-3 px-4 text-text-primary font-semibold'>
-									Provider
-								</th>
-								<th className='text-left py-3 px-4 text-text-primary font-semibold'>
-									Purpose
-								</th>
-								<th className='text-left py-3 px-4 text-text-primary font-semibold'>
-									Location
-								</th>
-								<th className='text-left py-3 px-4 text-text-primary font-semibold'>
-									DPA Status
-								</th>
-							</tr>
-						</thead>
-						<tbody className='text-text-secondary'>
-							{SUBPROCESSORS.map((sub, index) => (
-								<tr
-									key={sub.name}
-									className={
-										index < SUBPROCESSORS.length - 1
-											? 'border-b border-border-subtle/50'
-											: ''
-									}
+				<div role='list' className='not-prose my-6 text-sm'>
+					<div
+						aria-hidden='true'
+						className='hidden gap-x-6 border-b border-border-subtle px-4 py-3 font-semibold text-text-primary sm:flex'
+					>
+						<span className='flex-[1_1_11rem]'>Provider</span>
+						<span className='flex-[999_1_20rem]'>
+							What it does and receives
+						</span>
+						<span className='flex-[1_1_9rem]'>Location</span>
+					</div>
+					{SUBPROCESSORS.map((sub) => (
+						<div
+							key={sub.name}
+							role='listitem'
+							className='flex flex-wrap gap-x-6 gap-y-1.5 border-b border-border-subtle/50 px-4 py-3.5'
+						>
+							<div className='min-w-0 flex-[1_1_11rem]'>
+								<a
+									href={sub.privacyUrl}
+									target='_blank'
+									rel='noopener noreferrer'
+									className='font-semibold text-primary-400 transition-colors duration-200 hover:text-primary-300'
 								>
-									<td className='py-3 px-4'>
-										<a
-											href={sub.privacyUrl}
-											target='_blank'
-											rel='noopener noreferrer'
-											className='text-primary-400 hover:text-primary-300 transition-colors duration-200'
-										>
-											{sub.name}
-										</a>
-									</td>
-									<td className='py-3 px-4'>{sub.purpose}</td>
-									<td className='py-3 px-4'>{sub.location}</td>
-									<td className='py-3 px-4'>{sub.dpaStatus}</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
+									{sub.name}
+								</a>
+								<div className='mt-0.5 text-text-tertiary'>{sub.purpose}</div>
+							</div>
+							<div className='flex-[999_1_20rem] text-text-secondary'>
+								{sub.dataProcessed}
+							</div>
+							<div className='flex-[1_1_9rem] text-text-secondary'>
+								{sub.location}
+							</div>
+						</div>
+					))}
 				</div>
 			</section>
 
-			{/* Detailed Information */}
-			<section id='details' className='scroll-mt-24'>
-				<h2>Data Processing Details</h2>
-
-				{SUBPROCESSORS.map((sub) => (
-					<div
-						key={sub.name}
-						className='not-prose mb-6 p-4 bg-elevated/30 rounded-lg border border-border-subtle'
-					>
-						<h3 className='text-lg font-semibold text-text-primary mb-2'>
-							{sub.name}
-						</h3>
-						<dl className='grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm'>
-							<div>
-								<dt className='text-text-tertiary'>Purpose</dt>
-								<dd className='text-text-secondary'>{sub.purpose}</dd>
-							</div>
-							<div>
-								<dt className='text-text-tertiary'>Location</dt>
-								<dd className='text-text-secondary'>{sub.location}</dd>
-							</div>
-							<div className='sm:col-span-2'>
-								<dt className='text-text-tertiary'>Data Processed</dt>
-								<dd className='text-text-secondary'>{sub.dataProcessed}</dd>
-							</div>
-							<div>
-								<dt className='text-text-tertiary'>Privacy Policy</dt>
-								<dd>
-									<a
-										href={sub.privacyUrl}
-										target='_blank'
-										rel='noopener noreferrer'
-										className='text-primary-400 hover:text-primary-300 transition-colors duration-200'
-									>
-										View →
-									</a>
-								</dd>
-							</div>
-							<div>
-								<dt className='text-text-tertiary'>DPA Status</dt>
-								<dd className='text-text-secondary'>{sub.dpaStatus}</dd>
-							</div>
-						</dl>
-					</div>
-				))}
+			{/* Not on this list */}
+			<section id='not-listed' className='scroll-mt-24'>
+				<h2>Not on This List</h2>
+				<p>
+					Some companies handle your data because you chose to deal with them,
+					not because we send it to them for processing:
+				</p>
+				<ul>
+					<li>
+						<strong>Polar</strong> sells Pro subscriptions and receives your
+						payment details at checkout.
+					</li>
+					<li>
+						<strong>Google</strong> and <strong>GitHub</strong> receive your
+						sign-in when you use them to sign in.
+					</li>
+					<li>
+						<strong>Sites that plugins connect to</strong>, such as GitHub or
+						Wikipedia, are contacted from the browser of the person who adds or
+						refreshes that plugin&apos;s node, not by Shiko. See{' '}
+						<Link href='/privacy#plugins'>Plugins in our Privacy Policy</Link>.
+					</li>
+				</ul>
 			</section>
 
 			{/* Updates Section */}
 			<section id='updates' className='scroll-mt-24'>
-				<h2>Changes to Subprocessors</h2>
+				<h2>Changes</h2>
 				<p>
-					We may update our list of subprocessors from time to time. When we add
-					a new subprocessor that processes personal data, we will:
-				</p>
-				<ul>
-					<li>Update this page with the new subprocessor details</li>
-					<li>
-						Notify users by email at least 14 days before the change takes
-						effect (for material changes)
-					</li>
-					<li>Ensure appropriate data protection agreements are in place</li>
-				</ul>
-				<p>
-					If you object to a new subprocessor, you may terminate your account
-					before the change takes effect by contacting us.
+					We update this page before a new company starts processing personal
+					data for Shiko. If you object to a change, you can delete your account
+					before it takes effect.
 				</p>
 			</section>
 
@@ -243,13 +166,9 @@ export default function SubprocessorsPage() {
 			<section id='contact' className='scroll-mt-24'>
 				<h2>Questions</h2>
 				<p>
-					If you have questions about our subprocessors or data processing
-					practices, please contact us at{' '}
-					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
-				</p>
-				<p>
-					For business customers requiring a Data Processing Agreement (DPA),
-					please contact us at the same email address.
+					Write to <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. If
+					your organization needs a Data Processing Agreement with Shiko, ask at
+					the same address.
 				</p>
 			</section>
 

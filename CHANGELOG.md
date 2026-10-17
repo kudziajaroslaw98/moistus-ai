@@ -5,6 +5,46 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-18]
+
+### Changed
+
+- **privacy policy**: Rewritten after an audit against the GDPR and US state privacy laws. It now names who runs Shiko (name, address, email), ties each use of data to its legal basis, adds the rights to restrict and to object, lists every provider (adds PartyKit/Cloudflare and Resend), says the database is in the US (it said EU; the Supabase project is in Ohio), says collaborators can see each other's emails (it said they can't), and replaces the CCPA claim with a plain US-residents section. Internal detail is gone (bcrypt, row-level security, "improve our service"), and "by using Shiko you agree" and "continued use is acceptance" no longer appear in a privacy notice
+  - Why: several statements were false, and required information was missing
+- **terms of service**: Rewritten. Adds who runs Shiko, Polar as the seller of Pro (it was called "our payment processor"), a full refund within 14 days of the first Pro payment (it said refunds are generally not given), complaints answered within 14 days, a way to report illegal content, rules for publishing plugins and recipes, consumer carve-outs to the warranty, liability and indemnity clauses, and a reason and notice when we change or end the service. Plan features and prices now point to the pricing page; AI consent is no longer a clause (AI runs because the person asked for it)
+- **subprocessors**: One list in the style of the cookie section instead of a table plus repeated cards. OpenAI is described correctly (kept up to 30 days, not used for training), PartyKit/Cloudflare and Resend are added, and the wrong "GDPR Article 28 requires this list" line is gone
+
+### Added
+
+- **sign-up**: Sign-up, Google/GitHub sign-in and the guest upgrade now say the Terms apply and link the Terms and Privacy Policy (`LegalConsentNote`); they linked nothing before
+- **account menu**: Privacy Policy and Terms of Service links (new tab) in the dashboard and editor account menu
+- **legal pages**: `src/constants/legal.ts` holds the operator's details and contact email for all three pages, and `legal-pages.test.tsx` guards the contact address, in-page anchors and the corrected claims
+
+### Docs
+
+- **CLAUDE.md**: New "Legal pages" gotcha; tech debt #12-#15 (collaborator emails, what account/guest deletion removes, `support@shiko.app` has no MX record, provider DPAs to confirm); #10 now lists what a lawyer should review
+
+---
+
+## [2026-10-17]
+
+### Added
+
+- **privacy policy**: New section 12, "Cookies and Browser Storage" (`/privacy#cookies`): what Shiko stores by purpose (signing in, preferences, working offline, faster loading) and for how long, which other websites a visit can involve, Do Not Track / Global Privacy Control, and how to clear it. "Cookies" link added to the landing and legal footers; Contact Us is now section 13
+  - Why: the notice's "Learn more" led to a policy with no cookie or storage section, and the policy had no Do Not Track statement (California's CalOPPA requires one)
+
+### Changed
+
+- **cookie notice**: Rewritten as a small corner card ("Shiko only stores what it needs to sign you in and keep your work…", "What we store", "Got it"). It shows only on the landing, sign-in/sign-up and invite-link pages, no longer on the legal pages, dashboard or editor, and no longer covers the footer links; on a phone it is about 126px tall instead of about 200px. People who dismissed the old notice don't see it again
+  - Why: the old text named payment cookies (Polar's, not Shiko's) and left out the other storage Shiko uses; nothing here needs consent, so it informs instead of asking
+- **upgrade prompt**: The 30-minute session timer is kept in memory instead of `localStorage`, so it counts from when the tab opened Shiko. Before, it counted from a person's first-ever visit and never reset
+  - Why: the timer only exists for an upsell prompt, which is not storage the person asked for
+
+### Fixed
+
+- **cookie notice**: No longer throws when browser storage is blocked, and hides in other tabs once dismissed in one
+
+---
 ## [2026-10-15]
 
 ### Fixed

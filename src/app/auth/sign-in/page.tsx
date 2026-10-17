@@ -8,6 +8,7 @@ import {
 	OAuthDivider,
 	type OAuthProvider,
 } from '@/components/auth/shared';
+import { LegalConsentNote } from '@/components/auth/shared/legal-consent-note';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { getSharedSupabaseClient } from '@/helpers/supabase/shared-client';
@@ -213,6 +214,9 @@ function SignInForm() {
 					disabled={loading}
 					label='sign-in'
 				/>
+
+				{/* Google/GitHub sign-in also creates an account for new people */}
+				<LegalConsentNote action='continue' className='mt-3' />
 			</motion.div>
 
 			{/* Divider */}
