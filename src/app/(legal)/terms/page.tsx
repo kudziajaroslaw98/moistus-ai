@@ -121,9 +121,11 @@ export default function TermsOfServicePage() {
 				<p>
 					You can join a shared map with a room code without an account. Shiko
 					then makes a temporary guest account with the name you enter. Guests
-					have fewer features. A guest account stays until the map owner removes
-					the guest or the guest asks us to delete it at{' '}
-					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+					have fewer features. A guest account is removed after 90 days without
+					use, sooner if the map owner removes the guest, or if the guest asks
+					us to delete it at{' '}
+					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. What a guest
+					added to a map stays there without their name.
 				</p>
 			</section>
 
@@ -225,7 +227,8 @@ export default function TermsOfServicePage() {
 					with, process it to provide the Service (including AI features you ask
 					for), and keep backups. The licence ends when you delete the content
 					or your account, except for backups, which are overwritten within 90
-					days.
+					days, and for what you added to other people&apos;s maps, which stays
+					there without your name (see section 12).
 				</p>
 
 				<h3>6.3 Your Responsibility</h3>
@@ -383,8 +386,10 @@ export default function TermsOfServicePage() {
 					You can delete your account in your account settings or by emailing
 					us. Deleting it cancels Pro straight away and does not refund the rest
 					of the period, so cancel Pro first if you want to use the time you
-					paid for. Export your data first if you want to keep it. The Privacy
-					Policy explains what is deleted.
+					paid for. Export your data first if you want to keep it. Your maps are
+					deleted. What you added to other people&apos;s maps stays there
+					without your name, so delete items first if you want them gone. The
+					Privacy Policy has the details.
 				</p>
 
 				<h3>12.2 By Us</h3>
@@ -398,9 +403,10 @@ export default function TermsOfServicePage() {
 
 				<h3>12.3 After It Ends</h3>
 				<p>
-					Your access stops and your content is deleted as described in the
-					Privacy Policy. Sections that by their nature should continue, such as
-					11, keep applying.
+					Your access stops, your account and maps are deleted, and what you
+					added to other people&apos;s maps stays there as &quot;Former
+					member&quot;, as the Privacy Policy describes. Sections that by their
+					nature should continue, such as 11, keep applying.
 				</p>
 			</section>
 

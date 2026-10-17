@@ -109,6 +109,35 @@ describe('Subprocessors page', () => {
 	});
 });
 
+// These describe how `reassign_contributions` and `remove_inactive_guests` behave
+// (supabase/migrations/20261018120000_former_member_contributions.sql); change
+// the copy and the code together.
+describe('what happens to contributions when someone leaves', () => {
+	it('privacy policy: contributions on other maps stay as Former member, guests expire after 90 days', () => {
+		const { container } = render(<PrivacyPolicyPage />);
+
+		expect(container).toHaveTextContent(
+			/What you added to other people's maps .* stays on those maps without your name or picture, shown as "Former member"/
+		);
+		expect(container).toHaveTextContent(
+			"a guest account that hasn't been used for 90 days is removed"
+		);
+		// The old promise, now false.
+		expect(container).not.toHaveTextContent(
+			"and what you added to other people's maps (nodes, comments and reactions)"
+		);
+	});
+
+	it('terms: guests expire after 90 days and contributions stay without a name', () => {
+		const { container } = render(<TermsOfServicePage />);
+
+		expect(container).toHaveTextContent(
+			'A guest account is removed after 90 days'
+		);
+		expect(container).toHaveTextContent('stays there as "Former member"');
+	});
+});
+
 // PR #76 corrected this list to match what the AI routes really send; keep it in
 // step with src/helpers/ai-suggestion-rows.ts, ai-recipe-context.ts and
 // /api/search-nodes.
