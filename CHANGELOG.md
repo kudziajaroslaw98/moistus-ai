@@ -22,7 +22,7 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **account menu**: Privacy Policy and Terms of Service links (new tab) in the dashboard and editor account menu
 - **legal pages**: `src/constants/legal.ts` holds the operator's details and contact email for all three pages, and `legal-pages.test.tsx` guards the contact address, in-page anchors and the corrected claims
 - **guests**: Guest accounts unused for 90 days are removed once a day (database job `remove-inactive-guests`); what they added stays as "Former member". Guests that own a map are skipped
-- **database**: `reassign_contributions` and `remove_inactive_guests` functions, the Former member placeholder user with its read policy, and the cron job (two local migration files, applied to prod through the Supabase MCP; prod needs `pg_cron` enabled first)
+- **database**: `reassign_contributions` and `remove_inactive_guests` functions, the Former member placeholder user with its read policy, and the cron job (two local migration files, applied to prod on 2026-10-18 through the Supabase MCP as `former_member_contributions` and `schedule_guest_cleanup`, after `pg_cron` was enabled there)
 
 ### Fixed
 
