@@ -125,7 +125,6 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		isDraggingNodes,
 		deleteEdges,
 		setIsDraggingNodes,
-		unsubscribeFromRealtimeUpdates,
 		openNodeEditor,
 		getCurrentUser,
 		getVisibleEdges,
@@ -180,7 +179,6 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 			deleteComment: state.deleteComment,
 			deleteEdges: state.deleteEdges,
 			setIsDraggingNodes: state.setIsDraggingNodes,
-			unsubscribeFromRealtimeUpdates: state.unsubscribeFromRealtimeUpdates,
 			openNodeEditor: state.openNodeEditor,
 			getCurrentUser: state.getCurrentUser,
 			toggleFocusMode: state.toggleFocusMode,
@@ -572,11 +570,10 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		});
 	}, [isMapReady, mapId, supabase, getCurrentShareUsers]);
 
-	useEffect(() => {
-		return () => {
-			unsubscribeFromRealtimeUpdates();
-		};
-	}, []);
+	// No realtime teardown on unmount here: this component mounts mid-load once
+	// the auth check ends, and React Strict Mode's replayed cleanup then reset the
+	// permissions of the load in flight. MindMapCanvas owns the map's lifecycle
+	// (clearMindMapRuntimeState tears realtime down when the map page really leaves).
 
 	// Track mouse position for InlineNodeCreator
 	useLayoutEffect(() => {

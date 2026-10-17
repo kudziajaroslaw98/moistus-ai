@@ -446,4 +446,36 @@ describe('core slice', () => {
 		expect(clearPermissionsState).toHaveBeenCalledTimes(1);
 		expect(harness.getState()._realtimeUnsubscribePromise).toBeNull();
 	});
+
+	it('resets permissions when the teardown starts so a late teardown cannot wipe a newer load', async () => {
+		let resolveNodesCleanup: () => void = () => {};
+		const nodesCleanupPromise = new Promise<void>((resolve) => {
+			resolveNodesCleanup = resolve;
+		});
+		let permissionsMapId: string | null = 'map-1';
+		const clearPermissionsState = jest.fn(() => {
+			permissionsMapId = null;
+		});
+		const harness = createCoreSliceHarness({
+			unsubscribeFromNodes: jest.fn(() => nodesCleanupPromise),
+			unsubscribeFromPermissionUpdates: jest.fn(),
+			clearPermissionsState,
+		});
+
+		const teardown = harness.getState().unsubscribeFromRealtimeUpdates();
+
+		// Reset right away, while the old subscriptions are still closing.
+		expect(clearPermissionsState).toHaveBeenCalledTimes(1);
+		expect(permissionsMapId).toBeNull();
+
+		// A newer map load begins and records its permissions meanwhile.
+		permissionsMapId = 'map-2';
+
+		resolveNodesCleanup();
+		await teardown;
+
+		// Finishing the old teardown must leave the newer load alone.
+		expect(clearPermissionsState).toHaveBeenCalledTimes(1);
+		expect(permissionsMapId).toBe('map-2');
+	});
 });

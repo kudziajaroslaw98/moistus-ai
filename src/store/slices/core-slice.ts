@@ -733,14 +733,20 @@ export const createCoreDataSlice: StateCreator<
 
 		const unsubscribePromise = (async () => {
 			try {
+				// Reset permissions now, not after the awaits below: this teardown can
+				// finish after a newer map load has begun (React Strict Mode replays
+				// the editor's unmount cleanup, and leaving a map starts a load for the
+				// next one), and a late reset wiped that load's permissions so a
+				// collaborator editor stayed read-only.
+				get().unsubscribeFromPermissionUpdates();
+				get().clearPermissionsState();
+
 				await Promise.all([
 					get().unsubscribeFromNodes(),
 					get().unsubscribeFromEdges(),
 					get().unsubscribeFromCommentUpdates(),
 					get().unsubscribeFromHistoryCurrent(),
 				]);
-				get().unsubscribeFromPermissionUpdates();
-				get().clearPermissionsState();
 			} catch (error) {
 				console.error('Failed to stop real-time subscriptions:', error);
 			} finally {

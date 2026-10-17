@@ -5,6 +5,13 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-17]
+
+### Fixed
+
+- **permissions/collaborators**: A collaborator with the editor role could load a map as a viewer (no Add Node, AI or Auto Layout tools, nothing editable) and stay that way until they reloaded; it showed up whenever PartyKit was not running. The permissions request (`/api/maps/<id>/permissions`) was never sent: `ReactFlowArea` mounts once the auth check ends, which for a freshly joined anonymous collaborator is mid-load, and React Strict Mode's replayed unmount cleanup called `unsubscribeFromRealtimeUpdates()`, which reset the permissions of the load in flight. `ReactFlowArea` no longer tears realtime down on unmount (`MindMapCanvas` owns that through `clearMindMapRuntimeState`), and `unsubscribeFromRealtimeUpdates` now resets permissions when it starts instead of after its awaits, so an older teardown can't wipe a newer map load
+  - Why: with PartyKit up, its permission snapshot hid the problem by setting the role a second time, so the HTTP fetch looked unnecessary until PartyKit was missing
+
 ## [2026-10-13]
 
 ### Fixed

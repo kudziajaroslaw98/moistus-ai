@@ -287,7 +287,6 @@ function createMockStore(overrides: Partial<Record<string, unknown>> = {}) {
 		isDraggingNodes: false,
 		deleteEdges: mockNoop,
 		setIsDraggingNodes: mockNoop,
-		unsubscribeFromRealtimeUpdates: jest.fn().mockResolvedValue(undefined),
 		openNodeEditor: mockNoop,
 		getCurrentUser: jest.fn().mockResolvedValue(null),
 		getVisibleEdges: () => store.edges as AppEdge[],
