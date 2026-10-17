@@ -71,6 +71,11 @@ jest.mock('@/components/ui/textarea', () => ({
 	),
 }));
 
+jest.mock('@/components/mind-map/publish-template-dialog', () => ({
+	PublishTemplateDialog: ({ open }: { open: boolean }) =>
+		open ? <div data-testid='publish-dialog'>Publish Dialog</div> : null,
+}));
+
 type StoreState = {
 	mindMap: {
 		id: string;
@@ -78,7 +83,10 @@ type StoreState = {
 		description: string | null;
 		tags: string[];
 		thumbnailUrl: string | null;
+		is_template?: boolean;
+		template_category?: string | null;
 	};
+	permissions?: { can_edit?: boolean };
 	updateMindMap: jest.Mock;
 	deleteMindMap: jest.Mock;
 	loadingStates: {
@@ -89,7 +97,11 @@ type StoreState = {
 	edges: unknown[];
 	updatePreferences: jest.Mock;
 	getDefaultNodeType: jest.Mock;
-	userProfile: { is_anonymous?: boolean; preferences?: { developerMode?: boolean } };
+	userProfile: {
+		role?: string | null;
+		is_anonymous?: boolean;
+		preferences?: { developerMode?: boolean };
+	};
 };
 
 const mockUseAppStore = useAppStore as unknown as jest.Mock;
@@ -225,5 +237,123 @@ describe('MapSettingsPanel', () => {
 		);
 
 		expect(onClose).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('MapSettingsPanel template admin', () => {
+	let mockState: StoreState;
+	const originalFetch = global.fetch;
+
+	beforeEach(() => {
+		jest.clearAllMocks();
+		mockState = {
+			...createMockState(),
+			mindMap: {
+				id: 'template-1',
+				title: 'SWOT Analysis',
+				description: 'Template',
+				tags: [],
+				thumbnailUrl: null,
+				is_template: true,
+				template_category: 'business',
+			},
+			permissions: { can_edit: true },
+		};
+		mockUseAppStore.mockImplementation(
+			(selector: (state: StoreState) => unknown) => selector(mockState)
+		);
+		global.fetch = jest.fn() as unknown as typeof fetch;
+	});
+
+	afterEach(() => {
+		global.fetch = originalFetch;
+	});
+
+	it('shows the category picker with a locked icon/colors preview', () => {
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+
+		expect(screen.getByRole('heading', { name: 'Template' })).toBeInTheDocument();
+		expect(screen.getByText('Category')).toBeInTheDocument();
+		expect(screen.getByTestId('template-category-preview')).toBeInTheDocument();
+		expect(
+			screen.getByText('The gallery icon and colors are set by the category.')
+		).toBeInTheDocument();
+		expect(screen.getByText('Delete template')).toBeInTheDocument();
+	});
+
+	it('offers no icon or color controls and loads nothing extra', () => {
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+
+		expect(screen.queryByText('Gallery icon')).not.toBeInTheDocument();
+		expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+		expect(screen.queryByLabelText(/preview color/i)).not.toBeInTheDocument();
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
+
+	it('hides tags and thumbnail for templates', () => {
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+
+		expect(screen.queryByText('Organization')).not.toBeInTheDocument();
+		expect(screen.queryByText('Appearance')).not.toBeInTheDocument();
+		expect(screen.queryByLabelText(/thumbnail url/i)).not.toBeInTheDocument();
+		expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+		// Title and description stay editable.
+		expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
+	});
+
+	it('saves a category change as template_category only', async () => {
+		const user = userEvent.setup();
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+
+		await user.click(screen.getByRole('combobox', { name: /category/i }));
+		await user.click(await screen.findByRole('option', { name: 'Education' }));
+		await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+		await waitFor(() => {
+			expect(mockState.updateMindMap).toHaveBeenCalledWith('template-1', {
+				template_category: 'education',
+			});
+		});
+	});
+
+	it('hides template section when the viewer cannot edit the template', () => {
+		mockState.permissions = { can_edit: false };
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+
+		expect(screen.queryByRole('heading', { name: 'Template' })).not.toBeInTheDocument();
+	});
+});
+
+describe('MapSettingsPanel publish as template', () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+	});
+
+	it('offers publishing to admins on their own maps', async () => {
+		const user = userEvent.setup();
+		const base = createMockState();
+		const state = { ...base, userProfile: { ...base.userProfile, role: 'admin' } };
+		mockUseAppStore.mockImplementation(
+			(selector: (s: StoreState) => unknown) => selector(state)
+		);
+
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+		await user.click(screen.getByRole('button', { name: 'Publish as template' }));
+
+		expect(screen.getByTestId('publish-dialog')).toBeInTheDocument();
+	});
+
+	it('does not offer publishing to non-admins', () => {
+		const base = createMockState();
+		const state = { ...base, userProfile: { ...base.userProfile, role: 'user' } };
+		mockUseAppStore.mockImplementation(
+			(selector: (s: StoreState) => unknown) => selector(state)
+		);
+
+		render(<MapSettingsPanel isOpen onClose={jest.fn()} />);
+
+		expect(
+			screen.queryByRole('button', { name: 'Publish as template' })
+		).not.toBeInTheDocument();
 	});
 });

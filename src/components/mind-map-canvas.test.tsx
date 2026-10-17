@@ -8,6 +8,7 @@ const mockClearMindMapRuntimeState = jest.fn();
 const mockSetMapId = jest.fn();
 const mockFetchMindMapData = jest.fn();
 let mockRouteMapId = 'map-new';
+let mockCanEdit = true;
 let mockStoreState: Record<string, unknown>;
 let lastReactFlowAreaProps: Record<string, unknown> | null = null;
 
@@ -20,7 +21,7 @@ jest.mock('@/hooks/use-keyboard-shortcuts', () => ({
 }));
 
 jest.mock('@/hooks/collaboration/use-permissions', () => ({
-	usePermissions: () => ({ canEdit: true }),
+	usePermissions: () => ({ canEdit: mockCanEdit }),
 }));
 
 jest.mock('@/hooks/realtime/use-realtime-selection-presence-room', () => ({
@@ -85,6 +86,7 @@ jest.mock('./mind-map/access-revoked-page', () => ({
 
 function createStoreState(overrides: Record<string, unknown> = {}) {
 	return {
+		activeTool: 'default',
 		copySelectedNodes: jest.fn(),
 		pasteNodes: jest.fn(),
 		edges: [],
@@ -120,6 +122,7 @@ function createStoreState(overrides: Record<string, unknown> = {}) {
 describe('MindMapCanvas', () => {
 	beforeEach(() => {
 		mockRouteMapId = 'map-new';
+		mockCanEdit = true;
 		lastReactFlowAreaProps = null;
 		mockClearMindMapRuntimeState.mockReset();
 		mockSetMapId.mockReset();
@@ -185,5 +188,46 @@ describe('MindMapCanvas', () => {
 		await Promise.resolve();
 
 		expect(mockClearMindMapRuntimeState).not.toHaveBeenCalled();
+	});
+
+	describe('keyboard while the canvas is in Pan or read-only', () => {
+		const loadedMap = {
+			mapId: 'map-new',
+			mindMap: { id: 'map-new', title: 'New Map', user_id: 'user-1' },
+		};
+		const lastShortcutsArgs = () =>
+			mockUseKeyboardShortcuts.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+		const lastNavigationArgs = () =>
+			mockUseKeyboardNavigation.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+
+		it('keeps every shortcut live for an editor in Select', () => {
+			mockStoreState = createStoreState(loadedMap);
+
+			render(<MindMapCanvas />);
+
+			expect(lastShortcutsArgs().disableEdits).toBe(false);
+			expect(lastShortcutsArgs().onToggleCollapse).toEqual(expect.any(Function));
+			expect(lastNavigationArgs().enabled).toBe(true);
+		});
+
+		it('turns edits, collapse and arrow navigation off in Pan', () => {
+			mockStoreState = createStoreState({ ...loadedMap, activeTool: 'pan' });
+
+			render(<MindMapCanvas />);
+
+			expect(lastShortcutsArgs().disableEdits).toBe(true);
+			expect(lastShortcutsArgs().onToggleCollapse).toBeUndefined();
+			expect(lastNavigationArgs().enabled).toBe(false);
+		});
+
+		it('turns edit shortcuts off for someone who cannot edit, even in Select', () => {
+			mockCanEdit = false;
+			mockStoreState = createStoreState(loadedMap);
+
+			render(<MindMapCanvas />);
+
+			expect(lastShortcutsArgs().disableEdits).toBe(true);
+			expect(lastShortcutsArgs().onToggleCollapse).toEqual(expect.any(Function));
+		});
 	});
 });

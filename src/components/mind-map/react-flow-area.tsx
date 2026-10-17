@@ -44,6 +44,7 @@ import { useNotifications } from '@/components/notifications/use-notifications';
 import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
 import { ShortcutsHelpFab } from '@/components/shortcuts-help/shortcuts-help-fab';
 import { buildAnnotationTetherEdges } from '@/helpers/anchored-annotations';
+import { canDeleteCommentThread } from '@/helpers/comment-thread-permissions';
 import { isDerivedDisplayEdgeId } from '@/helpers/derived-display-edges';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import { useActivityTracker } from '@/hooks/realtime/use-activity-tracker';
@@ -118,6 +119,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		setEdgeInfo,
 		addNode: addNode,
 		deleteNodes,
+		deleteComment,
 		isDraggingNodes,
 		deleteEdges,
 		setIsDraggingNodes,
@@ -175,6 +177,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 			setEdgeInfo: state.setEdgeInfo,
 			addNode: state.addNode,
 			deleteNodes: state.deleteNodes,
+			deleteComment: state.deleteComment,
 			deleteEdges: state.deleteEdges,
 			setIsDraggingNodes: state.setIsDraggingNodes,
 			unsubscribeFromRealtimeUpdates: state.unsubscribeFromRealtimeUpdates,
@@ -218,7 +221,9 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	const { contextMenuHandlers } = useContextMenu();
 	const { generateSuggestionsForNode } = useNodeSuggestion();
 	const { animateGraphToState, cancelAnimation } = useAnimatedLayout();
-	const { canEdit } = usePermissions();
+	const { canEdit, canComment } = usePermissions();
+	// Pan only moves the pane: nothing on the canvas reacts to clicks, keys or touch.
+	const isPanningMode = activeTool === 'pan';
 	const isMobile = useIsMobile();
 	const mobileNotifications = useNotifications({
 		filterMapId: mapId as string,
@@ -227,29 +232,36 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 	useTouchContextMenuFallback({
 		containerRef: touchContextMenuContainerRef,
+		enabled: !isPanningMode,
 		isContextMenuOpen: popoverOpen.contextMenu,
 		openContextMenuAt: contextMenuHandlers.openContextMenuAt,
 	});
 
 	const handleGestureUndo = useCallback(() => {
-		if (!canEdit) {
+		if (!canEdit || isPanningMode) {
 			return;
 		}
 		if (historyIndex <= 0) {
 			return;
 		}
 		void revertToHistoryState(historyIndex - 1);
-	}, [canEdit, historyIndex, revertToHistoryState]);
+	}, [canEdit, historyIndex, isPanningMode, revertToHistoryState]);
 
 	const handleGestureRedo = useCallback(() => {
-		if (!canEdit) {
+		if (!canEdit || isPanningMode) {
 			return;
 		}
 		if (historyIndex >= historyMeta.length - 1) {
 			return;
 		}
 		void revertToHistoryState(historyIndex + 1);
-	}, [canEdit, historyIndex, historyMeta.length, revertToHistoryState]);
+	}, [
+		canEdit,
+		historyIndex,
+		historyMeta.length,
+		isPanningMode,
+		revertToHistoryState,
+	]);
 
 	const handleGestureFitView = useCallback(() => {
 		reactFlowInstance.fitView({
@@ -261,6 +273,10 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 	const handleGestureCycleSelection = useCallback(
 		(direction: 'left' | 'right') => {
+			if (isPanningMode) {
+				return;
+			}
+
 			const visibleNodes = getVisibleNodes();
 			if (visibleNodes.length === 0) {
 				return;
@@ -303,6 +319,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 		[
 			nodes,
 			getVisibleNodes,
+			isPanningMode,
 			reactFlowInstance,
 			selectedNodes,
 			setNodes,
@@ -339,14 +356,46 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 	}, []);
 
 	// Permission-gated delete handlers
-	// Viewers should not be able to delete nodes/edges via Delete key
+	// Viewers should not be able to delete nodes/edges via Delete key.
+	// Commenters may delete the comment threads they started, nothing else.
+	const handleBeforeDelete = useCallback(
+		async ({ nodes: nodesToDelete }: { nodes: AppNode[]; edges: AppEdge[] }) => {
+			if (canEdit) return true;
+
+			const ownThreads = nodesToDelete.filter((node) =>
+				canDeleteCommentThread({ canEdit, canComment }, node, currentUser?.id)
+			);
+
+			return ownThreads.length > 0
+				? { nodes: ownThreads, edges: [] }
+				: false;
+		},
+		[canEdit, canComment, currentUser?.id]
+	);
+
 	const handleNodesDelete = useCallback(
 		(nodesToDelete: Node[]) => {
-			if (!canEdit) return;
 			// Cast is safe: React Flow returns same objects we passed in
-			deleteNodes(nodesToDelete as AppNode[]);
+			const requested = nodesToDelete as AppNode[];
+
+			// A thread is a node plus its comments row: delete both.
+			for (const node of requested) {
+				if (
+					canDeleteCommentThread(
+						{ canEdit, canComment },
+						node,
+						currentUser?.id
+					)
+				) {
+					void deleteComment(node.id);
+				}
+			}
+
+			if (!canEdit) return;
+			const others = requested.filter((node) => node.type !== 'commentNode');
+			if (others.length > 0) deleteNodes(others);
 		},
-		[canEdit, deleteNodes]
+		[canEdit, canComment, currentUser?.id, deleteComment, deleteNodes]
 	);
 
 	const handleEdgesDelete = useCallback(
@@ -583,8 +632,8 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 				}
 			}
 
-			// Check if "/" key is pressed and not in an input
-			if (e.key === '/' && !isInputElement(e.target)) {
+			// Check if "/" key is pressed and not in an input (Pan never creates nodes)
+			if (e.key === '/' && !isInputElement(e.target) && !isPanningMode) {
 				e.preventDefault();
 
 				const position = reactFlowInstance?.screenToFlowPosition({
@@ -602,10 +651,104 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [isMapReady, mousePosition, openNodeEditor, reactFlowInstance, setTyping]);
+	}, [
+		isMapReady,
+		isPanningMode,
+		mousePosition,
+		openNodeEditor,
+		reactFlowInstance,
+		setTyping,
+	]);
+
+	// Pan mode: `inert` takes the nodes and edge labels out of hit-testing, focus and
+	// the keyboard, so every native and plugin control stops reacting and a drag that
+	// starts on one falls through to the pane and pans. CSS `pointer-events` can't do
+	// this: React Flow sets it inline on nodes, and it leaves Tab + Enter working.
+	useEffect(() => {
+		const container = touchContextMenuContainerRef.current;
+		if (!container) {
+			return;
+		}
+
+		const layers = container.querySelectorAll<HTMLElement>(
+			'.react-flow__nodes, .react-flow__edgelabel-renderer'
+		);
+
+		for (const layer of layers) {
+			if (isPanningMode) {
+				layer.setAttribute('inert', '');
+			} else {
+				layer.removeAttribute('inert');
+			}
+		}
+
+		return () => {
+			for (const layer of layers) {
+				layer.removeAttribute('inert');
+			}
+		};
+	}, [isPanningMode, isMapReady]);
+
+	// React Flow can't deselect while `elementsSelectable` is off, so drop the selection
+	// ourselves: selected-only UI (toolbars, Add/Suggest) and the Delete key go quiet.
+	useEffect(() => {
+		if (!isPanningMode) {
+			return;
+		}
+
+		const selectedNodeChanges = nodes
+			.filter((node) => node.selected)
+			.map((node) => ({
+				id: node.id,
+				type: 'select' as const,
+				selected: false,
+			}));
+		if (selectedNodeChanges.length > 0) {
+			onNodesChange(selectedNodeChanges);
+		}
+
+		const selectedEdgeChanges = edges
+			.filter((edge) => edge.selected)
+			.map((edge) => ({
+				id: edge.id,
+				type: 'select' as const,
+				selected: false,
+			}));
+		if (selectedEdgeChanges.length > 0) {
+			onEdgesChange(selectedEdgeChanges);
+		}
+
+		if (selectedNodes.length > 0) {
+			setSelectedNodes([]);
+		}
+	}, [
+		edges,
+		isPanningMode,
+		nodes,
+		onEdgesChange,
+		onNodesChange,
+		selectedNodes,
+		setSelectedNodes,
+	]);
+
+	// Right-click and long-press land on the pane now that nodes are inert.
+	const handlePaneContextMenu = useCallback(
+		(event: React.MouseEvent | MouseEvent) => {
+			if (isPanningMode) {
+				event.preventDefault();
+				return;
+			}
+
+			contextMenuHandlers.onPaneContextMenu(event);
+		},
+		[contextMenuHandlers, isPanningMode]
+	);
 
 	const isSelectMode = activeTool === 'default';
-	const isPanningMode = activeTool === 'pan';
+	const deleteKeyCode =
+		isMapReady && (canEdit || canComment) && !isPanningMode
+			? ['Delete']
+			: null;
 	const isMobileTapMultiSelectActive =
 		isMobile && canEdit && isSelectMode && mobileTapMultiSelectEnabled;
 	const renderNodes = isMapReady ? displayNodes : [];
@@ -690,7 +833,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 
 	const handleEdgeDoubleClick: EdgeMouseHandler<Edge<EdgeData>> = useCallback(
 		(event, edge) => {
-			if (isDerivedDisplayEdgeId(edge.id)) return;
+			if (!canEdit || isDerivedDisplayEdgeId(edge.id)) return;
 			// Waypoint edges add a bend point on double-click instead of opening edge edit.
 			if (
 				edge.type === 'waypointEdge' ||
@@ -710,7 +853,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 			setEdgeInfo(edge);
 			setPopoverOpen({ edgeEdit: true });
 		},
-		[setEdgeInfo, setPopoverOpen]
+		[canEdit, setEdgeInfo, setPopoverOpen]
 	);
 
 	const nodeTypesWithProps: NodeTypes = useMemo(
@@ -906,7 +1049,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					connectionLineComponent={FloatingConnectionLine}
 					connectionLineType={ConnectionLineType.Bezier}
 					connectionMode={ConnectionMode.Loose}
-					deleteKeyCode={isMapReady && canEdit ? ['Delete'] : null}
+					deleteKeyCode={deleteKeyCode}
 					disableKeyboardA11y={true}
 					edges={renderEdges}
 					edgeTypes={edgeTypes}
@@ -933,6 +1076,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					onEdgeContextMenu={contextMenuHandlers.onEdgeContextMenu}
 					onEdgeDoubleClick={handleEdgeDoubleClick}
 					onEdgesChange={onEdgesChange}
+					onBeforeDelete={handleBeforeDelete}
 					onEdgesDelete={handleEdgesDelete}
 					onNodeClick={handleNodeClick}
 					onNodeDoubleClick={handleNodeDoubleClick}
@@ -943,17 +1087,16 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					onNodesChange={onNodesChange}
 					onNodesDelete={handleNodesDelete}
 					onPaneClick={contextMenuHandlers.onPaneClick}
-					onPaneContextMenu={contextMenuHandlers.onPaneContextMenu}
-					onSelectionContextMenu={(event) =>
-						contextMenuHandlers.onPaneContextMenu(event)
-					}
+					onPaneContextMenu={handlePaneContextMenu}
+					onSelectionContextMenu={handlePaneContextMenu}
 					onSelectionChange={handleSelectionChange}
 					panOnDrag={true}
 					selectionMode={SelectionMode.Partial}
 					snapGrid={[GRID_SIZE, GRID_SIZE]}
 					snapToGrid={true}
 					className={cn([
-						isPanningMode && 'cursor-grab',
+						isPanningMode &&
+							'cursor-grab [&_.react-flow__node-toolbar]:hidden [&_.react-flow__nodesselection]:hidden',
 						(activeTool === 'node' || activeTool === 'text') &&
 							'cursor-crosshair',
 						// Picking a node for a plugin: a click anywhere on a node picks it, so its
@@ -1047,6 +1190,7 @@ export function ReactFlowArea({ isMapReady }: ReactFlowAreaProps) {
 					canEdit={canEdit}
 					isMapReady={isMapReady}
 					isMapOwner={mindMap?.user_id === currentUser?.id}
+					isTemplateAdmin={Boolean(mindMap?.is_template) && canEdit}
 					activityState={activityState}
 					mapId={mapId as string}
 					mapOwnerId={mindMap?.user_id}

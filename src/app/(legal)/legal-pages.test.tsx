@@ -108,3 +108,45 @@ describe('Subprocessors page', () => {
 		expect(container).toHaveTextContent('up to 30 days');
 	});
 });
+
+// PR #76 corrected this list to match what the AI routes really send; keep it in
+// step with src/helpers/ai-suggestion-rows.ts, ai-recipe-context.ts and
+// /api/search-nodes.
+describe('what is said to be sent to OpenAI', () => {
+	it.each([
+		['privacy policy', PrivacyPolicyPage],
+		['subprocessors', SubprocessorsPage],
+	] as const)(
+		'%s names the map title and description, node text and tags, recipe instructions and search queries',
+		(_name, Page) => {
+			const { container } = render(<Page />);
+
+			expect(container).toHaveTextContent(
+				'Map title and description, node text and tags'
+			);
+			expect(container).toHaveTextContent(
+				'recipe instructions and search queries'
+			);
+		}
+	);
+
+	it('terms name the same things without repeating the whole policy', () => {
+		const { container } = render(<TermsOfServicePage />);
+
+		expect(container).toHaveTextContent(
+			"node text and tags, how nodes connect, the map's title and description"
+		);
+	});
+
+	it('no page still mentions the removed chat and answer features', () => {
+		for (const Page of [
+			PrivacyPolicyPage,
+			TermsOfServicePage,
+			SubprocessorsPage,
+		]) {
+			const { container, unmount } = render(<Page />);
+			expect(container).not.toHaveTextContent(/Q&A|suggestions and answers/);
+			unmount();
+		}
+	});
+});

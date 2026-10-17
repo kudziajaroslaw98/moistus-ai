@@ -1,6 +1,8 @@
 'use client';
 
 import {
+	CARD_MENU_TRIGGER_CLASS,
+	CardMenuIcon,
 	CatalogCard,
 	CatalogCardSkeleton,
 	CatalogEmptyState,
@@ -13,26 +15,27 @@ import {
 } from '@/components/dashboard/dashboard-page';
 import { useDashboardSearch } from '@/components/dashboard/dashboard-shell-context';
 import {
+	CATEGORY_HUES,
+	CATEGORY_ICONS,
+} from '@/components/dashboard/template-category-style';
+import {
 	UnderlineTab,
 	UnderlineTabsBar,
 	UnderlineTabsList,
 } from '@/components/dashboard/underline-tabs';
 import { ViewToggle } from '@/components/dashboard/view-toggle';
+import { DeleteMapConfirmationDialog } from '@/components/mind-map/delete-map-confirmation-dialog';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tabs } from '@/components/ui/tabs';
 import { useSubscriptionLimits } from '@/hooks/subscription/use-feature-gate';
 import type { DashboardViewMode } from '@/types/dashboard-map';
-import {
-	BarChart,
-	Briefcase,
-	Calendar,
-	Code,
-	FileText,
-	GraduationCap,
-	Lightbulb,
-	User,
-	Zap,
-	type LucideIcon,
-} from 'lucide-react';
+import { FileText, Pencil, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -73,31 +76,6 @@ const TEMPLATE_CATEGORIES: Record<TemplateCategory, string> = {
 	technical: 'Technical',
 };
 
-// One accent hue per category, shared by every template in it.
-const CATEGORY_HUES: Record<TemplateCategory, number> = {
-	creative: 270,
-	productivity: 152,
-	planning: 214,
-	analysis: 38,
-	business: 244,
-	education: 188,
-	personal: 330,
-	technical: 14,
-};
-
-// Covers are icon-per-category: the `icon` stored on each template row is
-// not used here.
-const CATEGORY_ICONS: Record<TemplateCategory, LucideIcon> = {
-	creative: Lightbulb,
-	productivity: Zap,
-	planning: Calendar,
-	analysis: BarChart,
-	business: Briefcase,
-	education: GraduationCap,
-	personal: User,
-	technical: Code,
-};
-
 // SWR fetcher with proper error handling
 const fetcher = async (url: string) => {
 	const res = await fetch(url);
@@ -113,6 +91,8 @@ interface TemplateCardProps {
 	template: TemplateFromAPI;
 	onUse: (templateId: string) => void;
 	onView: (templateDbId: string) => void;
+	/** Admin-only; when set, the card gets an Edit/Delete menu. */
+	onDelete?: (template: TemplateFromAPI) => void;
 	isCreating: boolean;
 	isAtMapLimit: boolean;
 	viewMode: DashboardViewMode;
@@ -122,6 +102,7 @@ const TemplateCard = memo(function TemplateCard({
 	template,
 	onUse,
 	onView,
+	onDelete,
 	isCreating,
 	isAtMapLimit,
 	viewMode,
@@ -146,6 +127,35 @@ const TemplateCard = memo(function TemplateCard({
 				</button>
 			}
 			chips={[{ label: TEMPLATE_CATEGORIES[template.category] }]}
+			menu={
+				onDelete ? (
+					<DropdownMenu>
+						<DropdownMenuTrigger
+							aria-label={`Options for ${template.name}`}
+							className={CARD_MENU_TRIGGER_CLASS}
+						>
+							<CardMenuIcon />
+						</DropdownMenuTrigger>
+
+						<DropdownMenuContent align='end'>
+							<DropdownMenuItem onClick={() => onView(template.id)}>
+								<Pencil className='mr-2 size-4' />
+								Edit template
+							</DropdownMenuItem>
+
+							<DropdownMenuSeparator />
+
+							<DropdownMenuItem
+								onClick={() => onDelete(template)}
+								variant='destructive'
+							>
+								<Trash2 className='mr-2 size-4' />
+								Delete template
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				) : undefined
+			}
 		/>
 	);
 });
@@ -169,7 +179,12 @@ export function TemplatesPageSkeleton() {
 }
 
 // Main Content Component
-export function TemplatesContent() {
+interface TemplatesContentProps {
+	/** Resolved server-side from user_profiles.role; server routes re-check. */
+	isAdmin?: boolean;
+}
+
+export function TemplatesContent({ isAdmin = false }: TemplatesContentProps) {
 	const router = useRouter();
 	const [viewMode, setViewMode] = useState<DashboardViewMode>('grid');
 	const [selectedCategory, setSelectedCategory] = useState<
@@ -178,13 +193,16 @@ export function TemplatesContent() {
 	// The field sits in the shell's top bar.
 	const { query: searchQuery, setQuery: setSearchQuery } = useDashboardSearch();
 	const [isCreating, setIsCreating] = useState(false);
+	const [templateToDelete, setTemplateToDelete] =
+		useState<TemplateFromAPI | null>(null);
+	const [isDeletingTemplate, setIsDeletingTemplate] = useState(false);
 
 	// Subscription limits for map creation
 	const { isAtLimit, limits } = useSubscriptionLimits();
 	const isAtMapLimit = isAtLimit('mindMaps');
 
 	// Fetch templates
-	const { data, error, isLoading } = useSWR<{
+	const { data, error, isLoading, mutate } = useSWR<{
 		data: { templates: TemplateFromAPI[] };
 	}>('/api/templates', fetcher, {
 		revalidateOnFocus: false,
@@ -223,6 +241,34 @@ export function TemplatesContent() {
 		},
 		[router]
 	);
+
+	// Admin: delete template (DELETE /api/maps/[id] admin branch)
+	const handleConfirmDeleteTemplate = useCallback(async () => {
+		if (!templateToDelete) return;
+
+		setIsDeletingTemplate(true);
+		try {
+			const response = await fetch(`/api/maps/${templateToDelete.id}`, {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+			});
+			const result = await response.json().catch(() => null);
+
+			if (!response.ok) {
+				toast.error(result?.error || 'Failed to delete template.');
+				return;
+			}
+
+			toast.success(`Deleted "${templateToDelete.name}" template`);
+			setTemplateToDelete(null);
+			await mutate();
+		} catch (err) {
+			console.error('Error deleting template:', err);
+			toast.error('Network error. Please try again.');
+		} finally {
+			setIsDeletingTemplate(false);
+		}
+	}, [mutate, templateToDelete]);
 
 	// Create map from template
 	const handleUseTemplate = useCallback(
@@ -371,6 +417,7 @@ export function TemplatesContent() {
 								key={template.templateId}
 								onUse={handleUseTemplate}
 								onView={handleViewTemplate}
+								onDelete={isAdmin ? setTemplateToDelete : undefined}
 								template={template}
 								viewMode={viewMode}
 							/>
@@ -385,6 +432,20 @@ export function TemplatesContent() {
 					hint='Try another category or search term.'
 					onAction={clearFilters}
 					title='No templates found'
+				/>
+			)}
+
+			{isAdmin && (
+				<DeleteMapConfirmationDialog
+					edgeCount={templateToDelete?.edgeCount ?? 0}
+					isDeleting={isDeletingTemplate}
+					mapTitle={templateToDelete?.name ?? ''}
+					nodeCount={templateToDelete?.nodeCount ?? 0}
+					open={templateToDelete !== null}
+					onConfirm={handleConfirmDeleteTemplate}
+					onOpenChange={(open) => {
+						if (!open && !isDeletingTemplate) setTemplateToDelete(null);
+					}}
 				/>
 			)}
 		</DashboardPage>

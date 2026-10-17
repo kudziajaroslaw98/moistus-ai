@@ -47,8 +47,22 @@ jest.mock('@/hooks/use-mobile', () => ({
 
 // Mock React Flow
 jest.mock('@xyflow/react', () => ({
-	Handle: ({ position, type }: { position: string; type: string }) => (
-		<div data-testid={`handle-${type}-${position}`} />
+	Handle: ({
+		position,
+		type,
+		isConnectable,
+		isConnectableEnd,
+	}: {
+		position: string
+		type: string
+		isConnectable?: boolean
+		isConnectableEnd?: boolean
+	}) => (
+		<div
+			data-testid={`handle-${type}-${position}`}
+			data-connectable={String(isConnectable)}
+			data-connectable-end={String(isConnectableEnd)}
+		/>
 	),
 	Position: { Top: 'top', Bottom: 'bottom', Left: 'left', Right: 'right' },
 	useConnection: () => ({ inProgress: false, toNode: null }),
@@ -457,6 +471,47 @@ describe('BaseNodeWrapper', () => {
 			render(<BaseNodeWrapper {...createDefaultProps()} />)
 
 			expect(screen.getByTestId('handle-source-bottom')).toBeInTheDocument()
+		})
+	})
+
+	describe('drag-to-connect', () => {
+		it('lets an editor connect from and to the handles in Select', () => {
+			mockActiveTool = 'default'
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
+
+			expect(screen.getByTestId('handle-source-bottom')).toHaveAttribute(
+				'data-connectable',
+				'true'
+			)
+			expect(screen.getByTestId('handle-target-top')).toHaveAttribute(
+				'data-connectable-end',
+				'true'
+			)
+		})
+
+		it('does not let someone who cannot edit connect, even in Select', () => {
+			mockActiveTool = 'default'
+			mockCanEdit = false
+			render(<BaseNodeWrapper {...createDefaultProps()} />)
+
+			expect(screen.getByTestId('handle-source-bottom')).toHaveAttribute(
+				'data-connectable',
+				'false'
+			)
+			expect(screen.getByTestId('handle-target-top')).toHaveAttribute(
+				'data-connectable-end',
+				'false'
+			)
+		})
+
+		it('keeps the handles off when the node disables connections', () => {
+			mockActiveTool = 'default'
+			render(<BaseNodeWrapper {...createDefaultProps()} disableConnections />)
+
+			expect(screen.getByTestId('handle-source-bottom')).toHaveAttribute(
+				'data-connectable',
+				'false'
+			)
 		})
 	})
 

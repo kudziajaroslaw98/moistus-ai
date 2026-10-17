@@ -52,9 +52,11 @@ function dispatchPointerEvent(
 function TouchContextMenuHarness({
 	openContextMenuAt,
 	isContextMenuOpen = false,
+	enabled,
 }: {
 	openContextMenuAt: (params: OpenContextMenuAtParams) => void;
 	isContextMenuOpen?: boolean;
+	enabled?: boolean;
 }) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -62,6 +64,7 @@ function TouchContextMenuHarness({
 		containerRef,
 		openContextMenuAt,
 		isContextMenuOpen,
+		enabled,
 	});
 
 	return (
@@ -130,6 +133,56 @@ describe('useTouchContextMenuFallback', () => {
 			nodeId: 'node-1',
 			edgeId: null,
 		});
+	});
+
+	it('does nothing while disabled, and works again once re-enabled', () => {
+		const openContextMenuAt = jest.fn();
+		const { rerender } = render(
+			<TouchContextMenuHarness
+				enabled={false}
+				openContextMenuAt={openContextMenuAt}
+			/>
+		);
+
+		act(() => {
+			dispatchPointerEvent(screen.getByTestId('pane'), 'pointerdown');
+			jest.advanceTimersByTime(TOUCH_CONTEXT_MENU_LONG_PRESS_MS);
+		});
+		expect(openContextMenuAt).not.toHaveBeenCalled();
+
+		rerender(
+			<TouchContextMenuHarness enabled openContextMenuAt={openContextMenuAt} />
+		);
+
+		act(() => {
+			dispatchPointerEvent(screen.getByTestId('pane'), 'pointerdown');
+			jest.advanceTimersByTime(TOUCH_CONTEXT_MENU_LONG_PRESS_MS);
+		});
+		expect(openContextMenuAt).toHaveBeenCalledTimes(1);
+	});
+
+	it('drops a press in progress when it gets disabled', () => {
+		const openContextMenuAt = jest.fn();
+		const { rerender } = render(
+			<TouchContextMenuHarness enabled openContextMenuAt={openContextMenuAt} />
+		);
+
+		act(() => {
+			dispatchPointerEvent(screen.getByTestId('pane'), 'pointerdown');
+			jest.advanceTimersByTime(TOUCH_CONTEXT_MENU_LONG_PRESS_MS - 100);
+		});
+
+		rerender(
+			<TouchContextMenuHarness
+				enabled={false}
+				openContextMenuAt={openContextMenuAt}
+			/>
+		);
+
+		act(() => {
+			jest.advanceTimersByTime(TOUCH_CONTEXT_MENU_LONG_PRESS_MS);
+		});
+		expect(openContextMenuAt).not.toHaveBeenCalled();
 	});
 
 	it('opens the menu after long-press on an edge', () => {

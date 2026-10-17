@@ -7,6 +7,8 @@ interface UseKeyboardShortcutsProps {
 	selectedNodeId: string | null | undefined;
 	selectedEdgeId: string | null | undefined;
 	isBusy: boolean;
+	/** Swallow the shortcuts that change the map (paste, group, ungroup, layout). */
+	disableEdits?: boolean;
 	onGroup?: () => void;
 	onUngroup?: () => void;
 	onToggleCollapse?: () => void;
@@ -21,6 +23,7 @@ export function useKeyboardShortcuts({
 	selectedNodeId,
 	selectedEdgeId,
 	isBusy,
+	disableEdits = false,
 	onGroup,
 	onUngroup,
 	onToggleCollapse,
@@ -74,6 +77,17 @@ export function useKeyboardShortcuts({
 			if (isCtrlCmd && event.key.toLowerCase() === 'c') {
 				event.preventDefault();
 				copySelectedNodes();
+				return;
+			}
+
+			// Edits are off (Pan mode or no edit rights): keep the browser default
+			// suppressed like the live shortcuts do, but run nothing.
+			if (
+				disableEdits &&
+				isCtrlCmd &&
+				['v', 'g', 'l'].includes(event.key.toLowerCase())
+			) {
+				event.preventDefault();
 				return;
 			}
 
@@ -140,6 +154,7 @@ export function useKeyboardShortcuts({
 		selectedNodeId,
 		selectedEdgeId,
 		isBusy,
+		disableEdits,
 		reactFlowInstance,
 		onLayout,
 		copySelectedNodes,

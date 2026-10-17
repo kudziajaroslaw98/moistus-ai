@@ -284,9 +284,10 @@ export default function TermsOfServicePage() {
 						responsible for checking it before you rely on it.
 					</li>
 					<li>
-						AI features send the relevant map text and structure to our AI
-						provider; the <Link href='/privacy'>Privacy Policy</Link> has the
-						details.
+						AI features send our AI provider what the result needs (node text
+						and tags, how nodes connect, the map&apos;s title and description,
+						and what you type for AI); the{' '}
+						<Link href='/privacy'>Privacy Policy</Link> has the details.
 					</li>
 					<li>
 						AI features can be unavailable or change when the models behind them

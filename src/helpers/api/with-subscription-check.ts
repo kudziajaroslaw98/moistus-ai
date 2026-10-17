@@ -454,13 +454,15 @@ export type MapNodeLimitCheckResult =
 
 /**
  * Checks node creation limit for a map based on the owner's subscription.
- * Non-owners must have active share_access with can_edit=true.
+ * Non-owners must have active share_access with can_edit=true, except that
+ * starting a comment thread (`nodeType: 'commentNode'`) needs can_comment.
  */
 export async function checkMapNodeLimit(
 	supabase: SupabaseClient,
 	mapId: string,
 	requesterId: string,
-	ownerSubscriptionClient: SupabaseClient = supabase
+	ownerSubscriptionClient: SupabaseClient = supabase,
+	options: { nodeType?: string } = {}
 ): Promise<MapNodeLimitCheckResult> {
 	const { data: map, error: mapError } = await supabase
 		.from('mind_maps')
@@ -495,7 +497,7 @@ export async function checkMapNodeLimit(
 	if (!requesterIsOwner) {
 		const { data: shareAccess, error: shareError } = await supabase
 			.from('share_access')
-			.select('can_edit')
+			.select('can_edit, can_comment')
 			.eq('map_id', mapId)
 			.eq('user_id', requesterId)
 			.eq('status', 'active')
@@ -523,7 +525,10 @@ export async function checkMapNodeLimit(
 			};
 		}
 
-		if (!shareAccess.can_edit) {
+		const startsCommentThread =
+			options.nodeType === 'commentNode' && shareAccess.can_comment === true;
+
+		if (!shareAccess.can_edit && !startsCommentThread) {
 			return {
 				ok: false,
 				status: 403,

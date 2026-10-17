@@ -38,6 +38,15 @@ describe('TemplateCover', () => {
 		);
 	});
 
+	it('draws grey when there is no hue', () => {
+		const { container } = render(
+			<TemplateCover icon={FileText} hue={null} />
+		);
+		expect(container.querySelector('g[transform] svg')?.getAttribute('stroke')).toBe(
+			'hsl(0 0% 70%)'
+		);
+	});
+
 	it('crops tighter and shifts the icon left when compact', () => {
 		const { container } = render(
 			<TemplateCover compact icon={FileText} hue={212} />

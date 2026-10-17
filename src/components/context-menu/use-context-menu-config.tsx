@@ -1,4 +1,5 @@
 'use client';
+import { canDeleteCommentThread } from '@/helpers/comment-thread-permissions';
 import { usePermissions } from '@/hooks/collaboration/use-permissions';
 import type { AvailableNodeTypes } from '@/registry/node-registry';
 import { isAvailableNodeType } from '@/registry/type-guards';
@@ -99,9 +100,12 @@ interface BuildNodeMenuParams {
 	ungroupNodes: (groupId: string) => void;
 	removeNodesFromGroup: (nodeIds: string[]) => void;
 	deleteNodes: (nodes: AppNode[]) => void;
+	deleteComment: (commentId: string) => void;
 	reactFlowInstance: ReactFlowInstance | null;
 	onClose: () => void;
 	canEdit: boolean;
+	/** Whether this person may delete the clicked node as a comment thread. */
+	canDeleteThread: boolean;
 	suppressUngroupAction?: boolean;
 }
 
@@ -114,14 +118,17 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 		ungroupNodes,
 		removeNodesFromGroup,
 		deleteNodes,
+		deleteComment,
 		reactFlowInstance,
 		onClose,
 		canEdit,
+		canDeleteThread,
 		suppressUngroupAction = false,
 	} = params;
 
 	const clickedNodeData = clickedNode.data;
 	const isGroup = isGroupLikeNode(clickedNode);
+	const isCommentThread = clickedNode.type === 'commentNode';
 
 	return [
 		{
@@ -215,13 +222,19 @@ function buildNodeMenu(params: BuildNodeMenuParams): MenuSection[] {
 				{
 					id: 'delete-node',
 					icon: <Trash className='h-4 w-4' />,
-					label: 'Delete Node',
+					label: isCommentThread ? 'Delete Thread' : 'Delete Node',
 					onClick: () => {
-						deleteNodes([clickedNode]);
+						// A thread is a node plus its comments row: delete both.
+						if (isCommentThread) {
+							deleteComment(clickedNode.id);
+						} else {
+							deleteNodes([clickedNode]);
+						}
 						onClose();
 					},
 					variant: 'destructive',
-					hidden: !canEdit,
+					// Commenters may delete the threads they started
+					hidden: isCommentThread ? !canDeleteThread : !canEdit,
 				},
 			],
 		},
@@ -443,7 +456,9 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 		edges,
 		updateEdge,
 		deleteNodes,
+		deleteComment,
 		deleteEdges,
+		currentUser,
 		selectedNodes,
 		reactFlowInstance,
 		contextMenuState,
@@ -460,7 +475,9 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 			edges: state.edges,
 			updateEdge: state.updateEdge,
 			deleteNodes: state.deleteNodes,
+			deleteComment: state.deleteComment,
 			deleteEdges: state.deleteEdges,
+			currentUser: state.currentUser,
 			selectedNodes: state.selectedNodes,
 			contextMenuState: state.contextMenuState,
 			createGroupFromSelected: state.createGroupFromSelected,
@@ -473,7 +490,7 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 	);
 
 	// Get permissions for feature gating
-	const { canEdit } = usePermissions();
+	const { canEdit, canComment } = usePermissions();
 
 	const { x, y, nodeId, edgeId } = contextMenuState;
 
@@ -525,9 +542,15 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 				ungroupNodes,
 				removeNodesFromGroup,
 				deleteNodes,
+				deleteComment,
 				reactFlowInstance,
 				onClose,
 				canEdit,
+				canDeleteThread: canDeleteCommentThread(
+					{ canEdit, canComment },
+					clickedNode,
+					currentUser?.id
+				),
 				suppressUngroupAction:
 					canEdit &&
 					(hasSelectionOutsideClickedNode ||
@@ -579,6 +602,7 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 		toggleNodeCollapse,
 		removeNodesFromGroup,
 		deleteNodes,
+		deleteComment,
 		reactFlowInstance,
 		updateEdge,
 		deleteEdges,
@@ -588,6 +612,8 @@ export function useContextMenuConfig({ onClose }: UseContextMenuConfigProps) {
 		y,
 		onClose,
 		canEdit,
+		canComment,
+		currentUser?.id,
 	]);
 
 	return {

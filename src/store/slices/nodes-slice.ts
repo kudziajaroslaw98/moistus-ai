@@ -13,6 +13,7 @@ import { fetchResourceMetadata } from '@/helpers/fetch-resource-metadata';
 import generateUuid from '@/helpers/generate-uuid';
 import { rerouteAutoWaypointEdges } from '@/helpers/route-auto-waypoint-edges';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
+import { canCommentMap, canEditMap } from '@/lib/extensions/graph-ops';
 import { queueMutation } from '@/lib/offline/offline-mutation-adapter';
 import {
 	broadcast,
@@ -511,6 +512,10 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				});
 			}
 
+			// Read-only users keep the change on screen (selection, measuring) but never
+			// share or save it: the database would drop it without an error.
+			if (!canEditMap(get())) return;
+
 			for (const nodeId of nodesToBroadcast) {
 				if (mapId) {
 					const node = finalNodeById.get(nodeId);
@@ -616,7 +621,7 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					const response = await fetch('/api/nodes/check-limit', {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify({ mapId }),
+						body: JSON.stringify({ mapId, nodeType }),
 					});
 					const payload = (await response.json().catch(() => null)) as
 						| {
@@ -861,47 +866,9 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					p_edge_metadata: edgeDefaults.metadata,
 				};
 
-				const rpcMutation = await queueMutation<CreateNodeWithEdgeResponse>({
-					entity: 'nodes',
-					action: 'rpc',
-					payload: {
-						rpc: 'create_node_with_parent_edge',
-						args: rpcArgs as Record<string, unknown>,
-					},
-					executeOnline: async () => {
-						const { data: rpcResult, error: rpcError } = await supabase.rpc(
-							'create_node_with_parent_edge',
-							rpcArgs
-						);
-						if (rpcError || !rpcResult) {
-							throw new Error(
-								rpcError?.message || 'Failed to save new node to database.'
-							);
-						}
-						return rpcResult as CreateNodeWithEdgeResponse;
-					},
-				});
-
-				if (rpcMutation.status === 'queued') {
-					persistExpandedParent();
-					get().persistDeltaEvent(
-						'addNode',
-						{ nodes, edges },
-						{ nodes: get().nodes, edges: get().edges }
-					);
-
-					if (nodeType === 'resourceNode' && data.metadata?.url) {
-						get().fetchResourceNodeMetadata(
-							newNodeId,
-							data.metadata.url as string
-						);
-					}
-
-					return;
-				}
-
-				const rpcResult = rpcMutation.data;
-				if (!rpcResult) {
+				// Take the optimistic node (and edge) back out of the canvas and the
+				// shared room when the database does not keep it.
+				const rollbackOptimisticInsert = async () => {
 					set((state) => ({
 						nodes: withParentCollapsed(
 							state.nodes.filter((node) => node.id !== newNodeId),
@@ -939,6 +906,55 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 							);
 						}
 					}
+				};
+
+				// A refused insert (RLS, node limit) rejects here; without the
+				// rollback the node stayed on screen and was never saved.
+				const rpcMutation = await queueMutation<CreateNodeWithEdgeResponse>({
+					entity: 'nodes',
+					action: 'rpc',
+					payload: {
+						rpc: 'create_node_with_parent_edge',
+						args: rpcArgs as Record<string, unknown>,
+					},
+					executeOnline: async () => {
+						const { data: rpcResult, error: rpcError } = await supabase.rpc(
+							'create_node_with_parent_edge',
+							rpcArgs
+						);
+						if (rpcError || !rpcResult) {
+							throw new Error(
+								rpcError?.message || 'Failed to save new node to database.'
+							);
+						}
+						return rpcResult as CreateNodeWithEdgeResponse;
+					},
+				}).catch(async (error: unknown) => {
+					await rollbackOptimisticInsert();
+					throw error;
+				});
+
+				if (rpcMutation.status === 'queued') {
+					persistExpandedParent();
+					get().persistDeltaEvent(
+						'addNode',
+						{ nodes, edges },
+						{ nodes: get().nodes, edges: get().edges }
+					);
+
+					if (nodeType === 'resourceNode' && data.metadata?.url) {
+						get().fetchResourceNodeMetadata(
+							newNodeId,
+							data.metadata.url as string
+						);
+					}
+
+					return;
+				}
+
+				const rpcResult = rpcMutation.data;
+				if (!rpcResult) {
+					await rollbackOptimisticInsert();
 					throw new Error('Failed to save new node to database.');
 				}
 
@@ -1021,9 +1037,15 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				initialMessage: 'Adding node...',
 				errorMessage: 'Failed to add node.',
 				successMessage: 'Node added successfully.',
+				// Commenters may still start a comment thread, nothing else.
+				skipWhen: (props) =>
+					!canEditMap(get()) &&
+					!(props.nodeType === 'commentNode' && canCommentMap(get())),
 			}
 		),
 		updateNode: async (props: { nodeId: string; data: Partial<NodeData> }) => {
+			if (!canEditMap(get())) return;
+
 			const prevNodes = get().nodes;
 			const prevEdges = get().edges;
 			const { nodeId, data } = props;
@@ -1283,6 +1305,14 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 				initialMessage: 'Deleting nodes...',
 				errorMessage: 'Failed to delete nodes.',
 				successMessage: 'Nodes deleted successfully.',
+				// Commenters may still roll back a comment thread they just started.
+				skipWhen: (requestedNodes) =>
+					!canEditMap(get()) &&
+					!(
+						canCommentMap(get()) &&
+						requestedNodes.length > 0 &&
+						requestedNodes.every((node) => node.type === 'commentNode')
+					),
 			}
 		),
 
@@ -1393,6 +1423,12 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 			const currentCollapsedState = node.data.metadata?.isCollapsed ?? false;
 			const newCollapsedState = !currentCollapsedState;
 
+			// Read-only users open and close branches for themselves only.
+			if (!canEditMap(get())) {
+				get().setNodesCollapsed([nodeId], newCollapsedState);
+				return;
+			}
+
 			// Update the node's collapse state (history tracked via updateNode -> persistDeltaEvent)
 			await updateNode({
 				nodeId,
@@ -1428,6 +1464,11 @@ export const createNodeSlice: StateCreator<AppState, [], [], NodesSlice> = (
 					: node
 			);
 			set({ nodes: nextNodes });
+
+			// Collapse state is shared and saved, so read-only users get a view-only
+			// change: it shows on their screen but isn't broadcast, saved or logged,
+			// and resets on reload.
+			if (!canEditMap(get())) return;
 
 			const { mapId, currentUser } = get();
 			for (const node of nextNodes) {

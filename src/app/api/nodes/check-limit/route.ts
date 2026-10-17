@@ -10,6 +10,8 @@ const UUID_REGEX =
 
 const requestSchema = z.object({
 	mapId: z.string().regex(UUID_REGEX, 'Invalid mapId format'),
+	// Starting a comment thread needs can_comment instead of can_edit.
+	nodeType: z.string().max(64).optional(),
 });
 
 /**
@@ -18,17 +20,18 @@ const requestSchema = z.object({
  * Validates if a user can create a new node in a specific map.
  * Returns 200 if allowed, 402 if limit reached.
  *
- * Body: { mapId: string }
+ * Body: { mapId: string, nodeType?: string }
  */
 export const POST = withAuthValidation(
 	requestSchema,
-	async (_req, { mapId }, supabase, user) => {
+	async (_req, { mapId, nodeType }, supabase, user) => {
 		const adminClient = createServiceRoleClient();
 		const checkResult = await checkMapNodeLimit(
 			supabase,
 			mapId,
 			user.id,
-			adminClient
+			adminClient,
+			{ nodeType }
 		);
 
 		if (!checkResult.ok) {

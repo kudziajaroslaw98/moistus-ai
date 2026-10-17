@@ -8,6 +8,7 @@ import {
 	rerouteAutoWaypointEdges,
 } from '@/helpers/route-auto-waypoint-edges';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
+import { canEditMap } from '@/lib/extensions/graph-ops';
 import { queueMutation } from '@/lib/offline/offline-mutation-adapter';
 import {
 	broadcast,
@@ -463,6 +464,10 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				});
 			}
 
+			// Read-only users keep the change on screen but never share or save it:
+			// the database would drop it without an error.
+			if (!canEditMap(get())) return;
+
 			for (const edgeId of edgesToPersist) {
 				if (mapId) {
 					const edge = updatedEdges.find((item) => item.id === edgeId);
@@ -763,6 +768,7 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				initialMessage: 'Adding edge...',
 				errorMessage: 'Failed to add edge.',
 				successMessage: 'Edge added successfully.',
+				skipWhen: () => !canEditMap(get()),
 			}
 		),
 		deleteEdges: withLoadingAndToast(
@@ -935,9 +941,12 @@ export const createEdgeSlice: StateCreator<AppState, [], [], EdgesSlice> = (
 				initialMessage: 'Deleting edge...',
 				errorMessage: 'Failed to delete edge.',
 				successMessage: 'Edge deleted successfully.',
+				skipWhen: () => !canEditMap(get()),
 			}
 		),
 		updateEdge: async (props: { edgeId: string; data: Partial<EdgeData> }) => {
+			if (!canEditMap(get())) return;
+
 			const { edges, nodes, mapId, supabase } = get();
 			const { edgeId, data } = props;
 			const previousEdge = edges.find((edge) => edge.id === edgeId);

@@ -9,6 +9,7 @@ jest.mock('next/server', () => ({
 }));
 
 import {
+	buildTemplateAdminPermissions,
 	buildTemplateViewerPermissions,
 	normalizePermissionsRole,
 } from './[id]/permissions/route';
@@ -54,5 +55,18 @@ describe('buildTemplateViewerPermissions', () => {
 		expect(permissions.isOwner).toBe(false);
 		expect(typeof permissions.updated_at).toBe('string');
 		expect(Number.isNaN(Date.parse(permissions.updated_at))).toBe(false);
+	});
+});
+
+describe('buildTemplateAdminPermissions', () => {
+	it('returns editor permissions without ownership for template admins', () => {
+		expect(buildTemplateAdminPermissions('2026-10-03T12:00:00.000Z')).toEqual({
+			role: 'editor',
+			can_view: true,
+			can_edit: true,
+			can_comment: true,
+			updated_at: '2026-10-03T12:00:00.000Z',
+			isOwner: false,
+		});
 	});
 });

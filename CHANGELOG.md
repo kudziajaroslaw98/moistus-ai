@@ -45,6 +45,38 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **cookie notice**: No longer throws when browser storage is blocked, and hides in other tabs once dismissed in one
 
 ---
+## [2026-10-15]
+
+### Fixed
+- **node editor**: Typing cursor sat above the placeholder line when the editor was empty
+  - Why: CodeMirror's placeholder is `vertical-align: top`, which misaligns the caret with the 1.9 line-height; the theme now sets baseline alignment
+
+## [2026-10-13]
+
+### Fixed
+
+- **canvas/pan-mode**: With the Pan tool on you could still tick tasks, change a Metric, move a Kanban card, answer questions, open the node editor, delete a node selected earlier, and use paste, group, collapse and arrow-key shortcuts. Pan now only moves the pane (and zooms): every node, plugin control and edge label ignores clicks, hover, keyboard and long-press, selection is cleared, and edit shortcuts and the `/` creator are off. Search, the command palette and copy still work
+  - Why: one `inert` layer on the nodes and edge labels covers native nodes, plugins and edge buttons at once, and drags that start on a node now fall through to the pane
+- **comments/commenters**: People with the Commentator role can start a comment thread again. Double-clicking the pane in comment mode failed twice over: the node-limit check (`POST /api/nodes/check-limit`) required edit rights ("You do not have permission to add nodes to this map"), and the database refused the node itself (`new row violates row-level security policy for table "nodes"`). The check now takes the node type and accepts `can_comment` for a `commentNode` only, and two new additive `nodes` policies (`nodes_insert_comment_thread_policy`, `nodes_delete_comment_thread_policy`) let a commenter insert and delete their own `commentNode` rows (never other node types, other people's rows, or maps they can't comment on). A thread started by a commenter (or deleted by one) also appears and disappears live for everyone else: the shared graph room is read-only for non-editors, so `comments-slice` now adds or removes the thread's canvas node when its `comments` row arrives or is deleted
+  - Why: before this a commenter could view and reply but never open a thread
+- **comments/delete**: A commenter can delete the comment threads they started: right-click the thread and pick "Delete Thread", or select it and press Delete. Both did nothing for commenters (every delete needed edit rights), and for everyone a thread delete left its `comments` row behind with no node. Thread deletes now go through `deleteComment` (comment row and node together), a database trigger (`delete_comment_with_thread_node`) removes a thread's `comments` row (and its messages) whenever its `commentNode` row is deleted, even when the owner or an editor deletes someone else's thread (the comments policy is creator-only, so that delete used to leave the row behind), and the Delete key for a commenter is limited to their own threads (`onBeforeDelete`), so other nodes can't be removed from their screen
+  - Why: the Delete key and the "Delete Node" item were editor-only, and the node delete never touched the comments table
+- **nodes/add**: When the database refuses a new node (a permission error, the node limit), `addNode` now takes it back off the canvas and out of the shared room. Before, it stayed on screen but was never saved, and a comment thread also went on to create its `comments` row, leaving a thread with no node
+  - Why: only the "no result" case was rolled back; an error thrown by the save was not
+
+### Changed
+
+- **dev**: `pnpm dev` now starts PartyKit next to Next.js (`scripts/dev.mjs`, no new dependency), so there is no second terminal for `pnpm party:dev`. Ctrl+C stops both. PartyKit runs on `NEXT_PUBLIC_PARTYKIT_DEV_PORT` (default 1999), the port the browser connects to; if that port is taken (usually another worktree's PartyKit) it prints a coloured banner, skips starting a useless second one and suggests a free port to set in `.env.local`. If PartyKit stops later, a red banner says realtime is down and Next.js keeps running. `pnpm dev:lan` is unchanged (Next.js only)
+  - Why: without PartyKit every realtime socket fails, and an editor session looked read-only; a second PartyKit silently fell back to a random port nothing connects to
+- **permissions/read-only**: Viewers and commenters can no longer cause writes. Answering a question node, deleting an edge from its label, opening the edge editor, dragging a new connection, and the paste and group shortcuts now do nothing for them, and store actions drop their writes without calling the API or showing a toast (starting and deleting a comment thread is the one exception for commenters). Opening or closing a collapsed branch now changes only their own screen: it isn't saved, shared or sent anywhere, and resets on reload
+  - Why: the database silently rejected these writes, so each click was a wasted API call and left their screen out of sync with the map
+- **toolbar/permissions**: Viewers and commenters now get Select and Pan in the cursor dropdown (they had only Pan, while actually working in Select). Turning on comment mode switches to Select, and someone left on an editing tool after losing edit rights is moved back to Select
+  - Why: Pan is about to become pane-only, so non-editors need a tool for opening links and commenting
+- **dashboard/new-map**: The New map dialog is now a side panel built on `Panel`, like Map settings: one view with Details (title, description) and "Start from", a pinned footer that names the pick and holds Create map. Templates are rows with the category cover swatch and category filter chips, replacing the gradient tiles and the two-step wizard
+  - Why: it was the last create flow still on the old centered dialog with its own zinc/sky styling; the panel kit is the one look for forms
+- **templates/category-look**: A template's icon and colors now come from its category everywhere (template gallery and the create-map template picker), not from per-template values
+  - Why: Keeps every template in a category looking the same; admins pick the category and cannot override the icon or colors
+- **templates/admin-settings**: Editing a system template in Map Settings shows the category (with a read-only icon/colors preview) and no longer offers Tags or Thumbnail URL
 
 ## [2026-10-12]
 
@@ -63,6 +95,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 
+- **plugins/pan-mode**: The plugin menu ("…") button no longer carries `nopan` either, so a drag from it pans in Pan mode; disabled, it lets the drag through
+- **plugins/pan-mode**: With the Pan tool on, dragging from a plugin node's buttons, checkbox rows or Refresh button did nothing; only native Shiko nodes panned the canvas. Plugin content now uses `nodrag` instead of `nodrag nopan`, and disabled plugin controls let the drag through
+  - Why: React Flow ignores a pan that starts inside a `.nopan` element, and plugin controls cover most of a node
 - **plugins/playground**: "Load the newer version" after a revision conflict now shows the newer manifest. The locked `"id"` line is a change filter, and the editor replaced the whole document, so the filter dropped the entire change and the editor kept the old text; the next keystroke then overwrote the newer manifest on autosave. Loading from outside now skips the filter (typing is still filtered)
 - **plugins/playground**: A save the server turns down (400, 403, 404 and other 4xx except 408/429) no longer retries every 5 seconds forever behind "Couldn't save. Trying again…". It stops, shows the server's reason in the status line, and tries once more after the next edit; network errors, 5xx and 429 still retry
 - **plugins/playground**: The sample data box for a list field followed only its first value, so a row added by a button in the preview, or a loaded newer draft, left it showing old JSON that the next edit would write back over the change. It now follows outside changes and leaves typing alone
@@ -89,6 +124,8 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 - **database**: `plugin_drafts` (table, RLS, constraints, `guard_plugin_drafts` trigger) applied to production through the Supabase MCP as `create_plugin_drafts` (20261012081504), with the migration's own `begin`/`commit` left out because the MCP wraps it. Its catalog was compared with the local database and matches; prod has no drafts yet
 - **legal**: Privacy (§6 Data Retention) and Terms (§8.2 Data Sent to AI) no longer mention AI chat history or chat messages, and both "Last updated" dates read October 12, 2026
+- **legal/ai**: Terms §8.1–8.2, Privacy §4 and its OpenAI row, and the subprocessors page now list what is actually sent to OpenAI (map title and description, node text and tags, how nodes connect, recipe instructions and node search queries) and no longer mention "answers" or "Q&A"; the subprocessors date is now October 12, 2026
+  - Why: the wording only listed structure and node content, and described features that were removed
 
 ---
 
@@ -401,6 +438,10 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 - **search**: Ctrl/Cmd+F canvas search that reaches inside collapsed branches ("N matches inside"), with Enter/Shift+Enter navigation that opens the collapsed branch containing a hidden match
 - **groups/drag-membership**: Drag a node over a group and hold to add it, or drag a member outside its group and hold to remove it; release applies the change, and the group's label shows hold/release progress
   - Why: Group membership could only be changed from menus before
+- **templates/admin-edit**: Admins can edit system templates in the full canvas editor, with realtime sync, plus template category in Map Settings
+  - Why: Templates were read-only for everyone, so fixing or improving them required raw SQL
+- **templates/admin-publish**: Admins can publish a copy of one of their own maps as a new template (`POST /api/templates`)
+- **templates/admin-delete**: Admins can delete templates from the template gallery or from Map Settings
 
 ### Changed
 
@@ -422,6 +463,9 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ### Fixed
 
+- **security/profile-role**: Signed-in users can no longer promote themselves to admin by updating or re-inserting their own `user_profiles.role`
+- **security/create-template**: `create_template()` is no longer callable by anonymous or signed-in clients
+- **templates/rls-drift**: The authenticated template read policies on nodes/edges, previously only in the live database, are now in a migration
 - **mobile**: Keyboard-shortcut hints (shortcuts help button, `Ctrl+Enter to create`) are hidden on touch-first devices via the new shared `useTouchFirst` hook
 - **onboarding**: The walkthrough checklist is height-capped with a scrolling task list and no longer stacks on the canvas hint in landscape; the mobile intro sheet scrolls on short screens
 - **map-settings**: Map Settings content scrolls again and the side panel footer is opaque, so it no longer overlaps panel content
