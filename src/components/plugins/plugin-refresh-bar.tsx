@@ -23,11 +23,12 @@ interface PluginRefreshBarProps {
 	canEdit: boolean;
 }
 
+// `nodrag` only: `nopan` would stop the canvas panning from here in pan mode.
 const buttonClass = cn(
-	'nodrag nopan inline-flex h-7 items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 text-xs font-medium text-zinc-50',
+	'nodrag inline-flex h-7 items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 text-xs font-medium text-zinc-50',
 	'transition-colors duration-200 ease [@media(hover:hover)]:hover:bg-white/5',
 	'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60',
-	'disabled:cursor-default disabled:opacity-50'
+	'disabled:pointer-events-none disabled:cursor-default disabled:opacity-50'
 );
 
 /**

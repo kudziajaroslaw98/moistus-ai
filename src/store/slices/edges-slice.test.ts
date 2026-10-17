@@ -188,6 +188,7 @@ function createSliceState(params?: {
 		nodes: initialNodes,
 		mapId: 'map-1',
 		currentUser: { id: 'user-1' },
+		mindMap: { user_id: 'user-1' },
 		layoutConfig: {
 			direction: 'LEFT_RIGHT',
 		},

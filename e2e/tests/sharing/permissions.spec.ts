@@ -92,10 +92,10 @@ test.describe.serial('Viewer Role Restrictions', () => {
 		await guestToolbarPage.expectLayoutButtonHidden();
 	});
 
-	test('viewer only has Pan mode in cursor dropdown', async ({
+	test('viewer only has Select and Pan modes in cursor dropdown', async ({
 		guestToolbarPage,
 	}) => {
-		await guestToolbarPage.expectOnlyPanModeAvailable();
+		await guestToolbarPage.expectOnlySelectAndPanModesAvailable();
 	});
 
 	test('viewer cannot open node editor via "/" shortcut', async ({
@@ -570,7 +570,7 @@ test.describe.serial('Commentator Role Restrictions', () => {
 		await guestToolbarPage.expectCommentsButtonVisible();
 	});
 
-	test('commentator only has Pan mode', async ({
+	test('commentator only has Select and Pan modes', async ({
 		guestToolbarPage,
 		guestPage,
 	}) => {
@@ -580,8 +580,8 @@ test.describe.serial('Commentator Role Restrictions', () => {
 		await guestPage.waitForLoadState('networkidle');
 		await guestPage.waitForTimeout(500);
 
-		// Like viewers, commentators can't select/connect
-		await guestToolbarPage.expectOnlyPanModeAvailable();
+		// Like viewers, commentators can't connect (Select is read-only for them)
+		await guestToolbarPage.expectOnlySelectAndPanModesAvailable();
 	});
 
 	// -------------------------------------------------------------------------

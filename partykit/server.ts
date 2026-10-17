@@ -648,7 +648,7 @@ async function getMapAccess(
 	});
 
 	const access = accessRows[0];
-	if (!access) return null;
+	if (!access) return getTemplateAdminAccess(env, userId, mapId);
 
 	return {
 		role: access.role || 'viewer',
@@ -656,6 +656,44 @@ async function getMapAccess(
 		canComment: Boolean(access.can_comment),
 		canEdit: Boolean(access.can_edit),
 		updatedAt: access.updated_at ?? null,
+	};
+}
+
+/** Admins (`user_profiles.role = 'admin'`) edit system templates as editors. */
+async function getTemplateAdminAccess(
+	env: PartyKitEnv,
+	userId: string,
+	mapId: string
+): Promise<MapAccess | null> {
+	const templateRows = await querySupabaseRows<{
+		updated_at: string | null;
+	}>(env, 'mind_maps', {
+		select: 'updated_at',
+		id: `eq.${mapId}`,
+		is_template: 'eq.true',
+		limit: '1',
+	});
+	const template = templateRows[0];
+	if (!template) return null;
+
+	const adminRows = await querySupabaseRows<{ user_id: string }>(
+		env,
+		'user_profiles',
+		{
+			select: 'user_id',
+			user_id: `eq.${userId}`,
+			role: 'eq.admin',
+			limit: '1',
+		}
+	);
+	if (adminRows.length === 0) return null;
+
+	return {
+		role: 'editor',
+		canView: true,
+		canComment: true,
+		canEdit: true,
+		updatedAt: template.updated_at ?? new Date().toISOString(),
 	};
 }
 
@@ -1489,6 +1527,19 @@ async function getMapOwnerId(
 	);
 	const ownerId = rows[0]?.user_id;
 	return isUuid(ownerId) ? ownerId : null;
+}
+
+async function isTemplateMap(
+	env: PartyKitEnv,
+	mapId: string
+): Promise<boolean> {
+	const rows = await querySupabaseRows<{ id: string }>(env, 'mind_maps', {
+		select: 'id',
+		id: `eq.${mapId}`,
+		is_template: 'eq.true',
+		limit: '1',
+	});
+	return rows.length > 0;
 }
 
 type ShareAccessWithProfileRow = {
@@ -2401,8 +2452,18 @@ export default class MindMapRealtimeServer implements Party.Server {
 			const staleEdgeIds = existingGraph.edges
 				.map((row) => row.id)
 				.filter((id) => !nextEdgeIds.has(id));
+			// System templates keep user_id NULL so rows never cascade-delete
+			// with the editing admin's account.
+			const isTemplate = await isTemplateMap(this.room.env, mapId);
 			const stableNodeRows = nodeRows.map((row) => {
 				const existing = existingNodeById.get(row.id);
+				if (isTemplate) {
+					return {
+						...row,
+						user_id: null,
+						created_at: existing?.created_at ?? row.created_at,
+					};
+				}
 				if (!existing) return row;
 				return {
 					...row,
@@ -2412,6 +2473,13 @@ export default class MindMapRealtimeServer implements Party.Server {
 			});
 			const stableEdgeRows = edgeRows.map((row) => {
 				const existing = existingEdgeById.get(row.id);
+				if (isTemplate) {
+					return {
+						...row,
+						user_id: null,
+						created_at: existing?.created_at ?? row.created_at,
+					};
+				}
 				if (!existing) return row;
 				return {
 					...row,

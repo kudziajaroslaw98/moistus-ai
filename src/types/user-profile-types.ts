@@ -48,6 +48,8 @@ export interface UserProfile {
 		hex: string;
 	};
 	preferences?: UserPreferencesBase;
+	/** Read-only UI hint; set out-of-band and enforced server-side. */
+	role?: 'user' | 'admin' | null;
 	created_at: string;
 	updated_at: string;
 }

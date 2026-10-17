@@ -45,9 +45,9 @@ const SUBPROCESSORS: Subprocessor[] = [
 	},
 	{
 		name: 'OpenAI',
-		purpose: 'AI features',
+		purpose: 'AI features (suggestions, recipes, node search, link summaries)',
 		dataProcessed:
-			'Map text and structure sent with an AI action or a link summary. OpenAI keeps it up to 30 days to detect abuse and does not use it to train its models',
+			'Map title and description, node text and tags, how nodes connect, recipe instructions and search queries, and the text of web pages you ask Shiko to summarize. OpenAI keeps it up to 30 days to detect abuse and does not use it to train its models',
 		location: 'US',
 		privacyUrl: 'https://openai.com/policies/privacy-policy',
 	},

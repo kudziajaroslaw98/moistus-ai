@@ -1,5 +1,6 @@
 import generateUuid from '@/helpers/generate-uuid';
 import withLoadingAndToast from '@/helpers/with-loading-and-toast';
+import { canEditMap } from '@/lib/extensions/graph-ops';
 import {
 	calculateGroupBounds,
 	generateGroupName,
@@ -66,6 +67,7 @@ export const createGroupsSlice: StateCreator<AppState, [], [], GroupsSlice> = (
 			initialMessage: 'Creating group...',
 			successMessage: 'Group created successfully',
 			errorMessage: 'Failed to create group',
+			skipWhen: () => !canEditMap(get()),
 		}
 	),
 
@@ -286,6 +288,7 @@ export const createGroupsSlice: StateCreator<AppState, [], [], GroupsSlice> = (
 			initialMessage: 'Ungrouping nodes...',
 			successMessage: 'Nodes ungrouped successfully',
 			errorMessage: 'Failed to ungroup nodes',
+			skipWhen: () => !canEditMap(get()),
 		}
 	),
 });

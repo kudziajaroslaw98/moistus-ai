@@ -68,6 +68,17 @@ describe('PluginRefreshBar', () => {
 		expect(refreshPluginNode).toHaveBeenCalledWith('node-1');
 	});
 
+	it('lets a drag that starts on the bar pan the canvas', () => {
+		setup({ fetchedAt: new Date().toISOString() });
+
+		// React Flow's pan filter ignores drags inside `.nopan`; `nodrag` is enough here.
+		expect(screen.getByRole('button', { name: 'Refresh' }).closest('.nopan')).toBeNull();
+		expect(screen.getByRole('button', { name: 'Refresh' })).toHaveClass(
+			'nodrag',
+			'disabled:pointer-events-none'
+		);
+	});
+
 	it('shows viewers when it was updated, with no way to fetch', () => {
 		setup({ canEdit: false, fetchedAt: new Date(Date.now() - 2 * 3600_000).toISOString() });
 

@@ -1,4 +1,5 @@
 import { calculateDelta } from '@/helpers/history/delta-calculator';
+import { canEditMap } from '@/lib/extensions/graph-ops';
 import {
 	broadcast,
 	BROADCAST_EVENTS,
@@ -272,6 +273,8 @@ export const createHistorySlice: StateCreator<
 		try {
 			const { supabase, mapId, currentUser, isReverting, historyBatchDepth } =
 				get();
+			// Read-only users have nothing to record: their writes never land
+			if (!canEditMap(get())) return;
 			// Suppress DB history recording during revert
 			if (isReverting) return;
 			// Inside a graph-ops batch the batch records a single event when it ends

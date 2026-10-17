@@ -210,9 +210,12 @@ export default function PrivacyPolicyPage() {
 					</li>
 					<li>
 						<strong>AI features you ask for</strong> — when you use an AI action
-						(suggestions, connections, merges, search, link summaries or
-						recipes) we send the relevant map text to OpenAI to produce the
-						result. Text written by other people on the map can be part of it.{' '}
+						(suggestions, connections, merges, node search, recipes or link
+						summaries) we send OpenAI what the result needs: node text and tags,
+						how nodes connect, the map&apos;s title and description, and what
+						you type for AI (a recipe&apos;s instruction, a search query). For a
+						link summary it is the text of the page. Text written by other
+						people on the map can be part of it.{' '}
 						<em>Basis: contract (you asked for it).</em>
 					</li>
 					<li>
@@ -352,9 +355,10 @@ export default function PrivacyPolicyPage() {
 								<td className='py-3 px-4'>AI features</td>
 								<td className='py-3 px-4'>US</td>
 								<td className='py-3 px-4'>
-									Map text and structure sent with an AI action. OpenAI keeps it
-									up to 30 days to detect abuse and does not use it to train its
-									models
+									Map title and description, node text and tags, how nodes
+									connect, recipe instructions and search queries, and the text
+									of pages you ask Shiko to summarize. OpenAI keeps it up to 30
+									days to detect abuse and does not use it to train its models
 								</td>
 							</tr>
 						</tbody>

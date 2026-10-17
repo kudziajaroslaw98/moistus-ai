@@ -20,7 +20,7 @@ export function ModalsWrapper() {
 
 	return (
 		<>
-			<EdgeEditModal />
+			{canEdit && <EdgeEditModal />}
 
 			<CommandPalette />
 

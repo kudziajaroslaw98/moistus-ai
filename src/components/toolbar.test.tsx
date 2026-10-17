@@ -1,11 +1,16 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { Toolbar } from './toolbar';
 
 let mockStoreState: Record<string, unknown>;
+let mockPermissions: {
+	canEdit: boolean;
+	canComment: boolean;
+	isLoading: boolean;
+};
 
 jest.mock('@/hooks/collaboration/use-permissions', () => ({
-	usePermissions: () => ({ canEdit: true, canComment: true }),
+	usePermissions: () => mockPermissions,
 }));
 
 jest.mock('@/hooks/use-mobile', () => ({
@@ -146,6 +151,7 @@ function createStoreState(overrides: Record<string, unknown> = {}) {
 describe('Toolbar', () => {
 	beforeEach(() => {
 		mockStoreState = createStoreState();
+		mockPermissions = { canEdit: true, canComment: true, isLoading: false };
 	});
 
 	it('keeps map actions unavailable while map data is not ready', () => {
@@ -175,5 +181,78 @@ describe('Toolbar', () => {
 		expect(screen.getByTitle('Add Node')).not.toBeDisabled();
 		expect(screen.getByTestId('layout-dropdown')).not.toBeDisabled();
 		expect(screen.getByTestId('export-dropdown')).not.toBeDisabled();
+	});
+	describe('for people who cannot edit', () => {
+		const renderToolbar = () =>
+			render(
+				<Toolbar
+					isMapReady={true}
+					mobileTapMultiSelectEnabled={false}
+					onMobileTapMultiSelectChange={jest.fn()}
+				/>
+			);
+
+		beforeEach(() => {
+			mockPermissions = { canEdit: false, canComment: true, isLoading: false };
+		});
+
+		it('offers Select and Pan, but not Connect', () => {
+			renderToolbar();
+
+			expect(screen.getAllByText('Select').length).toBeGreaterThan(0);
+			expect(screen.getAllByText('Pan').length).toBeGreaterThan(0);
+			expect(screen.queryByText('Connect')).not.toBeInTheDocument();
+		});
+
+		it('moves someone left on an editing tool back to Select', () => {
+			mockStoreState = createStoreState({ activeTool: 'connector' });
+			renderToolbar();
+
+			expect(mockStoreState.setActiveTool).toHaveBeenCalledWith('default');
+		});
+
+		it('keeps Pan when they chose it', () => {
+			mockStoreState = createStoreState({ activeTool: 'pan' });
+			renderToolbar();
+
+			expect(mockStoreState.setActiveTool).not.toHaveBeenCalled();
+		});
+
+		it('waits for permissions before resetting the tool', () => {
+			mockPermissions = { canEdit: false, canComment: false, isLoading: true };
+			mockStoreState = createStoreState({ activeTool: 'node' });
+			renderToolbar();
+
+			expect(mockStoreState.setActiveTool).not.toHaveBeenCalled();
+		});
+	});
+
+	it('leaves an editor on their editing tool', () => {
+		mockStoreState = createStoreState({ activeTool: 'connector' });
+		render(
+			<Toolbar
+				isMapReady={true}
+				mobileTapMultiSelectEnabled={false}
+				onMobileTapMultiSelectChange={jest.fn()}
+			/>
+		);
+
+		expect(mockStoreState.setActiveTool).not.toHaveBeenCalled();
+	});
+
+	it('switches to Select when comment mode turns on', () => {
+		mockStoreState = createStoreState({ activeTool: 'pan' });
+		render(
+			<Toolbar
+				isMapReady={true}
+				mobileTapMultiSelectEnabled={false}
+				onMobileTapMultiSelectChange={jest.fn()}
+			/>
+		);
+
+		fireEvent.click(screen.getByTitle('Comments (C)'));
+
+		expect(mockStoreState.setActiveTool).toHaveBeenCalledWith('default');
+		expect(mockStoreState.setCommentMode).toHaveBeenCalledWith(true);
 	});
 });

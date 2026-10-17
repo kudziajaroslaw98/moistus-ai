@@ -9,6 +9,8 @@ interface UseTouchContextMenuFallbackParams {
 	containerRef: RefObject<HTMLElement | null>;
 	openContextMenuAt: (params: OpenContextMenuAtParams) => void;
 	isContextMenuOpen: boolean;
+	/** Turn the fallback off, e.g. while the canvas is in Pan mode. Defaults to on. */
+	enabled?: boolean;
 }
 
 interface TargetContext {
@@ -79,6 +81,7 @@ export function useTouchContextMenuFallback({
 	containerRef,
 	openContextMenuAt,
 	isContextMenuOpen,
+	enabled = true,
 }: UseTouchContextMenuFallbackParams) {
 	const openContextMenuAtRef = useRef(openContextMenuAt);
 	const isContextMenuOpenRef = useRef(isContextMenuOpen);
@@ -96,7 +99,7 @@ export function useTouchContextMenuFallback({
 
 	useEffect(() => {
 		const container = containerRef.current;
-		if (!container) {
+		if (!container || !enabled) {
 			return;
 		}
 
@@ -224,5 +227,5 @@ export function useTouchContextMenuFallback({
 			);
 			window.removeEventListener('scroll', clearPendingPress, true);
 		};
-	}, [containerRef]);
+	}, [containerRef, enabled]);
 }

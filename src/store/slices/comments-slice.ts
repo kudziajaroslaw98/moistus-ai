@@ -8,6 +8,7 @@ import {
 	setWorkspaceCacheRecord,
 } from '@/lib/offline/indexed-db';
 import { queueMutation } from '@/lib/offline/offline-mutation-adapter';
+import type { AppNode } from '@/types/app-node';
 import type {
 	Comment,
 	CommentMessage,
@@ -22,6 +23,41 @@ import type { StateCreator } from 'zustand';
 import type { AppState } from '../app-state';
 
 const NOTIFICATION_RECIPIENTS_PER_EVENT_LIMIT = 50;
+
+// Threads this browser is deleting itself: deleteComment removes their canvas
+// node on its own, so the realtime DELETE must not do it first (that would
+// leave deleteNodes' history step without the node).
+const threadsBeingDeleted = new Set<string>();
+
+/**
+ * The canvas node of a comment thread, built from its `comments` row.
+ * A commenter can't write to the shared graph room, so the node they create
+ * reaches other people only through this row.
+ */
+function buildCommentNode(comment: Comment): AppNode {
+	return {
+		id: comment.id,
+		type: 'commentNode',
+		position: { x: comment.position_x, y: comment.position_y },
+		zIndex: 100,
+		data: {
+			id: comment.id,
+			map_id: comment.map_id,
+			user_id: comment.created_by,
+			parent_id: null,
+			content: '',
+			position_x: comment.position_x,
+			position_y: comment.position_y,
+			width: comment.width,
+			height: comment.height,
+			node_type: 'commentNode',
+			metadata: {},
+			aiData: {},
+			created_at: comment.created_at,
+			updated_at: comment.updated_at,
+		} as unknown as AppNode['data'],
+	};
+}
 
 function chunkArray<T>(items: T[], chunkSize: number): T[][] {
 	if (items.length === 0) {
@@ -406,6 +442,7 @@ export const createCommentsSlice: StateCreator<
 	deleteComment: async (commentId: string) => {
 		const { supabase, nodes, deleteNodes } = get();
 		const pairedNode = nodes.find((node) => node.id === commentId);
+		threadsBeingDeleted.add(commentId);
 
 		try {
 			// Optimistic update
@@ -445,6 +482,8 @@ export const createCommentsSlice: StateCreator<
 				commentError:
 					error instanceof Error ? error.message : 'Failed to delete comment',
 			});
+		} finally {
+			threadsBeingDeleted.delete(commentId);
 		}
 	},
 
@@ -1111,20 +1150,27 @@ export const createCommentsSlice: StateCreator<
 						const { eventType, new: newRecord, old: oldRecord } = payload;
 
 						switch (eventType) {
-							case 'INSERT':
-								set((state) => {
-									const newComment = newRecord as Comment;
-									// Prevent duplicates: only add if comment doesn't already exist
-									const exists = state.comments.some(
-										(c) => c.id === newComment.id
-									);
-									if (exists) return state;
+							case 'INSERT': {
+								const newComment = newRecord as Comment;
+								const { comments, nodes } = get();
+								const hasComment = comments.some((c) => c.id === newComment.id);
+								const hasNode = nodes.some((n) => n.id === newComment.id);
+								// Prevent duplicates: nothing to add if both already exist
+								if (hasComment && hasNode) break;
 
-									return {
-										comments: [...state.comments, newComment],
-									};
-								});
+								// Don't let the new node be saved back as if we had edited it
+								if (!hasNode) get().markNodeAsSystemUpdate(newComment.id);
+
+								set((state) => ({
+									comments: state.comments.some((c) => c.id === newComment.id)
+										? state.comments
+										: [...state.comments, newComment],
+									nodes: state.nodes.some((n) => n.id === newComment.id)
+										? state.nodes
+										: [...state.nodes, buildCommentNode(newComment)],
+								}));
 								break;
+							}
 
 							case 'UPDATE':
 								set((state) => ({
@@ -1144,6 +1190,12 @@ export const createCommentsSlice: StateCreator<
 									return {
 										comments: state.comments.filter((c) => c.id !== deletedId),
 										commentMessages: remainingMessages,
+										// A commenter's delete never reaches the graph room either
+										nodes: threadsBeingDeleted.has(deletedId)
+											? state.nodes
+											: state.nodes.filter(
+													(n) => !(n.id === deletedId && n.type === 'commentNode')
+												),
 									};
 								});
 								break;

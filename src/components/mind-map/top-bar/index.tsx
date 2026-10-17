@@ -19,7 +19,7 @@ export { MobileMenu } from './mobile-menu';
 
 interface MindMapTopBarProps {
 	mapId: string;
-	mindMap: { title?: string; user_id?: string } | null;
+	mindMap: { title?: string; user_id?: string; is_template?: boolean } | null;
 	isMapReady: boolean;
 	currentUser: { id: string } | null;
 	userProfile:
@@ -59,6 +59,10 @@ export function MindMapTopBar({
 	const mobileMenuUnreadCountId = 'mobile-menu-unread-count';
 
 	const isMapOwner = mindMap?.user_id === currentUser?.id;
+	// Admins get can_edit on system templates; history stays owner/share-only.
+	const isTemplateAdmin = Boolean(mindMap?.is_template) && canEdit;
+	const canOpenMapSettings = isMapOwner || isTemplateAdmin;
+	const canViewHistory = canEdit && !isTemplateAdmin;
 
 	return (
 		<Panel
@@ -70,7 +74,7 @@ export function MindMapTopBar({
 				<TopBarBreadcrumb title={mindMap?.title} isMobile={isMobile} />
 
 				{/* Desktop only: History */}
-				{!isMobile && isMapReady && canEdit && (
+				{!isMobile && isMapReady && canViewHistory && (
 					<TopBarActions onToggleHistory={handleToggleHistorySidebar} />
 				)}
 			</div>
@@ -107,7 +111,7 @@ export function MindMapTopBar({
 
 					{!isMobile && <NotificationBell filterMapId={mapId} />}
 
-					{isMapReady && isMapOwner && !isMobile && (
+					{isMapReady && canOpenMapSettings && !isMobile && (
 						<Button
 							aria-label='Map Settings'
 							onClick={handleToggleMapSettings}

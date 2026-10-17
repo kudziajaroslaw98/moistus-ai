@@ -241,11 +241,12 @@ export function PluginUiTree({
 							else run(node.action, node.payload, node.pick);
 						}}
 						className={cn(
-							'nodrag nopan inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-zinc-700 text-[13px] font-medium text-zinc-50',
+							// `nodrag` only: `nopan` would stop the canvas panning from here in pan mode.
+							'nodrag inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-zinc-700 text-[13px] font-medium text-zinc-50',
 							iconOnly ? 'w-8 shrink-0' : 'px-3',
 							'transition-colors duration-200 ease [@media(hover:hover)]:hover:bg-white/5',
 							'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60',
-							'disabled:cursor-default disabled:opacity-50'
+							'disabled:pointer-events-none disabled:cursor-default disabled:opacity-50'
 						)}
 					>
 						{Icon && <Icon aria-hidden className='size-3.5' />}
@@ -263,10 +264,10 @@ export function PluginUiTree({
 							title={node.label}
 							onClick={(event) => event.stopPropagation()}
 							className={cn(
-								'nodrag nopan nowheel inline-flex size-7 shrink-0 items-center justify-center rounded-md text-white/60',
+								'nodrag nowheel inline-flex size-7 shrink-0 items-center justify-center rounded-md text-white/60',
 								'transition-colors duration-200 ease [@media(hover:hover)]:hover:bg-white/8 [@media(hover:hover)]:hover:text-zinc-50',
 								'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60',
-								'disabled:cursor-default disabled:opacity-50'
+								'disabled:cursor-default disabled:pointer-events-none disabled:opacity-50'
 							)}
 						>
 							<Ellipsis aria-hidden className='size-4' />
@@ -306,9 +307,9 @@ export function PluginUiTree({
 							onAction?.(node.action, node.payload);
 						}}
 						className={cn(
-							'nodrag nopan flex items-center gap-3 rounded-lg p-2 text-left text-sm leading-5',
+							'nodrag flex items-center gap-3 rounded-lg p-2 text-left text-sm leading-5',
 							'transition-colors duration-200 ease [@media(hover:hover)]:hover:bg-white/5',
-							'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 disabled:cursor-default'
+							'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/60 disabled:pointer-events-none disabled:cursor-default'
 						)}
 					>
 						<span
