@@ -5,6 +5,26 @@ Format: `[YYYY-MM-DD]` - one entry per day.
 
 ---
 
+## [2026-10-17]
+
+### Added
+
+- **privacy policy**: New section 12, "Cookies and Browser Storage" (`/privacy#cookies`): what Shiko stores by purpose (signing in, preferences, working offline, faster loading) and for how long, which other websites a visit can involve, Do Not Track / Global Privacy Control, and how to clear it. "Cookies" link added to the landing and legal footers; Contact Us is now section 13
+  - Why: the notice's "Learn more" led to a policy with no cookie or storage section, and the policy had no Do Not Track statement (California's CalOPPA requires one)
+
+### Changed
+
+- **cookie notice**: Rewritten as a small corner card ("Shiko only stores what it needs to sign you in and keep your work…", "What we store", "Got it"). It shows only on the landing, sign-in/sign-up and invite-link pages, no longer on the legal pages, dashboard or editor, and no longer covers the footer links; on a phone it is about 126px tall instead of about 200px. People who dismissed the old notice don't see it again
+  - Why: the old text named payment cookies (Polar's, not Shiko's) and left out the other storage Shiko uses; nothing here needs consent, so it informs instead of asking
+- **upgrade prompt**: The 30-minute session timer is kept in memory instead of `localStorage`, so it counts from when the tab opened Shiko. Before, it counted from a person's first-ever visit and never reset
+  - Why: the timer only exists for an upsell prompt, which is not storage the person asked for
+
+### Fixed
+
+- **cookie notice**: No longer throws when browser storage is blocked, and hides in other tabs once dismissed in one
+
+---
+
 ## [2026-10-12]
 
 ### Changed

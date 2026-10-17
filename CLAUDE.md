@@ -101,7 +101,7 @@ Skipping this = incomplete work.
 pnpm dev:lan         # LAN dev server (0.0.0.0 host binding)
 pnpm type-check      # TypeScript validation (TS 7 native tsc)
 pnpm build           # Production build
-pnpm test            # Unit tests (Jest + RTL, 727 tests)
+pnpm test            # Unit tests (Jest + RTL, ~1700 tests)
 pnpm e2e             # E2E tests (Playwright)
 pnpm e2e:ui          # E2E with interactive UI
 pnpm e2e:headed      # E2E with browser visible
@@ -187,6 +187,9 @@ pnpm pretty          # Prettier
 <!-- Updated: 2026-04-12 - Documented Next.js dev-origin allowlist, insecure LAN SW disable pattern, and dev unregister cleanup expectation -->
 
 **Supabase SSR cookie key**: Browser and server Supabase clients must share the same auth storage/cookie key. Derive that key from the configured Supabase URL, not the runtime LAN host, or successful LAN logins will bounce back to `/auth/sign-in` because the server looks for a different `sb-*` cookie name.
+
+<!-- Updated: 2026-10-17 - Cookie notice is informational; policy section 12 describes storage by purpose -->
+**Cookie notice and storage disclosure**: Shiko stores only what a person asked it to do (sign-in cookies, sidebar cookie, editor preferences, the offline IndexedDB copy, the service-worker cache), which needs no consent under the EU ePrivacy rules, so `CookieNoticeBanner` is an information notice with no Accept/Reject and shows only on `/`, `/auth/*` and `/join/*` (never the legal pages, dashboard or editor). Its "What we store" link and the footer "Cookies" links go to `/privacy#cookies` (section 12 of the privacy policy, `STORED_THINGS`). That section describes storage **by purpose only**: no cookie or key names, database names or token lifetimes (they add nothing for readers, go stale, and hand attackers detail). Adding a new kind of storage means adding a row there. Anything not needed for what the person asked (analytics, ads, upsell timers, A/B flags) needs a real consent choice first, and the notice and policy copy ("No ads, no analytics…") stop being true; the free-plan upgrade timer is held in memory (`use-session-time.ts`) for this reason. The acknowledged flag (`shiko_cookie_notice_acknowledged`) is read through `useSyncExternalStore` and every storage read/write is try/catch'd because storage can be blocked. The privacy policy also states Shiko's Do Not Track / Global Privacy Control position (12.3), which is only true while nothing is sold or shared; revisit it with any ad or data-sharing feature.
 
 <!-- Updated: 2026-04-01 - Documented Supabase cookie-name mismatch gotcha for LAN logins -->
 
@@ -382,3 +385,6 @@ Guideline @./animation-guidelines.md
 6. Enforce the Content Security Policy (currently report-only in production with no report address, so violations reach nobody). Scripts still need `'unsafe-inline'` until nonces or Next's experimental SRI are added, so an injected inline script would still run; `img-src https:` (images in nodes, link previews) and navigation also let one send data out, so `connect-src` limits rather than stops that. Plugin sites are not a blocker: they live in the network worker's own policy
 7. `images.remotePatterns` allows any HTTPS host (open `/_next/image` proxy) for link previews; consider unoptimized remote images or a constrained proxy
 8. Node editor logs "Maximum update depth exceeded" (from `setQuickInputValue` in the CodeMirror update listener) when about 50+ characters are typed in one burst; seen with automated typing in note and plugin editors, not with normal typing. A per-keystroke state update in the editor (likely the live-preview effect in `quick-input.tsx`) keeps sync work pending; not investigated further
+9. The offline IndexedDB copy (`shiko-offline-db`: maps, notifications, queued changes) is not cleared on sign-out, so on a shared computer the next person can still find the previous person's cached maps. The privacy policy (12.4) tells people to clear browser data; the real fix is clearing it on sign-out (after the queue has flushed, so unsaved changes aren't lost)
+10. Privacy policy 7.7 (CCPA) lists know/delete/opt-out/non-discrimination but not the right to correct or to limit use of sensitive data, and CCPA may not apply to a company this size; have the policy wording reviewed by a lawyer
+11. Six suites failed on 2026-10-17 in areas unrelated to cookies (`suggestions-slice`, `extract-enhanced-node-context`, `suggested-connection-edge`, `start-mapping-link`, `task-content-animation` (local `motion/react` mock lacks `useReducedMotion`), `ai-connection-postprocess`; 16 tests): not checked against a clean checkout

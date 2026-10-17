@@ -2,52 +2,37 @@
 
 import { useCallback, useEffect } from 'react';
 
-const SESSION_START_KEY = 'shiko_session_start';
+/**
+ * When this tab first used Shiko, held in memory only. It times the free-plan
+ * upgrade prompt, which nobody asked for, so it must never be written to
+ * browser storage (the cookie notice and privacy policy say storage is only
+ * for what the person asked Shiko to do).
+ */
+let sessionStartedAt: number | null = null;
 
 /**
- * Tracks session time using localStorage.
- * Session starts on first page load and persists across refreshes.
+ * Tracks session time in memory.
+ * Session starts on first page load and lasts until the tab is closed or
+ * reloaded; client-side navigation keeps it.
  */
 export function useSessionTime() {
 	// Initialize session start time on mount
 	useEffect(() => {
-		if (typeof window === 'undefined') return;
-
-		try {
-			if (!localStorage.getItem(SESSION_START_KEY)) {
-				localStorage.setItem(SESSION_START_KEY, Date.now().toString());
-			}
-		} catch {
-			// localStorage may be unavailable in restricted environments (private browsing, etc.)
+		if (sessionStartedAt === null) {
+			sessionStartedAt = Date.now();
 		}
 	}, []);
 
 	const getSessionMinutes = useCallback(() => {
 		if (typeof window === 'undefined') return 0;
+		if (sessionStartedAt === null) return 0;
 
-		try {
-			const start = localStorage.getItem(SESSION_START_KEY);
-			if (!start) return 0;
-
-			const startTime = Number(start);
-			if (!Number.isFinite(startTime) || startTime <= 0) return 0;
-
-			const elapsed = Math.floor((Date.now() - startTime) / 1000 / 60);
-			return Number.isFinite(elapsed) && elapsed >= 0 ? elapsed : 0;
-		} catch {
-			// localStorage may be unavailable
-			return 0;
-		}
+		const elapsed = Math.floor((Date.now() - sessionStartedAt) / 1000 / 60);
+		return Number.isFinite(elapsed) && elapsed >= 0 ? elapsed : 0;
 	}, []);
 
 	const resetSession = useCallback(() => {
-		if (typeof window === 'undefined') return;
-
-		try {
-			localStorage.removeItem(SESSION_START_KEY);
-		} catch {
-			// localStorage may be unavailable
-		}
+		sessionStartedAt = null;
 	}, []);
 
 	return { getSessionMinutes, resetSession };

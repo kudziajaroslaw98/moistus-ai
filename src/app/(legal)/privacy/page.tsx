@@ -8,8 +8,37 @@ export const metadata: Metadata = {
 		'Learn how Shiko collects, uses, and protects your personal information. GDPR and CCPA compliant.',
 };
 
-const EFFECTIVE_DATE = 'October 12, 2026';
+const EFFECTIVE_DATE = 'October 17, 2026';
 const CONTACT_EMAIL = 'support@shiko.app';
+
+// Described by purpose, never by key or database name: names add nothing for a
+// reader and go stale. A new kind of storage needs a row here.
+const STORED_THINGS = [
+	{
+		what: 'Signing in',
+		kind: 'Cookies',
+		why: 'Keeps you signed in and secures the sign-in process. It never holds your password.',
+		howLong: 'Until you sign out',
+	},
+	{
+		what: 'Your preferences',
+		kind: 'Cookie and browser storage',
+		why: 'Remembers your editor settings, whether the sidebar is open, and the tips you’ve closed.',
+		howLong: 'Sidebar: a week. The rest: until you clear your browser data',
+	},
+	{
+		what: 'Working offline',
+		kind: 'Browser storage',
+		why: 'A copy of the maps you’ve opened and any changes made without a connection, so Shiko keeps working offline and saves them when you’re back.',
+		howLong: 'Until you clear your browser data',
+	},
+	{
+		what: 'Faster loading',
+		kind: 'Browser cache',
+		why: 'Saved copies of Shiko’s pages and files, so the app loads quickly and opens offline.',
+		howLong: 'Replaced as Shiko updates',
+	},
+];
 
 export default function PrivacyPolicyPage() {
 	return (
@@ -20,7 +49,7 @@ export default function PrivacyPolicyPage() {
 					Privacy Policy
 				</h1>
 				<p className='text-text-secondary'>
-					Last updated: <time dateTime='2026-10-12'>{EFFECTIVE_DATE}</time>
+					Last updated: <time dateTime='2026-10-17'>{EFFECTIVE_DATE}</time>
 				</p>
 			</header>
 
@@ -42,6 +71,7 @@ export default function PrivacyPolicyPage() {
 						'Security',
 						"Children's Privacy",
 						'Changes to This Policy',
+						'Cookies and Browser Storage',
 						'Contact Us',
 					].map((title, index) => (
 						<li key={title}>
@@ -569,9 +599,104 @@ export default function PrivacyPolicyPage() {
 				</p>
 			</section>
 
-			{/* Section 12: Contact Us */}
+			{/* Section 12: Cookies and Browser Storage */}
 			<section id='section-12' className='scroll-mt-24'>
-				<h2>12. Contact Us</h2>
+				<h2 id='cookies' className='scroll-mt-24'>
+					12. Cookies and Browser Storage
+				</h2>
+				<p>
+					Shiko stores a few things in your browser so you can sign in and so the
+					editor works the way you left it. We don&apos;t use advertising or
+					analytics cookies, and nothing Shiko stores is used to follow you
+					across other websites.
+				</p>
+				<p>
+					Everything listed below is needed for something you asked Shiko to do:
+					sign you in, save your work, remember your settings. The law
+					doesn&apos;t require consent for that, which is why Shiko shows a short
+					notice and doesn&apos;t ask you to accept or refuse.{' '}
+					<strong>
+						If we ever add anything that isn&apos;t needed, we&apos;ll ask you
+						first, and saying no will be as easy as saying yes.
+					</strong>
+				</p>
+
+				<h3>12.1 What we store</h3>
+				<div role='list' className='not-prose my-6 text-sm'>
+					<div
+						aria-hidden='true'
+						className='hidden gap-x-6 border-b border-border-subtle px-4 py-3 font-semibold text-text-primary sm:flex'
+					>
+						<span className='flex-[1_1_13rem]'>What</span>
+						<span className='flex-[999_1_20rem]'>What it&apos;s for</span>
+						<span className='flex-[1_1_10.5rem]'>How long</span>
+					</div>
+					{STORED_THINGS.map((item) => (
+						<div
+							key={item.what}
+							role='listitem'
+							className='flex flex-wrap gap-x-6 gap-y-1.5 border-b border-border-subtle/50 px-4 py-3.5'
+						>
+							<div className='min-w-0 flex-[1_1_13rem]'>
+								<div className='font-semibold text-text-primary'>
+									{item.what}
+								</div>
+								<div className='mt-0.5 text-text-tertiary'>{item.kind}</div>
+							</div>
+							<div className='flex-[999_1_20rem] text-text-secondary'>
+								{item.why}
+							</div>
+							<div className='flex-[1_1_10.5rem] text-text-secondary'>
+								{item.howLong}
+							</div>
+						</div>
+					))}
+				</div>
+
+				<h3>12.2 Other websites</h3>
+				<p>
+					Shiko loads no third-party scripts, ads or trackers, and its fonts come
+					from Shiko&apos;s own servers. A few things you do take you to, or load
+					something from, another website, which handles your data under its own
+					privacy policy:
+				</p>
+				<ul>
+					<li>
+						Paying for Pro takes you to Polar&apos;s checkout, which sets its own
+						cookies.
+					</li>
+					<li>Signing in with Google or GitHub happens on their websites.</li>
+					<li>
+						An image that you or a collaborator add from another website loads
+						from that website.
+					</li>
+					<li>
+						Plugins that connect to a website work as described in{' '}
+						<a href='#plugins'>5.3 Plugins</a>.
+					</li>
+				</ul>
+
+				<h3>12.3 Do Not Track and Global Privacy Control</h3>
+				<p>
+					Shiko doesn&apos;t track you across websites and doesn&apos;t sell or
+					share your personal information for advertising. If your browser sends
+					a Do Not Track or Global Privacy Control signal, nothing needs to
+					change, because Shiko already works the way those signals ask.
+				</p>
+
+				<h3>12.4 Clearing what&apos;s stored</h3>
+				<p>
+					You can delete Shiko&apos;s cookies and storage in your browser&apos;s
+					settings at any time. Clearing it signs you out and resets your editor
+					settings and tips. It also loses any changes that haven&apos;t been
+					saved yet, so reconnect first if you&apos;ve been working offline. On a
+					shared computer, clear your browser data when you&apos;re done.
+				</p>
+			</section>
+
+			{/* Section 13: Contact Us */}
+			<section id='section-13' className='scroll-mt-24'>
+				<h2>13. Contact Us</h2>
 				<p>
 					If you have questions about this Privacy Policy or our data practices,
 					please contact us:

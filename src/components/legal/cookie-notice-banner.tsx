@@ -1,113 +1,119 @@
 'use client';
 
-import { Cookie, X } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 
+// Kept from the first notice so people who already dismissed it don't see it again.
 const STORAGE_KEY = 'shiko_cookie_notice_acknowledged';
 
 /**
- * Check if user prefers reduced motion.
- * Returns true on server or if preference is set.
+ * Pages where someone can meet Shiko for the first time. The notice stays off
+ * the legal pages (they explain it already) and off the signed-in app.
  */
-function prefersReducedMotion(): boolean {
-	if (typeof window === 'undefined') return false;
-	return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function isPublicEntryPath(pathname: string | null): boolean {
+	if (!pathname) return false;
+	return (
+		pathname === '/' ||
+		pathname === '/auth' ||
+		pathname.startsWith('/auth/') ||
+		pathname === '/join' ||
+		pathname.startsWith('/join/')
+	);
+}
+
+function readAcknowledged(): boolean {
+	try {
+		return localStorage.getItem(STORAGE_KEY) === 'true';
+	} catch {
+		// Storage can be blocked (private modes, site settings): show the notice.
+		return false;
+	}
+}
+
+function subscribeToStorage(onChange: () => void) {
+	window.addEventListener('storage', onChange);
+	return () => window.removeEventListener('storage', onChange);
+}
+
+function writeAcknowledged() {
+	try {
+		localStorage.setItem(STORAGE_KEY, 'true');
+	} catch {
+		// Blocked storage: it stays dismissed until the page is reloaded.
+	}
 }
 
 /**
- * GDPR-compliant cookie notice banner.
+ * Cookie and storage notice.
  *
- * Shiko uses essential cookies only (authentication, payments).
- * This is an informational notice, not a consent banner, since
- * essential cookies don't require opt-in under GDPR Art. 6(1)(b).
+ * Shiko stores only what it needs to sign people in and keep their work
+ * (see "Cookies and Browser Storage" in the privacy policy), which needs no
+ * consent under the EU ePrivacy rules. This is an information notice, not a
+ * consent banner: there is nothing to accept or refuse. If Shiko ever adds
+ * anything that isn't needed (analytics, ads), it needs a real consent choice
+ * first, and this copy stops being true.
  */
 export function CookieNoticeBanner() {
-	const [isDismissed, setIsDismissed] = useState(true); // SSR-safe default
+	// Server and hydration read "acknowledged" so nothing flashes in before the
+	// saved choice is known; another tab dismissing it hides it here too.
+	const acknowledged = useSyncExternalStore(
+		subscribeToStorage,
+		readAcknowledged,
+		() => true
+	);
+	// Covers blocked storage, where the saved choice can't be written.
+	const [dismissedHere, setDismissedHere] = useState(false);
 	const pathname = usePathname();
-
-	useEffect(() => {
-		// Check if user has already acknowledged
-		const acknowledged = localStorage.getItem(STORAGE_KEY);
-		setIsDismissed(acknowledged === 'true');
-	}, []);
+	const reducedMotion = useReducedMotion() ?? false;
 
 	const handleAcknowledge = () => {
-		setIsDismissed(true);
-		localStorage.setItem(STORAGE_KEY, 'true');
+		setDismissedHere(true);
+		writeAcknowledged();
 	};
 
-	// Hide on legal pages - user is already reading privacy details
-	const isLegalPage = pathname === '/privacy' || pathname === '/terms';
-	const shouldShow = !isDismissed && !isLegalPage;
-
-	const reducedMotion = prefersReducedMotion();
+	const shouldShow =
+		!acknowledged && !dismissedHere && isPublicEntryPath(pathname);
+	const offsetY = reducedMotion ? 0 : 8;
 
 	return (
 		<AnimatePresence>
 			{shouldShow && (
-				<motion.div
-					key="cookie-notice"
-					role="region"
-					aria-label="Cookie notice"
-					aria-live="polite"
-					initial={reducedMotion ? { opacity: 0 } : { y: 100, opacity: 0 }}
-					animate={reducedMotion ? { opacity: 1 } : { y: 0, opacity: 1 }}
-					exit={reducedMotion ? { opacity: 0 } : { y: 100, opacity: 0 }}
+				<motion.section
+					key='cookie-notice'
+					aria-label='About cookies'
+					initial={{ opacity: 0, y: offsetY }}
+					animate={{ opacity: 1, y: 0 }}
+					exit={{ opacity: 0, y: offsetY }}
+					className='fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50 rounded-[14px] border border-[#292929] bg-[#0f0f11] px-4 py-3.5 shadow-[0_16px_48px_rgba(0,0,0,0.55)] sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-[340px] sm:p-4'
 					transition={{
-						duration: reducedMotion ? 0.1 : 0.3,
-						ease: reducedMotion ? 'linear' : [0.215, 0.61, 0.355, 1], // ease-out-cubic
+						duration: reducedMotion ? 0.1 : 0.25,
+						ease: [0.215, 0.61, 0.355, 1], // ease-out-cubic
 					}}
-					className="fixed bottom-4 left-4 right-4 mx-auto z-50 pointer-events-none max-w-2xl"
 				>
-				<div className="pointer-events-auto relative overflow-hidden rounded-lg border border-primary-500/20 bg-zinc-900/95 backdrop-blur-md shadow-lg">
-					{/* Glassmorphic overlay */}
-					<div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent" />
+					<p className='text-sm leading-5 text-zinc-300'>
+						Shiko only stores what it needs to sign you in and keep your work.
+						No ads, no analytics, nothing that follows you to other sites.
+					</p>
 
-					<div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 px-4 py-3">
-						{/* Left: Icon + Message */}
-						<div className="flex items-start sm:items-center gap-3">
-							<div className="shrink-0 rounded-full bg-primary-500/20 p-2">
-								<Cookie className="h-4 w-4 text-primary-400" />
-							</div>
-							<p className="text-sm text-zinc-300">
-								<span className="sm:hidden">
-									Essential cookies only. No tracking.{' '}
-								</span>
-								<span className="hidden sm:inline">
-									We use essential cookies only — for authentication and
-									payment processing. No tracking.{' '}
-								</span>
-								<Link
-									href="/privacy"
-									className="text-primary-400 hover:text-primary-300 underline underline-offset-2 transition-colors duration-200"
-								>
-									Learn more
-								</Link>
-							</p>
-						</div>
+					<div className='mt-3 flex items-center justify-between gap-3 sm:mt-3.5'>
+						<Link
+							href='/privacy#cookies'
+							className='inline-flex min-h-11 items-center rounded-sm text-sm text-text-primary underline decoration-white/35 underline-offset-[3px] transition-colors duration-200 hover:decoration-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f11] sm:min-h-0'
+						>
+							What we store
+						</Link>
 
-						{/* Right: Acknowledge + Dismiss */}
-						<div className="flex items-center gap-2 self-end sm:self-auto">
-							<button
-								onClick={handleAcknowledge}
-								className="shrink-0 rounded-md bg-primary-600 hover:bg-primary-700 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors duration-200 ease-out"
-							>
-								Got it
-							</button>
-							<button
-								onClick={handleAcknowledge}
-								className="shrink-0 rounded-md p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors duration-200 ease-out"
-								aria-label="Dismiss cookie notice"
-							>
-								<X className="h-4 w-4" />
-							</button>
-						</div>
+						<button
+							type='button'
+							onClick={handleAcknowledge}
+							className='h-11 rounded-[10px] bg-white px-5 text-sm font-semibold text-neutral-900 transition-colors duration-200 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0f0f11] sm:h-9 sm:px-4'
+						>
+							Got it
+						</button>
 					</div>
-				</div>
-				</motion.div>
+				</motion.section>
 			)}
 		</AnimatePresence>
 	);
