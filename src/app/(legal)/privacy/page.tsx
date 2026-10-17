@@ -1,15 +1,15 @@
 import { BackToTopLink } from '@/components/legal/back-to-top-link';
+import { CONTACT_EMAIL, LEGAL_OPERATOR } from '@/constants/legal';
 import { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
 	title: 'Privacy Policy - Shiko',
 	description:
-		'Learn how Shiko collects, uses, and protects your personal information. GDPR and CCPA compliant.',
+		'What personal data Shiko collects, why, who receives it, how long we keep it, and your rights.',
 };
 
-const EFFECTIVE_DATE = 'October 17, 2026';
-const CONTACT_EMAIL = 'support@shiko.app';
+const EFFECTIVE_DATE = 'October 18, 2026';
 
 // Described by purpose, never by key or database name: names add nothing for a
 // reader and go stale. A new kind of storage needs a row here.
@@ -49,7 +49,7 @@ export default function PrivacyPolicyPage() {
 					Privacy Policy
 				</h1>
 				<p className='text-text-secondary'>
-					Last updated: <time dateTime='2026-10-17'>{EFFECTIVE_DATE}</time>
+					Last updated: <time dateTime='2026-10-18'>{EFFECTIVE_DATE}</time>
 				</p>
 			</header>
 
@@ -60,7 +60,7 @@ export default function PrivacyPolicyPage() {
 				</h2>
 				<ol className='space-y-2 text-sm'>
 					{[
-						'Introduction',
+						'Who We Are',
 						'Information We Collect',
 						'How We Use Your Information',
 						'Legal Basis for Processing',
@@ -86,24 +86,21 @@ export default function PrivacyPolicyPage() {
 				</ol>
 			</nav>
 
-			{/* Section 1: Introduction */}
+			{/* Section 1: Who We Are */}
 			<section id='section-1' className='scroll-mt-24'>
-				<h2>1. Introduction</h2>
+				<h2>1. Who We Are</h2>
 				<p>
-					Shiko (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is
-					committed to protecting your privacy. This Privacy Policy explains how
-					we collect, use, disclose, and safeguard your information when you use
-					our AI-powered mind mapping platform.
+					Shiko is an AI-powered mind mapping app. It is run by{' '}
+					<strong>{LEGAL_OPERATOR.name}</strong>, {LEGAL_OPERATOR.address}, who
+					is the controller of your personal data under the EU&apos;s General
+					Data Protection Regulation (GDPR). You can reach us at{' '}
+					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
 				</p>
 				<p>
-					We are based in Poland and operate under the European Union&apos;s
-					General Data Protection Regulation (GDPR). We also comply with the
-					California Consumer Privacy Act (CCPA) for our users in California.
-				</p>
-				<p>
-					By using Shiko, you agree to the collection and use of information in
-					accordance with this policy. If you do not agree with our policies and
-					practices, please do not use our service.
+					This policy explains what personal data we collect, why, who receives
+					it, how long we keep it, and what rights you have. It applies to
+					everyone who uses Shiko; section 7.8 adds what applies to residents of
+					the United States.
 				</p>
 			</section>
 
@@ -115,91 +112,85 @@ export default function PrivacyPolicyPage() {
 				<p>When you create an account, we collect:</p>
 				<ul>
 					<li>
-						<strong>Email address</strong> — Required for account identification
-						and communication
+						<strong>Email address</strong> — to identify your account and
+						contact you
 					</li>
 					<li>
-						<strong>Password</strong> — Stored in encrypted (hashed) form; we
-						never have access to your plain-text password
+						<strong>Password</strong> — stored in scrambled (hashed) form; we
+						can&apos;t read it
 					</li>
 					<li>
-						<strong>Display name</strong> — Optional name shown to collaborators
+						<strong>Display name</strong> — optional, shown to collaborators
 					</li>
 					<li>
-						<strong>Profile information</strong> — Optional bio and preferences
-						you choose to provide
+						<strong>Profile details</strong> — an optional bio, picture and
+						preferences you choose to add
 					</li>
 				</ul>
 
-				<h3>2.2 OAuth Information</h3>
-				<p>If you sign in using Google or GitHub, we receive:</p>
-				<ul>
-					<li>Your email address</li>
-					<li>Your name (as provided by the OAuth provider)</li>
-					<li>Your profile picture URL</li>
-				</ul>
+				<h3>2.2 Signing In With Google or GitHub</h3>
 				<p>
-					We do not receive or store your OAuth provider passwords.
-					Authentication is handled securely by the respective providers.
+					If you sign in with Google or GitHub, they send us your email address,
+					name (or username) and profile picture. We never receive your Google
+					or GitHub password.
 				</p>
 
-				<h3>2.3 Content You Create</h3>
-				<p>We store the content you create within Shiko:</p>
-				<ul>
-					<li>
-						<strong>Mind maps</strong> — Including titles, descriptions, and
-						organizational structure
-					</li>
-					<li>
-						<strong>Nodes</strong> — All node types (text, tasks, code, images,
-						questions, etc.) and their content
-					</li>
-					<li>
-						<strong>Connections</strong> — Relationships between nodes
-					</li>
-					<li>
-						<strong>Comments</strong> — Discussion threads and messages on
-						shared maps
-					</li>
-				</ul>
-
-				<h3>2.4 Usage Data</h3>
+				<h3>2.3 Guests</h3>
 				<p>
-					We automatically collect certain information about how you use our
-					service:
+					You can join a shared map with a room code without an account. Shiko
+					then creates a temporary guest account with the name you enter. A
+					guest has no email address.
 				</p>
+
+				<h3>2.4 Content You Create</h3>
 				<ul>
 					<li>
-						<strong>AI feature usage</strong> — We track how many AI suggestions
-						you use for billing purposes
+						<strong>Maps</strong> — titles, descriptions, nodes (text, tasks,
+						code, images and more) and the connections between them
 					</li>
 					<li>
-						<strong>Subscription status</strong> — Your plan type and billing
-						period
+						<strong>Comments and reactions</strong> on shared maps
+					</li>
+					<li>
+						<strong>Change history</strong> — who changed what on a map and
+						when, so you can see and restore earlier versions
+					</li>
+					<li>
+						<strong>Plugins, recipes and drafts</strong> you write or install,
+						and any plugin reports you file
 					</li>
 				</ul>
 
-				<h3>2.5 Technical Data</h3>
-				<p>For security and service operation, we may collect:</p>
+				<h3>2.5 Usage and Billing</h3>
 				<ul>
-					<li>Browser type and version</li>
-					<li>IP address (for rate limiting and abuse prevention)</li>
-					<li>Device information</li>
+					<li>
+						How many AI actions you have used, to apply your plan&apos;s limit
+					</li>
+					<li>
+						Your plan, billing period and payment history (amounts and dates) as
+						reported by our payment seller, Polar. We never see your card
+						details
+					</li>
+					<li>
+						The notifications Shiko sends you (in the app, by email, and by
+						browser push if you turn it on)
+					</li>
 				</ul>
 
-				<h3>2.6 Information We Do NOT Collect</h3>
-				<p>We want to be clear about what we don&apos;t collect:</p>
+				<h3>2.6 Technical Data</h3>
+				<p>
+					Our servers log your IP address, browser type and device details when
+					you use Shiko. We use them to run the service, limit abuse and keep it
+					secure.
+				</p>
+
+				<h3>2.7 What We Don&apos;t Collect</h3>
 				<ul>
+					<li>Payment card details (the seller, Polar, handles them)</li>
+					<li>Your location, phone number or contacts</li>
 					<li>
-						Payment card details (handled entirely by our payment processor,
-						Polar)
-					</li>
-					<li>Phone numbers or physical addresses</li>
-					<li>Location or GPS data</li>
-					<li>Device fingerprints for tracking</li>
-					<li>
-						We do not use analytics services like Google Analytics, Mixpanel, or
-						similar tracking tools
+						Analytics, advertising or tracking data: Shiko uses no analytics
+						service, ad network or device fingerprinting
 					</li>
 				</ul>
 			</section>
@@ -207,35 +198,49 @@ export default function PrivacyPolicyPage() {
 			{/* Section 3: How We Use Your Information */}
 			<section id='section-3' className='scroll-mt-24'>
 				<h2>3. How We Use Your Information</h2>
-				<p>We use the information we collect to:</p>
+				<p>
+					Each use below names its legal basis; section 4 explains what they
+					mean.
+				</p>
 				<ul>
 					<li>
-						<strong>Provide our service</strong> — Store and sync your mind maps
-						across devices, enable real-time collaboration
+						<strong>Provide Shiko</strong> — store and sync your maps, let
+						people you share them with work on them live, keep their change
+						history, and send you notifications. <em>Basis: contract.</em>
 					</li>
 					<li>
-						<strong>Process AI features</strong> — Send relevant content to our
-						AI provider (OpenAI) to generate suggestions and answers
+						<strong>AI features you ask for</strong> — when you use an AI action
+						(suggestions, connections, merges, search, link summaries or
+						recipes) we send the relevant map text to OpenAI to produce the
+						result. Text written by other people on the map can be part of it.{' '}
+						<em>Basis: contract (you asked for it).</em>
 					</li>
 					<li>
-						<strong>Process payments</strong> — Manage subscriptions through our
-						payment processor
+						<strong>Billing</strong> — manage your plan and keep the records the
+						law requires. <em>Basis: contract and legal obligation.</em>
 					</li>
 					<li>
-						<strong>Communicate with you</strong> — Send service-related emails
-						(account verification, password resets, billing notifications)
+						<strong>Emails</strong> — account and security emails (sign-in
+						codes, password resets, account deletion confirmation), and updates
+						when someone mentions you, replies to your comment or reacts to it.
+						You can turn the update emails off in your account settings.{' '}
+						<em>
+							Basis: contract for account emails; legitimate interest for
+							updates.
+						</em>
 					</li>
 					<li>
-						<strong>Improve our service</strong> — Understand how features are
-						used to make improvements
+						<strong>Push notifications</strong> — only if you allow them in your
+						browser. <em>Basis: your consent.</em>
 					</li>
 					<li>
-						<strong>Ensure security</strong> — Detect and prevent fraud, abuse,
-						and security threats
+						<strong>Security and moderation</strong> — limit abuse, detect
+						fraud, review plugins and handle reports of illegal or harmful
+						content. <em>Basis: legitimate interest.</em>
 					</li>
 					<li>
-						<strong>Comply with legal obligations</strong> — Respond to legal
-						requests and enforce our terms
+						<strong>Legal requests</strong> — answer valid requests from courts
+						and authorities. <em>Basis: legal obligation.</em>
 					</li>
 				</ul>
 			</section>
@@ -243,34 +248,36 @@ export default function PrivacyPolicyPage() {
 			{/* Section 4: Legal Basis for Processing */}
 			<section id='section-4' className='scroll-mt-24'>
 				<h2>4. Legal Basis for Processing (GDPR)</h2>
-				<p>
-					Under the GDPR, we process your personal data based on the following
-					legal grounds:
-				</p>
 
-				<h3>4.1 Contract Performance</h3>
+				<h3>4.1 Contract</h3>
 				<p>
-					Processing necessary to provide you with our service, including
-					account management, content storage, and collaboration features.
+					Processing needed to give you the service you signed up for, including
+					AI actions you start yourself.
 				</p>
 
 				<h3>4.2 Legitimate Interests</h3>
 				<p>
-					Processing necessary for our legitimate interests, including service
-					security, fraud prevention, and service improvements, where these
-					interests are not overridden by your rights.
+					Keeping Shiko secure and free of abuse, and telling you about activity
+					on your maps. We weigh these against your rights, and you can object
+					(section 7.6).
 				</p>
 
 				<h3>4.3 Consent</h3>
 				<p>
-					For optional features or communications, we rely on your consent,
-					which you can withdraw at any time.
+					Used only for browser push notifications. You can withdraw it at any
+					time by turning push off in your settings or your browser.
 				</p>
 
 				<h3>4.4 Legal Obligation</h3>
 				<p>
-					Processing necessary to comply with legal requirements, such as tax
-					and accounting laws.
+					Processing needed to follow the law, such as keeping billing records
+					or answering a court order.
+				</p>
+
+				<h3>4.5 No Automated Decisions</h3>
+				<p>
+					We don&apos;t make decisions about you based solely on automated
+					processing that have legal or similarly significant effects.
 				</p>
 			</section>
 
@@ -278,12 +285,16 @@ export default function PrivacyPolicyPage() {
 			<section id='section-5' className='scroll-mt-24'>
 				<h2>5. Information Sharing</h2>
 				<p>
-					<strong>We do not sell your personal data.</strong> We share
-					information only in the following circumstances:
+					<strong>We do not sell your personal data.</strong> We share it only
+					as described here.
 				</p>
 
-				<h3>5.1 Service Providers (Subprocessors)</h3>
-				<p>We use trusted third-party services to operate Shiko:</p>
+				<h3>5.1 Service Providers</h3>
+				<p>
+					These companies process data for us to run Shiko. The{' '}
+					<Link href='/subprocessors'>subprocessors page</Link> links each
+					one&apos;s privacy policy.
+				</p>
 
 				<div className='not-prose overflow-x-auto my-6'>
 					<table className='w-full text-sm'>
@@ -299,7 +310,7 @@ export default function PrivacyPolicyPage() {
 									Location
 								</th>
 								<th className='text-left py-3 px-4 text-text-primary font-semibold'>
-									Data Shared
+									What it receives
 								</th>
 							</tr>
 						</thead>
@@ -307,54 +318,67 @@ export default function PrivacyPolicyPage() {
 							<tr className='border-b border-border-subtle/50'>
 								<td className='py-3 px-4'>Supabase</td>
 								<td className='py-3 px-4'>
-									Database, Authentication, Real-time sync
+									Database, sign-in, real-time updates
 								</td>
-								<td className='py-3 px-4'>EU</td>
-								<td className='py-3 px-4'>All user data and content</td>
-							</tr>
-							<tr className='border-b border-border-subtle/50'>
-								<td className='py-3 px-4'>Polar.sh</td>
-								<td className='py-3 px-4'>Payment processing</td>
-								<td className='py-3 px-4'>US</td>
-								<td className='py-3 px-4'>Email, name, billing information</td>
-							</tr>
-							<tr className='border-b border-border-subtle/50'>
-								<td className='py-3 px-4'>OpenAI</td>
-								<td className='py-3 px-4'>AI features</td>
-								<td className='py-3 px-4'>US</td>
-								<td className='py-3 px-4'>Node content for AI processing</td>
+								<td className='py-3 px-4'>US (Ohio)</td>
+								<td className='py-3 px-4'>Your account and all your content</td>
 							</tr>
 							<tr className='border-b border-border-subtle/50'>
 								<td className='py-3 px-4'>Vercel</td>
 								<td className='py-3 px-4'>Hosting</td>
-								<td className='py-3 px-4'>US (Global CDN)</td>
-								<td className='py-3 px-4'>Application code only</td>
+								<td className='py-3 px-4'>US (global network)</td>
+								<td className='py-3 px-4'>
+									Your requests to Shiko, including your IP address
+								</td>
 							</tr>
 							<tr className='border-b border-border-subtle/50'>
-								<td className='py-3 px-4'>Google OAuth</td>
-								<td className='py-3 px-4'>Social login</td>
+								<td className='py-3 px-4'>PartyKit (Cloudflare)</td>
+								<td className='py-3 px-4'>Live collaboration</td>
+								<td className='py-3 px-4'>Global (Cloudflare network)</td>
+								<td className='py-3 px-4'>
+									Live edits, cursors and presence on maps you have open
+								</td>
+							</tr>
+							<tr className='border-b border-border-subtle/50'>
+								<td className='py-3 px-4'>Resend</td>
+								<td className='py-3 px-4'>Email delivery</td>
 								<td className='py-3 px-4'>US</td>
-								<td className='py-3 px-4'>Authentication tokens</td>
+								<td className='py-3 px-4'>
+									Your email address and the email text
+								</td>
 							</tr>
 							<tr>
-								<td className='py-3 px-4'>GitHub OAuth</td>
-								<td className='py-3 px-4'>Social login</td>
+								<td className='py-3 px-4'>OpenAI</td>
+								<td className='py-3 px-4'>AI features</td>
 								<td className='py-3 px-4'>US</td>
-								<td className='py-3 px-4'>Authentication tokens</td>
+								<td className='py-3 px-4'>
+									Map text and structure sent with an AI action. OpenAI keeps it
+									up to 30 days to detect abuse and does not use it to train its
+									models
+								</td>
 							</tr>
 						</tbody>
 					</table>
 				</div>
 
-				<h3>5.2 Collaborators</h3>
 				<p>
-					When you share a mind map, collaborators can see your display name,
-					avatar, and real-time activity (cursor position, selected nodes). Your
-					email is not shared with collaborators unless you explicitly include
-					it in your profile.
+					<strong>Companies you deal with directly.</strong> Polar sells Pro
+					subscriptions and receives your email, name and payment details when
+					you buy. Google and GitHub receive your sign-in when you use them to
+					sign in. Each handles your data under its own privacy policy.
 				</p>
 
-				<h3 id='plugins' className='scroll-mt-24'>5.3 Plugins</h3>
+				<h3>5.2 Collaborators</h3>
+				<p>
+					When you share a map, the people on it can see your display name,
+					picture and email address, what you change (including in the change
+					history), and your live cursor and selection. Comments you write are
+					visible to everyone with access to the map.
+				</p>
+
+				<h3 id='plugins' className='scroll-mt-24'>
+					5.3 Plugins
+				</h3>
 				<p>
 					Plugins add new kinds of nodes to a map. Only a map&apos;s owner can
 					turn a plugin on, and Shiko reviews every plugin it offers. Plugins
@@ -364,19 +388,19 @@ export default function PrivacyPolicyPage() {
 					<li>
 						Most plugins work only with their own nodes and send nothing
 						anywhere. Plugins that read other nodes, whether the nodes under
-						them or the nodes you link to them, can&apos;t connect to any
-						site, so what they read stays in your browser.
+						them or the nodes you link to them, can&apos;t connect to any site,
+						so what they read stays in your browser.
 					</li>
 					<li>
-						A plugin that connects to another site, such as GitHub or
-						Wikipedia, names that site and who runs it, with a link to their
-						privacy policy, before anything is sent. It connects only when
-						someone who can edit the map adds the plugin&apos;s node, edits it
-						or presses Refresh. That person&apos;s browser sends the site what
-						was typed into that one node (for example an issue address or a
-						topic), along with what every browser request includes, such as
-						their IP address. No cookies or Shiko account details are sent.
-						The site handles that information under its own privacy policy.
+						A plugin that connects to another site, such as GitHub or Wikipedia,
+						names that site and who runs it, with a link to their privacy
+						policy, before anything is sent. It connects only when someone who
+						can edit the map adds the plugin&apos;s node, edits it or presses
+						Refresh. That person&apos;s browser sends the site what was typed
+						into that one node (for example an issue address or a topic), along
+						with what every browser request includes, such as their IP address.
+						No cookies or Shiko account details are sent. The site handles that
+						information under its own privacy policy.
 					</li>
 					<li>
 						What the site sends back is saved in the map, so everyone else sees
@@ -396,37 +420,65 @@ export default function PrivacyPolicyPage() {
 					of the person who adds or refreshes the node.
 				</p>
 
-				<h3>5.4 Legal Requirements</h3>
+				<h3>5.4 What You Publish</h3>
 				<p>
-					We may disclose your information if required by law, court order, or
-					government request.
+					If you submit a plugin to the library, its code, name and your display
+					name as author are visible to everyone signed in to Shiko. If you
+					share a recipe by link, anyone with the link can read and copy it.
 				</p>
 
-				<h3>5.5 Business Transfers</h3>
+				<h3>5.5 Push Notifications</h3>
 				<p>
-					If Shiko is involved in a merger, acquisition, or sale of assets, your
-					information may be transferred as part of that transaction. We will
-					notify you of any such change.
+					If you turn push on, notifications travel through your browser
+					maker&apos;s push service (for example Google, Apple or Mozilla). The
+					content is encrypted so only your browser can read it.
+				</p>
+
+				<h3>5.6 Legal Requirements</h3>
+				<p>
+					We may disclose information if a law, court order or valid government
+					request requires it.
+				</p>
+
+				<h3>5.7 Business Transfers</h3>
+				<p>
+					If Shiko is sold or merged, your information may move to the new
+					owner. We will tell you first and your rights under this policy
+					continue.
 				</p>
 			</section>
 
 			{/* Section 6: Data Retention */}
 			<section id='section-6' className='scroll-mt-24'>
 				<h2>6. Data Retention</h2>
-				<p>We retain your information as follows:</p>
 				<ul>
 					<li>
-						<strong>Active accounts</strong> — Your data is retained for as long
-						as your account is active
+						<strong>Active accounts</strong> — we keep your data while your
+						account is active.
 					</li>
 					<li>
-						<strong>Deleted accounts</strong> — When you delete your account, we
-						will delete your personal data within 30 days, except where we are
-						required to retain it for legal purposes
+						<strong>Deleted accounts</strong> — when you delete your account, we
+						delete your profile, your maps, and what you added to other
+						people&apos;s maps (nodes, comments and reactions), within 30 days.
+						Plugins you published are removed; recipe copies other people
+						already installed stay with them. We keep only what the law
+						requires.
 					</li>
 					<li>
-						<strong>Backups</strong> — Backups may retain deleted data for up to
-						90 days for disaster recovery purposes
+						<strong>Guests</strong> — a guest account stays until the map owner
+						removes the guest or the guest asks us to delete it.
+					</li>
+					<li>
+						<strong>Backups</strong> — backups may hold deleted data for up to
+						90 days, then it is overwritten.
+					</li>
+					<li>
+						<strong>Server logs</strong> — kept for a short time for security
+						and debugging.
+					</li>
+					<li>
+						<strong>Purchases</strong> — Polar keeps its own records of your
+						purchases as tax law requires.
 					</li>
 				</ul>
 			</section>
@@ -435,68 +487,62 @@ export default function PrivacyPolicyPage() {
 			<section id='section-7' className='scroll-mt-24'>
 				<h2>7. Your Rights</h2>
 				<p>
-					Under GDPR and CCPA, you have the following rights regarding your
-					personal data:
+					Under the GDPR you have the rights below. To use any of them, email{' '}
+					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> from the
+					address on your account. We reply within 30 days.
 				</p>
 
-				<h3>7.1 Right to Access</h3>
+				<h3>7.1 Access</h3>
 				<p>
-					You can request a copy of the personal data we hold about you. We
-					provide data export functionality in your account settings.
+					Ask for a copy of your personal data. You can also download your data
+					yourself in your account settings.
 				</p>
 
-				<h3>7.2 Right to Rectification</h3>
+				<h3>7.2 Rectification</h3>
+				<p>Correct your information any time in your account settings.</p>
+
+				<h3>7.3 Erasure</h3>
 				<p>
-					You can update or correct your personal information at any time
-					through your account settings.
+					Delete your account in your account settings, or ask us to delete it.
+					You can also ask us to remove specific items.
 				</p>
 
-				<h3>7.3 Right to Erasure (&quot;Right to be Forgotten&quot;)</h3>
+				<h3>7.4 Portability</h3>
 				<p>
-					You can request deletion of your account and associated data. This can
-					be done through your account settings or by contacting us.
+					Export your maps and data as a JSON file to use with another service.
 				</p>
 
-				<h3>7.4 Right to Data Portability</h3>
+				<h3>7.5 Restriction</h3>
 				<p>
-					You can export your mind maps and data in standard formats (JSON) for
-					use with other services.
+					Ask us to pause using your data while you dispute its accuracy or our
+					reasons for using it.
 				</p>
 
-				<h3>7.5 Right to Withdraw Consent</h3>
+				<h3>7.6 Objection</h3>
 				<p>
-					Where we rely on consent, you can withdraw it at any time. This will
-					not affect the lawfulness of processing before withdrawal.
+					Object to processing based on our legitimate interests (section 4.2).
+					Update emails can be switched off in your account settings.
 				</p>
 
-				<h3>7.6 Right to Lodge a Complaint</h3>
+				<h3>7.7 Withdraw Consent and Complain</h3>
 				<p>
-					You have the right to lodge a complaint with a supervisory authority.
-					In Poland, this is the President of the Personal Data Protection
-					Office (UODO).
+					Where we rely on consent, you can withdraw it at any time; this
+					doesn&apos;t affect what happened before. You can also complain to a
+					data protection authority. In Poland that is the President of the
+					Personal Data Protection Office (UODO), or you can contact the
+					authority in your own country.
 				</p>
 
-				<h3>7.7 California Residents (CCPA)</h3>
-				<p>California residents have additional rights:</p>
-				<ul>
-					<li>
-						Right to know what personal information is collected and how it is
-						used
-					</li>
-					<li>Right to delete personal information</li>
-					<li>
-						Right to opt-out of the sale of personal information (note: we do
-						not sell your data)
-					</li>
-					<li>
-						Right to non-discrimination for exercising your privacy rights
-					</li>
-				</ul>
-
+				<h3>7.8 United States Residents</h3>
 				<p>
-					To exercise any of these rights, please contact us at{' '}
-					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. We will
-					respond within 30 days (or 45 days for CCPA requests).
+					If you live in California or another US state with a privacy law, you
+					can ask to know what personal information we collect and why (this
+					policy), get a copy, have it deleted, and have it corrected. We
+					don&apos;t discriminate against you for using these rights. We
+					don&apos;t sell personal information or share it for advertising
+					across websites, and we use sign-in credentials only to sign you in.
+					Email us from your account address to make a request. If we decline,
+					reply to our answer to appeal. We respond within 45 days.
 				</p>
 			</section>
 
@@ -504,23 +550,11 @@ export default function PrivacyPolicyPage() {
 			<section id='section-8' className='scroll-mt-24'>
 				<h2>8. International Data Transfers</h2>
 				<p>
-					Some of our service providers are located in the United States. When
-					we transfer your data outside the European Economic Area (EEA), we
-					ensure appropriate safeguards are in place:
-				</p>
-				<ul>
-					<li>
-						<strong>Standard Contractual Clauses (SCCs)</strong> — Our
-						agreements with US-based providers include EU-approved contractual
-						safeguards
-					</li>
-					<li>
-						<strong>Adequacy decisions</strong> — Where applicable, we rely on
-						EU adequacy decisions
-					</li>
-				</ul>
-				<p>
-					You can request a copy of the safeguards we use by contacting us at{' '}
+					Shiko&apos;s database and hosting are in the United States, so your
+					data leaves the European Economic Area (EEA). We rely on the EU–US
+					Data Privacy Framework where a provider is certified under it, and
+					otherwise on Standard Contractual Clauses, which are EU-approved
+					contract terms with the provider. You can ask us for a copy at{' '}
 					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
 				</p>
 			</section>
@@ -528,36 +562,20 @@ export default function PrivacyPolicyPage() {
 			{/* Section 9: Security */}
 			<section id='section-9' className='scroll-mt-24'>
 				<h2>9. Security</h2>
-				<p>
-					We implement appropriate technical and organizational measures to
-					protect your data:
-				</p>
 				<ul>
+					<li>Everything between you and Shiko is encrypted (HTTPS).</li>
+					<li>Passwords are stored scrambled, so nobody can read them.</li>
 					<li>
-						<strong>Encryption in transit</strong> — All data is transmitted
-						over HTTPS/TLS
+						A map is visible only to you and the people you share it with, and
+						access to personal data on our side is limited to what running the
+						service needs.
 					</li>
-					<li>
-						<strong>Password hashing</strong> — Passwords are hashed using
-						industry-standard algorithms (bcrypt)
-					</li>
-					<li>
-						<strong>Row-level security</strong> — Database access is controlled
-						at the row level to ensure you can only access your own data
-					</li>
-					<li>
-						<strong>Access controls</strong> — We limit employee access to
-						personal data on a need-to-know basis
-					</li>
-					<li>
-						<strong>Regular updates</strong> — We keep our systems and
-						dependencies updated to address security vulnerabilities
-					</li>
+					<li>We keep our software up to date to fix security problems.</li>
 				</ul>
 				<p>
-					While we strive to protect your data, no method of transmission or
-					storage is 100% secure. If you discover a security vulnerability,
-					please report it to{' '}
+					No system is completely secure. If a breach puts your rights at risk,
+					we will tell you and the authorities as the law requires. To report a
+					vulnerability, email{' '}
 					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
 				</p>
 			</section>
@@ -566,15 +584,11 @@ export default function PrivacyPolicyPage() {
 			<section id='section-10' className='scroll-mt-24'>
 				<h2>10. Children&apos;s Privacy</h2>
 				<p>
-					Shiko is not intended for children under 16 years of age (or 13 in
-					jurisdictions where the GDPR does not apply). We do not knowingly
-					collect personal information from children.
-				</p>
-				<p>
-					If you are a parent or guardian and believe your child has provided us
-					with personal information, please contact us at{' '}
-					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. We will take
-					steps to delete such information.
+					Shiko is not meant for children under 16 (or 13 where the GDPR does
+					not apply). We don&apos;t knowingly collect their personal
+					information. If you think a child has given us any, email{' '}
+					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> and we will
+					delete it.
 				</p>
 			</section>
 
@@ -582,20 +596,9 @@ export default function PrivacyPolicyPage() {
 			<section id='section-11' className='scroll-mt-24'>
 				<h2>11. Changes to This Policy</h2>
 				<p>
-					We may update this Privacy Policy from time to time. When we make
-					material changes, we will:
-				</p>
-				<ul>
-					<li>
-						Update the &quot;Last updated&quot; date at the top of this policy
-					</li>
-					<li>Notify you by email (for significant changes)</li>
-					<li>Post a notice on our website</li>
-				</ul>
-				<p>
-					We encourage you to review this policy periodically. Your continued
-					use of Shiko after changes constitutes acceptance of the updated
-					policy.
+					When we change this policy we update the &quot;Last updated&quot;
+					date. For significant changes we also email you or tell you in the app
+					before they take effect.
 				</p>
 			</section>
 
@@ -605,16 +608,16 @@ export default function PrivacyPolicyPage() {
 					12. Cookies and Browser Storage
 				</h2>
 				<p>
-					Shiko stores a few things in your browser so you can sign in and so the
-					editor works the way you left it. We don&apos;t use advertising or
+					Shiko stores a few things in your browser so you can sign in and so
+					the editor works the way you left it. We don&apos;t use advertising or
 					analytics cookies, and nothing Shiko stores is used to follow you
 					across other websites.
 				</p>
 				<p>
 					Everything listed below is needed for something you asked Shiko to do:
 					sign you in, save your work, remember your settings. The law
-					doesn&apos;t require consent for that, which is why Shiko shows a short
-					notice and doesn&apos;t ask you to accept or refuse.{' '}
+					doesn&apos;t require consent for that, which is why Shiko shows a
+					short notice and doesn&apos;t ask you to accept or refuse.{' '}
 					<strong>
 						If we ever add anything that isn&apos;t needed, we&apos;ll ask you
 						first, and saying no will be as easy as saying yes.
@@ -655,15 +658,15 @@ export default function PrivacyPolicyPage() {
 
 				<h3>12.2 Other websites</h3>
 				<p>
-					Shiko loads no third-party scripts, ads or trackers, and its fonts come
-					from Shiko&apos;s own servers. A few things you do take you to, or load
-					something from, another website, which handles your data under its own
-					privacy policy:
+					Shiko loads no third-party scripts, ads or trackers, and its fonts
+					come from Shiko&apos;s own servers. A few things you do take you to,
+					or load something from, another website, which handles your data under
+					its own privacy policy:
 				</p>
 				<ul>
 					<li>
-						Paying for Pro takes you to Polar&apos;s checkout, which sets its own
-						cookies.
+						Paying for Pro takes you to Polar&apos;s checkout, which sets its
+						own cookies.
 					</li>
 					<li>Signing in with Google or GitHub happens on their websites.</li>
 					<li>
@@ -689,31 +692,25 @@ export default function PrivacyPolicyPage() {
 					You can delete Shiko&apos;s cookies and storage in your browser&apos;s
 					settings at any time. Clearing it signs you out and resets your editor
 					settings and tips. It also loses any changes that haven&apos;t been
-					saved yet, so reconnect first if you&apos;ve been working offline. On a
-					shared computer, clear your browser data when you&apos;re done.
+					saved yet, so reconnect first if you&apos;ve been working offline. On
+					a shared computer, clear your browser data when you&apos;re done.
 				</p>
 			</section>
 
 			{/* Section 13: Contact Us */}
 			<section id='section-13' className='scroll-mt-24'>
 				<h2>13. Contact Us</h2>
-				<p>
-					If you have questions about this Privacy Policy or our data practices,
-					please contact us:
-				</p>
+				<p>For questions about this policy or to use your rights:</p>
 				<ul>
 					<li>
 						<strong>Email:</strong>{' '}
 						<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
 					</li>
 					<li>
-						<strong>Data Controller:</strong> Shiko (Poland)
+						<strong>Controller:</strong> {LEGAL_OPERATOR.name},{' '}
+						{LEGAL_OPERATOR.address}
 					</li>
 				</ul>
-				<p>
-					For GDPR-related inquiries, you can also contact your local data
-					protection authority.
-				</p>
 			</section>
 
 			{/* Footer navigation */}

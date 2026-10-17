@@ -1,15 +1,15 @@
 import { BackToTopLink } from '@/components/legal/back-to-top-link';
+import { CONTACT_EMAIL, LEGAL_OPERATOR } from '@/constants/legal';
 import { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
 	title: 'Terms of Service - Shiko',
 	description:
-		'Terms and conditions for using Shiko, the AI-powered mind mapping platform.',
+		'The terms for using Shiko, the AI-powered mind mapping platform: accounts, plans and refunds, your content, plugins, AI features, and how to complain.',
 };
 
-const EFFECTIVE_DATE = 'October 12, 2026';
-const CONTACT_EMAIL = 'support@shiko.app';
+const EFFECTIVE_DATE = 'October 18, 2026';
 
 export default function TermsOfServicePage() {
 	return (
@@ -20,7 +20,7 @@ export default function TermsOfServicePage() {
 					Terms of Service
 				</h1>
 				<p className='text-text-secondary'>
-					Last updated: <time dateTime='2026-10-12'>{EFFECTIVE_DATE}</time>
+					Last updated: <time dateTime='2026-10-18'>{EFFECTIVE_DATE}</time>
 				</p>
 			</header>
 
@@ -31,22 +31,21 @@ export default function TermsOfServicePage() {
 				</h2>
 				<ol className='space-y-2 text-sm'>
 					{[
-						'Acceptance of Terms',
-						'Description of Service',
-						'Account Registration',
-						'Subscription Plans & Billing',
+						'About These Terms',
+						'The Service',
+						'Accounts',
+						'Plans, Billing & Refunds',
 						'Acceptable Use',
-						'User Content',
-						'Intellectual Property',
+						'Your Content',
+						'Plugins & Recipes',
 						'AI Features',
+						'Reporting Illegal Content',
 						'Third-Party Services',
-						'Disclaimer of Warranties',
-						'Limitation of Liability',
-						'Indemnification',
-						'Termination',
-						'Dispute Resolution',
-						'Changes to Terms',
-						'General Provisions',
+						'Warranties & Liability',
+						'Ending Your Account',
+						'Complaints & Disputes',
+						'Changes to These Terms',
+						'General',
 					].map((title, index) => (
 						<li key={title}>
 							<a
@@ -60,546 +59,418 @@ export default function TermsOfServicePage() {
 				</ol>
 			</nav>
 
-			{/* Section 1: Acceptance of Terms */}
+			{/* Section 1: About These Terms */}
 			<section id='section-1' className='scroll-mt-24'>
-				<h2>1. Acceptance of Terms</h2>
+				<h2>1. About These Terms</h2>
 				<p>
-					By accessing or using Shiko (&quot;Service&quot;), you agree to be
-					bound by these Terms of Service (&quot;Terms&quot;). If you do not
-					agree to these Terms, you may not use the Service.
+					Shiko (&quot;Service&quot;) is run by{' '}
+					<strong>{LEGAL_OPERATOR.name}</strong>, {LEGAL_OPERATOR.address}
+					(&quot;we&quot;, &quot;us&quot;). You can reach us at{' '}
+					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. By using
+					Shiko you agree to these Terms. If you don&apos;t agree, please
+					don&apos;t use it.
 				</p>
 				<p>
-					You must be at least 16 years old (or 13 in jurisdictions where the
-					GDPR does not apply) to use this Service. By using Shiko, you
-					represent that you meet this age requirement.
+					You must be at least 16 years old (or 13 where the GDPR does not
+					apply). If you use Shiko for an organization, you confirm you can
+					accept these Terms for it.
 				</p>
 				<p>
-					If you are using the Service on behalf of an organization, you
-					represent that you have the authority to bind that organization to
-					these Terms.
+					If you are a consumer, the mandatory consumer laws of your country
+					still apply, and nothing in these Terms takes away rights you have
+					under them.
 				</p>
 			</section>
 
-			{/* Section 2: Description of Service */}
+			{/* Section 2: The Service */}
 			<section id='section-2' className='scroll-mt-24'>
-				<h2>2. Description of Service</h2>
-				<p>Shiko is an AI-powered mind mapping platform that provides:</p>
-				<ul>
-					<li>
-						<strong>Mind mapping tools</strong> — Create, organize, and
-						visualize your ideas with various node types (text, tasks, code,
-						images, questions, and more)
-					</li>
-					<li>
-						<strong>AI-powered features</strong> — Get intelligent suggestions,
-						answers, and connections powered by artificial intelligence
-					</li>
-					<li>
-						<strong>Real-time collaboration</strong> — Work together with others
-						on shared mind maps with live cursors and presence indicators
-					</li>
-					<li>
-						<strong>Export capabilities</strong> — Export your work in various
-						formats (PNG, SVG, PDF)
-					</li>
-				</ul>
+				<h2>2. The Service</h2>
 				<p>
-					We reserve the right to modify, suspend, or discontinue any aspect of
-					the Service at any time, with or without notice.
+					Shiko is a mind mapping app with live collaboration, AI suggestions
+					you ask for, plugins, recipes and export. To use it you need a current
+					browser with JavaScript turned on and an internet connection. Changes
+					made offline are saved when you reconnect.
+				</p>
+				<p>
+					We may change, suspend or stop parts of Shiko when there is a good
+					reason, such as security, a legal requirement, a technical limit or an
+					improvement. If a change substantially reduces what you paid for, we
+					will tell you at least 30 days ahead where we can, and you can cancel
+					and get a refund for the unused part of your paid period.
 				</p>
 			</section>
 
-			{/* Section 3: Account Registration */}
+			{/* Section 3: Accounts */}
 			<section id='section-3' className='scroll-mt-24'>
-				<h2>3. Account Registration</h2>
+				<h2>3. Accounts</h2>
 
-				<h3>3.1 Account Creation</h3>
+				<h3>3.1 Creating an Account</h3>
 				<p>
-					To use most features of Shiko, you must create an account. You can
-					sign up using:
+					You can sign up with email and password, or with Google or GitHub.
+					Give accurate information.
 				</p>
+
+				<h3>3.2 Your Responsibilities</h3>
 				<ul>
-					<li>Email and password</li>
-					<li>Google OAuth</li>
-					<li>GitHub OAuth</li>
+					<li>Keep your login details secure</li>
+					<li>Tell us promptly if someone else has used your account</li>
+					<li>You are responsible for what happens under your account</li>
 				</ul>
 
-				<h3>3.2 Account Responsibilities</h3>
-				<p>You agree to:</p>
-				<ul>
-					<li>Provide accurate and complete information during registration</li>
-					<li>Keep your login credentials secure and confidential</li>
-					<li>
-						Notify us immediately of any unauthorized access to your account
-					</li>
-					<li>
-						Be responsible for all activity that occurs under your account
-					</li>
-				</ul>
-
-				<h3>3.3 Anonymous Access</h3>
+				<h3>3.3 Guests</h3>
 				<p>
-					Some features, such as joining shared maps via room codes, may be
-					available without creating an account. Anonymous users have limited
-					functionality and their data may not be retained after the session
-					ends.
+					You can join a shared map with a room code without an account. Shiko
+					then makes a temporary guest account with the name you enter. Guests
+					have fewer features. A guest account stays until the map owner removes
+					the guest or the guest asks us to delete it at{' '}
+					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
 				</p>
 			</section>
 
-			{/* Section 4: Subscription Plans & Billing */}
+			{/* Section 4: Plans, Billing & Refunds */}
 			<section id='section-4' className='scroll-mt-24'>
-				<h2>4. Subscription Plans & Billing</h2>
+				<h2>4. Plans, Billing &amp; Refunds</h2>
 
-				<h3>4.1 Free Plan</h3>
-				<p>Our free plan includes:</p>
-				<ul>
-					<li>Up to 3 mind maps</li>
-					<li>Up to 50 nodes per map</li>
-					<li>Up to 3 collaborators per map</li>
-					<li>Basic features</li>
-				</ul>
-
-				<h3>4.2 Pro Plan</h3>
-				<p>Our Pro plan ($12/month or $120/year) includes:</p>
-				<ul>
-					<li>Unlimited mind maps</li>
-					<li>Unlimited nodes per map</li>
-					<li>Unlimited collaborators per map</li>
-					<li>100 AI suggestions per month</li>
-					<li>Priority support</li>
-				</ul>
-
-				<h3>4.3 Payment Processing</h3>
+				<h3>4.1 Plans</h3>
 				<p>
-					Payments are processed by Polar.sh, our third-party payment processor.
-					By subscribing, you agree to Polar&apos;s terms of service. We do not
-					store your payment card information.
+					Shiko has a Free plan and a Pro plan. What each includes and the
+					current prices are on the <Link href='/#pricing'>pricing page</Link>.
+					The price you see at checkout, with any tax, is the price you pay.
 				</p>
 
-				<h3>4.4 Billing Cycle</h3>
+				<h3>4.2 Who Sells Pro</h3>
 				<p>
-					Subscriptions are billed in advance on a monthly or annual basis. Your
-					subscription will automatically renew at the end of each billing
-					period unless you cancel.
+					Pro is sold by our payment partner, Polar Software, Inc.
+					(&quot;Polar&quot;), as seller of record. You buy from Polar, it takes
+					payment and handles tax and invoices, and{' '}
+					<a
+						href='https://polar.sh/legal/checkout-buyer-terms'
+						rel='noopener noreferrer'
+						target='_blank'
+					>
+						Polar&apos;s buyer terms
+					</a>{' '}
+					apply to the purchase. We never see your card details. For billing
+					problems you can write to us or to Polar.
 				</p>
 
-				<h3>4.5 Cancellation</h3>
+				<h3>4.3 Renewal and Cancellation</h3>
 				<p>
-					You may cancel your subscription at any time through your account
-					settings or by contacting us. Upon cancellation:
-				</p>
-				<ul>
-					<li>
-						You will retain access to Pro features until the end of your current
-						billing period
-					</li>
-					<li>
-						Your account will revert to the Free plan at the end of the period
-					</li>
-					<li>
-						If you exceed Free plan limits, you may need to delete content or
-						upgrade to continue using the Service
-					</li>
-				</ul>
-
-				<h3>4.6 Refunds</h3>
-				<p>
-					We generally do not provide refunds for subscription fees. However, we
-					may consider refund requests on a case-by-case basis for exceptional
-					circumstances. Contact us at{' '}
-					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> for
-					assistance.
+					Pro renews automatically each month or year until you cancel. Cancel
+					any time from Billing in your account settings. You keep Pro until the
+					end of the period you paid for, then your account moves to the Free
+					plan. If you are over the Free limits at that point, you may need to
+					delete content or upgrade to keep adding to it.
 				</p>
 
-				<h3>4.7 Price Changes</h3>
+				<h3>4.4 Refunds and Your Right to Withdraw</h3>
 				<p>
-					We may change our prices at any time. For existing subscribers, price
-					changes will take effect at the start of the next billing cycle after
-					30 days&apos; notice.
+					You can cancel your first Pro purchase within <strong>14 days</strong>{' '}
+					of your first payment and get a full refund, without giving a reason.
+					Email <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> or ask
+					Polar. The refund goes back to the way you paid. Later renewals are
+					not refunded unless the law requires it or Shiko failed to provide the
+					service. Your legal rights as a consumer are not affected.
+				</p>
+
+				<h3>4.5 Price Changes</h3>
+				<p>
+					If we raise the price of Pro, we will tell you at least 30 days before
+					it applies to your next renewal, and you can cancel before then.
 				</p>
 			</section>
 
 			{/* Section 5: Acceptable Use */}
 			<section id='section-5' className='scroll-mt-24'>
 				<h2>5. Acceptable Use</h2>
-				<p>You agree not to use the Service to:</p>
-
-				<h3>5.1 Prohibited Content</h3>
+				<p>Don&apos;t use Shiko to:</p>
 				<ul>
-					<li>Create, store, or share illegal content</li>
-					<li>Distribute malware, viruses, or harmful code</li>
-					<li>Share content that infringes intellectual property rights</li>
+					<li>Create, store or share illegal content</li>
 					<li>
-						Post content that is defamatory, harassing, threatening, or promotes
-						violence or discrimination
+						Share content that infringes others&apos; rights, or that is
+						defamatory, harassing, threatening, or promotes violence or
+						discrimination
 					</li>
 					<li>
-						Share explicit or adult content without appropriate safeguards
+						Distribute malware or take part in phishing, fraud or deception
 					</li>
-					<li>Engage in phishing, fraud, or deceptive practices</li>
+					<li>Get into other people&apos;s accounts or data</li>
+					<li>
+						Disrupt Shiko, scrape it or use bots on it without permission, or
+						get around limits or billing
+					</li>
+					<li>Resell or commercially exploit Shiko without our agreement</li>
 				</ul>
-
-				<h3>5.2 Prohibited Activities</h3>
-				<ul>
-					<li>
-						Attempt to gain unauthorized access to other users&apos; accounts or
-						data
-					</li>
-					<li>
-						Reverse engineer, decompile, or disassemble any part of the Service
-					</li>
-					<li>
-						Use automated systems (bots, scrapers) to access the Service without
-						permission
-					</li>
-					<li>Interfere with or disrupt the Service or its infrastructure</li>
-					<li>Circumvent usage limits or billing mechanisms</li>
-					<li>
-						Resell, sublicense, or commercially exploit the Service without
-						authorization
-					</li>
-				</ul>
-
-				<h3>5.3 Rate Limits</h3>
 				<p>
-					We implement rate limits to ensure fair usage and service stability.
-					Excessive use that impacts other users or our infrastructure may
-					result in temporary or permanent restrictions.
+					We limit how fast Shiko can be used so it stays stable for everyone.
+					Heavy use that affects other people or our systems may be slowed or
+					restricted.
 				</p>
 			</section>
 
-			{/* Section 6: User Content */}
+			{/* Section 6: Your Content */}
 			<section id='section-6' className='scroll-mt-24'>
-				<h2>6. User Content</h2>
+				<h2>6. Your Content</h2>
 
-				<h3>6.1 Ownership</h3>
+				<h3>6.1 You Own It</h3>
 				<p>
-					You retain ownership of all content you create using Shiko (&quot;User
-					Content&quot;). We do not claim ownership of your mind maps, nodes, or
-					other content.
+					You keep ownership of everything you create in Shiko (&quot;your
+					content&quot;). We don&apos;t claim it.
 				</p>
 
-				<h3>6.2 License to Shiko</h3>
+				<h3>6.2 Licence to Shiko</h3>
 				<p>
-					By using the Service, you grant us a limited, worldwide,
-					non-exclusive, royalty-free license to:
-				</p>
-				<ul>
-					<li>
-						Store and display your content to you and your authorized
-						collaborators
-					</li>
-					<li>
-						Process your content to provide the Service (including AI features)
-					</li>
-					<li>Create backups for disaster recovery</li>
-				</ul>
-				<p>This license ends when you delete your content or account.</p>
-
-				<h3>6.3 AI Processing Consent</h3>
-				<p>
-					When you use AI features, your content (such as node text and map
-					structure) is sent to our AI provider (OpenAI) for processing. By
-					using AI features, you consent to this data transfer. See our{' '}
-					<Link href='/privacy'>Privacy Policy</Link> for details.
+					You give us a limited, worldwide, non-exclusive, royalty-free licence
+					to store your content, show it to you and the people you share it
+					with, process it to provide the Service (including AI features you ask
+					for), and keep backups. The licence ends when you delete the content
+					or your account, except for backups, which are overwritten within 90
+					days.
 				</p>
 
-				<h3>6.4 Content Responsibility</h3>
+				<h3>6.3 Your Responsibility</h3>
 				<p>
-					You are solely responsible for your User Content. We do not endorse or
-					guarantee the accuracy, completeness, or usefulness of any User
-					Content.
+					You are responsible for your content and for having the right to use
+					it, including when you use AI features on text other people wrote. See
+					our <Link href='/privacy'>Privacy Policy</Link> for what AI features
+					send.
 				</p>
 
-				<h3>6.5 Content Removal</h3>
+				<h3>6.4 Removing Content</h3>
 				<p>
-					We reserve the right to remove or disable access to content that
-					violates these Terms or applicable law, without prior notice.
+					We may remove or hide content that breaks these Terms or the law. We
+					tell you why and how to object, unless the law stops us. See section
+					9.
 				</p>
 			</section>
 
-			{/* Section 7: Intellectual Property */}
+			{/* Section 7: Plugins & Recipes */}
 			<section id='section-7' className='scroll-mt-24'>
-				<h2>7. Intellectual Property</h2>
+				<h2>7. Plugins &amp; Recipes</h2>
 
-				<h3>7.1 Shiko&apos;s Rights</h3>
+				<h3>7.1 Using Them</h3>
 				<p>
-					The Service, including its design, features, code, and documentation,
-					is owned by Shiko and protected by intellectual property laws. You may
-					not copy, modify, or distribute any part of the Service without our
-					permission.
+					A map&apos;s owner can turn plugins on for it. Shiko reviews the
+					plugins it offers and runs them in a restricted sandbox in your
+					browser, but plugins are made by their authors, and section 11 applies
+					to them too. The <Link href='/privacy#plugins'>Privacy Policy</Link>{' '}
+					explains what a plugin that connects to a site sends.
 				</p>
 
-				<h3>7.2 Trademarks</h3>
+				<h3>7.2 Publishing Them</h3>
+				<p>If you submit a plugin or share a recipe, you confirm that:</p>
+				<ul>
+					<li>You have the right to publish it</li>
+					<li>
+						A plugin does what it says, reaches only the sites it names, and
+						contains no malware or code meant to collect people&apos;s data
+					</li>
+				</ul>
 				<p>
-					&quot;Shiko&quot; and our logo are trademarks. You may not use our
-					trademarks without prior written consent.
-				</p>
-
-				<h3>7.3 Feedback</h3>
-				<p>
-					If you provide feedback, suggestions, or ideas about the Service, you
-					grant us a perpetual, royalty-free license to use and incorporate that
-					feedback without obligation to you.
+					You give other Shiko users a licence to run your plugin or copy your
+					shared recipe, and we may show your display name as the author. We may
+					review, refuse, publish or turn off a plugin or recipe, and we tell
+					you why. If you delete your account, your plugins are removed; copies
+					of a recipe that people already installed stay with them.
 				</p>
 			</section>
 
 			{/* Section 8: AI Features */}
 			<section id='section-8' className='scroll-mt-24'>
 				<h2>8. AI Features</h2>
-
-				<h3>8.1 AI-Generated Content</h3>
-				<p>
-					Shiko uses artificial intelligence (powered by OpenAI) to provide
-					suggestions, answers, and other features. You understand that:
-				</p>
 				<ul>
 					<li>
-						AI-generated content may not be accurate, complete, or appropriate
-						for your needs
+						AI output can be wrong, incomplete or unsuitable. You are
+						responsible for checking it before you rely on it.
 					</li>
 					<li>
-						You are responsible for reviewing and verifying any AI-generated
-						content
+						AI features send the relevant map text and structure to our AI
+						provider; the <Link href='/privacy'>Privacy Policy</Link> has the
+						details.
 					</li>
 					<li>
-						AI features may not be available at all times due to third-party
-						service limitations
+						AI features can be unavailable or change when the models behind them
+						change.
 					</li>
-				</ul>
-
-				<h3>8.2 Data Sent to AI</h3>
-				<p>
-					When you use AI features, the following data may be sent to OpenAI:
-				</p>
-				<ul>
-					<li>Mind map structure (node relationships)</li>
-					<li>Node content (text, not images or files)</li>
-				</ul>
-
-				<h3>8.3 No Guarantees</h3>
-				<p>
-					We make no guarantees about the quality, accuracy, or availability of
-					AI features. AI capabilities may change as underlying models are
-					updated.
-				</p>
-
-				<h3>8.4 Prohibited AI Uses</h3>
-				<p>You may not use AI features to:</p>
-				<ul>
-					<li>Generate content that violates our Acceptable Use policy</li>
-					<li>Attempt to extract or reverse-engineer AI models</li>
-					<li>Generate content intended to deceive or mislead others</li>
+					<li>
+						Don&apos;t use AI features to break section 5, to copy or extract
+						the AI models, or to create content meant to deceive people.
+					</li>
 				</ul>
 			</section>
 
-			{/* Section 9: Third-Party Services */}
+			{/* Section 9: Reporting Illegal Content */}
 			<section id='section-9' className='scroll-mt-24'>
-				<h2>9. Third-Party Services</h2>
+				<h2>9. Reporting Illegal Content</h2>
+
+				<h3>9.1 How to Report</h3>
 				<p>
-					The Service may contain links to or integrations with third-party
-					websites and services. We do not control or endorse these third
-					parties and are not responsible for their content, privacy practices,
-					or terms.
+					If you see illegal content on Shiko, or a plugin that misbehaves, tell
+					us. For content, email{' '}
+					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> with where it
+					is (a link to the map is best), why you think it is illegal, and your
+					name and email. For a plugin, use Report in its menu.
 				</p>
+
+				<h3>9.2 What We Do</h3>
 				<p>
-					Your use of third-party services (including OAuth providers like
-					Google and GitHub) is subject to their respective terms and privacy
-					policies.
+					We review reports promptly and may remove or disable the content, or
+					turn a plugin off (we then tell the owners of the maps that use it).
+					We tell the person who posted it what we did and why, and they can
+					reply to us and ask us to look again.
+				</p>
+
+				<h3>9.3 Contact Point</h3>
+				<p>
+					This email is also our single point of contact for authorities and for
+					anyone using Shiko under the EU Digital Services Act. Write in English
+					or Polish.
 				</p>
 			</section>
 
-			{/* Section 10: Disclaimer of Warranties */}
+			{/* Section 10: Third-Party Services */}
 			<section id='section-10' className='scroll-mt-24'>
-				<h2>10. Disclaimer of Warranties</h2>
+				<h2>10. Third-Party Services</h2>
 				<p>
-					THE SERVICE IS PROVIDED &quot;AS IS&quot; AND &quot;AS AVAILABLE&quot;
-					WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
-					LIMITED TO:
-				</p>
-				<ul>
-					<li>MERCHANTABILITY</li>
-					<li>FITNESS FOR A PARTICULAR PURPOSE</li>
-					<li>NON-INFRINGEMENT</li>
-					<li>ACCURACY OR RELIABILITY OF CONTENT</li>
-					<li>UNINTERRUPTED OR ERROR-FREE OPERATION</li>
-				</ul>
-				<p>
-					We do not guarantee that the Service will meet your requirements or
-					that any errors will be corrected. Use of the Service is at your own
-					risk.
+					Shiko links to or works with other services, such as Google and GitHub
+					sign-in and the sites some plugins connect to. They have their own
+					terms and privacy policies, and we are not responsible for what they
+					do.
 				</p>
 			</section>
 
-			{/* Section 11: Limitation of Liability */}
+			{/* Section 11: Warranties & Liability */}
 			<section id='section-11' className='scroll-mt-24'>
-				<h2>11. Limitation of Liability</h2>
+				<h2>11. Warranties &amp; Liability</h2>
+
+				<h3>11.1 No Promise of Perfection</h3>
 				<p>
-					TO THE MAXIMUM EXTENT PERMITTED BY LAW, SHIKO AND ITS AFFILIATES,
-					OFFICERS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR:
+					TO THE EXTENT THE LAW ALLOWS, SHIKO IS PROVIDED &quot;AS IS&quot; AND
+					&quot;AS AVAILABLE&quot;, WITHOUT WARRANTIES THAT IT WILL BE
+					UNINTERRUPTED, ERROR-FREE, OR SUITED TO YOUR PARTICULAR NEEDS.
 				</p>
-				<ul>
-					<li>
-						Any indirect, incidental, special, consequential, or punitive
-						damages
-					</li>
-					<li>Loss of data, profits, revenue, or business opportunities</li>
-					<li>Damages arising from your use or inability to use the Service</li>
-					<li>
-						Damages arising from unauthorized access to your account or data
-					</li>
-				</ul>
+
+				<h3>11.2 Limit on Liability</h3>
 				<p>
-					IN NO EVENT SHALL OUR TOTAL LIABILITY EXCEED THE AMOUNT YOU PAID US IN
-					THE TWELVE (12) MONTHS PRECEDING THE CLAIM, OR $100, WHICHEVER IS
-					GREATER.
+					TO THE EXTENT THE LAW ALLOWS, WE ARE NOT LIABLE FOR INDIRECT OR
+					CONSEQUENTIAL LOSS, OR FOR LOST PROFIT, REVENUE OR DATA, AND OUR TOTAL
+					LIABILITY FOR ANY CLAIM IS LIMITED TO WHAT YOU PAID US IN THE TWELVE
+					MONTHS BEFORE THE CLAIM, OR $100 IF THAT IS MORE.
 				</p>
+
+				<h3>11.3 What This Does Not Limit</h3>
 				<p>
-					Some jurisdictions do not allow limitation of liability for certain
-					damages. In such jurisdictions, our liability is limited to the
-					maximum extent permitted by law.
+					Nothing in these Terms limits liability that cannot be limited by law.
+					That includes liability for intent or gross negligence, for injury to
+					a person, and, for consumers, rights the law gives you, such as the
+					right to a service that matches what was promised.
+				</p>
+
+				<h3>11.4 Business Users</h3>
+				<p>
+					If you use Shiko for business, you will cover claims from third
+					parties that arise from your content or your breach of these Terms.
 				</p>
 			</section>
 
-			{/* Section 12: Indemnification */}
+			{/* Section 12: Ending Your Account */}
 			<section id='section-12' className='scroll-mt-24'>
-				<h2>12. Indemnification</h2>
+				<h2>12. Ending Your Account</h2>
+
+				<h3>12.1 By You</h3>
 				<p>
-					You agree to indemnify, defend, and hold harmless Shiko and its
-					affiliates from any claims, damages, losses, and expenses (including
-					legal fees) arising from:
+					You can delete your account in your account settings or by emailing
+					us. Deleting it cancels Pro straight away and does not refund the rest
+					of the period, so cancel Pro first if you want to use the time you
+					paid for. Export your data first if you want to keep it. The Privacy
+					Policy explains what is deleted.
 				</p>
-				<ul>
-					<li>Your use of the Service</li>
-					<li>Your User Content</li>
-					<li>Your violation of these Terms</li>
-					<li>Your violation of any third-party rights</li>
-				</ul>
+
+				<h3>12.2 By Us</h3>
+				<p>
+					We may suspend or end your account if you break these Terms, if your
+					use is a security risk, if the law requires it, or if we stop offering
+					Shiko. We tell you why and give notice, except where the situation is
+					urgent or the law stops us. If we end a paid account and you did not
+					break these Terms, we refund the unused part of the period.
+				</p>
+
+				<h3>12.3 After It Ends</h3>
+				<p>
+					Your access stops and your content is deleted as described in the
+					Privacy Policy. Sections that by their nature should continue, such as
+					11, keep applying.
+				</p>
 			</section>
 
-			{/* Section 13: Termination */}
+			{/* Section 13: Complaints & Disputes */}
 			<section id='section-13' className='scroll-mt-24'>
-				<h2>13. Termination</h2>
+				<h2>13. Complaints &amp; Disputes</h2>
 
-				<h3>13.1 Termination by You</h3>
+				<h3>13.1 Complaints</h3>
 				<p>
-					You may terminate your account at any time through your account
-					settings or by contacting us. Upon termination, your right to use the
-					Service will cease immediately.
+					If something is wrong, email{' '}
+					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>. We answer
+					within 14 days. You can also ask a consumer protection body in your
+					country for help, and you can always go to court.
 				</p>
 
-				<h3>13.2 Termination by Shiko</h3>
-				<p>We may suspend or terminate your account if:</p>
-				<ul>
-					<li>You violate these Terms</li>
-					<li>Your use poses a security risk to the Service or other users</li>
-					<li>We are required to do so by law</li>
-					<li>We discontinue the Service (with reasonable notice)</li>
-				</ul>
+				<h3>13.2 Governing Law</h3>
+				<p>
+					Polish law governs these Terms. If you are a consumer, you keep the
+					protection of the mandatory laws of your country of residence.
+				</p>
 
-				<h3>13.3 Effect of Termination</h3>
-				<p>Upon termination:</p>
-				<ul>
-					<li>Your access to the Service will be revoked</li>
-					<li>
-						Your User Content may be deleted (we recommend exporting your data
-						before termination)
-					</li>
-					<li>
-						Provisions that should survive termination (such as Limitation of
-						Liability and Indemnification) will remain in effect
-					</li>
-				</ul>
+				<h3>13.3 Courts</h3>
+				<p>
+					Disputes go to the courts of Poland. If you are a consumer, you can
+					also bring a case in the courts of your own country.
+				</p>
 			</section>
 
-			{/* Section 14: Dispute Resolution */}
+			{/* Section 14: Changes to These Terms */}
 			<section id='section-14' className='scroll-mt-24'>
-				<h2>14. Dispute Resolution</h2>
-
-				<h3>14.1 Governing Law</h3>
+				<h2>14. Changes to These Terms</h2>
 				<p>
-					These Terms are governed by the laws of Poland, without regard to
-					conflict of law principles. For EU users, mandatory consumer
-					protection laws of your country of residence may also apply.
-				</p>
-
-				<h3>14.2 Informal Resolution</h3>
-				<p>
-					Before initiating any formal dispute resolution, you agree to contact
-					us at <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> to
-					attempt to resolve the dispute informally. We will try to resolve
-					disputes within 30 days.
-				</p>
-
-				<h3>14.3 Jurisdiction</h3>
-				<p>
-					Any disputes that cannot be resolved informally shall be subject to
-					the exclusive jurisdiction of the courts in Poland, except where
-					consumer protection laws grant you the right to bring proceedings in
-					your country of residence.
+					For a material change we give at least 30 days&apos; notice by email
+					or in the app, and update the date at the top. If you keep using Shiko
+					after the change takes effect, you accept it. If you disagree, you can
+					delete your account, or cancel Pro for a refund of the unused period,
+					before then.
 				</p>
 			</section>
 
-			{/* Section 15: Changes to Terms */}
+			{/* Section 15: General */}
 			<section id='section-15' className='scroll-mt-24'>
-				<h2>15. Changes to Terms</h2>
-				<p>
-					We may update these Terms from time to time. When we make material
-					changes:
-				</p>
+				<h2>15. General</h2>
 				<ul>
 					<li>
-						We will provide at least 30 days&apos; notice before the changes
-						take effect
+						These Terms, the <Link href='/privacy'>Privacy Policy</Link> and,
+						for Pro purchases, Polar&apos;s buyer terms are the whole agreement
+						between us.
 					</li>
-					<li>We will notify you by email and/or through the Service</li>
 					<li>
-						We will update the &quot;Last updated&quot; date at the top of these
-						Terms
+						If a part of these Terms cannot be enforced, the rest still applies.
+					</li>
+					<li>
+						If we don&apos;t enforce something straight away, we haven&apos;t
+						given it up.
+					</li>
+					<li>
+						You can&apos;t transfer your rights under these Terms without our
+						written consent. We may transfer ours to a successor to Shiko, as
+						long as your rights don&apos;t get worse.
+					</li>
+					<li>
+						&quot;Shiko&quot; and its logo are our trademarks. The
+						Service&apos;s design and code are ours or our licensors&apos;;
+						don&apos;t copy or reverse engineer them except where the law
+						allows.
+					</li>
+					<li>
+						If you send us feedback, we may use it without obligation to you.
 					</li>
 				</ul>
-				<p>
-					Your continued use of the Service after the changes take effect
-					constitutes acceptance of the new Terms. If you do not agree to the
-					changes, you must stop using the Service.
-				</p>
-			</section>
-
-			{/* Section 16: General Provisions */}
-			<section id='section-16' className='scroll-mt-24'>
-				<h2>16. General Provisions</h2>
-
-				<h3>16.1 Entire Agreement</h3>
-				<p>
-					These Terms, together with our{' '}
-					<Link href='/privacy'>Privacy Policy</Link>, constitute the entire
-					agreement between you and Shiko regarding the Service.
-				</p>
-
-				<h3>16.2 Severability</h3>
-				<p>
-					If any provision of these Terms is found to be unenforceable, the
-					remaining provisions will continue in effect.
-				</p>
-
-				<h3>16.3 Waiver</h3>
-				<p>
-					Our failure to enforce any right or provision of these Terms does not
-					constitute a waiver of that right or provision.
-				</p>
-
-				<h3>16.4 Assignment</h3>
-				<p>
-					You may not assign your rights or obligations under these Terms
-					without our prior written consent. We may assign our rights and
-					obligations without restriction.
-				</p>
-
-				<h3>16.5 Contact</h3>
-				<p>
-					For questions about these Terms, please contact us at{' '}
-					<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
-				</p>
 			</section>
 
 			{/* Footer navigation */}

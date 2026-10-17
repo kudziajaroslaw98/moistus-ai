@@ -1,6 +1,7 @@
 'use client';
 
 import { PasswordRequirementsInfo } from '@/components/auth/shared';
+import { LegalConsentNote } from '@/components/auth/shared/legal-consent-note';
 import { Button } from '@/components/ui/button';
 import { GithubIcon } from '@/components/icons/github';
 import { Input } from '@/components/ui/input';
@@ -1026,9 +1027,10 @@ export function UpgradeAnonymousPrompt({
 						{/* Footer */}
 						{displayStep !== 'completed' && displayStep !== 'error' && (
 							<div className='px-6 py-4 border-t border-white/10'>
-								<p className='text-text-tertiary text-xs text-center'>
-									By creating an account, you agree to our Terms of Service and
-									Privacy Policy. Your current progress will be preserved.
+								<LegalConsentNote />
+
+								<p className='mt-1 text-text-tertiary text-xs text-center'>
+									Your current progress will be preserved.
 								</p>
 							</div>
 						)}

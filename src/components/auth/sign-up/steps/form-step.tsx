@@ -6,6 +6,7 @@ import {
 	PasswordRequirementsInfo,
 	type OAuthProvider,
 } from '@/components/auth/shared';
+import { LegalConsentNote } from '@/components/auth/shared/legal-consent-note';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { signUpFormSchema, type SignUpFormData } from '@/lib/validations/auth';
@@ -243,6 +244,8 @@ export function FormStep({
 						'Create Account'
 					)}
 				</Button>
+
+				<LegalConsentNote className='pt-1' />
 			</motion.form>
 
 			{/* Sign in link */}
