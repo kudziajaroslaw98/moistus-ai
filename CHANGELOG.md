@@ -13,16 +13,25 @@ Format: `[YYYY-MM-DD]` - one entry per day.
   - Why: several statements were false, and required information was missing
 - **terms of service**: Rewritten. Adds who runs Shiko, Polar as the seller of Pro (it was called "our payment processor"), a full refund within 14 days of the first Pro payment (it said refunds are generally not given), complaints answered within 14 days, a way to report illegal content, rules for publishing plugins and recipes, consumer carve-outs to the warranty, liability and indemnity clauses, and a reason and notice when we change or end the service. Plan features and prices now point to the pricing page; AI consent is no longer a clause (AI runs because the person asked for it)
 - **subprocessors**: One list in the style of the cookie section instead of a table plus repeated cards. OpenAI is described correctly (kept up to 30 days, not used for training), PartyKit/Cloudflare and Resend are added, and the wrong "GDPR Article 28 requires this list" line is gone
+- **privacy policy / terms**: Retention (6), guests (3.3), the licence (6.2) and ending an account (12) say that what a person added to other people's maps stays as "Former member" and that guests unused for 90 days are removed
+- **delete account dialog**: Lists "Nodes, connections & comments on your maps" as deleted instead of "all", and says that what you added to other people's maps stays as "Former member"; the description no longer promises to remove "all your data from our servers"
 
 ### Added
 
 - **sign-up**: Sign-up, Google/GitHub sign-in and the guest upgrade now say the Terms apply and link the Terms and Privacy Policy (`LegalConsentNote`); they linked nothing before
 - **account menu**: Privacy Policy and Terms of Service links (new tab) in the dashboard and editor account menu
 - **legal pages**: `src/constants/legal.ts` holds the operator's details and contact email for all three pages, and `legal-pages.test.tsx` guards the contact address, in-page anchors and the corrected claims
+- **guests**: Guest accounts unused for 90 days are removed once a day (database job `remove-inactive-guests`); what they added stays as "Former member". Guests that own a map are skipped
+- **database**: `reassign_contributions` and `remove_inactive_guests` functions, the Former member placeholder user with its read policy, and the cron job (two local migration files, applied to prod through the Supabase MCP; prod needs `pg_cron` enabled first)
+
+### Fixed
+
+- **account deletion**: Deleting an account no longer deletes the nodes, connections, comment threads and replies the person added to other people's maps. They stay, without the person's name, as "Former member" (one placeholder user holds them). The person's own maps, profile and everything else are still deleted. If keeping them fails, nothing is cancelled or deleted and the person can retry
+  - Why: it removed other people's replies and work along with the leaver's, and the privacy policy could not describe it honestly
 
 ### Docs
 
-- **CLAUDE.md**: New "Legal pages" gotcha; tech debt #12-#15 (collaborator emails, what account/guest deletion removes, `support@shiko.app` has no MX record, provider DPAs to confirm); #10 now lists what a lawyer should review
+- **CLAUDE.md**: New "Legal pages" gotcha; tech debt #12-#15 (collaborator emails, the Former member migrations still to apply to prod, `support@shiko.app` has no MX record, provider DPAs to confirm); new "Former member contract" gotcha; #10 now lists what a lawyer should review
 
 ---
 

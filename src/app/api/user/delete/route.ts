@@ -15,15 +15,21 @@ const deleteAccountSchema = z.object({
  * Permanently deletes a user account and all associated data.
  * GDPR Article 17 - Right to Erasure compliance.
  *
+ * What the person added to OTHER people's maps (nodes, connections, comment
+ * threads and replies, history entries) stays, handed to the "Former member"
+ * placeholder by `reassign_contributions`; deleting the auth user would
+ * otherwise cascade it away. Their own maps are deleted.
+ *
  * Deletion order (FK-safe):
- * 1. Cancel Polar subscription (immediate revoke)
- * 2. Delete user's comments/reactions on any map
- * 3. Delete activity logs and usage data
- * 4. Delete billing records
- * 5. Delete user's owned maps (CASCADE handles nodes, edges, etc.)
- * 6. Delete user profile
- * 7. Delete auth user
- * 8. Send confirmation email
+ * 1. Hand contributions on other people's maps to Former member (aborts if it fails)
+ * 2. Cancel Polar subscription (immediate revoke)
+ * 3. Delete what is left of the user's comments/reactions (on their own maps)
+ * 4. Delete activity logs and usage data
+ * 5. Delete billing records
+ * 6. Delete user's owned maps (CASCADE handles nodes, edges, etc.)
+ * 7. Delete user profile
+ * 8. Delete auth user
+ * 9. Send confirmation email
  */
 export const DELETE = withAuthValidation(
 	deleteAccountSchema,
@@ -60,7 +66,27 @@ export const DELETE = withAuthValidation(
 			userProfile?.display_name || userProfile?.full_name || null;
 		const userEmail = userProfile?.email || user.email;
 
-		// 2. Check for and cancel active Polar subscription
+		// 2. Keep what they added to other people's maps. This runs before anything
+		// is cancelled or deleted: it only changes who those rows belong to, can be
+		// repeated, and if it fails the account is still whole and can retry.
+		const { error: reassignError } = await adminClient.rpc(
+			'reassign_contributions',
+			{ p_from: user.id }
+		);
+
+		if (reassignError) {
+			console.error(
+				'[AccountDeletion] Failed to hand contributions to Former member:',
+				reassignError
+			);
+			return respondError(
+				'Failed to delete your account. Nothing was deleted, please try again or contact support.',
+				500,
+				'Reassign failed'
+			);
+		}
+
+		// 3. Check for and cancel active Polar subscription
 		const { data: subscription } = await supabase
 			.from('user_subscriptions')
 			.select('polar_subscription_id, status')
@@ -86,7 +112,7 @@ export const DELETE = withAuthValidation(
 			}
 		}
 
-		// 3. Delete user data in FK-safe order
+		// 4. Delete user data in FK-safe order
 		// Using best-effort deletion - continue on errors, log for manual cleanup
 		const deletionResults: Array<{ table: string; error?: string }> = [];
 
@@ -107,7 +133,9 @@ export const DELETE = withAuthValidation(
 			}
 		};
 
-		// Phase 1: Comments & reactions (user's content on ANY map)
+		// Phase 1: Comments & reactions. Their content on other people's maps was
+		// handed to Former member above, so what is left is on maps they own
+		// (deleted below) and these deletes only clear what would block them
 		await deleteFromTable('comment_reactions');
 		await deleteFromTable('comment_messages');
 		await deleteFromTable('comments', 'created_by');

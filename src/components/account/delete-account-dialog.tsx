@@ -103,7 +103,7 @@ export function DeleteAccountDialog({
 
 					<DialogDescription className='text-center text-zinc-400'>
 						This action cannot be undone. This will permanently delete your
-						account and remove all your data from our servers.
+						account, your maps and your personal data.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -135,7 +135,7 @@ export function DeleteAccountDialog({
 						)}
 
 						<li className='flex items-center justify-between'>
-							<span>All nodes, connections & comments</span>
+							<span>Nodes, connections & comments on your maps</span>
 							<span className='font-medium text-rose-400'>All data</span>
 						</li>
 
@@ -153,6 +153,14 @@ export function DeleteAccountDialog({
 							<span className='font-medium text-rose-400'>All data</span>
 						</li>
 					</ul>
+
+					<p className='mt-3 border-t border-zinc-800 pt-3 text-sm text-zinc-400'>
+						<strong className='font-medium text-zinc-300'>
+							What you added to other people’s maps stays there
+						</strong>{' '}
+						(nodes, comments and replies), without your name. It shows as
+						“Former member”. To remove specific items, delete them first.
+					</p>
 				</motion.div>
 
 				{/* Warning for active subscription */}

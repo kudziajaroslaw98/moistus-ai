@@ -458,15 +458,21 @@ export default function PrivacyPolicyPage() {
 					</li>
 					<li>
 						<strong>Deleted accounts</strong> — when you delete your account, we
-						delete your profile, your maps, and what you added to other
-						people&apos;s maps (nodes, comments and reactions), within 30 days.
-						Plugins you published are removed; recipe copies other people
-						already installed stay with them. We keep only what the law
+						delete your profile and your maps, and everything in them, within 30
+						days. What you added to other people&apos;s maps (nodes,
+						connections, comments and replies, and their change history) stays
+						on those maps without your name or picture, shown as &quot;Former
+						member&quot;. Your reactions and your access to those maps are
+						removed. To remove specific items, delete them before you leave or
+						ask us. Plugins you published are removed; recipe copies other
+						people already installed stay with them. We keep only what the law
 						requires.
 					</li>
 					<li>
-						<strong>Guests</strong> — a guest account stays until the map owner
-						removes the guest or the guest asks us to delete it.
+						<strong>Guests</strong> — a guest account that hasn&apos;t been used
+						for 90 days is removed, and what it added to a map stays there as
+						&quot;Former member&quot;. The map owner can remove a guest sooner,
+						and a guest can ask us to delete their account at any time.
 					</li>
 					<li>
 						<strong>Backups</strong> — backups may hold deleted data for up to
